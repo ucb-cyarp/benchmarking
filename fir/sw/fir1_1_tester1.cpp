@@ -7,22 +7,30 @@
  * The timing results should therefore only include the actual
  * FIR filtering.
  * 
- * Parameters (defined as macros)
- *     - DATATYPE: Datatape 
- *     - COEF_LEN: Coefficient Length
- *     - IO_LEN: Stimulus Vector Length
- *     - STIM_LEN: Stimulus Length
- *     - TRIALS: Number of Trial Runs
- *     - RAND_MEAN: Random Number Mean
- *     - RAND_STDDEV: Random Number StdDev
- *     - RAND_SEED: Random Number Generator Seed
- *     - PRINT_TRIALS: TRUE to Print Each Trial
+ * Compiler Parameters (defined as macros)
+ *     - DATATYPE:     Datatape 
+ *     - COEF_LEN:     Coefficient Length
+ *     - IO_LEN:       Stimulus Vector Length
+ *     - STIM_LEN:     Stimulus Length
+ *     - TRIALS:       Number of Trial Runs
+ *     - RAND_MEAN:    Random Number Mean
+ *     - RAND_STDDEV:  Random Number StdDev
+ *     - RAND_SEED:    Random Number Generator Seed
+ *     - PRINT_TITLE:  1 to Print Title Text
+ *     - PRINT_TRIALS: 1 to Print Each Trial
+ *     - PRINT_STATS:  1 to Print Statistics
+ *     - WRITE_CSV:    1 to Write Results to CSV 
+ * 
+ * Arguments
+ *     - CSV Filename (only used when WRITE_CSV == TRUE)
  */
 
 #include <chrono>
 #include <random>
 #include <cstdio>
 #include <cmath>
+#include <fstream>
+#include <iostream>
 #include "fir1_1.hpp"
 
 #ifndef DATATYPE
@@ -59,9 +67,21 @@
     #define RAND_SEED 510582
 #endif
 
+#ifndef PRINT_TITLE
+    #define PRINT_TITLE 1
+#endif
+
 #ifndef PRINT_TRIALS
-    #define PRINT_TRIALS TRUE
-#endif 
+    #define PRINT_TRIALS 1
+#endif
+
+#ifndef PRINT_STATS
+    #define PRINT_STATS 1
+#endif
+
+#ifndef WRITE_CSV
+    #define WRITE_CSV 0
+#endif
 
 int main(int argc, char *argv[])
 {
@@ -78,7 +98,9 @@ int main(int argc, char *argv[])
     DATATYPE *coefs = new DATATYPE[COEF_LEN];
     DATATYPE *init = new DATATYPE[COEF_LEN];
 
+    #if PRINT_TITLE == 1
     printf("FIR1_1 Tester\n");
+    #endif
 
     //Conduct multiple trials
     for(size_t trial = 0; trial < TRIALS; trial++)
@@ -116,11 +138,12 @@ int main(int argc, char *argv[])
         std::chrono::high_resolution_clock::time_point stop = std::chrono::high_resolution_clock::now();
         durations[trial] = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(stop-start);
 
-        #if PRINT_TRIALS==TRUE
+        #if PRINT_TRIALS == 1
             printf("Trial %6d: %f\n", trial, durations[trial]);
         #endif 
     }
 
+    #if PRINT_STATS == 1
     //Print Average & StdDev
     double avg_duration = 0;
     for(size_t i = 0; i < TRIALS; i++)
@@ -141,6 +164,40 @@ int main(int argc, char *argv[])
     std_dev_duration = sqrt(std_dev_duration);
 
     printf("Sample Mean (ms): %f, Sample Std Dev: %f\n", avg_duration, std_dev_duration);
+    #endif
+
+    #if WRITE_CSV == 1
+    //Write CSV File
+    if(argc >= 2)
+    {
+        std::ofstream csv_file;
+        printf("Writing results to %s\n", argv[1]);
+        csv_file.open(argv[1]);
+
+        if(csv_file.is_open())
+        {
+            for(size_t i = 0; i < TRIALS-1; i++)
+            {
+                csv_file << (double) durations[i].count() << ", ";
+            }
+
+            if(TRIALS>0)
+            {
+                csv_file << (double) durations[TRIALS-1].count() << std::endl;
+            }
+
+            csv_file.close();
+        }
+        else
+        {
+            fprintf(stderr, "Unable to open file\n");
+        }
+    }
+    else
+    {
+        fprintf(stderr, "Need CSV Filename as First CLI Argument\n");
+    }
+    #endif
 
     //Cleanup
     delete[] stimulus;
