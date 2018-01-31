@@ -7,7 +7,7 @@ class OptionList:
     Contains a list of options.  This set may consist of sublists 
     which are exclusive, depandant
 
-    Note: This should be used as a set but ordering is potentially 
+    Note: This should be a set but ordering is potentially 
     important when applying compiler flags.
     """
 
@@ -26,6 +26,17 @@ class OptionList:
         by the compiler flag generator.
         """
 
+        #Special case when options is empty
+        if len(self._options)==0:
+            return 1 #will return the case of no options
+
+        #Find the number of combinations for each option in the list and multiply
+        combinations=1
+        for option in self._options:
+            combinations *= option.numberOfFlagCombinations()
+
+        return combinations
+
     def compilerFlagGenerator(self):
         """
         Generates compiler flags for different compiler runs based off 
@@ -36,11 +47,30 @@ class OptionList:
         list.
         """
 
+        def compilerFlagGeneratorHelper(options):
+            """
+            Helper function to facilitate recursive calls from compilerFlagGenerator
+            """
+
+            #Base case when list is empty
+            if len(options) == 0:
+                yield ""
+            else:
+                for l1Flag in options[0]:
+                    l2Flags = compilerFlagGeneratorHelper(options[1:]) #The recursive call, slicing the list
+                    for l2Flag in l2Flags:
+                        yield l1Flag + ' ' + l2Flag
+
+        return compilerFlagGeneratorHelper(self._options)
+
+
 class ExclusiveOptionList(OptionList):
     """
     Represents a List of options that are mutually exclusive.  
     -O0, -O1, -02, -O3 are mutually exclusive compiler flags for instance.
     """
+
+    #Don't need to override constructor
 
     def numberOfFlagCombinations(self):
         """
@@ -48,9 +78,37 @@ class ExclusiveOptionList(OptionList):
         by this exclusive option list.
         """
 
+        #Instead of multiplying the options, we sum them since each option
+        #is mutually exclusive
+        combinations=0
+        for option in self._options:
+            combinations += option.numberOfFlagCombinations()
+
+        return combinations
+
+    def compilerFlagGenerator(self):
+        """
+        Generates compiler flags for different compiler runs based off 
+        of the options included in the option set.  All legal combinations 
+        from the perspective of the CompilerOptionSet will be generated.\n\n
+
+        Flags will be included in the order that they are given in the option 
+        list.
+        """
+
+        #Since these options are mutually exclusive, the recursive structure
+        #used in the superclass is not required; each option is inspected
+        #independantly
+        for option in self._options:
+            for case in option:
+                yield case
+
 class DependantOptionList(OptionList):
     """
-    Represents a list of options that are dependant on a parent option.  
+    Represents a list of options that are dependant on a single parent option.  
+    This option is assumed to be a simple string and will be treated as a 
+    binary option.
+
     For example, certain options can only be set when another option is set.
     """
 
@@ -62,30 +120,120 @@ class DependantOptionList(OptionList):
         super().__init__(children)
         self._parent = parent
 
+    def numberOfFlagCombinations(self):
+        """
+        Returns the number of compiler options that will be genertated 
+        by this dependant option list.
+        """
 
-class Option:
-    """
-    Base Class representing a single option.
-    """
+        #This is the number of options in the children + 1 for the case
+        #when the parent is not included
 
-#This may actually be done with a generator of generators?\
+        combinations = super().numberOfFlagCombinations(self)
+        combinations += 1
 
-class EnumOption(Option):
+        return combinations
+
+
+    def compilerFlagGenerator(self):
+        """
+        Generates compiler flags for different compiler runs based off 
+        of the options included in the option set.  All legal combinations 
+        from the perspective of the CompilerOptionSet will be generated.\n\n
+
+        Flags will be included in the order that they are given in the option 
+        list.
+        """
+
+        yield ""
+        childCombonations = super().compilerFlagGenerator(self)
+
+        for childCombonation in childCombonations:
+            yield self._parent + " " + childCombonation 
+
+class EnumOption(OptionList):
     """
-    Base Class representing an option which can take on many values or which does 
+    Base case representing an option which can take on many values or which does 
     not exist at all.
     """
-#include format string, option, list
 
-class BinaryOption(Option):
+    def __init__(self, name=None, syntax='-{}={}', values=None, alwaysIncluded=False):
+        """
+        Initilize an enum option.  The name of the option, the syntax for the option, 
+        the possible values of the option define how the command line option will be 
+        printed.  alwaysIncluded==False will also add the case that the option is not 
+        included at all.
+        """
+        super().__init__(name)
+        self._syntax=syntax
+        self._values=values
+        self._alwaysIncluded=alwaysIncluded
+
+    def numberOfFlagCombinations(self):
+        """
+        Returns the number of cases this option can represent
+        """
+
+        combinations = len(self._values)
+        if self._alwaysIncluded==False:
+            combinations += 1
+
+        return combinations
+
+    def compilerFlagGenerator(self):
+        """
+        Generates the option combinations based on the values provided.  
+        If alwaysIncluded==False, the empty string is returned first.
+        """
+
+        if self._alwaysIncluded==False:
+            yield ""
+        for value in self._values:
+            yield self._syntax.format(self._name, value)
+
+class BinaryOption(OptionList):
     """
-    Base Class representing a simple option which either exists or does not.
+    Base case representing a simple option which either exists or does not.
     """
 
-class AlwaysOption(Option):
+    #Don't need to override constructor
+    
+    def numberOfFlagCombinations(self):
+        """
+        A binary operator only has 2 options. 2 will be returned by this function
+        """
+
+        return 2
+
+    def compilerFlagGenerator(self):
+        """
+        Generates the case when the flag is not present and then the case when the flag
+        is present.
+        """
+
+        yield ""
+        yield self._options
+
+class AlwaysOption(OptionList):
     """
-    Base Class representing a option which is always present
+    Base case representing a option which is always present
     """
+
+    #Don't need to override constructor
+    
+    def numberOfFlagCombinations(self):
+        """
+        An always option only has 1 option, itself. 1 will be returned by this function
+        """
+
+        return 1
+
+    def compilerFlagGenerator(self):
+        """
+        Generates the case when the flag is present
+        """
+
+        yield self._options
 
 class Compiler:
     """
@@ -109,3 +257,8 @@ class Program:
     #Linker flags
 
     #Running arg format
+
+
+def main():
+
+
