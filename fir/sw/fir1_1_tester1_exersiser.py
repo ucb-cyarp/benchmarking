@@ -63,12 +63,6 @@ class DependantOptionList(OptionList):
         self._parent = parent
 
 
-#Contain option and bool to state if active or not?
-#Can also be accomplished with chain of for loops
-#ie, for each of my options
-    #for each of my neighbors options
-        #for each of their neighbor's neighbor's options
-
 class Option:
     """
     Base Class representing a single option.
