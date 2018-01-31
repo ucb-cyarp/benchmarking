@@ -20,6 +20,14 @@ class OptionList:
         else:
             self._options = []
 
+    def options(self, options=None):
+        if options is not None:
+            self._options = options
+        return self._options
+
+    def addOption(self, option):
+        self._options.append(option)
+
     def numberOfFlagCombinations(self):
         """
         Returns the number of compiler options that will be genertated 
@@ -56,7 +64,8 @@ class OptionList:
             if len(options) == 0:
                 yield ""
             else:
-                for l1Flag in options[0]:
+                l1FlagGenerator = options[0].compilerFlagGenerator()
+                for l1Flag in l1FlagGenerator:
                     l2Flags = compilerFlagGeneratorHelper(options[1:]) #The recursive call, slicing the list
                     for l2Flag in l2Flags:
                         yield l1Flag + ' ' + l2Flag
@@ -129,7 +138,7 @@ class DependantOptionList(OptionList):
         #This is the number of options in the children + 1 for the case
         #when the parent is not included
 
-        combinations = super().numberOfFlagCombinations(self)
+        combinations = super().numberOfFlagCombinations()
         combinations += 1
 
         return combinations
@@ -146,7 +155,7 @@ class DependantOptionList(OptionList):
         """
 
         yield ""
-        childCombonations = super().compilerFlagGenerator(self)
+        childCombonations = super().compilerFlagGenerator()
 
         for childCombonation in childCombonations:
             yield self._parent + " " + childCombonation 
@@ -186,10 +195,16 @@ class EnumOption(OptionList):
         If alwaysIncluded==False, the empty string is returned first.
         """
 
-        if self._alwaysIncluded==False:
+        if self._alwaysIncluded is False:
             yield ""
         for value in self._values:
-            yield self._syntax.format(self._name, value)
+            yield self._syntax.format(self._options, value)
+
+    def addOption(self, option):
+        raise Exception('Cannot Add to Enum Option.  Can add value with addValue(value)')
+
+    def addValue(self, option):
+        self._values.append(option)
 
 class BinaryOption(OptionList):
     """
@@ -214,6 +229,9 @@ class BinaryOption(OptionList):
         yield ""
         yield self._options
 
+    def addOption(self, option):
+        raise Exception('Cannot Add to Binary Option')
+
 class AlwaysOption(OptionList):
     """
     Base case representing a option which is always present
@@ -235,30 +253,64 @@ class AlwaysOption(OptionList):
 
         yield self._options
 
+    def addOption(self, option):
+        raise Exception('Cannot Add to Always Option')
+
 class Compiler:
     """
     Create a class to represent a given Compiler.  
     Includes information such as the name of the compiler, the 
     """
 
-    def __init__(self, name='g++', env_setup=None, options=None, define_format='-D{}={}'):
+    def __init__(self, name='g++', envSetup=None, options=None, defineFormat='-D{}={}'):
         """Initialize a Compiler"""
-        self._env_setup = env_setup
+        self._envSetup = envSetup
         self._name = name
-        self._define_format = define_format
+        self._defineFormat = defineFormat
         if options is not None:
             self._options = options
         else:
             self._options = OptionList()
 
-class Program:
-    #Source file name(s)
-    #Flags for each source file (OptionList)
-    #Linker flags
+    #Getters & Setters
+    def envSetup(self, envSetup=None):
+        if envSetup is not None:
+            self._envSetup = envSetup
+        return envSetup
 
-    #Running arg format
+    def name(self, name=None):
+        if name is not None:
+            self._name=name
+        return self._name
+
+    def defineFormat(self, defineFormat=None):
+        if defineFormat is not None:
+            self._defineFormat = defineFormat
+        return defineFormat
+
+    def options(self, options=None):
+        if options is not None:
+            self._options=options
+        return self._options
+
+
+# class Program:
+#     #Source file name(s)
+#     #Flags for each source file (OptionList)
+#     #Linker flags
+
+#     #Running arg format
 
 
 def main():
+    options = OptionList()
+    options.addOption(AlwaysOption('-Wall'))
+
+    flagGenerator = options.compilerFlagGenerator()
+
+    for flags in flagGenerator:
+        print(flags)
 
 
+if __name__ == "__main__":
+    main()
