@@ -3,6 +3,7 @@
 #Autotuner/Excersiser for FIR1_1_Tester1
 
 import collections
+import string
 
 class OptionList:
     """
@@ -300,6 +301,37 @@ class AlwaysOption(OptionList):
     def addOption(self, option):
         raise Exception('Cannot Add to Always Option')
 
+def FlagsToFileSafeString(flagString):
+    safeString = flagString
+    safeString = safeString.replace('=', '')
+    safeString = safeString.replace('*', '')
+    safeString = safeString.replace('+', '')
+    safeString = safeString.replace('/', '')
+    safeString = safeString.replace('\\', '')
+    safeString = safeString.replace('{', '')
+    safeString = safeString.replace('}', '')
+    safeString = safeString.replace('<', '')
+    safeString = safeString.replace('>', '')
+    safeString = safeString.replace('[', '')
+    safeString = safeString.replace(']', '')
+    safeString = safeString.replace('(', '')
+    safeString = safeString.replace(')', '')
+    safeString = safeString.replace('?', '')
+    safeString = safeString.replace('!', '')
+    safeString = safeString.replace('#', '')
+    safeString = safeString.replace('$', '')
+    safeString = safeString.replace('%', '')
+    safeString = safeString.replace('^', '')
+    safeString = safeString.replace('&', '')
+    safeString = safeString.replace('`', '')
+    safeString = safeString.replace('\'', '')
+    safeString = safeString.replace('\"', '')
+    safeString = safeString.replace('|', '')
+    safeString = safeString.replace('~', '')
+    safeString = safeString.replace('.', '')
+    safeString = safeString.replace(' ', '')
+    return safeString
+
 class Compiler:
     """
     Create a class to represent a given Compiler.  
@@ -365,6 +397,7 @@ def main():
 
     for flags in flagGenerator:
         print(flags)
+        print(FlagsToFileSafeString(flags))
 
 
 if __name__ == "__main__":
