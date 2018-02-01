@@ -2,6 +2,8 @@
 
 #Autotuner/Excersiser for FIR1_1_Tester1
 
+import collections
+
 class OptionList:
     """
     Contains a list of options.  This set may consist of sublists 
@@ -16,7 +18,10 @@ class OptionList:
         Initilize an option list.
         """
         if options is not None:
-            self._options = options
+            if isinstance(options, collections.Iterable) and isinstance(options, collections.Sized):
+                self._options = options
+            else:
+                self._options = [options]
         else:
             self._options = []
 
@@ -62,13 +67,22 @@ class OptionList:
 
             #Base case when list is empty
             if len(options) == 0:
-                yield ""
+                yield None
             else:
                 l1FlagGenerator = options[0].compilerFlagGenerator()
                 for l1Flag in l1FlagGenerator:
                     l2Flags = compilerFlagGeneratorHelper(options[1:]) #The recursive call, slicing the list
                     for l2Flag in l2Flags:
-                        yield l1Flag + ' ' + l2Flag
+
+                        #avoid extra spaces when flags are nothing
+                        if (l1Flag is not None) and (l2Flag is not None):
+                            yield l1Flag + ' ' + l2Flag
+                        elif (l1Flag is not None) and (l2Flag is None):
+                            yield l1Flag
+                        elif (l1Flag is None) and (l2Flag is not None):
+                            yield l2Flag
+                        else:
+                            yield None
 
         return compilerFlagGeneratorHelper(self._options)
 
@@ -76,10 +90,20 @@ class OptionList:
 class ExclusiveOptionList(OptionList):
     """
     Represents a List of options that are mutually exclusive.  
-    -O0, -O1, -02, -O3 are mutually exclusive compiler flags for instance.
+    -O0, -O1, -02, -O3 are mutually exclusive compiler flags for instance.  
+    In most cases, the options should be Always options or EnumOptions where 
+    alwaysIncluded==True.  This avoids duplicate cases where duplicate blank 
+    arguments are included.
     """
 
-    #Don't need to override constructor
+    def __init__(self, options=None, alwaysIncluded=False):
+        """
+        In most cases, the options should be Always options or EnumOptions where 
+        alwaysIncluded==True.  alwaysIncluded for ExclusiveOptionList determines 
+        if a blank case where none of the options are included should be produced
+        """
+        super().__init__(options)
+        self._alwaysIncluded=alwaysIncluded
 
     def numberOfFlagCombinations(self):
         """
@@ -89,7 +113,12 @@ class ExclusiveOptionList(OptionList):
 
         #Instead of multiplying the options, we sum them since each option
         #is mutually exclusive
-        combinations=0
+
+        if self._alwaysIncluded is False:
+            combinations = 1
+        else:
+            combinations = 0
+
         for option in self._options:
             combinations += option.numberOfFlagCombinations()
 
@@ -108,15 +137,19 @@ class ExclusiveOptionList(OptionList):
         #Since these options are mutually exclusive, the recursive structure
         #used in the superclass is not required; each option is inspected
         #independantly
+
+        if self._alwaysIncluded is False:
+            yield None
+
         for option in self._options:
-            for case in option:
+            caseGenerator = option.compilerFlagGenerator()
+            for case in caseGenerator:
                 yield case
 
 class DependantOptionList(OptionList):
     """
     Represents a list of options that are dependant on a single parent option.  
-    This option is assumed to be a simple string and will be treated as a 
-    binary option.
+    This option is assumed to be a binary option or an always option
 
     For example, certain options can only be set when another option is set.
     """
@@ -127,6 +160,9 @@ class DependantOptionList(OptionList):
         Dependent options can also contain exclusive or dependant options
         """
         super().__init__(children)
+        if (not isinstance(parent, AlwaysOption)) and (not isinstance(parent, BinaryOption)):
+            raise Exception('Parent must either by an AlwaysOption or a BinaryOption')
+
         self._parent = parent
 
     def numberOfFlagCombinations(self):
@@ -139,7 +175,7 @@ class DependantOptionList(OptionList):
         #when the parent is not included
 
         combinations = super().numberOfFlagCombinations()
-        combinations += 1
+        combinations += self._parent.numberOfFlagCombinations()
 
         return combinations
 
@@ -153,12 +189,20 @@ class DependantOptionList(OptionList):
         Flags will be included in the order that they are given in the option 
         list.
         """
-
-        yield ""
+        
+        parentCombonations = self._parent.compilerFlagGenerator()
         childCombonations = super().compilerFlagGenerator()
 
-        for childCombonation in childCombonations:
-            yield self._parent + " " + childCombonation 
+        for parentCombonation in parentCombonations:
+            for childCombonation in childCombonations:
+                if (parentCombonation is not None) and (childCombonation is not None):
+                    yield parentCombonation + " " + childCombonation
+                elif (parentCombonation is not None) and (childCombonation is None):
+                    yield parentCombonation 
+                elif (parentCombonation is None) and (childCombonation is not None):
+                    yield childCombonation
+                else:
+                    yield None
 
 class EnumOption(OptionList):
     """
@@ -166,7 +210,7 @@ class EnumOption(OptionList):
     not exist at all.
     """
 
-    def __init__(self, name=None, syntax='-{}={}', values=None, alwaysIncluded=False):
+    def __init__(self, name=None, values=None, syntax='-{}={}', alwaysIncluded=False):
         """
         Initilize an enum option.  The name of the option, the syntax for the option, 
         the possible values of the option define how the command line option will be 
@@ -196,7 +240,7 @@ class EnumOption(OptionList):
         """
 
         if self._alwaysIncluded is False:
-            yield ""
+            yield None
         for value in self._values:
             yield self._syntax.format(self._options, value)
 
@@ -226,7 +270,7 @@ class BinaryOption(OptionList):
         is present.
         """
 
-        yield ""
+        yield None
         yield self._options
 
     def addOption(self, option):
@@ -262,11 +306,12 @@ class Compiler:
     Includes information such as the name of the compiler, the 
     """
 
-    def __init__(self, name='g++', envSetup=None, options=None, defineFormat='-D{}={}'):
+    def __init__(self, name='g++', envSetup=None, options=None, defineFormat='-D{}={}', outputFormat='-o {}'):
         """Initialize a Compiler"""
         self._envSetup = envSetup
         self._name = name
         self._defineFormat = defineFormat
+        self._outputFormat = outputFormat
         if options is not None:
             self._options = options
         else:
@@ -288,6 +333,11 @@ class Compiler:
             self._defineFormat = defineFormat
         return defineFormat
 
+    def outputFormat(self, outputFormat=None):
+        if outputFormat is not None:
+            self._outputFormat = outputFormat
+        return outputFormat
+
     def options(self, options=None):
         if options is not None:
             self._options=options
@@ -305,6 +355,11 @@ class Compiler:
 def main():
     options = OptionList()
     options.addOption(AlwaysOption('-Wall'))
+    options.addOption(BinaryOption('-g'))
+    options.addOption(ExclusiveOptionList([AlwaysOption('-O0'), AlwaysOption('-O1'), AlwaysOption('-O2'), DependantOptionList(AlwaysOption('-O3'), [BinaryOption('--vectorize'), BinaryOption('--threadme')])]))
+    options.addOption(DependantOptionList(AlwaysOption('--superflag'), ExclusiveOptionList([AlwaysOption('--superchoice1'), AlwaysOption('--superchoice2')])))
+    options.addOption(EnumOption('march', ['sse', 'sse2', 'avx', 'fma'], '--{}={}'))
+    options.addOption(EnumOption('UnrollFactor', range(0,6,2), '--{}={}'))
 
     flagGenerator = options.compilerFlagGenerator()
 
