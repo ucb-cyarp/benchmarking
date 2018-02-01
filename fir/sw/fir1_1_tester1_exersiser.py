@@ -5,6 +5,27 @@
 import collections
 import string
 
+class Parameter:
+    def __init__(self, name=None, paramString=None, value=None):
+        self._name = name
+        self._paramString = paramString
+        self._value = value
+
+    def name(self, name=None):
+        if name is not None:
+            self._name = name
+        return self._name
+
+    def paramString(self, paramString=None):
+        if paramString is not None:
+            self._paramString = paramString
+        return self._paramString
+
+    def value(self, value=None):
+        if value is not None:
+            self._value = value
+        return self._value
+
 class OptionList:
     """
     Contains a list of options.  This set may consist of sublists 
@@ -68,7 +89,7 @@ class OptionList:
 
             #Base case when list is empty
             if len(options) == 0:
-                yield None
+                yield []
             else:
                 l1FlagGenerator = options[0].compilerFlagGenerator()
                 for l1Flag in l1FlagGenerator:
@@ -77,13 +98,13 @@ class OptionList:
 
                         #avoid extra spaces when flags are nothing
                         if (l1Flag is not None) and (l2Flag is not None):
-                            yield l1Flag + ' ' + l2Flag
+                            yield l1Flag + l2Flag
                         elif (l1Flag is not None) and (l2Flag is None):
                             yield l1Flag
                         elif (l1Flag is None) and (l2Flag is not None):
                             yield l2Flag
                         else:
-                            yield None
+                            yield []
 
         return compilerFlagGeneratorHelper(self._options)
 
@@ -140,7 +161,7 @@ class ExclusiveOptionList(OptionList):
         #independantly
 
         if self._alwaysIncluded is False:
-            yield None
+            yield []
 
         for option in self._options:
             caseGenerator = option.compilerFlagGenerator()
@@ -197,13 +218,13 @@ class DependantOptionList(OptionList):
         for parentCombonation in parentCombonations:
             for childCombonation in childCombonations:
                 if (parentCombonation is not None) and (childCombonation is not None):
-                    yield parentCombonation + " " + childCombonation
+                    yield parentCombonation + childCombonation
                 elif (parentCombonation is not None) and (childCombonation is None):
                     yield parentCombonation 
                 elif (parentCombonation is None) and (childCombonation is not None):
                     yield childCombonation
                 else:
-                    yield None
+                    yield []
 
 class EnumOption(OptionList):
     """
@@ -241,9 +262,9 @@ class EnumOption(OptionList):
         """
 
         if self._alwaysIncluded is False:
-            yield None
+            yield []
         for value in self._values:
-            yield self._syntax.format(self._options, value)
+            yield [Parameter(self._options, self._syntax.format(self._options, value), value)]
 
     def addOption(self, option):
         raise Exception('Cannot Add to Enum Option.  Can add value with addValue(value)')
@@ -271,8 +292,8 @@ class BinaryOption(OptionList):
         is present.
         """
 
-        yield None
-        yield self._options
+        yield []
+        yield [Parameter(self._options, self._options)]
 
     def addOption(self, option):
         raise Exception('Cannot Add to Binary Option')
@@ -296,7 +317,7 @@ class AlwaysOption(OptionList):
         Generates the case when the flag is present
         """
 
-        yield self._options
+        yield [Parameter(self._options, self._options)]
 
     def addOption(self, option):
         raise Exception('Cannot Add to Always Option')
@@ -332,6 +353,9 @@ def FlagsToFileSafeString(flagString):
     safeString = safeString.replace(' ', '')
     return safeString
 
+def StringFromParameterList(parameters):
+    return ' '.join(map(lambda param: param.paramString(), parameters))
+
 class Compiler:
     """
     Create a class to represent a given Compiler.  
@@ -353,7 +377,7 @@ class Compiler:
     def envSetup(self, envSetup=None):
         if envSetup is not None:
             self._envSetup = envSetup
-        return envSetup
+        return self._envSetup
 
     def name(self, name=None):
         if name is not None:
@@ -363,12 +387,12 @@ class Compiler:
     def defineFormat(self, defineFormat=None):
         if defineFormat is not None:
             self._defineFormat = defineFormat
-        return defineFormat
+        return self._defineFormat
 
     def outputFormat(self, outputFormat=None):
         if outputFormat is not None:
             self._outputFormat = outputFormat
-        return outputFormat
+        return self._outputFormat
 
     def options(self, options=None):
         if options is not None:
@@ -396,8 +420,9 @@ def main():
     flagGenerator = options.compilerFlagGenerator()
 
     for flags in flagGenerator:
-        print(flags)
-        print(FlagsToFileSafeString(flags))
+        flagString = StringFromParameterList(flags)
+        print(flagString)
+        # print(FlagsToFileSafeString(flagString))
 
 
 if __name__ == "__main__":
