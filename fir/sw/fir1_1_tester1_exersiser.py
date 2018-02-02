@@ -6,6 +6,13 @@ import collections
 import string
 
 class Parameter:
+    """
+    Class used to hold information about a parameter included in either 
+    a call to the compiler or at runtime.  The paramString is what is 
+    actually used when running the compiler or program.  If a parameter 
+    only exists (ie. has no assigned value), the value field can be
+    blank
+    """
     def __init__(self, name=None, paramString=None, value=None):
         self._name = name
         self._paramString = paramString
