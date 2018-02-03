@@ -26,6 +26,7 @@
  */
 
 #include <chrono>
+#include <ctime>
 #include <random>
 #include <cstdio>
 #include <cmath>
@@ -87,6 +88,7 @@ int main(int argc, char *argv[])
 {
     //Create Timer Result Array
     std::chrono::duration<double, std::ratio<1, 1000>> durations[TRIALS];
+    double durations_clock[TRIALS];
 
     //Create Random Number Generator & Distribution
     std::mt19937 rand_gen(RAND_SEED);
@@ -128,6 +130,7 @@ int main(int argc, char *argv[])
 
         //Start Timer and Filter
         std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
+        clock_t start_clock = clock();
 
         for(size_t i = 0; i<(STIM_LEN/IO_LEN); i++)
         {
@@ -135,35 +138,47 @@ int main(int argc, char *argv[])
         }
 
         //Stop Timer and Report Time
+        clock_t stop_clock = clock();
         std::chrono::high_resolution_clock::time_point stop = std::chrono::high_resolution_clock::now();
         durations[trial] = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(stop-start);
+        durations_clock[trial] = 1000.0 * (stop_clock - start_clock) / CLOCKS_PER_SEC;
 
         #if PRINT_TRIALS == 1
-            printf("Trial %6d: %f\n", trial, durations[trial]);
+            printf("Trial %6d: %f, %f\n", trial, durations[trial], durations_clock[trial]);
         #endif 
     }
 
     #if PRINT_STATS == 1
     //Print Average & StdDev
     double avg_duration = 0;
+    double avg_duration_clock = 0;
     for(size_t i = 0; i < TRIALS; i++)
     {
         avg_duration += (double) durations[i].count();
+        avg_duration_clock += (double) durations_clock[i];
     }
     avg_duration /= TRIALS;
+    avg_duration_clock /= TRIALS;
 
     double std_dev_duration = 0;
+    double std_dev_duration_clock = 0;
     for(size_t i = 0; i < TRIALS; i++)
     {
         double tmp = durations[i].count() - avg_duration;
+        double tmp_clock = durations_clock[i] - avg_duration_clock;
         tmp = tmp*tmp;
+        tmp_clock = tmp_clock*tmp_clock;
 
         std_dev_duration += tmp;
+        std_dev_duration_clock += tmp_clock;
     }
     std_dev_duration /= (TRIALS - 1);
+    std_dev_duration_clock /= (TRIALS - 1);
     std_dev_duration = sqrt(std_dev_duration);
+    std_dev_duration_clock = sqrt(std_dev_duration_clock);
 
-    printf("Sample Mean (ms): %f, Sample Std Dev: %f\n", avg_duration, std_dev_duration);
+    printf("High Res Clock - Sample Mean (ms): %f, Sample Std Dev: %f\n", avg_duration, std_dev_duration);
+    printf("         Clock - Sample Mean (ms): %f, Sample Std Dev: %f\n", avg_duration_clock, std_dev_duration_clock);
     #endif
 
     #if WRITE_CSV == 1
@@ -176,15 +191,17 @@ int main(int argc, char *argv[])
 
         if(csv_file.is_open())
         {
-            for(size_t i = 0; i < TRIALS-1; i++)
+            csv_file << '\"High Resolution Clock - Walltime (ms)\", \"Clock - Cycles/Cycle Time (ms)\"' << std::endl;
+
+            for(size_t i = 0; i < TRIALS; i++)
             {
-                csv_file << (double) durations[i].count() << ", ";
+                csv_file << (double) durations[i].count() << ', ' << clock_durations[i] << std::endl;
             }
 
-            if(TRIALS>0)
-            {
-                csv_file << (double) durations[TRIALS-1].count() << std::endl;
-            }
+            // if(TRIALS>0)
+            // {
+            //     csv_file << (double) durations[TRIALS-1].count() << std::endl;
+            // }
 
             csv_file.close();
         }
