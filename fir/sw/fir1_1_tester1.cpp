@@ -102,6 +102,7 @@ int main(int argc, char *argv[])
 
     #if PRINT_TITLE == 1
     printf("FIR1_1 Tester\n");
+    printf("COEF_LEN: %d, IO_LEN: %d, STIM_LEN: %d, TRIALS: %d\n", COEF_LEN, IO_LEN, STIM_LEN, TRIALS);
     #endif
 
     //Conduct multiple trials
@@ -109,20 +110,22 @@ int main(int argc, char *argv[])
     {
         // DATATYPE stimulus[STIM_LEN];
         // DATATYPE output[STIM_LEN];
-
+        
         //Construct Random Array
         for(size_t i = 0; i<STIM_LEN; i++)
         {
             stimulus[i] = (DATATYPE) distribution(rand_gen);
+            //stimulus[i] = (DATATYPE) 1;
         }
 
-        
         //Construct Random Coef Array & Init Array
         DATATYPE coefs[COEF_LEN];
         DATATYPE init[COEF_LEN];
         for(size_t i = 0; i<COEF_LEN; i++)
         {
             coefs[i] = (DATATYPE) distribution(rand_gen);
+            //coefs[i] = (DATATYPE) 1;
+            init[i] = 0;
         }
 
         //Construct FIR
