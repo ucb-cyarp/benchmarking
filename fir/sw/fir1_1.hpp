@@ -33,7 +33,7 @@ void Fir<T, coef_len, io_len>::filter(const T* in, T* out)
     for(size_t i = 0; i<io_len; i++)
     {
         //Shift over previous samples
-        for(size_t j = io_len-1; j>0; j--)
+        for(size_t j = coef_len-1; j>0; j--)
         {
             working_array[j] = working_array[j-1];
         }
@@ -41,7 +41,7 @@ void Fir<T, coef_len, io_len>::filter(const T* in, T* out)
 
         //Compute FIR output
         T output = 0;
-        for(size_t j = 0; j<io_len; j++)
+        for(size_t j = 0; j<coef_len; j++)
         {
             output += working_array[j] * coef_array[j];
         }
