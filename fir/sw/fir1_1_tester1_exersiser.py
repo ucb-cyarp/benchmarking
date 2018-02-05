@@ -406,16 +406,78 @@ class Compiler:
             self._options=options
         return self._options
 
+class Suite:
+    def __init__(self, name=None, kernels=None):
+        """
+        Name = Name of Kernel Suite
+        Instances = List of Kernel Instances
+        """
+        self._name = name
+        self._instances = instances
 
-# class Program:
-#     #Source file name(s)
-#     #Flags for each source file (OptionList)
-#     #Linker flags
+    def instances(self, instances=None):
+        if instances is not None:
+            self._instances = instances
+        return self._instances
 
-#     #Running arg format
+    def addInstance(self, instance):
+        self._instances.append(instance)
 
+class Kernel:
+    def __init__(self, name=None, instances=None):
+        """
+        Name = Name of Kernel
+        Instances = List of Kernel Instances
+        """
+        self._name = name
+        self._instances = instances
 
-def main():
+    def instances(self, instances=None):
+        if instances is not None:
+            self._instances = instances
+        return self._instances
+
+    def addInstance(self, instance):
+        self._instances.append(instance)
+
+class KernelInstance:
+    def __init__(self, fileList=None, compileOptions=None, runOptions=None, outputFileFormatStr='{}'):
+        """
+        FileList: List of files to compile
+        CompileOptions: OptionList to be exersized at compile time
+        RunOptions: OptionList to be exersized at run time
+        """
+        if fileList is not None:
+            self._fileList = fileList
+        else:
+            self._fileList = []
+
+        if compileOptions is not None:
+            self._compileOptions = compileOptions
+        else:
+            self.compileOptions = OptionList()
+
+        if runOptions is not None:
+            self._runOptions = runOptions
+        else:
+            self._runOptions = OptionList()
+
+        self._outputFileFormatStr = outputFileFormatStr
+
+    def fileList(self, fileList=None):
+        if fileList is not None:
+            self._fileList = fileList
+        return self._fileList
+
+    def compileOptions(self, compileOptions=None):
+        if compileOptions is not None:
+            self._compileOptions = compileOptions
+        return self._compileOptions
+    
+    def addFile(self, file):
+        self._fileList.append(file)
+
+def flagTester():
     options = OptionList()
     options.addOption(AlwaysOption('-Wall'))
     options.addOption(BinaryOption('-g'))
@@ -430,6 +492,9 @@ def main():
         flagString = StringFromParameterList(flags)
         print(flagString)
         # print(FlagsToFileSafeString(flagString))
+
+def main():
+    flagTester()
 
 
 if __name__ == "__main__":
