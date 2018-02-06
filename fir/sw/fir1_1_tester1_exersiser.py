@@ -4,6 +4,10 @@
 
 import collections
 import string
+import platform
+import subprocess
+import re
+import sqlite3
 
 class Parameter:
     """
@@ -477,6 +481,34 @@ class KernelInstance:
     def addFile(self, file):
         self._fileList.append(file)
 
+class Machine:
+    """
+    Defines the machine this benchmark is being run on
+    """
+
+    def __init__(self, friendlyName='', interconnect='', nodeList=[]):
+        self._friendlyName = friendlyName
+        self._interconnect = interconnect
+        self._nodeList = nodeList
+
+    def friendlyName(self, friendlyName=None):
+        if friendlyName is not None:
+            self._friendlyName = friendlyName
+        return self._friendlyName
+
+    def interconnect(self, interconnect=None):
+        if interconnect is not None:
+            self._interconnect = interconnect
+        return self._interconnect
+
+    def nodeList(self, nodeList=None):
+        if nodeList is not None:
+            self._nodeList = nodeList
+        return self._nodeList
+
+    def addNode(self, node):
+        self._nodeList.append(node)
+
 def flagTester():
     options = OptionList()
     options.addOption(AlwaysOption('-Wall'))
@@ -493,8 +525,352 @@ def flagTester():
         print(flagString)
         # print(FlagsToFileSafeString(flagString))
 
+def createSqlTables(sqlCursor):
+    """Create SQL Tables"""
+
+    tableCreateCmds=[
+    """
+    CREATE TABLE `Suite` (
+        `SuiteID`	INTEGER PRIMARY KEY AUTOINCREMENT,
+        `Name`	TEXT,
+        `Description`	TEXT
+    );""", 
+    """
+    CREATE TABLE `Kernel` (
+        `KernelID`	INTEGER PRIMARY KEY AUTOINCREMENT,
+        `Name`	TEXT,
+        `Description`	TEXT
+    );""",
+    """
+    CREATE TABLE `KernelSuite` (
+        `SuiteID`	INTEGER NOT NULL,
+        `KernelID`	INTEGER NOT NULL,
+        PRIMARY KEY(`SuiteID`,`KernelID`)
+    );""", 
+    """
+    CREATE TABLE `KernelInstance` (
+        `KernelInstanceID`	INTEGER PRIMARY KEY AUTOINCREMENT,
+        `KernelID`	INTEGER NOT NULL,
+        `Description`	INTEGER
+    );""", 
+    """
+    CREATE TABLE `KernelFile` (
+        `KernelFileID`	INTEGER PRIMARY KEY AUTOINCREMENT,
+        `KernelInstanceID`	INTEGER NOT NULL,
+        `Filename`	TEXT
+    );""", 
+    """
+    CREATE TABLE `Parameter` (
+        `ParameterID`	INTEGER PRIMARY KEY AUTOINCREMENT,
+        `ParameterName`	TEXT
+    );""",
+    """
+    CREATE TABLE `Class` (
+        `ClassID`	INTEGER PRIMARY KEY AUTOINCREMENT,
+        `Name`	TEXT
+    );""",
+    """
+    CREATE TABLE `ParameterClass` (
+        `ParameterID`	INTEGER NOT NULL,
+        `ClassID`	INTEGER NOT NULL,
+        PRIMARY KEY(`ParameterID`,`ClassID`)
+    );""",
+    """
+    CREATE TABLE `ParameterValue` (
+        `ParameterValueID`	INTEGER PRIMARY KEY AUTOINCREMENT,
+        `ParameterID`	INTEGER NOT NULL,
+        `ValueNumeric`	NUMERIC,
+        `ValueString`	TEXT,
+        `FullString`	TEXT
+    );""",
+    """
+    CREATE TABLE `Vendor` (
+        `VendorID`	INTEGER PRIMARY KEY AUTOINCREMENT,
+        `Name`	TEXT
+    );""",
+    """
+    CREATE TABLE `Compiler` (
+        `CompilerID`	INTEGER PRIMARY KEY AUTOINCREMENT,
+        `Name`	TEXT,
+        `Command`	TEXT,
+        `VendorID`	INTEGER
+    );""",
+    """
+    CREATE TABLE `Machine` (
+        `MachineID`	INTEGER PRIMARY KEY AUTOINCREMENT,
+        `Name`	TEXT,
+        `Interconnect`	TEXT
+    );""",
+    """
+    CREATE TABLE `Run` (
+        `RunID`	INTEGER PRIMARY KEY AUTOINCREMENT,
+        `KernelInstanceID`	INTEGER NOT NULL,
+        `MachineID`	INTEGER NOT NULL,
+        `DateTimeStart`	TEXT,
+        `DataTimeStop`	TEXT,
+        `Status`	TEXT,
+        `Notes`	TEXT,
+        `CompilerID`	INTEGER NOT NULL,
+        `CommandExecuted`	TEXT,
+        `RawResult`	BLOB,
+        `RawResultFormat`	TEXT
+    );""",
+    """
+    CREATE TABLE `Phase` (
+        `PhaseID`	INTEGER PRIMARY KEY AUTOINCREMENT,
+        `Name`	TEXT
+    );""",
+    """
+    CREATE TABLE `Usage` (
+        `UsageID`	INTEGER PRIMARY KEY AUTOINCREMENT,
+        `Name`	BLOB
+    );""",
+    """
+    CREATE TABLE `Config` (
+        `ConfigID`	INTEGER PRIMARY KEY AUTOINCREMENT,
+        `RunID`	INTEGER NOT NULL,
+        `ParameterValueID`	INTEGER NOT NULL,
+        `Phase`	INTEGER NOT NULL,
+        `ParamUsageID`	INTEGER NOT NULL
+    );""",
+    """
+    CREATE TABLE `Trial` (
+        `TrialID`	INTEGER PRIMARY KEY AUTOINCREMENT,
+        `RunID`	INTEGER NOT NULL,
+        `TrialNumber`	INTEGER NOT NULL
+    );""",
+    """
+    CREATE TABLE `ResultType` (
+        `ResultTypeID`	INTEGER PRIMARY KEY AUTOINCREMENT,
+        `Name`	TEXT,
+        `IsSummary`	INTEGER NOT NULL
+    );""",
+    """
+    CREATE TABLE `Result` (
+        `ResultID`	INTEGER PRIMARY KEY AUTOINCREMENT,
+        `TrialID`	INTEGER NOT NULL,
+        `ResultTypeID`	INTEGER NOT NULL,
+        `Unit`	TEXT,
+        `Value`	NUMERIC
+    );""",
+    """
+    CREATE TABLE `OS` (
+        `OSID`	INTEGER PRIMARY KEY AUTOINCREMENT,
+        `Name`	TEXT,
+        `Distribution`	TEXT,
+        `Version`	TEXT,
+        `VendorID`	INTEGER
+    );""",
+    """
+    CREATE TABLE `Node` (
+        `NodeID`	INTEGER PRIMARY KEY AUTOINCREMENT,
+        `MachineID`	INTEGER NOT NULL,
+        `Hostname`	TEXT,
+        `OSID`	INTEGER NOT NULL,
+        `Hypervisor`	INTEGER,
+        `Numa`	INTEGER
+    );""",
+    """
+    CREATE TABLE `BaseISA` (
+        `BaseISAID`	INTEGER PRIMARY KEY AUTOINCREMENT,
+        `Name`	TEXT
+    );""",
+    """
+    CREATE TABLE `ISAExtension` (
+        `ISAExtensionID`	INTEGER PRIMARY KEY AUTOINCREMENT,
+        `Name`	TEXT,
+        `BaseISAID`	INTEGER NOT NULL
+    );""",
+    """
+    CREATE TABLE `Processor` (
+        `ProcessorID`	INTEGER PRIMARY KEY AUTOINCREMENT,
+        `Name`	TEXT,
+        `Vendor`	INTEGER NOT NULL,
+        `BaseISAID`	INTEGER NOT NULL,
+        `Cores`	INTEGER
+    );""",
+    """
+    CREATE TABLE `Cache` (
+        `CacheID`	INTEGER PRIMARY KEY AUTOINCREMENT,
+        `ProcessorID`	INTEGER NOT NULL,
+        `Level`	TEXT,
+        `Size`	Text
+    );""",
+    """
+    CREATE TABLE `ProcessorISAExtension` (
+        `ProcessorID`	INTEGER NOT NULL,
+        `ISAExtensionID`	INTEGER NOT NULL,
+        PRIMARY KEY(`ProcessorID`,`ISAExtensionID`)
+    );""",
+    """
+    CREATE TABLE `MemoryType` (
+        `MemoryTypeID`	INTEGER PRIMARY KEY AUTOINCREMENT,
+        `Name`	TEXT,
+        `SpeedMHz`	NUMERIC
+    );""",
+    """
+    CREATE TABLE `Socket` (
+        `SocketID`	INTEGER PRIMARY KEY AUTOINCREMENT,
+        `ProcessorID`	INTEGER NOT NULL,
+        `Memory`	TEXT,
+        `MemoryTypeID`	INTEGER
+    );""",
+    """
+    CREATE TABLE `NodeSocket` (
+        `NodeSocketID`	INTEGER PRIMARY KEY AUTOINCREMENT,
+        `NodeID`	INTEGER NOT NULL,
+        `SocketID`	INTEGER NOT NULL
+    );""",
+    """
+    CREATE TABLE `KernelInstanceParameters` (
+        `KernelInstanceID`	INTEGER NOT NULL,
+        `ParameterID`	INTEGER NOT NULL,
+        PRIMARY KEY(`KernelInstanceID`,`ParameterID`)
+    );""",
+    """
+    CREATE TABLE `CompilerSupportedParameterValues` (
+        `CompilerID`	INTEGER NOT NULL,
+        `ParametersID`	INTEGER NOT NULL,
+        PRIMARY KEY(`CompilerID`,`ParametersID`)
+    );
+    """]
+
+    for cmd in tableCreateCmds:
+        #print(cmd)
+        sqlCursor.execute(cmd)
+
+def autoPopulateMachineInfo(sqlCursor, machineFriendlyName=None):
+    """
+    Autopopulate machine info assuming entry does not already exist in DB
+    """
+
+    #TODO: Check if already in table
+    #TODO: Extend for OS appart from linux
+
+    #Create Machine
+    #TODO: Interconnect left blank for now
+    sqlCursor.execute('INSERT INTO Machine (`Name`) VALUES (?);', (machineFriendlyName,))
+    sqlCursor.execute('SELECT MachineID from Machine WHERE Machine.rowid=?;', (sqlCursor.lastrowid,))
+    machineID = sqlCursor.fetchone()[0]
+
+    osType = platform.system()
+
+    if osType == 'Linux':
+        #Get Dist Information
+        distName = (platform.dist())[0]
+        distVersion = (platform.dist())[1]
+
+        #Create OS Entry (For Now, Will not populate vendor)
+        sqlCursor.execute('INSERT INTO OS (`Name`, `Distribution`, `Version`) VALUES (?, ?, ?);', (osType, distName, distVersion))
+        sqlCursor.execute('SELECT OSID from OS WHERE OS.rowid=?;', (sqlCursor.lastrowid,))
+        OSID = sqlCursor.fetchone()[0]
+
+        #Find processor info
+        #TODO: for now, will assume sockets are identicle if there are multiple sockets.
+        #TODO: in vm, multiple cores are presented as multiple processors.  For now, will just diplay hyporvisor string
+        lscpu = subprocess.check_output('lscpu').decode('utf-8')
+        
+        #Create baseISA entry
+        regexp = re.compile('Architecture.*:(.*)')
+        baseISA = regexp.search(lscpu).group(1).strip()
+        sqlCursor.execute('INSERT INTO BaseISA (`Name`) VALUES (?);', (baseISA,))
+        sqlCursor.execute('SELECT BaseISAID from BaseISA WHERE BaseISA.rowid=?;', (sqlCursor.lastrowid,))
+        baseISAID = sqlCursor.fetchone()[0]
+
+        #Find Hypervisor
+        #Regex help from https://stackoverflow.com/questions/6633678/finding-words-after-keyword-in-python
+        regexp = re.compile('Hypervisor.*:(.*)')
+        hypervisor = regexp.search(lscpu)
+        if hypervisor is not None:
+            hypervisorStr = hypervisor.group(1).strip()
+
+        #Find Core and Socket Info
+        regexp = re.compile('Socket[(]s[)].*:(.*)')
+        sockets = int(regexp.search(lscpu).group(1).strip())
+
+        regexp = re.compile('Core[(]s[)] per.*:(.*)')
+        cores = int(regexp.search(lscpu).group(1).strip())
+
+        regexp = re.compile('NUMA node[(]s[)].*:(.*)')
+        numa = int(regexp.search(lscpu).group(1).strip())
+
+        #Find Processor Info
+        cpuinfo = subprocess.check_output('cat /proc/cpuinfo', shell=True).decode('utf-8')
+        
+        #TODO: Only looks at 1st processor for now, extend to look at all processors
+        #Find Vendor
+        regexp = re.compile('vendor_id.*:(.*)')
+        vendor = regexp.search(cpuinfo).group(1).strip()
+        sqlCursor.execute('INSERT INTO Vendor (`Name`) VALUES (?);', (vendor,))
+        sqlCursor.execute('SELECT VendorID from Vendor WHERE Vendor.rowid=?;', (sqlCursor.lastrowid,))
+        vendorID = sqlCursor.fetchone()[0]
+
+        #CPU Name
+        regexp = re.compile('model name.*:(.*)')
+        cpuName = regexp.search(cpuinfo).group(1).strip()
+
+        #Create Processor Entry
+        sqlCursor.execute('INSERT INTO Processor (`Name`, `Vendor`, `BaseISAID`, `Cores`) VALUES (?, ?, ?, ?);', (cpuName, vendorID, baseISAID, cores))
+        sqlCursor.execute('SELECT ProcessorID from Processor WHERE Processor.rowid=?;', (sqlCursor.lastrowid,))
+        processorID = sqlCursor.fetchone()[0]
+
+        #Find ISA Extension Info
+        regexp = re.compile('flags.*:(.*)')
+        extensions = regexp.search(cpuinfo).group(1).strip().split(' ')
+
+        for extension in extensions:
+            sqlCursor.execute('INSERT INTO ISAExtension (`Name`, `BaseISAID`) VALUES (?, ?);', (extension, baseISAID))
+            sqlCursor.execute('SELECT ISAExtensionID from ISAExtension WHERE ISAExtension.rowid=?;', (sqlCursor.lastrowid,))
+            extensionID = sqlCursor.fetchone()[0]
+            sqlCursor.execute('INSERT INTO ProcessorISAExtension (`ProcessorID`, `ISAExtensionID`) VALUES (?, ?);', (processorID, extensionID))
+
+        #Find Cache Info
+        cacheStrs = re.findall('.*cache.*:.*', lscpu)
+        for cacheStr in cacheStrs:
+            splitStr = cacheStr.split(':')
+            cacheName = splitStr[0].strip()
+            cacheSize = splitStr[1].strip()
+            sqlCursor.execute('INSERT INTO Cache (`ProcessorID`, `Level`, `Size`) VALUES (?, ?, ?);', (processorID, cacheName, cacheSize))
+
+        #Find Memory
+        meminfo = subprocess.check_output('cat /proc/meminfo', shell=True).decode('utf-8')
+        regexp = re.compile('MemTotal.*:(.*)')
+        memory = regexp.search(meminfo).group(1).strip()
+
+        #TODO: Find Memory Type, leave blank for now
+        #Create Socket
+        sqlCursor.execute('INSERT INTO Socket (`ProcessorID`, `Memory`) VALUES (?, ?);', (processorID, memory))
+        sqlCursor.execute('SELECT SocketID from Socket WHERE Socket.rowid=?;', (sqlCursor.lastrowid,))
+        socketID = sqlCursor.fetchone()[0]
+        
+        #Create Node
+        hostname = platform.node()
+
+        sqlCursor.execute('INSERT INTO Node (`MachineID`, `Hostname`, `OSID`, `Hypervisor`, `Numa`) VALUES (?, ?, ?, ?, ?);', (machineID, hostname, OSID, hypervisorStr, numa))
+        sqlCursor.execute('SELECT NodeID from Node WHERE Node.rowid=?;', (sqlCursor.lastrowid,))
+        nodeID = sqlCursor.fetchone()[0]
+
+        #Link Node and Socket
+        #TODO: for now, will assume sockets are identicle if there are multiple sockets.
+        for i in range(0, sockets):
+            sqlCursor.execute('INSERT INTO NodeSocket (`NodeID`, `SocketID`) VALUES (?, ?);', (nodeID, socketID))
+
+    return machineID
+
+def sqlTester():
+    conn = sqlite3.connect('test.db')
+    sqlCursor = conn.cursor()
+
+    createSqlTables(sqlCursor)
+    conn.commit()
+
+    autoPopulateMachineInfo(sqlCursor, 'Chris Macbook Pro')
+    conn.commit()
+
 def main():
-    flagTester()
+    flagTester() #Testing Flags
+
+    sqlTester()
 
 
 if __name__ == "__main__":
