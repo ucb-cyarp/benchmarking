@@ -373,16 +373,19 @@ class Compiler:
     Includes information such as the name of the compiler, the 
     """
 
-    def __init__(self, name='g++', envSetup=None, options=None, defineFormat='-D{}={}', outputFormat='-o {}'):
+    def __init__(self, name='gcc', command='g++', envSetup=None, vendor=None, options=None, defineFormat='-D{}={}', compileFormat='-c {}', outputFormat='-o {}', compilerID=None):
         """Initialize a Compiler"""
         self._envSetup = envSetup
         self._name = name
+        self._vendor = vendor
+        self._command = command
         self._defineFormat = defineFormat
         self._outputFormat = outputFormat
         if options is not None:
             self._options = options
         else:
             self._options = OptionList()
+        self._compilerID = compilerID
 
     #Getters & Setters
     def envSetup(self, envSetup=None):
@@ -394,6 +397,16 @@ class Compiler:
         if name is not None:
             self._name=name
         return self._name
+
+    def vendor(self, vendor=None):
+        if vendor is not None:
+            self._vendor = vendor
+        return self._vendor
+
+    def command(self, command=None):
+        if command is not None:
+            self._command = command
+        return self._command
 
     def defineFormat(self, defineFormat=None):
         if defineFormat is not None:
@@ -410,6 +423,23 @@ class Compiler:
             self._options=options
         return self._options
 
+    def compilerID(self, compilerID=None):
+        if compilerID is not None:
+            self._compilerID = compilerID
+        return self._compilerID
+
+    def addCompilerEntryIfNotAlready(self, sqlCursor):
+        """
+        Add compiler entry if not already in DB.  Returns compilerID
+        """
+        vendorID = addIfNotAlready(sqlCursor, 'SELECT VendorID FROM Vendor WHERE Vendor.Name=?;', 
+                   'INSERT INTO Vendor (`Name`) VALUES (?);', (self.vendor,))
+
+        compilerID = addIfNotAlready(sqlCursor, 'SELECT CompilerID FROM Compiler WHERE Compiler.Name=? AND Compiler.Command=? AND Compiler.VendorID=?;',
+                     'INSERT INTO Compiler (`Name`, `Command`, `VendorID`);', (self._name, self._command, vendorID))
+
+        return compilerID
+
 class Suite:
     def __init__(self, name=None, kernels=None):
         """
@@ -417,15 +447,15 @@ class Suite:
         Instances = List of Kernel Instances
         """
         self._name = name
-        self._instances = instances
+        self._kernels = kernels
 
-    def instances(self, instances=None):
-        if instances is not None:
-            self._instances = instances
-        return self._instances
+    def kernels(self, kernels=None):
+        if kernels is not None:
+            self._kerneles = kernels
+        return self._kerneles
 
-    def addInstance(self, instance):
-        self._instances.append(instance)
+    def addKernel(self, kernel):
+        self._kernels.append(kernel)
 
 class Kernel:
     def __init__(self, name=None, instances=None):
@@ -459,7 +489,7 @@ class KernelInstance:
         if compileOptions is not None:
             self._compileOptions = compileOptions
         else:
-            self.compileOptions = OptionList()
+            self._compileOptions = OptionList()
 
         if runOptions is not None:
             self._runOptions = runOptions
@@ -486,10 +516,11 @@ class Machine:
     Defines the machine this benchmark is being run on
     """
 
-    def __init__(self, friendlyName='', interconnect='', nodeList=[]):
+    def __init__(self, friendlyName='', interconnect='', nodeList=[], sqlMachineID=None):
         self._friendlyName = friendlyName
         self._interconnect = interconnect
         self._nodeList = nodeList
+        self._sqlMachineID = sqlMachineID
 
     def friendlyName(self, friendlyName=None):
         if friendlyName is not None:
@@ -506,8 +537,22 @@ class Machine:
             self._nodeList = nodeList
         return self._nodeList
 
+    def sqlMachineID(self, sqlMachineID=None):
+        if sqlMachineID is not None:
+            self._sqlMachineID = sqlMachineID
+        return self._sqlMachineID
+
     def addNode(self, node):
         self._nodeList.append(node)
+
+    def autoPopulateMachineInfo(self, sqlCursor):
+        """
+        Auto-popuate machine info and set sqlMachineID
+        """
+        #TODO: Make this check if entries already exist.  Right now, it simply adds
+        #and does not check
+
+        self._sqlMachineID = autoPopulateMachineInfo(sqlCursor, self._friendlyName, self._interconnect)
 
 def flagTester():
     options = OptionList()
@@ -739,7 +784,7 @@ def createSqlTables(sqlCursor):
         #print(cmd)
         sqlCursor.execute(cmd)
 
-def autoPopulateMachineInfo(sqlCursor, machineFriendlyName=None):
+def autoPopulateMachineInfo(sqlCursor, machineFriendlyName=None, interconnect=None):
     """
     Autopopulate machine info assuming entry does not already exist in DB
     """
@@ -749,8 +794,8 @@ def autoPopulateMachineInfo(sqlCursor, machineFriendlyName=None):
 
     #Create Machine
     #TODO: Interconnect left blank for now
-    sqlCursor.execute('INSERT INTO Machine (`Name`) VALUES (?);', (machineFriendlyName,))
-    sqlCursor.execute('SELECT MachineID from Machine WHERE Machine.rowid=?;', (sqlCursor.lastrowid,))
+    sqlCursor.execute('INSERT INTO Machine (`Name`, `Interconnect`) VALUES (?, ?);', (machineFriendlyName, interconnect))
+    sqlCursor.execute('SELECT MachineID FROM Machine WHERE Machine.rowid=?;', (sqlCursor.lastrowid,))
     machineID = sqlCursor.fetchone()[0]
 
     osType = platform.system()
@@ -762,7 +807,7 @@ def autoPopulateMachineInfo(sqlCursor, machineFriendlyName=None):
 
         #Create OS Entry (For Now, Will not populate vendor)
         sqlCursor.execute('INSERT INTO OS (`Name`, `Distribution`, `Version`) VALUES (?, ?, ?);', (osType, distName, distVersion))
-        sqlCursor.execute('SELECT OSID from OS WHERE OS.rowid=?;', (sqlCursor.lastrowid,))
+        sqlCursor.execute('SELECT OSID FROM OS WHERE OS.rowid=?;', (sqlCursor.lastrowid,))
         OSID = sqlCursor.fetchone()[0]
 
         #Find processor info
@@ -774,7 +819,7 @@ def autoPopulateMachineInfo(sqlCursor, machineFriendlyName=None):
         regexp = re.compile('Architecture.*:(.*)')
         baseISA = regexp.search(lscpu).group(1).strip()
         sqlCursor.execute('INSERT INTO BaseISA (`Name`) VALUES (?);', (baseISA,))
-        sqlCursor.execute('SELECT BaseISAID from BaseISA WHERE BaseISA.rowid=?;', (sqlCursor.lastrowid,))
+        sqlCursor.execute('SELECT BaseISAID FROM BaseISA WHERE BaseISA.rowid=?;', (sqlCursor.lastrowid,))
         baseISAID = sqlCursor.fetchone()[0]
 
         #Find Hypervisor
@@ -802,7 +847,7 @@ def autoPopulateMachineInfo(sqlCursor, machineFriendlyName=None):
         regexp = re.compile('vendor_id.*:(.*)')
         vendor = regexp.search(cpuinfo).group(1).strip()
         sqlCursor.execute('INSERT INTO Vendor (`Name`) VALUES (?);', (vendor,))
-        sqlCursor.execute('SELECT VendorID from Vendor WHERE Vendor.rowid=?;', (sqlCursor.lastrowid,))
+        sqlCursor.execute('SELECT VendorID FROM Vendor WHERE Vendor.rowid=?;', (sqlCursor.lastrowid,))
         vendorID = sqlCursor.fetchone()[0]
 
         #CPU Name
@@ -811,7 +856,7 @@ def autoPopulateMachineInfo(sqlCursor, machineFriendlyName=None):
 
         #Create Processor Entry
         sqlCursor.execute('INSERT INTO Processor (`Name`, `Vendor`, `BaseISAID`, `Cores`) VALUES (?, ?, ?, ?);', (cpuName, vendorID, baseISAID, cores))
-        sqlCursor.execute('SELECT ProcessorID from Processor WHERE Processor.rowid=?;', (sqlCursor.lastrowid,))
+        sqlCursor.execute('SELECT ProcessorID FROM Processor WHERE Processor.rowid=?;', (sqlCursor.lastrowid,))
         processorID = sqlCursor.fetchone()[0]
 
         #Find ISA Extension Info
@@ -820,7 +865,7 @@ def autoPopulateMachineInfo(sqlCursor, machineFriendlyName=None):
 
         for extension in extensions:
             sqlCursor.execute('INSERT INTO ISAExtension (`Name`, `BaseISAID`) VALUES (?, ?);', (extension, baseISAID))
-            sqlCursor.execute('SELECT ISAExtensionID from ISAExtension WHERE ISAExtension.rowid=?;', (sqlCursor.lastrowid,))
+            sqlCursor.execute('SELECT ISAExtensionID FROM ISAExtension WHERE ISAExtension.rowid=?;', (sqlCursor.lastrowid,))
             extensionID = sqlCursor.fetchone()[0]
             sqlCursor.execute('INSERT INTO ProcessorISAExtension (`ProcessorID`, `ISAExtensionID`) VALUES (?, ?);', (processorID, extensionID))
 
@@ -840,14 +885,14 @@ def autoPopulateMachineInfo(sqlCursor, machineFriendlyName=None):
         #TODO: Find Memory Type, leave blank for now
         #Create Socket
         sqlCursor.execute('INSERT INTO Socket (`ProcessorID`, `Memory`) VALUES (?, ?);', (processorID, memory))
-        sqlCursor.execute('SELECT SocketID from Socket WHERE Socket.rowid=?;', (sqlCursor.lastrowid,))
+        sqlCursor.execute('SELECT SocketID FROM Socket WHERE Socket.rowid=?;', (sqlCursor.lastrowid,))
         socketID = sqlCursor.fetchone()[0]
         
         #Create Node
         hostname = platform.node()
 
         sqlCursor.execute('INSERT INTO Node (`MachineID`, `Hostname`, `OSID`, `Hypervisor`, `Numa`) VALUES (?, ?, ?, ?, ?);', (machineID, hostname, OSID, hypervisorStr, numa))
-        sqlCursor.execute('SELECT NodeID from Node WHERE Node.rowid=?;', (sqlCursor.lastrowid,))
+        sqlCursor.execute('SELECT NodeID FROM Node WHERE Node.rowid=?;', (sqlCursor.lastrowid,))
         nodeID = sqlCursor.fetchone()[0]
 
         #Link Node and Socket
@@ -857,6 +902,46 @@ def autoPopulateMachineInfo(sqlCursor, machineFriendlyName=None):
 
     return machineID
 
+def addIfNotAlready(sqlCursor, idSearchStr, addStr, addTuple):
+    """
+    Add a parameter to a table if it is not included already.  Returns the ID
+    """
+
+    sqlCursor.execute(idSearchStr, addTuple)
+    id_row = sqlCursor.fetchone()
+
+    if id_row is not None:
+        sqlCursor.execute(addStr, addTuple)
+        sqlCursor.execute(idSearchStr, addTuple)
+        id_val = sqlCursor.fetchone()[0]
+    else:
+        id_val = id_row[0]
+
+    return id_val
+
+def addParameterValue(sqlCursor, compilerID, paramName, paramValue, paramFullString):
+    """
+    Add a parameter value, and the underlying parameter, to the database if it is not already
+    included in the database.  Returns the (parameterID, parameterValueID).
+    """
+
+    #Add Parameter
+    parameterID = addIfNotAlready(sqlCursor, 'SELECT ParameterID FROM Parameter WHERE Parmeter.Name=?', 
+                  'INSERT INTO Parameter (`Name`) VALUES (?)', (paramName,))
+
+    #Add Parameter Value
+    #Note, there are 2 value columns: one for numerics, one for text
+    if isinstance(paramValue, str):
+        #String Param
+        parameterValueID = addIfNotAlready(sqlCursor, 'SELECT ParameterValueID FROM ParameterValue WHERE ParmeterValue.ParameterID=? AND ParameterValue.ValueString=? AND ParameterValue.FullString=?;',
+                      'INSERT INTO ParameterValue (`ParmeterValue`, `ValueString`, `FullString`) VALUES (?, ?, ?);', (parameterID, paramValue, paramFullString))
+    else:
+        #Numeric Param
+        parameterValueID = addIfNotAlready(sqlCursor, 'SELECT ParameterValueID FROM ParameterValue WHERE ParmeterValue.ParameterID=? AND ParameterValue.ValueNumeric=? AND ParameterValue.FullString=?;',
+                      'INSERT INTO ParameterValue (`ParmeterValue`, `ValueNumeric`, `FullString`) VALUES (?, ?, ?);', (parameterID, paramValue, paramFullString))
+
+    return (parameterID, parameterValueID)
+
 def sqlTester():
     conn = sqlite3.connect('test.db')
     sqlCursor = conn.cursor()
@@ -864,7 +949,7 @@ def sqlTester():
     createSqlTables(sqlCursor)
     conn.commit()
 
-    autoPopulateMachineInfo(sqlCursor, 'Chris Macbook Pro')
+    autoPopulateMachineInfo(sqlCursor, 'Chris Macbook Pro', None)
     conn.commit()
 
 def main():
