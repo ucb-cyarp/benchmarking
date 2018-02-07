@@ -8,6 +8,7 @@ import platform
 import subprocess
 import re
 import sqlite3
+import os.path
 
 class Parameter:
     """
@@ -21,6 +22,8 @@ class Parameter:
         self._name = name
         self._paramString = paramString
         self._value = value
+
+    #TODO: Add parameter class
 
     def name(self, name=None):
         if name is not None:
@@ -36,6 +39,32 @@ class Parameter:
         if value is not None:
             self._value = value
         return self._value
+
+    def addParameterValueEntryIfNotAlready(self, sqlCursor):
+        """
+        Add a parameter value, and the underlying parameter, to the database if it is not already
+        included in the database.  Returns the (parameterID, parameterValueID).
+        """
+
+        #TODO: Refactor with define syntax for compilers.  OK for now since virtually all compilers
+        #the -D<arg> syntax
+        
+        #Add Parameter
+        parameterID = addIfNotAlready(sqlCursor, 'SELECT ParameterID FROM Parameter WHERE Parmeter.Name=?', 
+                    'INSERT INTO Parameter (`Name`) VALUES (?)', (self._name,))
+
+        #Add Parameter Value
+        #Note, there are 2 value columns: one for numerics, one for text
+        if isinstance(self._value, str):
+            #String Param
+            parameterValueID = addIfNotAlready(sqlCursor, 'SELECT ParameterValueID FROM ParameterValue WHERE ParmeterValue.ParameterID=? AND ParameterValue.ValueString=? AND ParameterValue.FullString=?;',
+                        'INSERT INTO ParameterValue (`ParmeterValue`, `ValueString`, `FullString`) VALUES (?, ?, ?);', (parameterID, self._value, self._paramString))
+        else:
+            #Numeric Param
+            parameterValueID = addIfNotAlready(sqlCursor, 'SELECT ParameterValueID FROM ParameterValue WHERE ParmeterValue.ParameterID=? AND ParameterValue.ValueNumeric=? AND ParameterValue.FullString=?;',
+                        'INSERT INTO ParameterValue (`ParmeterValue`, `ValueNumeric`, `FullString`) VALUES (?, ?, ?);', (parameterID, self._value, self._paramString))
+
+        return (parameterID, parameterValueID)
 
 class OptionList:
     """
@@ -364,8 +393,95 @@ def FlagsToFileSafeString(flagString):
     safeString = safeString.replace(' ', '')
     return safeString
 
-def StringFromParameterList(parameters):
+def stringFromParameterList(parameters):
+    """
+    Convert a list of parameters to a string to be used in compilation or execution.
+    """
+
     return ' '.join(map(lambda param: param.paramString(), parameters))
+
+def addCompilerParametersToDBIfNotAlready(sqlCursor, parameters):
+    """
+    Add parameters (and prameter values) to the database if they are not already. 
+    Returns an array of (ParameterID, ParameterValueID)
+    """
+
+    ids = []
+
+    for parameter in parameters:
+        id_tuple = parameter.addParameterValueEntryIfNotAlready(sqlCursor)
+        ids.append(id_tuple)
+
+    return ids
+
+def addCompilerParametersToDBIfNotAlreadyLinkCompiler(sqlCursor, parameters, compilerID, runID):
+    """
+    Add parameters (and prameter values) to the database if they are not already. Also 
+    add entries linking to the compiler as appropriate (if no such link exists already).
+    Also adds an entry to the Config table relating to the specified run.
+    Returns an array of (ParameterID, ParameterValueID)
+    """
+
+    #Get Phase & Usage Descriptors for config
+    phaseID = addIfNotAlready(sqlCursor, 'SELECT PhaseID FROM Phase WHERE Phase.Name=?;',
+             'INSERT INTO Phase (`Name`) VALUES (?);', ('Compile',))
+
+    usageID = addIfNotAlready(sqlCursor, 'SELECT UsageID FROM Usage WHERE Usage.Name=?;',
+             'INSERT INTO Usage (`Name`) VALUES (?);', ('Compiler',))
+
+    ids = []
+
+    for parameter in parameters:
+        id_tuple = parameter.addParameterValueEntryIfNotAlready(sqlCursor)
+        parameterID = id_tuple[0]
+        parameterValueID = id_tuple[1]
+
+        #Link Parameter to compiler
+        addIfNotAlready(sqlCursor, 'SELECT rowid FROM CompilerSupportedParameterValues WHERE CompilerSupportedParameterValues.CompilerID=? AND CompilerSupportedParameterValues.ParameterID=?;',
+                        'INSERT INTO CompilerSupportedParameterValues (`CompilerID`, `ParameterID`) VALUES (?, ?);', (compilerID, parameterID))
+
+        #Add Config Entry
+        addIfNotAlready(sqlCursor, 'SELECT ConfigID FROM Config WHERE Config.RunID=? AND Config.ParameterValueID=? AND Config.PhaseID=? AND Config.UsageID=?;',
+                        'INSERT INTO Config (`RunID`, `ParameterValueID`, `PhaseID`, `UsageID`) VALUES (?, ?, ?, ?);', (runID, parameterValueID, phaseID, usageID))
+
+        ids.append(id_tuple)
+
+    return ids
+
+def addParametersToDBIfNotAlreadyLinkKernelInst(sqlCursor, parameters, kernelInstanceID, runID, phase):
+    """
+    Add parameters (and prameter values) to the database if they are not already. Also 
+    add entries linking to the Kernel Instance as appropriate (if no such link exists already).
+    Also adds an entry to the Config table relating to the specified run.
+    Phase should be 'Compile' for compile time parameters or 'Run' is used durring runtime
+    Returns an array of (ParameterID, ParameterValueID)
+    """
+
+    #Get Phase & Usage Descriptors for config
+    phaseID = addIfNotAlready(sqlCursor, 'SELECT PhaseID FROM Phase WHERE Phase.Name=?;',
+             'INSERT INTO Phase (`Name`) VALUES (?);', (phase,))
+
+    usageID = addIfNotAlready(sqlCursor, 'SELECT UsageID FROM Usage WHERE Usage.Name=?;',
+             'INSERT INTO Usage (`Name`) VALUES (?);', ('Compiler',))
+
+    ids = []
+
+    for parameter in parameters:
+        id_tuple = parameter.addParameterValueEntryIfNotAlready(sqlCursor)
+        parameterID = id_tuple[0]
+        parameterValueID = id_tuple[1]
+
+        #Link Parameter to kernel instance
+        addIfNotAlready(sqlCursor, 'SELECT rowid FROM KernelInstanceParameters WHERE KernelInstanceParameters.KernelInstanceID=? AND KernelInstanceParameters.ParameterID=?;',
+                        'INSERT INTO KernelInstanceParameters (`KernelInstanceID`, `ParameterID`) VALUES (?, ?);', (kernelInstanceID, parameterID))
+
+        #Add Config Entry
+        addIfNotAlready(sqlCursor, 'SELECT ConfigID FROM Config WHERE Config.RunID=? AND Config.ParameterValueID=? AND Config.PhaseID=? AND Config.UsageID=?;',
+                        'INSERT INTO Config (`RunID`, `ParameterValueID`, `PhaseID`, `UsageID`) VALUES (?, ?, ?, ?);', (runID, parameterValueID, phaseID, usageID))
+
+        ids.append(id_tuple)
+
+    return ids
 
 class Compiler:
     """
@@ -381,6 +497,7 @@ class Compiler:
         self._command = command
         self._defineFormat = defineFormat
         self._outputFormat = outputFormat
+        self._compileFormat = compileFormat
         if options is not None:
             self._options = options
         else:
@@ -412,6 +529,11 @@ class Compiler:
         if defineFormat is not None:
             self._defineFormat = defineFormat
         return self._defineFormat
+
+    def compileFormat(self, compileFormat=None):
+        if compileFormat is not None:
+            self._compileFormat = compileFormat
+        return self._compileFormat
 
     def outputFormat(self, outputFormat=None):
         if outputFormat is not None:
@@ -642,7 +764,7 @@ def flagTester():
     flagGenerator = options.compilerFlagGenerator()
 
     for flags in flagGenerator:
-        flagString = StringFromParameterList(flags)
+        flagString = stringFromParameterList(flags)
         print(flagString)
         # print(FlagsToFileSafeString(flagString))
 
@@ -751,8 +873,8 @@ def createSqlTables(sqlCursor):
         `ConfigID`	INTEGER PRIMARY KEY AUTOINCREMENT,
         `RunID`	INTEGER NOT NULL,
         `ParameterValueID`	INTEGER NOT NULL,
-        `Phase`	INTEGER NOT NULL,
-        `ParamUsageID`	INTEGER NOT NULL
+        `PhaseID`	INTEGER NOT NULL,
+        `UsageID`	INTEGER NOT NULL
     );""",
     """
     CREATE TABLE `Trial` (
@@ -851,8 +973,8 @@ def createSqlTables(sqlCursor):
     """
     CREATE TABLE `CompilerSupportedParameterValues` (
         `CompilerID`	INTEGER NOT NULL,
-        `ParametersID`	INTEGER NOT NULL,
-        PRIMARY KEY(`CompilerID`,`ParametersID`)
+        `ParameterID`	INTEGER NOT NULL,
+        PRIMARY KEY(`CompilerID`,`ParameterID`)
     );
     """]
 
@@ -980,8 +1102,10 @@ def autoPopulateMachineInfo(sqlCursor, machineFriendlyName=None, interconnect=No
 
 def addIfNotAlready(sqlCursor, idSearchStr, addStr, addTuple):
     """
-    Add a parameter to a table if it is not included already.  Returns the ID
+    Add a parameter to a table if it is not included already.  Returns the ID regardless
     """
+
+    #TODO: Optomize to use last index
 
     sqlCursor.execute(idSearchStr, addTuple)
     id_row = sqlCursor.fetchone()
@@ -994,29 +1118,6 @@ def addIfNotAlready(sqlCursor, idSearchStr, addStr, addTuple):
         id_val = id_row[0]
 
     return id_val
-
-def addParameterValue(sqlCursor, compilerID, paramName, paramValue, paramFullString):
-    """
-    Add a parameter value, and the underlying parameter, to the database if it is not already
-    included in the database.  Returns the (parameterID, parameterValueID).
-    """
-
-    #Add Parameter
-    parameterID = addIfNotAlready(sqlCursor, 'SELECT ParameterID FROM Parameter WHERE Parmeter.Name=?', 
-                  'INSERT INTO Parameter (`Name`) VALUES (?)', (paramName,))
-
-    #Add Parameter Value
-    #Note, there are 2 value columns: one for numerics, one for text
-    if isinstance(paramValue, str):
-        #String Param
-        parameterValueID = addIfNotAlready(sqlCursor, 'SELECT ParameterValueID FROM ParameterValue WHERE ParmeterValue.ParameterID=? AND ParameterValue.ValueString=? AND ParameterValue.FullString=?;',
-                      'INSERT INTO ParameterValue (`ParmeterValue`, `ValueString`, `FullString`) VALUES (?, ?, ?);', (parameterID, paramValue, paramFullString))
-    else:
-        #Numeric Param
-        parameterValueID = addIfNotAlready(sqlCursor, 'SELECT ParameterValueID FROM ParameterValue WHERE ParmeterValue.ParameterID=? AND ParameterValue.ValueNumeric=? AND ParameterValue.FullString=?;',
-                      'INSERT INTO ParameterValue (`ParmeterValue`, `ValueNumeric`, `FullString`) VALUES (?, ?, ?);', (parameterID, paramValue, paramFullString))
-
-    return (parameterID, parameterValueID)
 
 def sqlTester():
     conn = sqlite3.connect('test.db')
@@ -1050,12 +1151,146 @@ class gcc(Compiler):
         super().__init__(name='gcc', command='g++', envSetup=None, vendor='GNU', options=compilerOptions, defineFormat='-D{}={}', compileFormat='-c {}', outputFormat='-o {}')
     
 
+def runExperiment(compilerList, suiteList, sqlConnection, sqlCursor, machineID):
+    """
+    Runs a set of experements defined by the provided kernel suites and compilers
+    """
+
+    for suite in suiteList:
+        #Create entry for suite in DB
+        suiteID = suite.addSuiteEntryIfNotAlready(sqlCursor)
+        sqlConnection.commit()
+
+        kernels = suite.kernels()
+
+        for kernel in kernels:
+            #Create entry for kernel in DB
+            kernelID = kernel.addKernelEntryIfNotAlready(sqlCursor)
+
+            #Link Suite and Kernel (this is all to all but should potentially be changed)
+            #TODO: Evaluate all to all
+            addIfNotAlready(sqlCursor, 'SELECT rowid FROM KernelSuite WHERE KernelSuite.SuiteID=? AND KernelSuite.KernelID=?;', 
+                   'INSERT INTO KernelSuite (`SuiteID`, `KernelID`) VALUES (?);', (suiteID, kernelID))
+
+            kernelInstances = kernel.instances()
+
+            for kernelInstance in kernelInstances:
+                #Add Kernel Instance to Database
+                kernelInstanceID = kernelInstance.addKernelImplementationAndFileEntriesIfNotAlready(sqlCursor, kernelID)
+
+                #Now, let's go through all of the provided compilers
+                for compiler in compilerList:
+                    #Add to database if not already in it (will not add duplicate)
+                    compilerID = compiler.addCompilerEntryIfNotAlready(sqlCursor)
+
+                    #Now, let's go through the different sets of kernel options
+                    compilerOptions = compiler.options()
+                    compilerFlagGenerator = compilerOptions.compilerFlagGenerator()
+
+                    #At this point, we need a run entry for each set of flags used
+                    #We create one run entry for each run and this is one of the few
+                    #cases where duplicates are not checked.
+                    #The creation of the run entry needs to be placed in the inner
+                    #loop of all flag itterations
+                    for compilerFlags in compilerFlagGenerator:
+                        kernelInstanceCompilerOptions = kernelInstance.compileOptions()
+                        kernelInstanceCompilerFlagGenerator = kernelInstanceCompilerOptions.compilerFlagGenerator()
+
+                        for kernelInstanceCompilerFlags in kernelInstanceCompilerFlagGenerator:
+                            kernelRuntimeOptions = kernelInstance.runOptions()
+                            kernelRuntimeFlagGenerator = kernelRuntimeOptions.compilerFlagGenerator()
+
+                            for kernelRuntimeFlags in kernelRuntimeFlagGenerator:
+                                #Create Run Entry (will update some table values later)
+                                sqlCursor.execute('INSERT INTO Run (`KernelInstanceID`, `MachineID`, `CompilerID`) VALUES (?, ?, ?);', (kernelInstanceID, machineID, compilerID))
+                                sqlCursor.execute('SELECT RunID FROM Run WHERE Run.rowid=?;', (sqlCursor.lastrowid,))
+                                runID = sqlCursor.fetchone()[0]
+
+                                #Add flags and flag values to database
+                                addCompilerParametersToDBIfNotAlreadyLinkCompiler(sqlCursor, compilerFlags, compilerID, runID)
+                                addParametersToDBIfNotAlreadyLinkKernelInst(sqlCursor, kernelInstanceCompilerFlags, kernelInstanceID, runID, 'Compile')
+                                addParametersToDBIfNotAlreadyLinkKernelInst(sqlCursor, kernelRuntimeFlags, kernelInstanceID, runID, 'Run')
+
+                                compilerFlagString = stringFromParameterList(compilerFlags)
+                                kernelInstanceCompilerFlagString = stringFromParameterList(kernelInstanceCompilerFlags)
+                                kernelInstanceRuntimeFlagString = stringFromParameterList(kernelRuntimeFlags)
+                                # print(FlagsToFileSafeString(flagString))
+
+                                #TODO: Asemble cmd including compiler setup, cd to build dir, prepend ../ to filenames, compile, link, run
+                                #TODO: Update command, datetime, status entries for run
+                                #TODO: print debug message of command
+                                #TODO: Parse Results
+                                #TODO: Commit to DB
+
+
+
+
 def main():
-    #Select Compilers to Use
+
+    #*****Setup*****
+    #Create Suites
+    firSuite = Suite('FIR', 'Testing feed forward system performance using FIR filters')
+
+    #Create FIR Kernel
+    firSingleKernel = Kernel('FIR - Single', 'A single FIR filter operating in a single thread')
+    firSuite.addKernel(firSingleKernel)
+
+    #TODO remove format option from enum option
+    #Create Naive FIR Kernel Instance
+    firCompileOptions = OptionList()
+
+    firTrials = 100
+    firStimLen = 1000000
+    firOrderRange = range(1, 501)
+    firBlockRange = range(1, 501)
+    #Static Options
+    firCompileOptions.addOption(EnumOption('PRINT_TITLE', [0], '-D{}={}'))
+    firCompileOptions.addOption(EnumOption('PRINT_TRIALS', [0], '-D{}={}'))
+    firCompileOptions.addOption(EnumOption('PRINT_STATS', [0], '-D{}={}'))
+    firCompileOptions.addOption(EnumOption('WRITE_CSV', [1], '-D{}={}'))
+    firCompileOptions.addOption(EnumOption('TRIALS', [firTrials], '-D{}={}'))
+    firCompileOptions.addOption(EnumOption('STIM_LEN', [firStimLen], '-D{}={}'))
+    #Dynamic Options
+    firCompileOptions.addOption(EnumOption('DATATYPE', ['int8_t', 'int16_t', 'int32_t', 'int64_t', 'single', 'double'], '-D{}={}'))
+    firCompileOptions.addOption(EnumOption('COEF_LEN', firOrderRange, '-D{}={}'))
+    firCompileOptions.addOption(EnumOption('IO_LEN', firBlockRange, '-D{}={}'))
+
+    firRunOptions = OptionList()
+
+    firSingleKernelNaive = KernelInstance(firSingleKernel, 'Naive implementation with blocked input and output, shift register state, no explicit vectorization or unrolling.', ['fir1_1_tester1.cpp'], firCompileOptions, firRunOptions)
+    firSingleKernel.addInstance(firSingleKernelNaive)
+
+    #TODO: Better handle output file as an option, right now is assumed to be the first option (before other options specified)
+    #TODO: Cleanup output file format str in KernelInstance
+
+    #Select Tests to Run
     compilers = [gcc()]
+    suites = [firSuite]
 
+    #*****GO*****
+    #TODO: Make these arguments
+    sqlFilePath = './results.db'
+    machineDescription = 'Chris Macbook Pro'
 
+    if os.path.isfile(sqlFilePath):
+        print('Report file already exists - Aborting')
+        return
+    
+    #Create tables
+    conn = sqlite3.connect(sqlFilePath, detect_types=sqlite3.PARSE_DECLTYPES)
+    sqlCursor = conn.cursor()
 
+    createSqlTables(sqlCursor)
+    conn.commit()
+
+    autoPopulateMachineInfo(sqlCursor, machineDescription, None)
+    conn.commit()
+
+    #Run the Experement
+    runExperiment(compilers, suites, conn, sqlCursor)
+
+    conn.commit()
+    conn.close()
 
 if __name__ == "__main__":
     main()

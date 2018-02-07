@@ -32,6 +32,7 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <cstdint>
 #include "fir1_1.hpp"
 
 #ifndef DATATYPE
