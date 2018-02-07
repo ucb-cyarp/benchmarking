@@ -52,19 +52,23 @@ class Parameter:
         #the -D<arg> syntax
         
         #Add Parameter
-        parameterID = addIfNotAlready(sqlCursor, 'SELECT ParameterID FROM Parameter WHERE Parmeter.Name=?', 
+        parameterID = addIfNotAlready(sqlCursor, 'SELECT ParameterID FROM Parameter WHERE Parameter.Name=?', 
                     'INSERT INTO Parameter (`Name`) VALUES (?)', (self._name,))
 
         #Add Parameter Value
         #Note, there are 2 value columns: one for numerics, one for text
         if isinstance(self._value, str):
             #String Param
-            parameterValueID = addIfNotAlready(sqlCursor, 'SELECT ParameterValueID FROM ParameterValue WHERE ParmeterValue.ParameterID=? AND ParameterValue.ValueString=? AND ParameterValue.FullString=?;',
-                        'INSERT INTO ParameterValue (`ParmeterValue`, `ValueString`, `FullString`) VALUES (?, ?, ?);', (parameterID, self._value, self._paramString))
-        else:
+            parameterValueID = addIfNotAlready(sqlCursor, 'SELECT ParameterValueID FROM ParameterValue WHERE ParameterValue.ParameterID=? AND ParameterValue.ValueString=? AND ParameterValue.FullString=?;',
+                        'INSERT INTO ParameterValue (`ParameterID`, `ValueString`, `FullString`) VALUES (?, ?, ?);', (parameterID, self._value, self._paramString))
+        elif self._value is not None:
             #Numeric Param
-            parameterValueID = addIfNotAlready(sqlCursor, 'SELECT ParameterValueID FROM ParameterValue WHERE ParmeterValue.ParameterID=? AND ParameterValue.ValueNumeric=? AND ParameterValue.FullString=?;',
-                        'INSERT INTO ParameterValue (`ParmeterValue`, `ValueNumeric`, `FullString`) VALUES (?, ?, ?);', (parameterID, self._value, self._paramString))
+            parameterValueID = addIfNotAlready(sqlCursor, 'SELECT ParameterValueID FROM ParameterValue WHERE ParameterValue.ParameterID=? AND ParameterValue.ValueNumeric=? AND ParameterValue.FullString=?;',
+                        'INSERT INTO ParameterValue (`ParameterID`, `ValueNumeric`, `FullString`) VALUES (?, ?, ?);', (parameterID, self._value, self._paramString))
+        else:
+            #Basic Param (no value)
+            parameterValueID = addIfNotAlready(sqlCursor, 'SELECT ParameterValueID FROM ParameterValue WHERE ParameterValue.ParameterID=? AND ParameterValue.FullString=?;',
+                        'INSERT INTO ParameterValue (`ParameterID`, `FullString`) VALUES (?, ?);', (parameterID, self._paramString))
 
         return (parameterID, parameterValueID)
 
@@ -557,7 +561,7 @@ class Compiler:
         Add compiler entry if not already in DB.  Returns compilerID of entry regardless
         """
         vendorID = addIfNotAlready(sqlCursor, 'SELECT VendorID FROM Vendor WHERE Vendor.Name=?;', 
-                   'INSERT INTO Vendor (`Name`) VALUES (?);', (self.vendor,))
+                   'INSERT INTO Vendor (`Name`) VALUES (?);', (self.vendor(),))
 
         compilerID = addIfNotAlready(sqlCursor, 'SELECT CompilerID FROM Compiler WHERE Compiler.Name=? AND Compiler.Command=? AND Compiler.VendorID=?;',
                      'INSERT INTO Compiler (`Name`, `Command`, `VendorID`) VALUES (?, ?, ?);', (self._name, self._command, vendorID))
@@ -565,7 +569,7 @@ class Compiler:
         return compilerID
 
 class Suite:
-    def __init__(self, name=None, description=None,  kernels=None):
+    def __init__(self, name=None, description=None,  kernels=[]):
         """
         Name = Name of Kernel Suite
         Instances = List of Kernel Instances
@@ -586,8 +590,8 @@ class Suite:
 
     def kernels(self, kernels=None):
         if kernels is not None:
-            self._kerneles = kernels
-        return self._kerneles
+            self._kernels = kernels
+        return self._kernels
 
     def addKernel(self, kernel):
         self._kernels.append(kernel)
@@ -603,7 +607,7 @@ class Suite:
         return suiteID
 
 class Kernel:
-    def __init__(self, name=None, description=None, instances=None):
+    def __init__(self, name=None, description=None, instances=[]):
         """
         Name = Name of Kernel
         Instances = List of Kernel Instances
@@ -706,7 +710,7 @@ class KernelInstance:
         
         for file in self._fileList:
             kernelFileID = addIfNotAlready(sqlCursor, 'SELECT KernelFileID FROM KernelFile WHERE KernelFile.KernelInstanceID=? AND KernelFile.Filename=?;',
-                           'INSERT INTO KernelInstance (`KernelInstanceID`, `Filename`) VALUES (?, ?);', (kernelImplementationID, file))
+                           'INSERT INTO KernelFile (`KernelInstanceID`, `Filename`) VALUES (?, ?);', (kernelImplementationID, file))
             kernelFileIDs.append(kernelFileID)
 
         return (kernelImplementationID, kernelFileIDs)
@@ -807,7 +811,7 @@ def createSqlTables(sqlCursor):
     """
     CREATE TABLE `Parameter` (
         `ParameterID`	INTEGER PRIMARY KEY AUTOINCREMENT,
-        `ParameterName`	TEXT
+        `Name`	TEXT
     );""",
     """
     CREATE TABLE `Class` (
@@ -852,7 +856,7 @@ def createSqlTables(sqlCursor):
         `KernelInstanceID`	INTEGER NOT NULL,
         `MachineID`	INTEGER NOT NULL,
         `DateTimeStart`	TEXT,
-        `DataTimeStop`	TEXT,
+        `DateTimeStop`	TEXT,
         `Status`	TEXT,
         `Notes`	TEXT,
         `CompilerID`	INTEGER NOT NULL,
@@ -1172,13 +1176,13 @@ def runExperiment(compilerList, suiteList, sqlConnection, sqlCursor, machineID):
             #Link Suite and Kernel (this is all to all but should potentially be changed)
             #TODO: Evaluate all to all
             addIfNotAlready(sqlCursor, 'SELECT rowid FROM KernelSuite WHERE KernelSuite.SuiteID=? AND KernelSuite.KernelID=?;', 
-                   'INSERT INTO KernelSuite (`SuiteID`, `KernelID`) VALUES (?);', (suiteID, kernelID))
+                   'INSERT INTO KernelSuite (`SuiteID`, `KernelID`) VALUES (?, ?);', (suiteID, kernelID))
 
             kernelInstances = kernel.instances()
 
             for kernelInstance in kernelInstances:
                 #Add Kernel Instance to Database
-                kernelInstanceID = kernelInstance.addKernelImplementationAndFileEntriesIfNotAlready(sqlCursor, kernelID)
+                (kernelInstanceID, kernelFileIDx) = kernelInstance.addKernelImplementationAndFileEntriesIfNotAlready(sqlCursor, kernelID)
 
                 #Now, let's go through all of the provided compilers
                 for compiler in compilerList:
@@ -1223,9 +1227,9 @@ def runExperiment(compilerList, suiteList, sqlConnection, sqlCursor, machineID):
 
                                 compilerSetup = compiler.envSetup()
                                 if compilerSetup is not None:
-                                    cmd += compilerSetup
+                                    cmd += compilerSetup + '; '
 
-                                cmd += '; cd build; '
+                                cmd += 'cd build; '
 
                                 kernelInstFiles = kernelInstance.fileList()
                                 kernelCompiledFilenames = []
@@ -1237,11 +1241,11 @@ def runExperiment(compilerList, suiteList, sqlConnection, sqlCursor, machineID):
                                     outputFileName = kernelFile.split('.')[0]+'.o'
                                     kernelCompiledFilenames.append(outputFileName)
 
-                                    cmd += compiler.command() + ' ' + compilerFlagString + ' ' + kernelInstanceCompilerFlagString + ' ' + str.format(compiler.compileFormat(), outputFileName) + ' ../' + kernelFile +'; '
+                                    cmd += compiler.command() + ' ' + compilerFlagString + ' ' + kernelInstanceCompilerFlagString + ' ' + str.format(compiler.compileFormat(), '') + ' ../' + kernelFile +'; '
                                 
                                 #Add command to link
                                 linkedFilename = 'tester'
-                                cmd += compiler.command() + ' ' + compilerFlagString + ' ' + kernelInstanceCompilerFlagString + ' ' + str.format(compiler.compileOutputFormat(), linkedFilename) + ' '
+                                cmd += compiler.command() + ' ' + compilerFlagString + ' ' + kernelInstanceCompilerFlagString + ' ' + str.format(compiler.outputFormat(), linkedFilename) + ' '
                                 for compiledFile in kernelCompiledFilenames:
                                     cmd += compiledFile + ' '
                                 cmd += '; '
@@ -1250,7 +1254,7 @@ def runExperiment(compilerList, suiteList, sqlConnection, sqlCursor, machineID):
 
                                 rptFilename = 'rpt'
                                 #TODO: Refactor for report file not first argument
-                                cmd += linkedFilename + ' ' + rptFilename + ' ' + kernelInstanceRuntimeFlagString + ';'
+                                cmd += './' + linkedFilename + ' ' + rptFilename + ' ' + kernelInstanceRuntimeFlagString + ';'
 
                                 print('Executing: ' + cmd)
 
@@ -1290,9 +1294,11 @@ def runExperiment(compilerList, suiteList, sqlConnection, sqlCursor, machineID):
                                             trial += 1
 
                                 #Done Parsing
+                                print(status)
                                 
                                 #Update Run Entry
-                                sqlCursor.execute('UPDATE Run SET Run.DateTimeStart=?, Run.DateTimeStop=?, Status=?, CommandExecuted=? WHERE Run.RunID=?;', (startTime, stopTime, status, cmd, runID))
+
+                                sqlCursor.execute('UPDATE Run SET DateTimeStart=?, DateTimeStop=?, Status=?, CommandExecuted=? WHERE Run.RunID=?;', (startTime, stopTime, status, cmd, runID))
 
                                 #Commit to DB
                                 sqlConnection.commit()
@@ -1319,16 +1325,16 @@ def main():
     firOrderRange = range(1, 101)
     firBlockRange = range(1, 101)
     #Static Options
-    firCompileOptions.addOption(EnumOption('PRINT_TITLE', [0], '-D{}={}'))
-    firCompileOptions.addOption(EnumOption('PRINT_TRIALS', [0], '-D{}={}'))
-    firCompileOptions.addOption(EnumOption('PRINT_STATS', [0], '-D{}={}'))
-    firCompileOptions.addOption(EnumOption('WRITE_CSV', [1], '-D{}={}'))
-    firCompileOptions.addOption(EnumOption('TRIALS', [firTrials], '-D{}={}'))
-    firCompileOptions.addOption(EnumOption('STIM_LEN', [firStimLen], '-D{}={}'))
+    firCompileOptions.addOption(EnumOption('PRINT_TITLE', [0], '-D{}={}', True))
+    firCompileOptions.addOption(EnumOption('PRINT_TRIALS', [0], '-D{}={}', True))
+    firCompileOptions.addOption(EnumOption('PRINT_STATS', [0], '-D{}={}', True))
+    firCompileOptions.addOption(EnumOption('WRITE_CSV', [1], '-D{}={}', True))
+    firCompileOptions.addOption(EnumOption('TRIALS', [firTrials], '-D{}={}', True))
+    firCompileOptions.addOption(EnumOption('STIM_LEN', [firStimLen], '-D{}={}', True))
     #Dynamic Options
-    firCompileOptions.addOption(EnumOption('DATATYPE', ['int8_t', 'int16_t', 'int32_t', 'int64_t', 'single', 'double'], '-D{}={}'))
-    firCompileOptions.addOption(EnumOption('COEF_LEN', firOrderRange, '-D{}={}'))
-    firCompileOptions.addOption(EnumOption('IO_LEN', firBlockRange, '-D{}={}'))
+    firCompileOptions.addOption(EnumOption('DATATYPE', ['int8_t', 'int16_t', 'int32_t', 'int64_t', 'single', 'double'], '-D{}={}', True))
+    firCompileOptions.addOption(EnumOption('COEF_LEN', firOrderRange, '-D{}={}', True))
+    firCompileOptions.addOption(EnumOption('IO_LEN', firBlockRange, '-D{}={}', True))
 
     firRunOptions = OptionList()
 

@@ -190,16 +190,16 @@ int main(int argc, char *argv[])
     if(argc >= 2)
     {
         std::ofstream csv_file;
-        printf("Writing results to %s\n", argv[1]);
+        //printf("Writing results to %s\n", argv[1]);
         csv_file.open(argv[1]);
 
         if(csv_file.is_open())
         {
-            csv_file << '\"High Resolution Clock - Walltime (ms)\", \"Clock - Cycles/Cycle Time (ms)\"' << std::endl;
+            csv_file << "\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\"" << std::endl;
 
             for(size_t i = 0; i < TRIALS; i++)
             {
-                csv_file << (double) durations[i].count() << ', ' << clock_durations[i] << std::endl;
+                csv_file << (double) durations[i].count() << "," << durations_clock[i] << std::endl;
             }
 
             // if(TRIALS>0)
