@@ -986,7 +986,7 @@ def createSqlTables(sqlCursor):
 
 def autoPopulateMachineInfo(sqlCursor, machineFriendlyName=None, interconnect=None):
     """
-    Autopopulate machine info assuming entry does not already exist in DB
+    Autopopulate machine info assuming entry does not already exist in DB.  Returns machine ID
     """
 
     #TODO: Check if already in table
@@ -1358,11 +1358,11 @@ def main():
     createSqlTables(sqlCursor)
     conn.commit()
 
-    autoPopulateMachineInfo(sqlCursor, machineDescription, None)
+    machineID = autoPopulateMachineInfo(sqlCursor, machineDescription, None)
     conn.commit()
 
     #Run the Experement
-    runExperiment(compilers, suites, conn, sqlCursor)
+    runExperiment(compilers, suites, conn, sqlCursor, machineID)
 
     conn.commit()
     conn.close()
