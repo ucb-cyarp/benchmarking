@@ -430,24 +430,35 @@ class Compiler:
 
     def addCompilerEntryIfNotAlready(self, sqlCursor):
         """
-        Add compiler entry if not already in DB.  Returns compilerID
+        Add compiler entry if not already in DB.  Returns compilerID of entry regardless
         """
         vendorID = addIfNotAlready(sqlCursor, 'SELECT VendorID FROM Vendor WHERE Vendor.Name=?;', 
                    'INSERT INTO Vendor (`Name`) VALUES (?);', (self.vendor,))
 
         compilerID = addIfNotAlready(sqlCursor, 'SELECT CompilerID FROM Compiler WHERE Compiler.Name=? AND Compiler.Command=? AND Compiler.VendorID=?;',
-                     'INSERT INTO Compiler (`Name`, `Command`, `VendorID`);', (self._name, self._command, vendorID))
+                     'INSERT INTO Compiler (`Name`, `Command`, `VendorID`) VALUES (?, ?, ?);', (self._name, self._command, vendorID))
 
         return compilerID
 
 class Suite:
-    def __init__(self, name=None, kernels=None):
+    def __init__(self, name=None, description=None,  kernels=None):
         """
         Name = Name of Kernel Suite
         Instances = List of Kernel Instances
         """
         self._name = name
+        self._description = description
         self._kernels = kernels
+
+    def name(self, name=None):
+        if name is not None:
+            self._name = name
+        return self._name
+
+    def description(self, description=None):
+        if description is not None:
+            self._description = description
+        return self._description
 
     def kernels(self, kernels=None):
         if kernels is not None:
@@ -457,14 +468,35 @@ class Suite:
     def addKernel(self, kernel):
         self._kernels.append(kernel)
 
+    def addSuiteEntryIfNotAlready(self, sqlCursor):
+        """
+        Add suite entry into DB if it is not already.  Returns suiteID reguardless
+        """
+
+        suiteID = addIfNotAlready(sqlCursor, 'SELECT SuiteID FROM Suite WHERE Suite.Name=? AND Suite.Description=?;',
+                  'INSERT INTO Suite (`Name`, `Description`) VALUES (?, ?);', (self._name, self._description))
+
+        return suiteID
+
 class Kernel:
-    def __init__(self, name=None, instances=None):
+    def __init__(self, name=None, description=None, instances=None):
         """
         Name = Name of Kernel
         Instances = List of Kernel Instances
         """
         self._name = name
+        self._description = description
         self._instances = instances
+
+    def name(self, name=None):
+        if name is not None:
+            self._name = name
+        return self._name
+    
+    def description(self, description=None):
+        if description is not None:
+            self._description = description
+        return self._description
 
     def instances(self, instances=None):
         if instances is not None:
@@ -474,13 +506,26 @@ class Kernel:
     def addInstance(self, instance):
         self._instances.append(instance)
 
+    def addKernelEntryIfNotAlready(self, sqlCursor):
+        """
+        Add kernel entry to DB if it is not already.  Return KernelID regardless
+        """
+
+        kernelID = addIfNotAlready(sqlCursor, 'SELECT KernelID FROM Kernel WHERE Kernel.Name=? AND Kernel.Description=?;',
+                  'INSERT INTO Kernel (`Name`, `Description`) VALUES (?, ?);', (self._name, self._description))
+
+        return kernelID
+
 class KernelInstance:
-    def __init__(self, fileList=None, compileOptions=None, runOptions=None, outputFileFormatStr='{}'):
+    def __init__(self, kernel=None, description=None, fileList=None, compileOptions=None, runOptions=None, outputFileFormatStr='{}'):
         """
         FileList: List of files to compile
         CompileOptions: OptionList to be exersized at compile time
         RunOptions: OptionList to be exersized at run time
         """
+        self._description = description
+        self._kernel = None # Link to containing Kernel
+
         if fileList is not None:
             self._fileList = fileList
         else:
@@ -507,9 +552,40 @@ class KernelInstance:
         if compileOptions is not None:
             self._compileOptions = compileOptions
         return self._compileOptions
+
+    def runOptions(self, runOptions=None):
+        if runOptions is not None:
+            self._runOptions = runOptions
+        return self._runOptions
+    
+    def outputFileFormatStr(self, outputFileFormatStr=None):
+        if outputFileFormatStr is not None:
+            self._outputFileFormatStr = outputFileFormatStr
+        return self._outputFileFormatStr
     
     def addFile(self, file):
         self._fileList.append(file)
+
+    def addKernelImplementationAndFileEntriesIfNotAlready(self, sqlCursor, kernelID):
+        """
+        Add kernel implementation to the database if it is not already included. 
+        Also add kernel files to database if they are not already.
+        Returns (KernelImplementationID, [KernelFileID, ...])
+        """
+
+        #Create KernelInstance Entry
+        kernelImplementationID = addIfNotAlready(sqlCursor, 'SELECT KernelInstanceID FROM KernelInstance WHERE KernelInstance.KernelID=? AND KernelInstance.Description=?;',
+                                 'INSERT INTO KernelInstance (`KernelID`, `Description`) VALUES (?, ?);', (kernelID, self._description))
+
+        #Create KernelFileEntries
+        kernelFileIDs = []
+        
+        for file in self._fileList:
+            kernelFileID = addIfNotAlready(sqlCursor, 'SELECT KernelFileID FROM KernelFile WHERE KernelFile.KernelInstanceID=? AND KernelFile.Filename=?;',
+                           'INSERT INTO KernelInstance (`KernelInstanceID`, `Filename`) VALUES (?, ?);', (kernelImplementationID, file))
+            kernelFileIDs.append(kernelFileID)
+
+        return (kernelImplementationID, kernelFileIDs)
 
 class Machine:
     """
@@ -910,7 +986,7 @@ def addIfNotAlready(sqlCursor, idSearchStr, addStr, addTuple):
     sqlCursor.execute(idSearchStr, addTuple)
     id_row = sqlCursor.fetchone()
 
-    if id_row is not None:
+    if id_row is None:
         sqlCursor.execute(addStr, addTuple)
         sqlCursor.execute(idSearchStr, addTuple)
         id_val = sqlCursor.fetchone()[0]
@@ -952,10 +1028,33 @@ def sqlTester():
     autoPopulateMachineInfo(sqlCursor, 'Chris Macbook Pro', None)
     conn.commit()
 
-def main():
+def tester():
     flagTester() #Testing Flags
 
-    sqlTester()
+    sqlTester() #TestingSQL
+
+#Specifics for Run
+class gcc(Compiler):
+    """
+    Represents the GCC compiler
+    """
+
+    def __init__(self):
+        compilerOptions = OptionList()
+        compilerOptions.addOption(AlwaysOption('-std=c++11'))
+        #TODO: Omitted debugger optomization
+        compilerOptions.addOption(ExclusiveOptionList([AlwaysOption('-O0'), AlwaysOption('-O1'), AlwaysOption('-O2'), AlwaysOption('-O3'), AlwaysOption('-Os'), AlwaysOption('-Ofast')]))
+        #TODO: Only targeting Intel ISA Extensions for now.  This is actually a non-exhaustive list.  See the g++ man page
+        compilerOptions.addOption(EnumOption('march', ['i686', 'pentium4', 'core2', 'corei7', 'corei7-avx', 'core-avx-i', 'core-avx2', 'native'], '--{}={}'))
+
+        super().__init__(name='gcc', command='g++', envSetup=None, vendor='GNU', options=compilerOptions, defineFormat='-D{}={}', compileFormat='-c {}', outputFormat='-o {}')
+    
+
+def main():
+    #Select Compilers to Use
+    compilers = [gcc()]
+
+
 
 
 if __name__ == "__main__":
