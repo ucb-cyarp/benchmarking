@@ -11,6 +11,7 @@ import sqlite3
 import os.path
 import datetime
 import csv
+import itertools
 
 class Parameter:
     """
@@ -468,7 +469,7 @@ def addParametersToDBIfNotAlreadyLinkKernelInst(sqlCursor, parameters, kernelIns
              'INSERT INTO Phase (`Name`) VALUES (?);', (phase,))
 
     usageID = addIfNotAlready(sqlCursor, 'SELECT UsageID FROM Usage WHERE Usage.Name=?;',
-             'INSERT INTO Usage (`Name`) VALUES (?);', ('Compiler',))
+             'INSERT INTO Usage (`Name`) VALUES (?);', ('Kernel',))
 
     ids = []
 
@@ -851,13 +852,18 @@ def createSqlTables(sqlCursor):
         `Interconnect`	TEXT
     );""",
     """
+    CREATE TABLE `Status` (
+        `StatusID`	INTEGER PRIMARY KEY AUTOINCREMENT,
+        `Name`	TEXT
+    );""",
+    """
     CREATE TABLE `Run` (
         `RunID`	INTEGER PRIMARY KEY AUTOINCREMENT,
         `KernelInstanceID`	INTEGER NOT NULL,
         `MachineID`	INTEGER NOT NULL,
         `DateTimeStart`	TEXT,
         `DateTimeStop`	TEXT,
-        `Status`	TEXT,
+        `StatusID`	INTEGER,
         `Notes`	TEXT,
         `CompilerID`	INTEGER NOT NULL,
         `CommandExecuted`	TEXT,
@@ -1150,9 +1156,11 @@ class gcc(Compiler):
         compilerOptions = OptionList()
         compilerOptions.addOption(AlwaysOption('-std=c++11'))
         #TODO: Omitted debugger optomization
-        compilerOptions.addOption(ExclusiveOptionList([AlwaysOption('-O0'), AlwaysOption('-O1'), AlwaysOption('-O2'), AlwaysOption('-O3'), AlwaysOption('-Os'), AlwaysOption('-Ofast')]))
+        #compilerOptions.addOption(ExclusiveOptionList([AlwaysOption('-O0'), AlwaysOption('-O1'), AlwaysOption('-O2'), AlwaysOption('-O3'), AlwaysOption('-Os'), AlwaysOption('-Ofast')], True))
+        compilerOptions.addOption(ExclusiveOptionList([AlwaysOption('-O1'), AlwaysOption('-O2'), AlwaysOption('-O3'), AlwaysOption('-Os'), AlwaysOption('-Ofast')]))
         #TODO: Only targeting Intel ISA Extensions for now.  This is actually a non-exhaustive list.  See the g++ man page
-        compilerOptions.addOption(EnumOption('march', ['i686', 'pentium4', 'core2', 'corei7', 'corei7-avx', 'core-avx-i', 'core-avx2', 'native'], '--{}={}'))
+        #compilerOptions.addOption(EnumOption('march', ['i686', 'pentium4', 'core2', 'corei7', 'corei7-avx', 'core-avx-i', 'core-avx2', 'native'], '-{}={}'))
+        compilerOptions.addOption(EnumOption('march', ['core2', 'corei7', 'corei7-avx', 'core-avx-i', 'core-avx2', 'native'], '-{}={}'))
 
         super().__init__(name='gcc', command='g++', envSetup=None, vendor='GNU', options=compilerOptions, defineFormat='-D{}={}', compileFormat='-c {}', outputFormat='-o {}')
     
@@ -1295,10 +1303,13 @@ def runExperiment(compilerList, suiteList, sqlConnection, sqlCursor, machineID):
 
                                 #Done Parsing
                                 print(status)
+
+                                statusID = addIfNotAlready(sqlCursor, 'SELECT StatusID FROM Status WHERE Status.Name=?;',
+                                           'INSERT INTO Status (`Name`) VALUES (?);', (status,))
                                 
                                 #Update Run Entry
 
-                                sqlCursor.execute('UPDATE Run SET DateTimeStart=?, DateTimeStop=?, Status=?, CommandExecuted=? WHERE Run.RunID=?;', (startTime, stopTime, status, cmd, runID))
+                                sqlCursor.execute('UPDATE Run SET DateTimeStart=?, DateTimeStop=?, StatusID=?, CommandExecuted=? WHERE Run.RunID=?;', (startTime, stopTime, statusID, cmd, runID))
 
                                 #Commit to DB
                                 sqlConnection.commit()
@@ -1320,10 +1331,19 @@ def main():
     #Create Naive FIR Kernel Instance
     firCompileOptions = OptionList()
 
-    firTrials = 20
+    firTrials = 10
     firStimLen = 100000
-    firOrderRange = range(1, 101)
-    firBlockRange = range(1, 101)
+    
+    rangeIterator = itertools.chain(range(1, 10), range(10, 100, 10), range(100, 501, 100))
+
+    rangeArray = []
+    for rangeVal in rangeIterator:
+        rangeArray.append(rangeVal)
+
+    #So itterator is not lost
+    #TODO: Investigate reseting iterator
+    firOrderRange = rangeArray
+    firBlockRange = rangeArray
     #Static Options
     firCompileOptions.addOption(EnumOption('PRINT_TITLE', [0], '-D{}={}', True))
     firCompileOptions.addOption(EnumOption('PRINT_TRIALS', [0], '-D{}={}', True))
@@ -1332,7 +1352,9 @@ def main():
     firCompileOptions.addOption(EnumOption('TRIALS', [firTrials], '-D{}={}', True))
     firCompileOptions.addOption(EnumOption('STIM_LEN', [firStimLen], '-D{}={}', True))
     #Dynamic Options
-    firCompileOptions.addOption(EnumOption('DATATYPE', ['int8_t', 'int16_t', 'int32_t', 'int64_t', 'single', 'double'], '-D{}={}', True))
+    #firCompileOptions.addOption(EnumOption('DATATYPE', ['int8_t', 'int16_t', 'int32_t', 'int64_t', 'single', 'double'], '-D{}={}', True))
+    firCompileOptions.addOption(EnumOption('DATATYPE', ['double'], '-D{}={}', True))
+
     firCompileOptions.addOption(EnumOption('COEF_LEN', firOrderRange, '-D{}={}', True))
     firCompileOptions.addOption(EnumOption('IO_LEN', firBlockRange, '-D{}={}', True))
 
