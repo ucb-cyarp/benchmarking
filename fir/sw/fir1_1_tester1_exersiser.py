@@ -9,6 +9,8 @@ import subprocess
 import re
 import sqlite3
 import os.path
+import datetime
+import csv
 
 class Parameter:
     """
@@ -1216,14 +1218,87 @@ def runExperiment(compilerList, suiteList, sqlConnection, sqlCursor, machineID):
                                 kernelInstanceRuntimeFlagString = stringFromParameterList(kernelRuntimeFlags)
                                 # print(FlagsToFileSafeString(flagString))
 
-                                #TODO: Asemble cmd including compiler setup, cd to build dir, prepend ../ to filenames, compile, link, run
-                                #TODO: Update command, datetime, status entries for run
-                                #TODO: print debug message of command
-                                #TODO: Parse Results
-                                #TODO: Commit to DB
+                                #Construct the shell command to compile
+                                cmd = ''
 
+                                compilerSetup = compiler.envSetup()
+                                if compilerSetup is not None:
+                                    cmd += compilerSetup
 
+                                cmd += '; cd build; '
 
+                                kernelInstFiles = kernelInstance.fileList()
+                                kernelCompiledFilenames = []
+
+                                for kernelFile in kernelInstFiles:
+                                    
+                                    #Get the filename without extension
+                                    #TODO: Check for complex paths (ex. ../filename.cpp)
+                                    outputFileName = kernelFile.split('.')[0]+'.o'
+                                    kernelCompiledFilenames.append(outputFileName)
+
+                                    cmd += compiler.command() + ' ' + compilerFlagString + ' ' + kernelInstanceCompilerFlagString + ' ' + str.format(compiler.compileFormat(), outputFileName) + ' ../' + kernelFile +'; '
+                                
+                                #Add command to link
+                                linkedFilename = 'tester'
+                                cmd += compiler.command() + ' ' + compilerFlagString + ' ' + kernelInstanceCompilerFlagString + ' ' + str.format(compiler.compileOutputFormat(), linkedFilename) + ' '
+                                for compiledFile in kernelCompiledFilenames:
+                                    cmd += compiledFile + ' '
+                                cmd += '; '
+
+                                #Add command to run
+
+                                rptFilename = 'rpt'
+                                #TODO: Refactor for report file not first argument
+                                cmd += linkedFilename + ' ' + rptFilename + ' ' + kernelInstanceRuntimeFlagString + ';'
+
+                                print('Executing: ' + cmd)
+
+                                #Start Timer
+                                startTime = datetime.datetime.now()
+
+                                #Execute Command
+                                exitCode = subprocess.call(cmd, shell=True)
+
+                                #Stop Timer
+                                stopTime = datetime.datetime.now()
+
+                                if exitCode != 0:
+                                    status = 'Error'
+                                else:
+                                    status = 'Success'
+                                    
+                                    #Parse Results
+                                    with open('./build/'+rptFilename, newline='') as csvfile:
+                                        csvReader = csv.reader(csvfile, quoting=csv.QUOTE_NONNUMERIC)
+
+                                        headers = next(csvReader)
+                                        trial = 1
+                                        for row in csvReader:
+                                            trialID = addIfNotAlready(sqlCursor, 'SELECT TrialID FROM Trial WHERE Trial.RunID=? AND Trial.TrialNumber=?;',
+                                                      'INSERT INTO Trial (`RunID`, `TrialNumber`) VALUES (?, ?);', (runID, trial))
+
+                                            #Now get row data and enter into database
+                                            #Use the header as the type
+                                            for col in range(0, len(row)):
+                                                resultTypeID = addIfNotAlready(sqlCursor, 'SELECT ResultTypeID FROM ResultType WHERE ResultType.Name=? AND ResultType.IsSummary=?;',
+                                                               'INSERT INTO ResultType (`Name`, `IsSummary`) VALUES (?, ?);', (headers[col], 0))
+
+                                                #TODO: Add unit
+                                                addIfNotAlready(sqlCursor, 'SELECT ResultID FROM Result WHERE Result.TrialID=? AND Result.ResultTypeID=? AND Result.Value=?;',
+                                                'INSERT INTO Result (`TrialID`, `ResultTypeID`, `Value`) VALUES (?, ?, ?);', (trialID, resultTypeID, row[col]))                                                               
+                                            trial += 1
+
+                                #Done Parsing
+                                
+                                #Update Run Entry
+                                sqlCursor.execute('UPDATE Run SET Run.DateTimeStart=?, Run.DateTimeStop=?, Status=?, CommandExecuted=? WHERE Run.RunID=?;', (startTime, stopTime, status, cmd, runID))
+
+                                #Commit to DB
+                                sqlConnection.commit()
+
+                                #Clean build dir
+                                subprocess.call('rm -f ./build/*', shell=True)
 
 def main():
 
@@ -1239,10 +1314,10 @@ def main():
     #Create Naive FIR Kernel Instance
     firCompileOptions = OptionList()
 
-    firTrials = 100
-    firStimLen = 1000000
-    firOrderRange = range(1, 501)
-    firBlockRange = range(1, 501)
+    firTrials = 20
+    firStimLen = 100000
+    firOrderRange = range(1, 101)
+    firBlockRange = range(1, 101)
     #Static Options
     firCompileOptions.addOption(EnumOption('PRINT_TITLE', [0], '-D{}={}'))
     firCompileOptions.addOption(EnumOption('PRINT_TRIALS', [0], '-D{}={}'))
