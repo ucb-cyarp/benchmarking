@@ -1159,8 +1159,9 @@ class gcc(Compiler):
         #compilerOptions.addOption(ExclusiveOptionList([AlwaysOption('-O0'), AlwaysOption('-O1'), AlwaysOption('-O2'), AlwaysOption('-O3'), AlwaysOption('-Os'), AlwaysOption('-Ofast')], True))
         compilerOptions.addOption(ExclusiveOptionList([AlwaysOption('-O1'), AlwaysOption('-O2'), AlwaysOption('-O3'), AlwaysOption('-Os'), AlwaysOption('-Ofast')]))
         #TODO: Only targeting Intel ISA Extensions for now.  This is actually a non-exhaustive list.  See the g++ man page
-        #compilerOptions.addOption(EnumOption('march', ['i686', 'pentium4', 'core2', 'corei7', 'corei7-avx', 'core-avx-i', 'core-avx2', 'native'], '-{}={}'))
-        compilerOptions.addOption(EnumOption('march', ['core2', 'corei7', 'corei7-avx', 'core-avx-i', 'core-avx2', 'native'], '-{}={}'))
+        #compilerOptions.addOption(EnumOption('march', ['core2', 'corei7', 'corei7-avx', 'core-avx-i', 'core-avx2', 'native'], '-{}={}'))
+        #TODO: For Now, let's just try the default x86_64 and native
+        compilerOptions.addOption(EnumOption('march', ['native'], '-{}={}'))
 
         super().__init__(name='gcc', command='g++', envSetup=None, vendor='GNU', options=compilerOptions, defineFormat='-D{}={}', compileFormat='-c {}', outputFormat='-o {}')
     
