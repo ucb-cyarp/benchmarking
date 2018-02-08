@@ -1334,7 +1334,7 @@ def main():
     firTrials = 10
     firStimLen = 100000
     
-    rangeIterator = itertools.chain(range(1, 10), range(10, 100, 10), range(100, 501, 100))
+    rangeIterator = itertools.chain(range(1, 10), range(10, 50, 10))
 
     rangeArray = []
     for rangeVal in rangeIterator:
@@ -1352,8 +1352,8 @@ def main():
     firCompileOptions.addOption(EnumOption('TRIALS', [firTrials], '-D{}={}', True))
     firCompileOptions.addOption(EnumOption('STIM_LEN', [firStimLen], '-D{}={}', True))
     #Dynamic Options
-    #firCompileOptions.addOption(EnumOption('DATATYPE', ['int8_t', 'int16_t', 'int32_t', 'int64_t', 'single', 'double'], '-D{}={}', True))
-    firCompileOptions.addOption(EnumOption('DATATYPE', ['double'], '-D{}={}', True))
+    firCompileOptions.addOption(EnumOption('DATATYPE', ['int8_t', 'int16_t', 'int32_t', 'int64_t', 'float', 'double'], '-D{}={}', True))
+    #firCompileOptions.addOption(EnumOption('DATATYPE', ['double'], '-D{}={}', True))
 
     firCompileOptions.addOption(EnumOption('COEF_LEN', firOrderRange, '-D{}={}', True))
     firCompileOptions.addOption(EnumOption('IO_LEN', firBlockRange, '-D{}={}', True))
