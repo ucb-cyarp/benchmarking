@@ -1334,7 +1334,7 @@ def main():
     firTrials = 10
     firStimLen = 100000
     
-    rangeIterator = itertools.chain(range(1, 10), range(10, 50, 10))
+    rangeIterator = itertools.chain(range(1, 10), range(10, 51, 10))
 
     rangeArray = []
     for rangeVal in rangeIterator:
