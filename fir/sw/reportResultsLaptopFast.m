@@ -6,7 +6,7 @@
 clear; close all; clc;
 
 %% Open DB
-conn = sqlite('results_naive.db', 'readonly'); %Do not need to write into the DB
+conn = sqlite('laptop-fast-results.db', 'readonly'); %Do not need to write into the DB
 
 %% Report Basics
 %Get a list of Suites, Kernels, and Instances
@@ -52,7 +52,7 @@ kernel = conn.fetch('SELECT KernelID FROM Kernel WHERE Name=''FIR - Single''');
 kernelID = kernel{1};
 kernelInstance = conn.fetch(['SELECT KernelInstanceID FROM KernelInstance WHERE KernelID=' num2str(kernelID) ' AND Description=''Naive implementation with blocked input and output, shift register state, no explicit vectorization or unrolling.''']);
 instanceID = kernelInstance{1};
-machine = conn.fetch('SELECT MachineID FROM Machine WHERE Name=''Chris Workstation VM''');
+machine = conn.fetch('SELECT MachineID FROM Machine WHERE Name=''Chris Macbook Pro''');
 machineID = machine{1};
 
 disp(['Report for Kernel ' num2str(kernelID) ' Instance ' num2str(instanceID)])
@@ -123,6 +123,8 @@ compiler = 'gcc';
 
 compilerX = conn.fetch(['SELECT CompilerID FROM Compiler WHERE Name=''' compiler '''']);
 compilerID = compilerX{1};
+xAxisParamName = 'COEF_LEN';
+xAxisParam = getParameterIDs(conn, {xAxisParamName});
 yAxisResultTypeName = 'Clock - Cycles/Cycle Time (ms)';
 yAxisResultTypeID = getResultTypeID(conn, {yAxisResultTypeName});
 stimLenName = 'STIM_LEN';
@@ -130,9 +132,7 @@ stimLenID = getParameterIDs(conn, {stimLenName});
 ioLenName = 'IO_LEN';
 ioLenID = getParameterIDs(conn, {ioLenName});
 
-%% Make a Plot of Different Compiler Flags
-xAxisParamName = 'COEF_LEN';
-xAxisParam = getParameterIDs(conn, {xAxisParamName});
+%Make a Plot of Different Compiler Flags
 
 %These are things that we have other options for but are holding constant
 %for the graph
@@ -183,7 +183,7 @@ for marchX = {'native'}
            legendLbls{legendInd} = [legendLbls{legendInd} optimizationLvl];
         end
         
-        atLeastOneParams = {xAxisParamName};
+        atLeastOneParams = {'COEF_LEN'};
 
         plotResultSet(conn, constParams, atLeastOneParams, xAxisParam, yAxisResultTypeID, instanceID, compilerID, machineID, stimLenID, ioLenID, 'o-');
         hold all;
@@ -195,139 +195,8 @@ title('Naive FIR Filter Execution Time For Different Compiler Flags');
 xlabel('Filter Order (Coefficients)');
 ylabel(['Execution Time for ' num2str(stimLen) ' samples (ms)']);
 leg = legend(legendLbls,'Location','northwest');
-title(leg, ['Error Bars Represent StdDev\newlineIO Block Length: ' num2str(ioLen) '\newlineDataType: ' datatype ]);
+title(leg, ['Error Bars Represent StdDev\newlineIO Block Length: ' num2str(ioLen) ', DataType: ' datatype ]);
+
 %ALSO DO A 2D PLOT OF IO_LEN and COEF_LEN
 
-%% Plot Datatype
-xAxisParamName = 'COEF_LEN';
-xAxisParam = getParameterIDs(conn, {xAxisParamName});
-
-ioLen = 1;
-optimizationLvl = '-Ofast';
-march = 'native';
-
-legendInd = 1;
-legendLbls = {};
-
-fig = figure;
-
-for datatypeX = {'int8_t', 'int16_t','int32_t', 'int64_t', 'float', 'double'}
-    datatype=datatypeX{1};
-
-    legendLbls{legendInd} = strrep(datatype,'_','\_');
-
-    %Parameter.Name, 0=No Val|1=Numeric|2=String, ParameterValue.Value
-    constParams = {'DATATYPE', 2, datatype; ...
-                   '-std=c++11', 0, ''; ... %Begin the Always Parameters
-                   'PRINT_TITLE', 1, 0; ... 
-                   'PRINT_TRIALS', 1, 0; ...
-                   'PRINT_STATS', 1, 0; ...
-                   'WRITE_CSV', 1, 1; ...
-                   'TRIALS', 1, trials; ... %Change for future Runs
-                   'STIM_LEN', 1, stimLen; ...
-                   'IO_LEN', 1, ioLen; ...
-                   };
-
-    %Special Case these parameters as they sometimes are not
-    %included
-    if strcmp(march, '') == 0
-       [rows, cols] = size(constParams);
-       constParams{rows+1, 1} = 'march';
-       constParams{rows+1, 2} = 2;
-       constParams{rows+1, 3} = march;
-    end
-
-    if strcmp(optimizationLvl, '') == 0
-       [rows, cols] = size(constParams);
-       constParams{rows+1, 1} = optimizationLvl;
-       constParams{rows+1, 2} = 0;
-       constParams{rows+1, 3} = '';
-    end
-
-    atLeastOneParams = {xAxisParamName};
-
-    plotResultSet(conn, constParams, atLeastOneParams, xAxisParam, yAxisResultTypeID, instanceID, compilerID, machineID, stimLenID, ioLenID, 'o-');
-    hold all;
-    legendInd = legendInd + 1;
-end
-
-title('Naive FIR Filter Execution Time For Different DataTypes');
-xlabel('Filter Order (Coefficients)');
-ylabel(['Execution Time for ' num2str(stimLen) ' samples (ms)']);
-leg = legend(legendLbls,'Location','northwest');
-compilerFlags = optimizationLvl;
-if strcmp(march, '') == 0
-    compilerFlags = [compilerFlags ' -march=' march];
-end
-
-title(leg, ['Error Bars Represent StdDev\newlineIO Block Length: ' num2str(ioLen) '\newlineCompiler Flags: ' compilerFlags ]);
-%ALSO DO A 2D PLOT OF IO_LEN and COEF_LEN
-
-%% Plot Blocklength
-xAxisParamName = 'IO_LEN';
-xAxisParam = getParameterIDs(conn, {xAxisParamName});
-
-datatype = 'double';
-ioLen = 1;
-optimizationLvl = '-Ofast';
-march = 'native';
-
-legendInd = 1;
-legendLbls = {};
-
-fig = figure;
-
-for coefLenX = {1, 5, 10, 20, 50}
-    coefLen=coefLenX{1};
-
-    legendLbls{legendInd} = num2str(coefLen);
-
-    %Parameter.Name, 0=No Val|1=Numeric|2=String, ParameterValue.Value
-    constParams = {'DATATYPE', 2, datatype; ...
-                   '-std=c++11', 0, ''; ... %Begin the Always Parameters
-                   'PRINT_TITLE', 1, 0; ... 
-                   'PRINT_TRIALS', 1, 0; ...
-                   'PRINT_STATS', 1, 0; ...
-                   'WRITE_CSV', 1, 1; ...
-                   'TRIALS', 1, trials; ... %Change for future Runs
-                   'STIM_LEN', 1, stimLen; ...
-                   'COEF_LEN', 1, coefLen; ...
-                   };
-
-    %Special Case these parameters as they sometimes are not
-    %included
-    if strcmp(march, '') == 0
-       [rows, cols] = size(constParams);
-       constParams{rows+1, 1} = 'march';
-       constParams{rows+1, 2} = 2;
-       constParams{rows+1, 3} = march;
-    end
-
-    if strcmp(optimizationLvl, '') == 0
-       [rows, cols] = size(constParams);
-       constParams{rows+1, 1} = optimizationLvl;
-       constParams{rows+1, 2} = 0;
-       constParams{rows+1, 3} = '';
-    end
-
-    atLeastOneParams = {xAxisParamName};
-
-    plotResultSet(conn, constParams, atLeastOneParams, xAxisParam, yAxisResultTypeID, instanceID, compilerID, machineID, stimLenID, ioLenID, 'o-');
-    hold all;
-    legendInd = legendInd + 1;
-end
-
-title('Naive FIR Filter Execution Time For Different Coefficient Lengths');
-xlabel('IO Block Length (Samples)');
-ylabel(['Execution Time for ' num2str(stimLen) ' samples (ms)']);
-leg = legend(legendLbls,'Location','northwest');
-compilerFlags = optimizationLvl;
-if strcmp(march, '') == 0
-    compilerFlags = [compilerFlags ' -march=' march];
-end
-
-title(leg, ['Error Bars Represent StdDev\newlineIO Block Length: ' num2str(ioLen) '\newlineCompiler Flags: ' compilerFlags '\newlineDataType: ' datatype ]);
-%ALSO DO A 2D PLOT OF IO_LEN and COEF_LEN
-
-%% Close
 conn.close()
