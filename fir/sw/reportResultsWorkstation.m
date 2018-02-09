@@ -6,7 +6,7 @@
 clear; close all; clc;
 
 %% Open DB
-conn = sqlite('fir-mod.db', 'readonly'); %Do not need to write into the DB
+conn = sqlite('results_naive.db', 'readonly'); %Do not need to write into the DB
 
 %% Report Basics
 %Get a list of Suites, Kernels, and Instances
@@ -50,7 +50,7 @@ disp(' ')
 % FIR Naive
 kernel = conn.fetch('SELECT KernelID FROM Kernel WHERE Name=''FIR - Single''');
 kernelID = kernel{1};
-kernelInstance = conn.fetch(['SELECT KernelInstanceID FROM KernelInstance WHERE KernelID=' num2str(kernelID) ' AND Description=''Circular buffer implementation with blocked input and output, circular buffer state, no explicit vectorization or unrolling.''']);
+kernelInstance = conn.fetch(['SELECT KernelInstanceID FROM KernelInstance WHERE KernelID=' num2str(kernelID) ' AND Description=''Naive implementation with blocked input and output, shift register state, no explicit vectorization or unrolling.''']);
 instanceID = kernelInstance{1};
 machine = conn.fetch('SELECT MachineID FROM Machine WHERE Name=''Chris Workstation VM''');
 machineID = machine{1};
@@ -79,42 +79,6 @@ for i = 1:rows1
     disp(['    ' num2str(compilerParams{i, 1}) ': ' compilerParams{i, 2}])
 end
 
-%Do some plots
-
-%Pick a set of parameters
-%Get a list of RunIDs with an exact set of compiler parameters, ordered by the value of the
-%COEF_LEN parameter
-
-%FIRST, WE NEED TO condition that the runs are associated with the kernel
-%we are interested in.
-
-%One Way to do the above is to find the unique set of runs that have each
-%of the desired parameter values and then take the intersection of them to find
-%the set that have all of the parameters we desire.  Do one more set intersection but this time
-%to ensure that the run has at least one parameter value that belongs to the family we are going
-%to use for the x axis.  This involves a join, and conditioning on
-%parametervalues linked to our x axis.  At this point, all runs should
-%contain at least the parameters we would like (including at least one
-%instance of the x axis parameter).  To ensure each does not contain any
-%more parameters, we take the count of
-%parameters assigned to each run and select thoes runs which have 
-
-%Get the results for each run and compute the throughput avg and std dev
-%Note the exact number of stimulus items uses a floor, compute that
-
-%Repeat for other parameter parameters of interes (ex. different
-%optimization level, different datatype, etc...)
-
-%Also, do some graphs vs block size
-
-
-%Speed vs COEF_LEN.  Plot different optomization levels and march.  
-%Hold Const: -std=c++11, DATATYPE=double, IO_LEN=0.  
-%Check all have PRINT_TITLE, PRINT_TRIALS,
-%PRINT_STATS, WRITE_CSV, TRIALS, STIM_LEN.  We will pick a specific value,
-%100000 for now.  Same for Trials
-
-
 %Things that may change from different experement runs but are constant for
 %graphs
 trials = 10;
@@ -130,13 +94,82 @@ stimLenID = getParameterIDs(conn, {stimLenName});
 ioLenName = 'IO_LEN';
 ioLenID = getParameterIDs(conn, {ioLenName});
 
-%% Make a Plot of Different Compiler Flags
+
+%% Make a Plot of Different Compiler Flags (double)
 xAxisParamName = 'COEF_LEN';
 xAxisParam = getParameterIDs(conn, {xAxisParamName});
 
 %These are things that we have other options for but are holding constant
 %for the graph
 datatype = 'double';
+ioLen = 1;
+
+legendInd = 1;
+legendLbls = {};
+
+fig = figure;
+
+%for marchX = {'', 'core2', 'corei7', 'corei7-avx', 'core-avx-i', 'core-avx2', 'native'}
+for marchX = {'native'}
+    march = marchX{1};
+    for optimizationLvlX = {'', '-O1','-O2', '-O3', '-Os', '-Ofast'}
+        optimizationLvl = optimizationLvlX{1};
+        
+        legendLbls{legendInd} = '';
+        
+        %Parameter.Name, 0=No Val|1=Numeric|2=String, ParameterValue.Value
+        constParams = {'DATATYPE', 2, datatype; ...
+                       '-std=c++11', 0, ''; ... %Begin the Always Parameters
+                       'PRINT_TITLE', 1, 0; ... 
+                       'PRINT_TRIALS', 1, 0; ...
+                       'PRINT_STATS', 1, 0; ...
+                       'WRITE_CSV', 1, 1; ...
+                       'TRIALS', 1, trials; ... %Change for future Runs
+                       'STIM_LEN', 1, stimLen; ...
+                       'IO_LEN', 1, ioLen; ...
+                       };
+
+        %Special Case these parameters as they sometimes are not
+        %included
+        if strcmp(march, '') == 0
+           [rows, cols] = size(constParams);
+           constParams{rows+1, 1} = 'march';
+           constParams{rows+1, 2} = 2;
+           constParams{rows+1, 3} = march;
+
+            legendLbls{legendInd} = [legendLbls{legendInd} '-march=' march ' '];
+        end
+
+        if strcmp(optimizationLvl, '') == 0
+           [rows, cols] = size(constParams);
+           constParams{rows+1, 1} = optimizationLvl;
+           constParams{rows+1, 2} = 0;
+           constParams{rows+1, 3} = '';
+           legendLbls{legendInd} = [legendLbls{legendInd} optimizationLvl];
+        end
+        
+        atLeastOneParams = {xAxisParamName};
+
+        plotResultSet(conn, constParams, atLeastOneParams, xAxisParam, yAxisResultTypeID, instanceID, compilerID, machineID, stimLenID, ioLenID, 'o-');
+        hold all;
+        legendInd = legendInd + 1;
+    end
+end
+
+title('Naive FIR Filter Execution Time For Different Compiler Flags');
+xlabel('Filter Order (Coefficients)');
+ylabel(['Execution Time for ' num2str(stimLen) ' samples (ms)']);
+leg = legend(legendLbls,'Location','northwest');
+title(leg, ['Error Bars Represent StdDev\newlineIO Block Length: ' num2str(ioLen) '\newlineDataType: ' datatype ]);
+%ALSO DO A 2D PLOT OF IO_LEN and COEF_LEN
+
+%% Make a Plot of Different Compiler Flags (int16_t)
+xAxisParamName = 'COEF_LEN';
+xAxisParam = getParameterIDs(conn, {xAxisParamName});
+
+%These are things that we have other options for but are holding constant
+%for the graph
+datatype = 'int16_t';
 ioLen = 1;
 
 legendInd = 1;
@@ -268,7 +301,6 @@ xAxisParamName = 'IO_LEN';
 xAxisParam = getParameterIDs(conn, {xAxisParamName});
 
 datatype = 'double';
-ioLen = 1;
 optimizationLvl = '-Ofast';
 march = 'native';
 
@@ -317,7 +349,7 @@ for coefLenX = {1, 5, 10, 20, 50}
     legendInd = legendInd + 1;
 end
 
-title('Naive FIR Filter Execution Time For Different Coefficient Lengths');
+title('Naive FIR Filter Execution Time For Different Filter Orders (Coefficient Length)');
 xlabel('IO Block Length (Samples)');
 ylabel(['Execution Time for ' num2str(stimLen) ' samples (ms)']);
 leg = legend(legendLbls,'Location','northwest');
@@ -326,7 +358,7 @@ if strcmp(march, '') == 0
     compilerFlags = [compilerFlags ' -march=' march];
 end
 
-title(leg, ['Error Bars Represent StdDev\newlineIO Block Length: ' num2str(ioLen) '\newlineCompiler Flags: ' compilerFlags '\newlineDataType: ' datatype ]);
+title(leg, ['Error Bars Represent StdDev\newlineCompiler Flags: ' compilerFlags '\newlineDataType: ' datatype ]);
 %ALSO DO A 2D PLOT OF IO_LEN and COEF_LEN
 
 %% Close
