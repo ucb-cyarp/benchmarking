@@ -1337,7 +1337,7 @@ def main():
     #+++++++FIR Naive++++++++++++++++
 
     firNaiveCompileOptions = OptionList()
-    naiveRangeIterator = itertools.chain(range(1, 10), range(10, 51, 10))
+    naiveRangeIterator = itertools.chain(range(1, 26), range(30, 51, 10))
 
     naiveRangeArray = []
     for naiveRangeVal in naiveRangeIterator:
@@ -1373,7 +1373,7 @@ def main():
 
     #+++++++FIR Naive Unroll 2++++++++++++++++
     firUnroll2CompileOptions = OptionList()
-    unroll2RangeArray = itertools.chain(range(2, 10), range(10, 51, 10))
+    unroll2RangeArray = itertools.chain(range(2, 26, 2), range(30, 51, 10))
 
     unroll2RangeArray = []
     for unroll2RangeVal in unroll2RangeArray:
@@ -1402,7 +1402,7 @@ def main():
 
     #+++++++FIR Naive Unroll 4++++++++++++++++
     firUnroll4CompileOptions = OptionList()
-    unroll4RangeArray = itertools.chain(range(4, 10), range(10, 51, 10))
+    unroll4RangeArray = itertools.chain(range(4, 26, 4), range(32, 51, 8))
 
     unroll4RangeArray = []
     for unroll4RangeVal in unroll4RangeArray:
@@ -1441,7 +1441,7 @@ def main():
     #*****GO*****
     #TODO: Make these arguments
     sqlFilePath = './results.db'
-    machineDescription = 'Chris Macbook Pro'
+    machineDescription = 'Chris Workstation VM'
 
     if os.path.isfile(sqlFilePath):
         print('Report file already exists - Aborting')
