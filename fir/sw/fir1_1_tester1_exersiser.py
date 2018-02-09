@@ -1324,45 +1324,112 @@ def main():
     #Create Suites
     firSuite = Suite('FIR', 'Testing feed forward system performance using FIR filters')
 
-    #Create FIR Kernel
+    #=======Create FIR Kernel========
     firSingleKernel = Kernel('FIR - Single', 'A single FIR filter operating in a single thread')
     firSuite.addKernel(firSingleKernel)
 
     #TODO remove format option from enum option
     #Create Naive FIR Kernel Instance
-    firCompileOptions = OptionList()
 
     firTrials = 10
     firStimLen = 100000
-    
-    rangeIterator = itertools.chain(range(1, 10), range(10, 51, 10))
 
-    rangeArray = []
-    for rangeVal in rangeIterator:
-        rangeArray.append(rangeVal)
+    #+++++++FIR Naive++++++++++++++++
+
+    firNaiveCompileOptions = OptionList()
+    naiveRangeIterator = itertools.chain(range(1, 10), range(10, 51, 10))
+
+    naiveRangeArray = []
+    for naiveRangeVal in naiveRangeIterator:
+        naiveRangeArray.append(naiveRangeVal)
 
     #So itterator is not lost
     #TODO: Investigate reseting iterator
-    firOrderRange = rangeArray
-    firBlockRange = rangeArray
+    firNaiveOrderRange = naiveRangeArray
+    firNaiveBlockRange = naiveRangeArray
     #Static Options
-    firCompileOptions.addOption(EnumOption('PRINT_TITLE', [0], '-D{}={}', True))
-    firCompileOptions.addOption(EnumOption('PRINT_TRIALS', [0], '-D{}={}', True))
-    firCompileOptions.addOption(EnumOption('PRINT_STATS', [0], '-D{}={}', True))
-    firCompileOptions.addOption(EnumOption('WRITE_CSV', [1], '-D{}={}', True))
-    firCompileOptions.addOption(EnumOption('TRIALS', [firTrials], '-D{}={}', True))
-    firCompileOptions.addOption(EnumOption('STIM_LEN', [firStimLen], '-D{}={}', True))
+    firNaiveCompileOptions.addOption(EnumOption('PRINT_TITLE', [0], '-D{}={}', True))
+    firNaiveCompileOptions.addOption(EnumOption('PRINT_TRIALS', [0], '-D{}={}', True))
+    firNaiveCompileOptions.addOption(EnumOption('PRINT_STATS', [0], '-D{}={}', True))
+    firNaiveCompileOptions.addOption(EnumOption('WRITE_CSV', [1], '-D{}={}', True))
+    firNaiveCompileOptions.addOption(EnumOption('TRIALS', [firTrials], '-D{}={}', True))
+    firNaiveCompileOptions.addOption(EnumOption('STIM_LEN', [firStimLen], '-D{}={}', True))
     #Dynamic Options
-    firCompileOptions.addOption(EnumOption('DATATYPE', ['int8_t', 'int16_t', 'int32_t', 'int64_t', 'float', 'double'], '-D{}={}', True))
-    #firCompileOptions.addOption(EnumOption('DATATYPE', ['double'], '-D{}={}', True))
+    firNaiveCompileOptions.addOption(EnumOption('DATATYPE', ['int8_t', 'int16_t', 'int32_t', 'int64_t', 'float', 'double'], '-D{}={}', True))
+    #firNaiveCompileOptions.addOption(EnumOption('DATATYPE', ['double'], '-D{}={}', True))
 
-    firCompileOptions.addOption(EnumOption('COEF_LEN', firOrderRange, '-D{}={}', True))
-    firCompileOptions.addOption(EnumOption('IO_LEN', firBlockRange, '-D{}={}', True))
+    firNaiveCompileOptions.addOption(EnumOption('COEF_LEN', firNaiveOrderRange, '-D{}={}', True))
+    firNaiveCompileOptions.addOption(EnumOption('IO_LEN', firNaiveBlockRange, '-D{}={}', True))
 
     firRunOptions = OptionList()
 
-    firSingleKernelNaive = KernelInstance(firSingleKernel, 'Naive implementation with blocked input and output, shift register state, no explicit vectorization or unrolling.', ['fir1_1_tester1.cpp'], firCompileOptions, firRunOptions)
+    firSingleKernelNaive = KernelInstance(firSingleKernel, 'Naive implementation with blocked input and output, shift register state, no explicit vectorization or unrolling.', ['fir1_1_tester1.cpp'], firNaiveCompileOptions, firRunOptions)
     firSingleKernel.addInstance(firSingleKernelNaive)
+
+    #+++++++FIR Circular Buffer++++++++++++++++
+    firCircularCompileOptions = firNaiveCompileOptions
+    firSingleKernelCircular = KernelInstance(firSingleKernel, 'Circular buffer implementation with blocked input and output, circular buffer state, no explicit vectorization or unrolling.', ['fir1_2_tester1.cpp'], firCircularCompileOptions, firRunOptions)
+    firSingleKernel.addInstance(firSingleKernelCircular)
+
+    #+++++++FIR Naive Unroll 2++++++++++++++++
+    firUnroll2CompileOptions = OptionList()
+    unroll2RangeArray = itertools.chain(range(2, 10), range(10, 51, 10))
+
+    unroll2RangeArray = []
+    for unroll2RangeVal in unroll2RangeArray:
+        unroll2RangeArray.append(unroll2RangeVal)
+
+    #So itterator is not lost
+    #TODO: Investigate reseting iterator
+    firUnroll2OrderRange = unroll2RangeArray
+    firUnroll2BlockRange = unroll2RangeArray
+    #Static Options
+    firUnroll2CompileOptions.addOption(EnumOption('PRINT_TITLE', [0], '-D{}={}', True))
+    firUnroll2CompileOptions.addOption(EnumOption('PRINT_TRIALS', [0], '-D{}={}', True))
+    firUnroll2CompileOptions.addOption(EnumOption('PRINT_STATS', [0], '-D{}={}', True))
+    firUnroll2CompileOptions.addOption(EnumOption('WRITE_CSV', [1], '-D{}={}', True))
+    firUnroll2CompileOptions.addOption(EnumOption('TRIALS', [firTrials], '-D{}={}', True))
+    firUnroll2CompileOptions.addOption(EnumOption('STIM_LEN', [firStimLen], '-D{}={}', True))
+    #Dynamic Options
+    firUnroll2CompileOptions.addOption(EnumOption('DATATYPE', ['int8_t', 'int16_t', 'int32_t', 'int64_t', 'float', 'double'], '-D{}={}', True))
+    #firNaiveCompileOptions.addOption(EnumOption('DATATYPE', ['double'], '-D{}={}', True))
+
+    firUnroll2CompileOptions.addOption(EnumOption('COEF_LEN', firUnroll2OrderRange, '-D{}={}', True))
+    firUnroll2CompileOptions.addOption(EnumOption('IO_LEN', firUnroll2BlockRange, '-D{}={}', True))
+
+    firSingleKernelUnroll2 = KernelInstance(firSingleKernel, 'Naive implementation with blocked input and output, shift register state, manually unrolled by 2.', ['fir1_3_tester1.cpp'], firUnroll2CompileOptions, firRunOptions)
+    firSingleKernel.addInstance(firSingleKernelUnroll2)
+
+    #+++++++FIR Naive Unroll 4++++++++++++++++
+    firUnroll4CompileOptions = OptionList()
+    unroll4RangeArray = itertools.chain(range(4, 10), range(10, 51, 10))
+
+    unroll4RangeArray = []
+    for unroll4RangeVal in unroll4RangeArray:
+        unroll4RangeArray.append(unroll4RangeVal)
+
+    #So itterator is not lost
+    #TODO: Investigate reseting iterator
+    firUnroll4OrderRange = unroll4RangeArray
+    firUnroll4BlockRange = unroll4RangeArray
+    #Static Options
+    firUnroll4CompileOptions.addOption(EnumOption('PRINT_TITLE', [0], '-D{}={}', True))
+    firUnroll4CompileOptions.addOption(EnumOption('PRINT_TRIALS', [0], '-D{}={}', True))
+    firUnroll4CompileOptions.addOption(EnumOption('PRINT_STATS', [0], '-D{}={}', True))
+    firUnroll4CompileOptions.addOption(EnumOption('WRITE_CSV', [1], '-D{}={}', True))
+    firUnroll4CompileOptions.addOption(EnumOption('TRIALS', [firTrials], '-D{}={}', True))
+    firUnroll4CompileOptions.addOption(EnumOption('STIM_LEN', [firStimLen], '-D{}={}', True))
+    #Dynamic Options
+    firUnroll4CompileOptions.addOption(EnumOption('DATATYPE', ['int8_t', 'int16_t', 'int32_t', 'int64_t', 'float', 'double'], '-D{}={}', True))
+    #firNaiveCompileOptions.addOption(EnumOption('DATATYPE', ['double'], '-D{}={}', True))
+
+    firUnroll4CompileOptions.addOption(EnumOption('COEF_LEN', firUnroll4OrderRange, '-D{}={}', True))
+    firUnroll4CompileOptions.addOption(EnumOption('IO_LEN', firUnroll4BlockRange, '-D{}={}', True))
+
+    firSingleKernelUnroll4 = KernelInstance(firSingleKernel, 'Naive implementation with blocked input and output, shift register state, manually unrolled by 4.', ['fir1_3_4_tester1.cpp'], firUnroll4CompileOptions, firRunOptions)
+    firSingleKernel.addInstance(firSingleKernelUnroll4)
+
+    #------------END FIR-----------------------
 
     #TODO: Better handle output file as an option, right now is assumed to be the first option (before other options specified)
     #TODO: Cleanup output file format str in KernelInstance
