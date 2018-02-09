@@ -24,6 +24,7 @@ ind = ind + length(atLeastOneOfParams);
 
 %Check Parameter Count
 query{ind+1} = ['SELECT Run.RunID AS RID FROM Run JOIN Config ON Run.RunID=Config.RunID WHERE Run.CompilerID=' num2str(compilerID) ' AND Run.KernelInstanceID=' num2str(kernelInstanceID) ' AND Run.MachineID=' num2str(machineID) ' GROUP BY Run.RunID HAVING COUNT(Config.ParameterValueID)=' num2str(ind)];
+ind = ind+1;
 
 queryStr = 'SELECT RID FROM (';
 %Form the Union Query
@@ -31,9 +32,10 @@ for i = 1:(ind-1)
     queryStr = [queryStr query{i} ' INTERSECT '];
 end
 
+%Tag the last query on without INTERSECT at the end
 queryStr = [queryStr query{ind}];
-queryStr = [queryStr, ') JOIN Config ON RID=Config.RunID JOIN ParameterValue ON Config.ParameterValueID=ParameterValue.ParameterValueID WHERE ParameterValue.ParameterID=' num2str(orderByID) ' ORDER BY ParameterValue.ValueNumeric ASC'];
 
+queryStr = [queryStr, ') JOIN Config ON RID=Config.RunID JOIN ParameterValue ON Config.ParameterValueID=ParameterValue.ParameterValueID WHERE ParameterValue.ParameterID=' num2str(orderByID) ' ORDER BY ParameterValue.ValueNumeric ASC'];
 runIDs = sqlConn.fetch(queryStr);
 
 end

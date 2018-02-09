@@ -132,52 +132,70 @@ stimLenID = getParameterIDs(conn, {stimLenName});
 ioLenName = 'IO_LEN';
 ioLenID = getParameterIDs(conn, {ioLenName});
 
+%Make a Plot of Different Compiler Flags
+
 %These are things that we have other options for but are holding constant
 %for the graph
 datatype = 'double';
 ioLen = 1;
 
-%The variables we are interested in exploring (will put in loop)
-march='native';
-optimizationLvl = '-Ofast';
-%There are cases where the above
-varParams = {'march', 2, march; ...
-              optimizationLvl, 0, ''; ...
-             };
+legendInd = 1;
+legendLbls = {};
 
-%Parameter.Name, 0=No Val|1=Numeric|2=String, ParameterValue.Value
-constParams = {'march', 2, march; ...
-               optimizationLvl, 0, ''; ...
-               'DATATYPE', 2, datatype; ...
-               'IO_LEN', 1, 1; ...
-               '-std=c++11', 0, ''; ... %Begin the Always Parameters
-               'PRINT_TITLE', 1, 0; ... 
-               'PRINT_TRIALS', 1, 0; ...
-               'PRINT_STATS', 1, 0; ...
-               'WRITE_CSV', 1, 1; ...
-               'TRIALS', 1, trials; ... %Change for future Runs
-               'STIM_LEN', 1, stimLen; ...
-               'IO_LEN', 1, ioLen; ...
-               };
-           
-mustHaveParamValIDs = getParameterValueIDs(conn, constParams);
-atLeastOneOfParams = getParameterIDs(conn, {'COEF_LEN'});
+fig = figure;
 
-runIDs = getRunIDsWithExactParams(conn, mustHaveParamValIDs, atLeastOneOfParams, xAxisParam, instanceID, compilerID, machineID);
-runIDs = cell2mat(runIDs);
+%for marchX = {'', 'core2', 'corei7', 'corei7-avx', 'core-avx-i', 'core-avx2', 'native'}
+for marchX = {'native'}
+    march = marchX{1};
+    for optimizationLvlX = {'', '-O1','-O2', '-O3', '-Os', '-Ofast'}
+        optimizationLvl = optimizationLvlX{1};
+        
+        legendLbls{legendInd} = '';
+        
+        %Parameter.Name, 0=No Val|1=Numeric|2=String, ParameterValue.Value
+        constParams = {'DATATYPE', 2, datatype; ...
+                       '-std=c++11', 0, ''; ... %Begin the Always Parameters
+                       'PRINT_TITLE', 1, 0; ... 
+                       'PRINT_TRIALS', 1, 0; ...
+                       'PRINT_STATS', 1, 0; ...
+                       'WRITE_CSV', 1, 1; ...
+                       'TRIALS', 1, trials; ... %Change for future Runs
+                       'STIM_LEN', 1, stimLen; ...
+                       'IO_LEN', 1, ioLen; ...
+                       };
 
-xAxisVal = zeros(length(runIDs), 1);
-avgSampleRate = zeros(length(runIDs), 1);
-stdDevSampleRate = zeros(length(runIDs), 1);
+        %Special Case these parameters as they sometimes are not
+        %included
+        if strcmp(march, '') == 0
+           [rows, cols] = size(constParams);
+           constParams{rows+1, 1} = 'march';
+           constParams{rows+1, 2} = 2;
+           constParams{rows+1, 3} = march;
 
-for i = 1:length(runIDs)
-    [xAxisVal(i), avgSampleRate(i), stdDevSampleRate(i)] = runStatistics(conn, runIDs(i), yAxisResultTypeID, xAxisParam, stimLenID, ioLenID, false);
+            legendLbls{legendInd} = [legendLbls{legendInd} '-march=' march ' '];
+        end
+
+        if strcmp(optimizationLvl, '') == 0
+           [rows, cols] = size(constParams);
+           constParams{rows+1, 1} = optimizationLvl;
+           constParams{rows+1, 2} = 0;
+           constParams{rows+1, 3} = '';
+           legendLbls{legendInd} = [legendLbls{legendInd} optimizationLvl];
+        end
+        
+        atLeastOneParams = {'COEF_LEN'};
+
+        plotResultSet(conn, constParams, atLeastOneParams, xAxisParam, yAxisResultTypeID, instanceID, compilerID, machineID, stimLenID, ioLenID, 'o-');
+        hold all;
+        legendInd = legendInd + 1;
+    end
 end
 
-errorbar(xAxisVal, avgSampleRate, stdDevSampleRate, 'o-');
+title(['Naive FIR Filter Execution Time For Different Compiler Flags\newlineIO Block Length: ' num2str(ioLen) ', Datatype: ' datatype ]);
+xlabel('Filter Order (Coefficients)');
+ylabel(['Execution Time for ' num2str(stimLen) ' samples (ms)']);
+legend(legendLbls);
 
 %ALSO DO A 2D PLOT OF IO_LEN and COEF_LEN
-
-               
 
 conn.close()
