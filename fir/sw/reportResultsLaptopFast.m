@@ -25,7 +25,7 @@ for i = 1:rows1
     kernelInsts = conn.fetch(['SELECT DISTINCT Description, KernelInstanceID FROM KernelInstance WHERE KernelID=', num2str(kernels{i,2})]);
     [rows2, cols2] = size(kernelInsts);
     for j = 1:rows2
-        disp(['        ' num2str(kernelInsts{i, 2}) ': ' kernelInsts{j, 1}])
+        disp(['        ' num2str(kernelInsts{j, 2}) ': ' kernelInsts{j, 1}])
     end
         
 end

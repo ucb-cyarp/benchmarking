@@ -25,7 +25,7 @@ for i = 1:rows1
     kernelInsts = conn.fetch(['SELECT DISTINCT Description, KernelInstanceID FROM KernelInstance WHERE KernelID=', num2str(kernels{i,2})]);
     [rows2, cols2] = size(kernelInsts);
     for j = 1:rows2
-        disp(['        ' num2str(kernelInsts{i, 2}) ': ' kernelInsts{j, 1}])
+        disp(['        ' num2str(kernelInsts{j, 2}) ': ' kernelInsts{j, 1}])
     end
         
 end
@@ -160,7 +160,7 @@ title('Naive FIR Filter Execution Time For Different Compiler Flags');
 xlabel('Filter Order (Coefficients)');
 ylabel(['Execution Time for ' num2str(stimLen) ' samples (ms)']);
 leg = legend(legendLbls,'Location','northwest');
-title(leg, ['Error Bars Represent StdDev\newlineIO Block Length: ' num2str(ioLen) '\newlineDataType: ' datatype ]);
+title(leg, ['Error Bars Represent StdDev\newlineIO Block Length: ' num2str(ioLen) '\newlineDataType: ' strrep(datatype,'_','\_') ]);
 %ALSO DO A 2D PLOT OF IO_LEN and COEF_LEN
 
 %% Make a Plot of Different Compiler Flags (int16_t)
@@ -228,7 +228,7 @@ title('Naive FIR Filter Execution Time For Different Compiler Flags');
 xlabel('Filter Order (Coefficients)');
 ylabel(['Execution Time for ' num2str(stimLen) ' samples (ms)']);
 leg = legend(legendLbls,'Location','northwest');
-title(leg, ['Error Bars Represent StdDev\newlineIO Block Length: ' num2str(ioLen) '\newlineDataType: ' datatype ]);
+title(leg, ['Error Bars Represent StdDev\newlineIO Block Length: ' num2str(ioLen) '\newlineDataType: ' strrep(datatype,'_','\_') ]);
 %ALSO DO A 2D PLOT OF IO_LEN and COEF_LEN
 
 %% Plot Datatype
