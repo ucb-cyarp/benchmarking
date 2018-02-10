@@ -988,7 +988,10 @@ def createSqlTables(sqlCursor):
         `ParameterID`	INTEGER NOT NULL,
         PRIMARY KEY(`CompilerID`,`ParameterID`)
     );
-    """]
+    """,
+    """CREATE INDEX `ConfigInd` ON `Config` ( `RunID`, `ParameterValueID`, `PhaseID`, `UsageID` );""",
+    """CREATE INDEX `RunInd` ON `Run` ( `KernelInstanceID`, `MachineID`, `CompilerID` );""",
+    """CREATE INDEX `ParameterValueInd` ON `ParameterValue` ( `ParameterID` );"""]
 
     for cmd in tableCreateCmds:
         #print(cmd)
@@ -1158,13 +1161,15 @@ class gcc(Compiler):
         #TODO: Omitted debugger optomization
         #compilerOptions.addOption(ExclusiveOptionList([AlwaysOption('-O0'), AlwaysOption('-O1'), AlwaysOption('-O2'), AlwaysOption('-O3'), AlwaysOption('-Os'), AlwaysOption('-Ofast')], True))
         compilerOptions.addOption(ExclusiveOptionList([AlwaysOption('-O1'), AlwaysOption('-O2'), AlwaysOption('-O3'), AlwaysOption('-Os'), AlwaysOption('-Ofast')]))
+        #compilerOptions.addOption(ExclusiveOptionList([AlwaysOption('-Ofast')]))
         #TODO: Only targeting Intel ISA Extensions for now.  This is actually a non-exhaustive list.  See the g++ man page
         #compilerOptions.addOption(EnumOption('march', ['core2', 'corei7', 'corei7-avx', 'core-avx-i', 'core-avx2', 'native'], '-{}={}'))
         #TODO: For Now, let's just try the default x86_64 and native
-        compilerOptions.addOption(EnumOption('march', ['native'], '-{}={}'))
+        #compilerOptions.addOption(EnumOption('march', ['native'], '-{}={}'))
+        #TODO: For Now, let's just try native
+        compilerOptions.addOption(EnumOption('march', ['native'], '-{}={}', True))
 
-        super().__init__(name='gcc', command='g++', envSetup=None, vendor='GNU', options=compilerOptions, defineFormat='-D{}={}', compileFormat='-c {}', outputFormat='-o {}')
-    
+        super().__init__(name='gcc', command='g++', envSetup=None, vendor='GNU', options=compilerOptions, defineFormat='-D{}={}', compileFormat='-c {}', outputFormat='-o {}')   
 
 def runExperiment(compilerList, suiteList, sqlConnection, sqlCursor, machineID):
     """
@@ -1337,7 +1342,7 @@ def main():
     #+++++++FIR Naive++++++++++++++++
 
     firNaiveCompileOptions = OptionList()
-    naiveRangeIterator = itertools.chain(range(1, 26), range(30, 51, 10))
+    naiveRangeIterator = range(1, 51, 5)
 
     naiveRangeArray = []
     for naiveRangeVal in naiveRangeIterator:
@@ -1373,10 +1378,10 @@ def main():
 
     #+++++++FIR Naive Unroll 2++++++++++++++++
     firUnroll2CompileOptions = OptionList()
-    unroll2RangeArray = itertools.chain(range(2, 26, 2), range(30, 51, 10))
+    unroll2RangeIterator = range(2, 51, 4)
 
     unroll2RangeArray = []
-    for unroll2RangeVal in unroll2RangeArray:
+    for unroll2RangeVal in unroll2RangeIterator:
         unroll2RangeArray.append(unroll2RangeVal)
 
     #So itterator is not lost
@@ -1402,10 +1407,10 @@ def main():
 
     #+++++++FIR Naive Unroll 4++++++++++++++++
     firUnroll4CompileOptions = OptionList()
-    unroll4RangeArray = itertools.chain(range(4, 26, 4), range(32, 51, 8))
+    unroll4RangeIterator = range(4, 51, 4)
 
     unroll4RangeArray = []
-    for unroll4RangeVal in unroll4RangeArray:
+    for unroll4RangeVal in unroll4RangeIterator:
         unroll4RangeArray.append(unroll4RangeVal)
 
     #So itterator is not lost
