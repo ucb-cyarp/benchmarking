@@ -1376,6 +1376,11 @@ def main():
     firSingleKernelCircular = KernelInstance(firSingleKernel, 'Circular buffer implementation with blocked input and output, circular buffer state, no explicit vectorization or unrolling.', ['fir1_2_tester1.cpp'], firCircularCompileOptions, firRunOptions)
     firSingleKernel.addInstance(firSingleKernelCircular)
 
+    #+++++++FIR Circular Buffer (No Mod)++++++++++++++++
+    firCircularCompileOptions = firNaiveCompileOptions
+    firSingleKernelCircular = KernelInstance(firSingleKernel, 'Circular buffer implementation with no modulus, blocked input and output, circular buffer state, no explicit vectorization or unrolling.', ['fir1_2_2_tester1.cpp'], firCircularCompileOptions, firRunOptions)
+    firSingleKernel.addInstance(firSingleKernelCircular)
+
     #+++++++FIR Naive Unroll 2++++++++++++++++
     firUnroll2CompileOptions = OptionList()
     unroll2RangeIterator = range(2, 51, 4)
