@@ -38,9 +38,9 @@ function [xAxisVal, resultAvg, resuktStdDev] = runStatistics(sqlConn, runID, res
         
         results = dataRate;
     end
+    %results
     
-    
-    resultAvg = mean(results);
-    resuktStdDev = std(results);
+    resultAvg = mean(double(results));
+    resuktStdDev = std(double(results));
 end
 
