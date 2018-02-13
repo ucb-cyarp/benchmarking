@@ -48,7 +48,7 @@ void Fir<T, coef_len, io_len>::filter(const T* in, T* out)
         }
         else
         {
-            buffer_ind--;
+            buffer_ind = buffer_pos-1;
         }
 
         for(size_t j = coef_len-1; j>=0; j--)

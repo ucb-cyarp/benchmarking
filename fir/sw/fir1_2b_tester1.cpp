@@ -33,7 +33,7 @@
 #include <fstream>
 #include <iostream>
 #include <cstdint>
-#include "fir1_2.hpp"
+#include "fir1_2b.hpp"
 
 #ifndef DATATYPE
     #define DATATYPE double

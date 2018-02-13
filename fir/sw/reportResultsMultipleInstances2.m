@@ -316,7 +316,7 @@ for graphNum = 1:insts
     %ALSO DO A 2D PLOT OF IO_LEN and COEF_LEN
 end
 
-%% Different Block Lengths for Unrolling 2
+%% Different Block Lengths for Unrolling 2 -double
 
 kernelInstanceDescription = 'Naive implementation with blocked input and output, shift register state, manually unrolled by 2.';
 kernelInstTitle = 'Naive Unroll 2';
@@ -388,7 +388,7 @@ end
 title(leg, ['Error Bars Represent StdDev\newlineCompiler Flags: ' compilerFlags '\newlineDataType: ' strrep(datatype, '_', '\_') ]);
 grid on;
 
-%% Different Block Lengths for Unrolling 4
+%% Different Block Lengths for Unrolling 4 -double
 kernelInstanceDescription = 'Naive implementation with blocked input and output, shift register state, manually unrolled by 4.';
 kernelInstTitle = 'Naive Unroll 4';
 
@@ -399,6 +399,149 @@ xAxisParamName = 'IO_LEN';
 xAxisParam = getParameterIDs(conn, {xAxisParamName});
 
 datatype = 'double';
+optimizationLvl = '-Ofast';
+march = 'native';
+
+legendInd = 1;
+legendLbls = {};
+
+fig = figure;
+
+for coefLenX = {4, 8, 12, 16, 20}
+    coefLen=coefLenX{1};
+
+    legendLbls{legendInd} = num2str(coefLen);
+
+    %Parameter.Name, 0=No Val|1=Numeric|2=String, ParameterValue.Value
+    constParams = {'DATATYPE', 2, datatype; ...
+                   '-std=c++11', 0, ''; ... %Begin the Always Parameters
+                   'PRINT_TITLE', 1, 0; ... 
+                   'PRINT_TRIALS', 1, 0; ...
+                   'PRINT_STATS', 1, 0; ...
+                   'WRITE_CSV', 1, 1; ...
+                   'TRIALS', 1, trials; ... %Change for future Runs
+                   'STIM_LEN', 1, stimLen; ...
+                   'COEF_LEN', 1, coefLen; ...
+                   };
+
+    %Special Case these parameters as they sometimes are not
+    %included
+    if strcmp(march, '') == 0
+       [rows, cols] = size(constParams);
+       constParams{rows+1, 1} = 'march';
+       constParams{rows+1, 2} = 2;
+       constParams{rows+1, 3} = march;
+    end
+
+    if strcmp(optimizationLvl, '') == 0
+       [rows, cols] = size(constParams);
+       constParams{rows+1, 1} = optimizationLvl;
+       constParams{rows+1, 2} = 0;
+       constParams{rows+1, 3} = '';
+    end
+
+    atLeastOneParams = {xAxisParamName};
+
+    plotResultSet(conn, constParams, atLeastOneParams, xAxisParam, yAxisResultTypeID, instanceID, compilerID, machineID, stimLenID, ioLenID, 'o-');
+    hold all;
+    legendInd = legendInd + 1;
+end
+
+title(['FIR Filter (' kernelInstTitle ') Execution Time For Different Filter Orders']);
+xlabel('IO Block Length (Samples)');
+ylabel(['Execution Time for ' num2str(stimLen) ' samples (ms)']);
+leg = legend(legendLbls,'Location','northwest');
+compilerFlags = optimizationLvl;
+if strcmp(march, '') == 0
+    compilerFlags = [compilerFlags ' -march=' march];
+end
+
+title(leg, ['Error Bars Represent StdDev\newlineCompiler Flags: ' compilerFlags '\newlineDataType: ' strrep(datatype, '_', '\_') ]);
+grid on;
+
+%% Different Block Lengths for Unrolling 2 -int16_t
+
+kernelInstanceDescription = 'Naive implementation with blocked input and output, shift register state, manually unrolled by 2.';
+kernelInstTitle = 'Naive Unroll 2';
+
+kernelInstance = conn.fetch(['SELECT KernelInstanceID FROM KernelInstance WHERE KernelID=' num2str(kernelID) ' AND Description=''' kernelInstanceDescription '''']);
+instanceID = kernelInstance{1};
+
+xAxisParamName = 'IO_LEN';
+xAxisParam = getParameterIDs(conn, {xAxisParamName});
+
+datatype = 'int16_t';
+optimizationLvl = '-Ofast';
+march = 'native';
+
+legendInd = 1;
+legendLbls = {};
+
+fig = figure;
+
+for coefLenX = {2, 6, 10, 14, 18, 22}
+    coefLen=coefLenX{1};
+
+    legendLbls{legendInd} = num2str(coefLen);
+
+    %Parameter.Name, 0=No Val|1=Numeric|2=String, ParameterValue.Value
+    constParams = {'DATATYPE', 2, datatype; ...
+                   '-std=c++11', 0, ''; ... %Begin the Always Parameters
+                   'PRINT_TITLE', 1, 0; ... 
+                   'PRINT_TRIALS', 1, 0; ...
+                   'PRINT_STATS', 1, 0; ...
+                   'WRITE_CSV', 1, 1; ...
+                   'TRIALS', 1, trials; ... %Change for future Runs
+                   'STIM_LEN', 1, stimLen; ...
+                   'COEF_LEN', 1, coefLen; ...
+                   };
+
+    %Special Case these parameters as they sometimes are not
+    %included
+    if strcmp(march, '') == 0
+       [rows, cols] = size(constParams);
+       constParams{rows+1, 1} = 'march';
+       constParams{rows+1, 2} = 2;
+       constParams{rows+1, 3} = march;
+    end
+
+    if strcmp(optimizationLvl, '') == 0
+       [rows, cols] = size(constParams);
+       constParams{rows+1, 1} = optimizationLvl;
+       constParams{rows+1, 2} = 0;
+       constParams{rows+1, 3} = '';
+    end
+
+    atLeastOneParams = {xAxisParamName};
+
+    plotResultSet(conn, constParams, atLeastOneParams, xAxisParam, yAxisResultTypeID, instanceID, compilerID, machineID, stimLenID, ioLenID, 'o-');
+    hold all;
+    legendInd = legendInd + 1;
+end
+
+title(['FIR Filter (' kernelInstTitle ') Execution Time For Different Filter Orders']);
+xlabel('IO Block Length (Samples)');
+ylabel(['Execution Time for ' num2str(stimLen) ' samples (ms)']);
+leg = legend(legendLbls,'Location','northwest');
+compilerFlags = optimizationLvl;
+if strcmp(march, '') == 0
+    compilerFlags = [compilerFlags ' -march=' march];
+end
+
+title(leg, ['Error Bars Represent StdDev\newlineCompiler Flags: ' compilerFlags '\newlineDataType: ' strrep(datatype, '_', '\_') ]);
+grid on;
+
+%% Different Block Lengths for Unrolling 4 -int16_t
+kernelInstanceDescription = 'Naive implementation with blocked input and output, shift register state, manually unrolled by 4.';
+kernelInstTitle = 'Naive Unroll 4';
+
+kernelInstance = conn.fetch(['SELECT KernelInstanceID FROM KernelInstance WHERE KernelID=' num2str(kernelID) ' AND Description=''' kernelInstanceDescription '''']);
+instanceID = kernelInstance{1};
+
+xAxisParamName = 'IO_LEN';
+xAxisParam = getParameterIDs(conn, {xAxisParamName});
+
+datatype = 'int16_t';
 optimizationLvl = '-Ofast';
 march = 'native';
 
@@ -585,6 +728,198 @@ for graphNum = 1:insts
     %These are things that we have other options for but are holding constant
     %for the graph
     datatype = 'double';
+    ioLen = io_lens(graphNum);
+
+    legendInd = 1;
+    legendLbls = {};
+
+    march = 'native';
+    optimizationLvl = '-O3';
+
+    legendLbls{legendInd} = '';
+
+    %Parameter.Name, 0=No Val|1=Numeric|2=String, ParameterValue.Value
+    constParams = {'DATATYPE', 2, datatype; ...
+                   '-std=c++11', 0, ''; ... %Begin the Always Parameters
+                   'PRINT_TITLE', 1, 0; ... 
+                   'PRINT_TRIALS', 1, 0; ...
+                   'PRINT_STATS', 1, 0; ...
+                   'WRITE_CSV', 1, 1; ...
+                   'TRIALS', 1, trials; ... %Change for future Runs
+                   'STIM_LEN', 1, stimLen; ...
+                   'IO_LEN', 1, ioLen; ...
+                   };
+
+    %Special Case these parameters as they sometimes are not
+    %included
+    if strcmp(march, '') == 0
+       [rows, cols] = size(constParams);
+       constParams{rows+1, 1} = 'march';
+       constParams{rows+1, 2} = 2;
+       constParams{rows+1, 3} = march;
+
+        legendLbls{legendInd} = [legendLbls{legendInd} '-march=' march ' '];
+    end
+
+    if strcmp(optimizationLvl, '') == 0
+       [rows, cols] = size(constParams);
+       constParams{rows+1, 1} = optimizationLvl;
+       constParams{rows+1, 2} = 0;
+       constParams{rows+1, 3} = '';
+       legendLbls{legendInd} = [legendLbls{legendInd} optimizationLvl];
+    end
+
+    atLeastOneParams = {xAxisParamName};
+
+    plotResultSet(conn, constParams, atLeastOneParams, xAxisParam, yAxisResultTypeID, instanceID, compilerID, machineID, stimLenID, ioLenID, 'o-');
+    hold all;
+    legendInd = legendInd + 1;
+
+
+end
+
+compilerOpt = '';
+if strcmp(march, '') == 0
+    compilerOpt = [compilerOpt '-march=' march ' '];
+end
+
+if strcmp(optimizationLvl, '') == 0
+   compilerOpt = [compilerOpt optimizationLvl];
+end
+
+title(['Execution Time For Different FIR Kernels']);
+xlabel('Filter Order (Coefficients)');
+ylabel(['Execution Time for ' num2str(stimLen) ' samples (ms)']);
+leg = legend(kernelInstTitles,'Location','northwest');
+title(leg, ['Error Bars Represent StdDev\newlineIO Block Length: ' num2str(ioLen) '\newlineDataType: ' strrep(datatype, '_', '\_') '\newlineCompiler Optimization: ' compilerOpt  ]);
+grid on;
+
+%% Make a Plot of Kernels for a Fixed Set of Compiler Flags (-march=native -Ofast) - int16_t
+kernelInstanceDescriptions={
+    'Naive implementation with blocked input and output, shift register state, no explicit vectorization or unrolling.', ...
+    'Circular buffer implementation with blocked input and output, circular buffer state, no explicit vectorization or unrolling.', ...
+    'Circular buffer implementation with no modulus, blocked input and output, circular buffer state, no explicit vectorization or unrolling.', ...
+    'Naive implementation with blocked input and output, shift register state, manually unrolled by 2.', ...
+    'Naive implementation with blocked input and output, shift register state, manually unrolled by 4.' ...
+    };
+
+kernelInstTitles = {'Naive', 'Circular Buffer w/ Mod', 'Circular Buffer w/o Mod', 'Naive Unroll 2', 'Naive Unroll 4'};
+
+io_lens = [12, 12, 12, 12, 12];
+
+insts = length(kernelInstanceDescriptions);
+
+fig = figure;
+
+for graphNum = 1:insts
+    
+    kernelInstanceDescription = kernelInstanceDescriptions{graphNum};
+    
+    kernelInstance = conn.fetch(['SELECT KernelInstanceID FROM KernelInstance WHERE KernelID=' num2str(kernelID) ' AND Description=''' kernelInstanceDescription '''']);
+    instanceID = kernelInstance{1};
+
+    xAxisParamName = 'COEF_LEN';
+    xAxisParam = getParameterIDs(conn, {xAxisParamName});
+
+    %These are things that we have other options for but are holding constant
+    %for the graph
+    datatype = 'int16_t';
+    ioLen = io_lens(graphNum);
+
+    legendInd = 1;
+    legendLbls = {};
+
+    march = 'native';
+    optimizationLvl = '-Ofast';
+
+    legendLbls{legendInd} = '';
+
+    %Parameter.Name, 0=No Val|1=Numeric|2=String, ParameterValue.Value
+    constParams = {'DATATYPE', 2, datatype; ...
+                   '-std=c++11', 0, ''; ... %Begin the Always Parameters
+                   'PRINT_TITLE', 1, 0; ... 
+                   'PRINT_TRIALS', 1, 0; ...
+                   'PRINT_STATS', 1, 0; ...
+                   'WRITE_CSV', 1, 1; ...
+                   'TRIALS', 1, trials; ... %Change for future Runs
+                   'STIM_LEN', 1, stimLen; ...
+                   'IO_LEN', 1, ioLen; ...
+                   };
+
+    %Special Case these parameters as they sometimes are not
+    %included
+    if strcmp(march, '') == 0
+       [rows, cols] = size(constParams);
+       constParams{rows+1, 1} = 'march';
+       constParams{rows+1, 2} = 2;
+       constParams{rows+1, 3} = march;
+
+        legendLbls{legendInd} = [legendLbls{legendInd} '-march=' march ' '];
+    end
+
+    if strcmp(optimizationLvl, '') == 0
+       [rows, cols] = size(constParams);
+       constParams{rows+1, 1} = optimizationLvl;
+       constParams{rows+1, 2} = 0;
+       constParams{rows+1, 3} = '';
+       legendLbls{legendInd} = [legendLbls{legendInd} optimizationLvl];
+    end
+
+    atLeastOneParams = {xAxisParamName};
+
+    plotResultSet(conn, constParams, atLeastOneParams, xAxisParam, yAxisResultTypeID, instanceID, compilerID, machineID, stimLenID, ioLenID, 'o-');
+    hold all;
+    legendInd = legendInd + 1;
+
+
+end
+
+compilerOpt = '';
+if strcmp(march, '') == 0
+    compilerOpt = [compilerOpt '-march=' march ' '];
+end
+
+if strcmp(optimizationLvl, '') == 0
+   compilerOpt = [compilerOpt optimizationLvl];
+end
+
+title(['Execution Time For Different FIR Kernels']);
+xlabel('Filter Order (Coefficients)');
+ylabel(['Execution Time for ' num2str(stimLen) ' samples (ms)']);
+leg = legend(kernelInstTitles,'Location','northwest');
+title(leg, ['Error Bars Represent StdDev\newlineIO Block Length: ' num2str(ioLen) '\newlineDataType: ' strrep(datatype, '_', '\_') '\newlineCompiler Optimization: ' compilerOpt  ]);
+grid on;
+
+%% Make a Plot of Kernels for a Fixed Set of Compiler Flags (-march=native -O3) - int16_t
+kernelInstanceDescriptions={
+    'Naive implementation with blocked input and output, shift register state, no explicit vectorization or unrolling.', ...
+    'Circular buffer implementation with blocked input and output, circular buffer state, no explicit vectorization or unrolling.', ...
+    'Circular buffer implementation with no modulus, blocked input and output, circular buffer state, no explicit vectorization or unrolling.', ...
+    'Naive implementation with blocked input and output, shift register state, manually unrolled by 2.', ...
+    'Naive implementation with blocked input and output, shift register state, manually unrolled by 4.' ...
+    };
+
+kernelInstTitles = {'Naive', 'Circular Buffer w/ Mod', 'Circular Buffer w/o Mod', 'Naive Unroll 2', 'Naive Unroll 4'};
+
+io_lens = [12, 12, 12, 12, 12];
+
+insts = length(kernelInstanceDescriptions);
+
+fig = figure;
+
+for graphNum = 1:insts
+    
+    kernelInstanceDescription = kernelInstanceDescriptions{graphNum};
+    
+    kernelInstance = conn.fetch(['SELECT KernelInstanceID FROM KernelInstance WHERE KernelID=' num2str(kernelID) ' AND Description=''' kernelInstanceDescription '''']);
+    instanceID = kernelInstance{1};
+
+    xAxisParamName = 'COEF_LEN';
+    xAxisParam = getParameterIDs(conn, {xAxisParamName});
+
+    %These are things that we have other options for but are holding constant
+    %for the graph
+    datatype = 'int16_t';
     ioLen = io_lens(graphNum);
 
     legendInd = 1;
