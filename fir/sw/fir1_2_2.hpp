@@ -44,7 +44,7 @@ void Fir<T, coef_len, io_len>::filter(const T* in, T* out)
         {
             output += working_array[buffer_ind] * coef_array[j];
 
-            if(buffer_ind < coef_len)
+            if(buffer_ind < coef_len-1)
             {
                 buffer_ind++;
             }
