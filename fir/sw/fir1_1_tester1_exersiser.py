@@ -1338,7 +1338,7 @@ def main():
     #Create Naive FIR Kernel Instance
 
     firTrials = 10
-    firStimLen = 100000
+    firStimLen = 50000
 
     #+++++++FIR Naive++++++++++++++++
 
@@ -1361,7 +1361,7 @@ def main():
     firNaiveCompileOptions.addOption(EnumOption('TRIALS', [firTrials], '-D{}={}', True))
     firNaiveCompileOptions.addOption(EnumOption('STIM_LEN', [firStimLen], '-D{}={}', True))
     #Dynamic Options
-    firNaiveCompileOptions.addOption(EnumOption('DATATYPE', ['int8_t', 'int16_t', 'int32_t', 'int64_t', 'float', 'double'], '-D{}={}', True))
+    firNaiveCompileOptions.addOption(EnumOption('DATATYPE', ['int16_t', 'int32_t', 'float', 'double'], '-D{}={}', True))
     #firNaiveCompileOptions.addOption(EnumOption('DATATYPE', ['double'], '-D{}={}', True))
 
     firNaiveCompileOptions.addOption(EnumOption('COEF_LEN', firNaiveOrderRange, '-D{}={}', True))
@@ -1412,7 +1412,7 @@ def main():
     firUnroll2CompileOptions.addOption(EnumOption('TRIALS', [firTrials], '-D{}={}', True))
     firUnroll2CompileOptions.addOption(EnumOption('STIM_LEN', [firStimLen], '-D{}={}', True))
     #Dynamic Options
-    firUnroll2CompileOptions.addOption(EnumOption('DATATYPE', ['int8_t', 'int16_t', 'int32_t', 'int64_t', 'float', 'double'], '-D{}={}', True))
+    firUnroll2CompileOptions.addOption(EnumOption('DATATYPE', ['int16_t', 'int32_t', 'float', 'double'], '-D{}={}', True))
     #firNaiveCompileOptions.addOption(EnumOption('DATATYPE', ['double'], '-D{}={}', True))
 
     firUnroll2CompileOptions.addOption(EnumOption('COEF_LEN', firUnroll2OrderRange, '-D{}={}', True))
