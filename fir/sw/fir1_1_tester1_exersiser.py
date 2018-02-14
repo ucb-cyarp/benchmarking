@@ -12,6 +12,7 @@ import os.path
 import datetime
 import csv
 import itertools
+import threading
 
 class Parameter:
     """
@@ -1172,9 +1173,9 @@ class gcc(Compiler):
 
         super().__init__(name='gcc', command='g++', envSetup=None, vendor='GNU', options=compilerOptions, defineFormat='-D{}={}', compileFormat='-c {}', outputFormat='-o {}')   
 
-def runExperiment(compilerList, suiteList, sqlConnection, sqlCursor, machineID):
+def CompileRunCfgs(compilerList, suiteList, sqlConnection, sqlCursor, machineID):
     """
-    Runs a set of experements defined by the provided kernel suites and compilers
+    Generator for compile and run configuration
     """
 
     for suite in suiteList:
@@ -1218,115 +1219,217 @@ def runExperiment(compilerList, suiteList, sqlConnection, sqlCursor, machineID):
                         kernelInstanceCompilerFlagGenerator = kernelInstanceCompilerOptions.compilerFlagGenerator()
 
                         for kernelInstanceCompilerFlags in kernelInstanceCompilerFlagGenerator:
-                            kernelRuntimeOptions = kernelInstance.runOptions()
-                            kernelRuntimeFlagGenerator = kernelRuntimeOptions.compilerFlagGenerator()
-
-                            for kernelRuntimeFlags in kernelRuntimeFlagGenerator:
-                                #Create Run Entry (will update some table values later)
-                                sqlCursor.execute('INSERT INTO Run (`KernelInstanceID`, `MachineID`, `CompilerID`) VALUES (?, ?, ?);', (kernelInstanceID, machineID, compilerID))
-                                sqlCursor.execute('SELECT RunID FROM Run WHERE Run.rowid=?;', (sqlCursor.lastrowid,))
-                                runID = sqlCursor.fetchone()[0]
-
-                                #Add flags and flag values to database
-                                addCompilerParametersToDBIfNotAlreadyLinkCompiler(sqlCursor, compilerFlags, compilerID, runID)
-                                addParametersToDBIfNotAlreadyLinkKernelInst(sqlCursor, kernelInstanceCompilerFlags, kernelInstanceID, runID, 'Compile')
-                                addParametersToDBIfNotAlreadyLinkKernelInst(sqlCursor, kernelRuntimeFlags, kernelInstanceID, runID, 'Run')
-
-                                compilerFlagString = stringFromParameterList(compilerFlags)
-                                kernelInstanceCompilerFlagString = stringFromParameterList(kernelInstanceCompilerFlags)
-                                kernelInstanceRuntimeFlagString = stringFromParameterList(kernelRuntimeFlags)
-                                # print(FlagsToFileSafeString(flagString))
-
-                                #Construct the shell command to compile
-                                cmd = ''
-
-                                compilerSetup = compiler.envSetup()
-                                if compilerSetup is not None:
-                                    cmd += compilerSetup + '; '
-
-                                cmd += 'cd build; '
-
-                                kernelInstFiles = kernelInstance.fileList()
-                                kernelCompiledFilenames = []
-
-                                for kernelFile in kernelInstFiles:
-                                    
-                                    #Get the filename without extension
-                                    #TODO: Check for complex paths (ex. ../filename.cpp)
-                                    outputFileName = kernelFile.split('.')[0]+'.o'
-                                    kernelCompiledFilenames.append(outputFileName)
-
-                                    cmd += compiler.command() + ' ' + compilerFlagString + ' ' + kernelInstanceCompilerFlagString + ' ' + str.format(compiler.compileFormat(), '') + ' ../' + kernelFile +'; '
+                            yield (kernelInstance, kernelInstanceID, kernelFileIDx, compiler, compilerID, compilerFlags, kernelInstanceCompilerFlags)
                                 
-                                #Add command to link
-                                linkedFilename = 'tester'
-                                cmd += compiler.command() + ' ' + compilerFlagString + ' ' + kernelInstanceCompilerFlagString + ' ' + str.format(compiler.outputFormat(), linkedFilename) + ' '
-                                for compiledFile in kernelCompiledFilenames:
-                                    cmd += compiledFile + ' '
-                                cmd += '; '
+def compileInstance(compiler, kernelInstance, compilerFlags, kernelInstanceCompilerFlags, linkname, suffix):
+    """
+    Compile a kernel instance.  Returns the command used to compile and the exit code of the compile
+    """
 
-                                #Add command to run
+    #Construct the shell command to compile
+    cmd = ''
 
-                                rptFilename = 'rpt'
-                                #TODO: Refactor for report file not first argument
-                                cmd += './' + linkedFilename + ' ' + rptFilename + ' ' + kernelInstanceRuntimeFlagString + ';'
+    compilerFlagString = stringFromParameterList(compilerFlags)
+    kernelInstanceCompilerFlagString = stringFromParameterList(kernelInstanceCompilerFlags)
 
-                                print('Executing: ' + cmd)
+    compilerSetup = compiler.envSetup()
+    if compilerSetup is not None:
+        cmd += compilerSetup + '; '
 
-                                #Start Timer
-                                startTime = datetime.datetime.now()
+    cmd += 'cd build; '
 
-                                #Execute Command
-                                exitCode = subprocess.call(cmd, shell=True)
+    kernelInstFiles = kernelInstance.fileList()
+    kernelCompiledFilenames = []
 
-                                #Stop Timer
-                                stopTime = datetime.datetime.now()
+    for kernelFile in kernelInstFiles:
+        
+        #Get the filename without extension
+        #TODO: Check for complex paths (ex. ../filename.cpp)
+        outputFileName = kernelFile.split('.')[0] + '-' + suffix + '.o'
+        kernelCompiledFilenames.append(outputFileName)
 
-                                if exitCode != 0:
-                                    status = 'Error'
-                                else:
-                                    status = 'Success'
-                                    
-                                    #Parse Results
-                                    with open('./build/'+rptFilename, newline='') as csvfile:
-                                        csvReader = csv.reader(csvfile, quoting=csv.QUOTE_NONNUMERIC)
+        cmd += compiler.command() + ' ' + compilerFlagString + ' ' + kernelInstanceCompilerFlagString + ' ' + str.format(compiler.compileFormat(), '') + ' ../' + kernelFile +'; '
+    
+    #Add command to link
+    linkedFilename = linkname + '-' + suffix
+    cmd += compiler.command() + ' ' + compilerFlagString + ' ' + kernelInstanceCompilerFlagString + ' ' + str.format(compiler.outputFormat(), linkedFilename) + ' '
+    for compiledFile in kernelCompiledFilenames:
+        cmd += compiledFile + ' '
+    
+    #cmd += '; '
 
-                                        headers = next(csvReader)
-                                        trial = 1
-                                        for row in csvReader:
-                                            trialID = addIfNotAlready(sqlCursor, 'SELECT TrialID FROM Trial WHERE Trial.RunID=? AND Trial.TrialNumber=?;',
-                                                      'INSERT INTO Trial (`RunID`, `TrialNumber`) VALUES (?, ?);', (runID, trial))
+    #Execute Command
+    print('Building: ' + cmd)
+    exitCode = subprocess.call(cmd, shell=True)
 
-                                            #Now get row data and enter into database
-                                            #Use the header as the type
-                                            for col in range(0, len(row)):
-                                                resultTypeID = addIfNotAlready(sqlCursor, 'SELECT ResultTypeID FROM ResultType WHERE ResultType.Name=? AND ResultType.IsSummary=?;',
-                                                               'INSERT INTO ResultType (`Name`, `IsSummary`) VALUES (?, ?);', (headers[col], 0))
+    return (cmd, exitCode)
 
-                                                #TODO: Add unit
-                                                addIfNotAlready(sqlCursor, 'SELECT ResultID FROM Result WHERE Result.TrialID=? AND Result.ResultTypeID=? AND Result.Value=?;',
-                                                'INSERT INTO Result (`TrialID`, `ResultTypeID`, `Value`) VALUES (?, ?, ?);', (trialID, resultTypeID, row[col]))                                                               
-                                            trial += 1
+def compileInstanceThread(compiler, kernelInstance, compilerFlags, kernelInstanceCompilerFlags, linkname, suffix, resultArray, threadID):
+    """
+    Calls compileInstance and stores result in pre-allocated array.  Results are (cmd, exitCode)
+    """
+    resultArray[threadID] = compileInstance(compiler, kernelInstance, compilerFlags, kernelInstanceCompilerFlags, linkname, suffix)
 
-                                #Done Parsing
-                                print(status)
 
-                                statusID = addIfNotAlready(sqlCursor, 'SELECT StatusID FROM Status WHERE Status.Name=?;',
-                                           'INSERT INTO Status (`Name`) VALUES (?);', (status,))
-                                
-                                #Update Run Entry
+def runInstanceAndParseOutput(sqlCursor, kernelInstanceID, machineID, compilerID, compiler, compilerFlags, kernelInstanceCompilerFlags, kernelRuntimeFlags, linkedFilename, compilerCmd, compilerExitCode):
+    #Create Run Entry (will update some table values later)
+    sqlCursor.execute('INSERT INTO Run (`KernelInstanceID`, `MachineID`, `CompilerID`) VALUES (?, ?, ?);', (kernelInstanceID, machineID, compilerID))
+    sqlCursor.execute('SELECT RunID FROM Run WHERE Run.rowid=?;', (sqlCursor.lastrowid,))
+    runID = sqlCursor.fetchone()[0]
 
-                                sqlCursor.execute('UPDATE Run SET DateTimeStart=?, DateTimeStop=?, StatusID=?, CommandExecuted=? WHERE Run.RunID=?;', (startTime, stopTime, statusID, cmd, runID))
+    #Add flags and flag values to database
+    addCompilerParametersToDBIfNotAlreadyLinkCompiler(sqlCursor, compilerFlags, compilerID, runID)
+    addParametersToDBIfNotAlreadyLinkKernelInst(sqlCursor, kernelInstanceCompilerFlags, kernelInstanceID, runID, 'Compile')
+    addParametersToDBIfNotAlreadyLinkKernelInst(sqlCursor, kernelRuntimeFlags, kernelInstanceID, runID, 'Run')
 
-                                #Commit to DB
-                                sqlConnection.commit()
+    kernelInstanceRuntimeFlagString = stringFromParameterList(kernelRuntimeFlags)
 
-                                #Clean build dir
-                                subprocess.call('rm -f ./build/*', shell=True)
+    if(compilerExitCode == 0):
+        #Add command to run
+        rptFilename = 'rpt'
+
+        cmd = ''
+
+        #TODO: May not be nessisary except for cases when shared libraries are needed
+        compilerSetup = compiler.envSetup()
+        if compilerSetup is not None:
+            cmd += compilerSetup + '; '
+        
+        cmd = 'cd ./build; '
+
+        #TODO: Refactor for report file not first argument
+        cmd += './' + linkedFilename + ' ' + rptFilename + ' ' + kernelInstanceRuntimeFlagString + ';'
+
+        print('Running: ' + cmd)
+
+        #Start Timer
+        startTime = datetime.datetime.now()
+
+        exitCode = subprocess.call(cmd, shell=True)
+
+        #Stop Timer
+        stopTime = datetime.datetime.now()
+
+        if exitCode != 0:
+            status = 'Run Error'
+        else:
+            status = 'Success'
+            
+            #Parse Results
+            with open('./build/'+rptFilename, newline='') as csvfile:
+                csvReader = csv.reader(csvfile, quoting=csv.QUOTE_NONNUMERIC)
+
+                headers = next(csvReader)
+                trial = 1
+                for row in csvReader:
+                    trialID = addIfNotAlready(sqlCursor, 'SELECT TrialID FROM Trial WHERE Trial.RunID=? AND Trial.TrialNumber=?;',
+                                'INSERT INTO Trial (`RunID`, `TrialNumber`) VALUES (?, ?);', (runID, trial))
+
+                    #Now get row data and enter into database
+                    #Use the header as the type
+                    for col in range(0, len(row)):
+                        resultTypeID = addIfNotAlready(sqlCursor, 'SELECT ResultTypeID FROM ResultType WHERE ResultType.Name=? AND ResultType.IsSummary=?;',
+                                        'INSERT INTO ResultType (`Name`, `IsSummary`) VALUES (?, ?);', (headers[col], 0))
+
+                        #TODO: Add unit
+                        addIfNotAlready(sqlCursor, 'SELECT ResultID FROM Result WHERE Result.TrialID=? AND Result.ResultTypeID=? AND Result.Value=?;',
+                        'INSERT INTO Result (`TrialID`, `ResultTypeID`, `Value`) VALUES (?, ?, ?);', (trialID, resultTypeID, row[col]))                                                               
+                    trial += 1
+    else:
+        status = 'Build Error'
+
+    #Done Parsing
+    print(status)
+
+    statusID = addIfNotAlready(sqlCursor, 'SELECT StatusID FROM Status WHERE Status.Name=?;',
+                'INSERT INTO Status (`Name`) VALUES (?);', (status,))
+    
+    #Update Run Entry
+    sqlCursor.execute('UPDATE Run SET DateTimeStart=?, DateTimeStop=?, StatusID=?, CommandExecuted=? WHERE Run.RunID=?;', (startTime, stopTime, statusID, compilerCmd + '; ' + cmd , runID))
+
+    #Clean Report
+    subprocess.call(str.format('rm -f ./build/{}', rptFilename), shell=True)
+
+
+def runExperiment(compilerList, suiteList, sqlConnection, sqlCursor, machineID, threadCount):
+    """
+    Runs a set of experements defined by the provided kernel suites and compilers
+    """
+
+    cfgGen = CompileRunCfgs(compilerList, suiteList, sqlConnection, sqlCursor, machineID) #yields (kernelInstance, kernelInstanceID, kernelFileIDx, compiler, compilerID, compilerFlags, kernelInstanceCompilerFlags)
+
+    #Run through all of the compiler configs, pulling N at a time
+    doneProcessing = False
+
+    while (doneProcessing == False):
+        compilerCfgs = []
+        threads = []
+        buildResults = [None] * threadCount # preallocate array to avoid issues with thread concurrency
+        executableNames = []
+
+        #Pull N at a time, break out of the loop if we reach the end of the configs
+        for i in range(0, threadCount):
+            try:
+                buildCfg = next(cfgGen)
+            except StopIteration:
+                doneProcessing = True
+                break
+
+            compilerCfgs.append(buildCfg)
+
+            #Unpack cfg
+            buildKernelInstance = buildCfg[0]
+            #buildKernelInstanceID = buildCfg[1]
+            #buildKernelFileIDx = buildCfg[2]
+            buildCompiler = buildCfg[3]
+            #buildCompilerID = buildCfg[4]
+            buildCompilerFlags = buildCfg[5]
+            buildKernelInstanceCompilerFlags = buildCfg[6]
+
+            executableNames.append('executable-' + str(i))
+
+            #Start compile in a new thread
+            buildThread = threading.Thread(target = compileInstanceThread, args=(buildCompiler, buildKernelInstance, buildCompilerFlags, buildKernelInstanceCompilerFlags, 'executable', str(i), buildResults, i), name = 'BuildThread-' + str(i))
+            threads.append(buildThread)
+            
+        #Wait for threads to exit (the array is only as large as the number of threads spawned)
+        for thread in threads:
+            thread.join()
+
+        #For each of the compiler configs generated, conduct the run(s) - serially to avoid interaction between instances
+        for i in range(0, len(compilerCfgs)):
+            runCfg = compilerCfgs[i] 
+            runKernelInstance = runCfg[0]
+            runKernelInstanceID = runCfg[1]
+            #runKernelFileIDx = runCfg[2]
+            runCompiler = runCfg[3]
+            runCompilerID = runCfg[4]
+            runCompilerFlags = runCfg[5]
+            runKernelInstanceCompilerFlags = runCfg[6]
+
+            buildResult = buildResults[i]
+            buildCmd = buildResult[0]
+            buildExitCode = buildResult[1]
+
+            executableName = executableNames[i]
+            
+            kernelRuntimeOptions = runKernelInstance.runOptions()
+            kernelRuntimeFlagGenerator = kernelRuntimeOptions.compilerFlagGenerator()
+
+            for kernelRuntimeFlags in kernelRuntimeFlagGenerator:
+                #Run the kernel
+                runInstanceAndParseOutput(sqlCursor, runKernelInstanceID, machineID, runCompilerID, runCompiler, runCompilerFlags, runKernelInstanceCompilerFlags, kernelRuntimeFlags, executableName, buildCmd, buildExitCode)
+
+                #Commit to DB
+                sqlConnection.commit()
+
+        #Clean build dir
+        subprocess.call('rm -f ./build/', shell=True)
 
 def main():
 
     #*****Setup*****
+    buildThreads = 8
     #Create Suites
     firSuite = Suite('FIR', 'Testing feed forward system performance using FIR filters')
 
@@ -1480,7 +1583,7 @@ def main():
     conn.commit()
 
     #Run the Experement
-    runExperiment(compilers, suites, conn, sqlCursor, machineID)
+    runExperiment(compilers, suites, conn, sqlCursor, machineID, buildThreads)
 
     conn.commit()
     conn.close()
