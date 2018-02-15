@@ -1491,12 +1491,12 @@ def main():
 
     #+++++++FIR Circular Buffer - Reversed ++++++++++++++++
     firCircularRevCompileOptions = firNaiveCompileOptions
-    firSingleKernelCircularRev = KernelInstance(firSingleKernel, 'Circular buffer implementation with blocked input and output, circular buffer state, no explicit vectorization or unrolling.', ['fir1_2b_tester1.cpp'], firCircularRevCompileOptions, firRunOptions)
+    firSingleKernelCircularRev = KernelInstance(firSingleKernel, 'Circular buffer implementation with blocked input and output, circular buffer state, no explicit vectorization or unrolling. - Reverse Direction', ['fir1_2b_tester1.cpp'], firCircularRevCompileOptions, firRunOptions)
     firSingleKernel.addInstance(firSingleKernelCircularRev)
 
     #+++++++FIR Circular Buffer (No Mod) - Reversed ++++++++++++++++
     firCircularNoModRevCompileOptions = firNaiveCompileOptions
-    firSingleKernelCircularNoModRev = KernelInstance(firSingleKernel, 'Circular buffer implementation with no modulus, blocked input and output, circular buffer state, no explicit vectorization or unrolling.', ['fir1_2_2b_tester1.cpp'], firCircularNoModRevCompileOptions, firRunOptions)
+    firSingleKernelCircularNoModRev = KernelInstance(firSingleKernel, 'Circular buffer implementation with no modulus, blocked input and output, circular buffer state, no explicit vectorization or unrolling. - Reverse Direction', ['fir1_2_2b_tester1.cpp'], firCircularNoModRevCompileOptions, firRunOptions)
     firSingleKernel.addInstance(firSingleKernelCircularNoModRev)
 
     #+++++++FIR Naive Unroll 2++++++++++++++++
