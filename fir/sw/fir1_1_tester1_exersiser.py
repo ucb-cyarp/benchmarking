@@ -1622,12 +1622,12 @@ def main():
     #Run the Experement
     exeStartTime = datetime.datetime.now()
     hostname = platform.node()
-    slackStatusPost('Starting Benchmarking\nHost: ' + hostname + ' (' + machineDescription + ')\nTime: ' + str(exeStartTime))
+    slackStatusPost('*Starting Benchmarking*\nHost: ' + hostname + ' (' + machineDescription + ')\nTime: ' + str(exeStartTime))
 
-    runExperiment(compilers, suites, conn, sqlCursor, machineID, buildThreads, reportFrequency, 'Build Update:\nHost: ' + hostname + ' (' + machineDescription + ')\n')
+    runExperiment(compilers, suites, conn, sqlCursor, machineID, buildThreads, reportFrequency, '*Benchmarking Update*\nHost: ' + hostname + ' (' + machineDescription + ')\n')
 
     exeEndTime = datetime.datetime.now()
-    slackStatusPost('Finished Benchmarking\nHost: ' + hostname + ' (' + machineDescription + ')\nTime: ' + str(exeEndTime))
+    slackStatusPost('*Finished Benchmarking*\nHost: ' + hostname + ' (' + machineDescription + ')\nTime: ' + str(exeEndTime))
 
     conn.commit()
     conn.close()
