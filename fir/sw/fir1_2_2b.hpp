@@ -51,7 +51,7 @@ void Fir<T, coef_len, io_len>::filter(const T* in, T* out)
             buffer_ind = buffer_pos-1;
         }
 
-        for(size_t j = coef_len-1; j>=0; j--)
+        for(size_t j = coef_len-1; j>0; j--)
         {
             output += working_array[buffer_ind] * coef_array[j];
 
@@ -64,6 +64,21 @@ void Fir<T, coef_len, io_len>::filter(const T* in, T* out)
                 buffer_ind = coef_len-1;
             }
         }
+        //Last Run
+        {
+            size_t j = 0;
+            output += working_array[buffer_ind] * coef_array[j];
+
+            if(buffer_ind > 0)
+            {
+                buffer_ind--;
+            }
+            else
+            {
+                buffer_ind = coef_len-1;
+            }
+        }
+
 
         out[i] = output;
 

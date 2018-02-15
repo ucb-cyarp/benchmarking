@@ -39,8 +39,15 @@ void Fir<T, coef_len, io_len>::filter(const T* in, T* out)
 
         //Compute FIR output
         T output = 0;
-        for(size_t j = coef_len-1; j>=0; j--)
+        for(size_t j = coef_len-1; j>0; j--)
         {
+
+            size_t buffer_ind = (buffer_pos+j)%coef_len;
+            output += working_array[buffer_ind] * coef_array[j];
+        }
+        //Last run
+        {
+            size_t j = 0;
             size_t buffer_ind = (buffer_pos+j)%coef_len;
             output += working_array[buffer_ind] * coef_array[j];
         }
