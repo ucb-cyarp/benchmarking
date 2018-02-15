@@ -1352,8 +1352,10 @@ def runInstanceAndParseOutput(sqlCursor, kernelInstanceID, machineID, compilerID
     #Clean Report
     subprocess.call(str.format('rm -f ./build/{}', rptFilename), shell=True)
 
+    return status
 
-def runExperiment(compilerList, suiteList, sqlConnection, sqlCursor, machineID, threadCount, reportFrequency, reportPrefix):
+
+def runExperiment(compilerList, suiteList, sqlConnection, sqlCursor, machineID, threadCount, reportFrequency, reportPrefix, errorPrefix):
     """
     Runs a set of experements defined by the provided kernel suites and compilers
     """
@@ -1365,6 +1367,7 @@ def runExperiment(compilerList, suiteList, sqlConnection, sqlCursor, machineID, 
 
     #Run through all of the compiler configs, pulling N at a time
     doneProcessing = False
+    errorReported = False
 
     runCount = 0
 
@@ -1426,7 +1429,12 @@ def runExperiment(compilerList, suiteList, sqlConnection, sqlCursor, machineID, 
 
             for kernelRuntimeFlags in kernelRuntimeFlagGenerator:
                 #Run the kernel
-                runInstanceAndParseOutput(sqlCursor, runKernelInstanceID, machineID, runCompilerID, runCompiler, runCompilerFlags, runKernelInstanceCompilerFlags, kernelRuntimeFlags, executableName, buildCmd, buildExitCode)
+                status = runInstanceAndParseOutput(sqlCursor, runKernelInstanceID, machineID, runCompilerID, runCompiler, runCompilerFlags, runKernelInstanceCompilerFlags, kernelRuntimeFlags, executableName, buildCmd, buildExitCode)
+
+                if errorReported == False and status != 'Success':
+                    msgTime = datetime.datetime.now()
+                    slackStatusPost(errorPrefix + 'Time: ' + str(msgTime) + '\nStatus: ' + status + '\n`' + buildCmd + '`')
+                    errorReported = True
 
                 #Commit to DB
                 sqlConnection.commit()
@@ -1624,7 +1632,7 @@ def main():
     hostname = platform.node()
     slackStatusPost('*Starting Benchmarking*\nHost: ' + hostname + ' (' + machineDescription + ')\nTime: ' + str(exeStartTime))
 
-    runExperiment(compilers, suites, conn, sqlCursor, machineID, buildThreads, reportFrequency, '*Benchmarking Update*\nHost: ' + hostname + ' (' + machineDescription + ')\n')
+    runExperiment(compilers, suites, conn, sqlCursor, machineID, buildThreads, reportFrequency, '*Benchmarking Update*\nHost: ' + hostname + ' (' + machineDescription + ')\n', '*Benchmarking Error*\nHost: ' + hostname + ' (' + machineDescription + ')\n')
 
     exeEndTime = datetime.datetime.now()
     slackStatusPost('*Finished Benchmarking*\nHost: ' + hostname + ' (' + machineDescription + ')\nTime: ' + str(exeEndTime))
