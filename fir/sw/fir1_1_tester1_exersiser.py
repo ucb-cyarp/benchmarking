@@ -13,6 +13,8 @@ import datetime
 import csv
 import itertools
 import threading
+import json
+import requests
 
 class Parameter:
     """
@@ -1351,7 +1353,7 @@ def runInstanceAndParseOutput(sqlCursor, kernelInstanceID, machineID, compilerID
     subprocess.call(str.format('rm -f ./build/{}', rptFilename), shell=True)
 
 
-def runExperiment(compilerList, suiteList, sqlConnection, sqlCursor, machineID, threadCount):
+def runExperiment(compilerList, suiteList, sqlConnection, sqlCursor, machineID, threadCount, reportFrequency, reportPrefix):
     """
     Runs a set of experements defined by the provided kernel suites and compilers
     """
@@ -1363,6 +1365,8 @@ def runExperiment(compilerList, suiteList, sqlConnection, sqlCursor, machineID, 
 
     #Run through all of the compiler configs, pulling N at a time
     doneProcessing = False
+
+    runCount = 0
 
     while (doneProcessing == False):
         compilerCfgs = []
@@ -1430,10 +1434,39 @@ def runExperiment(compilerList, suiteList, sqlConnection, sqlCursor, machineID, 
         #Clean build dir
         subprocess.call('rm -f ./build/*', shell=True)
 
+        #Report
+        runCount += len(compilerCfgs)
+        if runCount % reportFrequency < threadCount and len(compilerCfgs)>0:
+            msgTime = datetime.datetime.now()
+            slackStatusPost(reportPrefix + 'Time: ' + str(msgTime) + '\n`' + buildCmd + '`')
+
+def slackStatusPost(message):
+    """
+    Post a status update to slack
+    """
+
+    #Based on work on https://gist.github.com/devStepsize/b1b795309a217d24566dcc0ad136f784
+
+    try:
+        webhook_url = os.environ["SLACK_API_URL"]
+
+        slack_data = {'text': message}
+
+        response = requests.post(
+            webhook_url, data=json.dumps(slack_data),
+            headers={'Content-Type': 'application/json'}
+        )
+
+        if response.status_code != 200:
+            print('Could not post slack message, code ' + str(response.status_code) + ' ... continuing')
+    except KeyError:
+        print('Could not read slack API url')
+
 def main():
 
     #*****Setup*****
     buildThreads = 4
+    reportFrequency = 5000
     #Create Suites
     firSuite = Suite('FIR', 'Testing feed forward system performance using FIR filters')
 
@@ -1587,7 +1620,14 @@ def main():
     conn.commit()
 
     #Run the Experement
-    runExperiment(compilers, suites, conn, sqlCursor, machineID, buildThreads)
+    exeStartTime = datetime.datetime.now()
+    hostname = platform.node()
+    slackStatusPost('Starting Benchmarking\nHost: ' + hostname + ' (' + machineDescription + ')\nTime: ' + str(exeStartTime))
+
+    runExperiment(compilers, suites, conn, sqlCursor, machineID, buildThreads, reportFrequency, 'Build Update:\nHost: ' + hostname + ' (' + machineDescription + ')\n')
+
+    exeEndTime = datetime.datetime.now()
+    slackStatusPost('Finished Benchmarking\nHost: ' + hostname + ' (' + machineDescription + ')\nTime: ' + str(exeEndTime))
 
     conn.commit()
     conn.close()
