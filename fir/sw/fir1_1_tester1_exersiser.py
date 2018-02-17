@@ -1248,7 +1248,7 @@ def compileInstance(compiler, kernelInstance, compilerFlags, kernelInstanceCompi
         outputFileName = kernelFile.split('.')[0] + '-' + suffix + '.o'
         kernelCompiledFilenames.append(outputFileName)
 
-        cmd += compiler.command() + ' ' + compilerFlagString + ' ' + kernelInstanceCompilerFlagString + ' ' + str.format(compiler.compileFormat(), '') + ' ../' + kernelFile +'; '
+        cmd += compiler.command() + ' ' + compilerFlagString + ' ' + kernelInstanceCompilerFlagString + ' ' + str.format(compiler.compileFormat(), '') + ' ' + str.format(compiler.outputFormat(), outputFileName) + ' ../' + kernelFile +'; '
     
     #Add command to link
     linkedFilename = linkname + '-' + suffix
@@ -1356,6 +1356,9 @@ def runExperiment(compilerList, suiteList, sqlConnection, sqlCursor, machineID, 
     Runs a set of experements defined by the provided kernel suites and compilers
     """
 
+    #Clean build dir first
+    subprocess.call('rm -f ./build/*', shell=True)
+
     cfgGen = CompileRunCfgs(compilerList, suiteList, sqlConnection, sqlCursor, machineID) #yields (kernelInstance, kernelInstanceID, kernelFileIDx, compiler, compilerID, compilerFlags, kernelInstanceCompilerFlags)
 
     #Run through all of the compiler configs, pulling N at a time
@@ -1388,10 +1391,11 @@ def runExperiment(compilerList, suiteList, sqlConnection, sqlCursor, machineID, 
 
             executableNames.append('executable-' + str(i))
 
-            #Start compile in a new thread
+            #Create build thread
             buildThread = threading.Thread(target = compileInstanceThread, args=(buildCompiler, buildKernelInstance, buildCompilerFlags, buildKernelInstanceCompilerFlags, 'executable', str(i), buildResults, i), name = 'BuildThread-' + str(i))
             threads.append(buildThread)
-            
+            buildThread.start()
+
         #Wait for threads to exit (the array is only as large as the number of threads spawned)
         for thread in threads:
             thread.join()
@@ -1424,12 +1428,12 @@ def runExperiment(compilerList, suiteList, sqlConnection, sqlCursor, machineID, 
                 sqlConnection.commit()
 
         #Clean build dir
-        subprocess.call('rm -f ./build/', shell=True)
+        subprocess.call('rm -f ./build/*', shell=True)
 
 def main():
 
     #*****Setup*****
-    buildThreads = 8
+    buildThreads = 4
     #Create Suites
     firSuite = Suite('FIR', 'Testing feed forward system performance using FIR filters')
 
@@ -1440,8 +1444,8 @@ def main():
     #TODO remove format option from enum option
     #Create Naive FIR Kernel Instance
 
-    firTrials = 10
-    firStimLen = 100000
+    firTrials = 5
+    firStimLen = 50000
 
     #+++++++FIR Naive++++++++++++++++
 
@@ -1464,7 +1468,7 @@ def main():
     firNaiveCompileOptions.addOption(EnumOption('TRIALS', [firTrials], '-D{}={}', True))
     firNaiveCompileOptions.addOption(EnumOption('STIM_LEN', [firStimLen], '-D{}={}', True))
     #Dynamic Options
-    firNaiveCompileOptions.addOption(EnumOption('DATATYPE', ['int8_t', 'int16_t', 'int32_t', 'int64_t', 'float', 'double'], '-D{}={}', True))
+    firNaiveCompileOptions.addOption(EnumOption('DATATYPE', ['int16_t', 'int32_t', 'float', 'double'], '-D{}={}', True))
     #firNaiveCompileOptions.addOption(EnumOption('DATATYPE', ['double'], '-D{}={}', True))
 
     firNaiveCompileOptions.addOption(EnumOption('COEF_LEN', firNaiveOrderRange, '-D{}={}', True))
@@ -1487,12 +1491,12 @@ def main():
 
     #+++++++FIR Circular Buffer - Reversed ++++++++++++++++
     firCircularRevCompileOptions = firNaiveCompileOptions
-    firSingleKernelCircularRev = KernelInstance(firSingleKernel, 'Circular buffer implementation with blocked input and output, circular buffer state, no explicit vectorization or unrolling.', ['fir1_2b_tester1.cpp'], firCircularRevCompileOptions, firRunOptions)
+    firSingleKernelCircularRev = KernelInstance(firSingleKernel, 'Circular buffer implementation with blocked input and output, circular buffer state, no explicit vectorization or unrolling. - Reverse Direction', ['fir1_2b_tester1.cpp'], firCircularRevCompileOptions, firRunOptions)
     firSingleKernel.addInstance(firSingleKernelCircularRev)
 
     #+++++++FIR Circular Buffer (No Mod) - Reversed ++++++++++++++++
     firCircularNoModRevCompileOptions = firNaiveCompileOptions
-    firSingleKernelCircularNoModRev = KernelInstance(firSingleKernel, 'Circular buffer implementation with no modulus, blocked input and output, circular buffer state, no explicit vectorization or unrolling.', ['fir1_2_2b_tester1.cpp'], firCircularNoModRevCompileOptions, firRunOptions)
+    firSingleKernelCircularNoModRev = KernelInstance(firSingleKernel, 'Circular buffer implementation with no modulus, blocked input and output, circular buffer state, no explicit vectorization or unrolling. - Reverse Direction', ['fir1_2_2b_tester1.cpp'], firCircularNoModRevCompileOptions, firRunOptions)
     firSingleKernel.addInstance(firSingleKernelCircularNoModRev)
 
     #+++++++FIR Naive Unroll 2++++++++++++++++
@@ -1515,7 +1519,7 @@ def main():
     firUnroll2CompileOptions.addOption(EnumOption('TRIALS', [firTrials], '-D{}={}', True))
     firUnroll2CompileOptions.addOption(EnumOption('STIM_LEN', [firStimLen], '-D{}={}', True))
     #Dynamic Options
-    firUnroll2CompileOptions.addOption(EnumOption('DATATYPE', ['int8_t', 'int16_t', 'int32_t', 'int64_t', 'float', 'double'], '-D{}={}', True))
+    firUnroll2CompileOptions.addOption(EnumOption('DATATYPE', ['int16_t', 'int32_t', 'float', 'double'], '-D{}={}', True))
     #firNaiveCompileOptions.addOption(EnumOption('DATATYPE', ['double'], '-D{}={}', True))
 
     firUnroll2CompileOptions.addOption(EnumOption('COEF_LEN', firUnroll2OrderRange, '-D{}={}', True))
