@@ -27,7 +27,6 @@
 
 #include <chrono>
 #include <ctime>
-#include <random>
 #include <cstdio>
 #include <cmath>
 #include <fstream>
@@ -91,9 +90,7 @@ int main(int argc, char *argv[])
     std::chrono::duration<double, std::ratio<1, 1000>> durations[TRIALS];
     double durations_clock[TRIALS];
 
-    //Create Random Number Generator & Distribution
-    std::mt19937 rand_gen(RAND_SEED);
-    std::normal_distribution<double> distribution(RAND_MEAN, RAND_STDDEV);
+
 
     //Allocate Arrays on Heap
     DATATYPE *stimulus = new DATATYPE[STIM_LEN];
@@ -109,22 +106,9 @@ int main(int argc, char *argv[])
     //Conduct multiple trials
     for(size_t trial = 0; trial < TRIALS; trial++)
     {
-        // DATATYPE stimulus[STIM_LEN];
-        // DATATYPE output[STIM_LEN];
-        
-        //Construct Random Array
-        for(size_t i = 0; i<STIM_LEN; i++)
-        {
-            stimulus[i] = (DATATYPE) distribution(rand_gen);
-            //stimulus[i] = (DATATYPE) 1;
-        }
-
         //Construct Random Coef Array & Init Array
-        DATATYPE coefs[COEF_LEN];
-        DATATYPE init[COEF_LEN];
         for(size_t i = 0; i<COEF_LEN; i++)
         {
-            coefs[i] = (DATATYPE) distribution(rand_gen);
             //coefs[i] = (DATATYPE) 1;
             init[i] = 0;
         }
