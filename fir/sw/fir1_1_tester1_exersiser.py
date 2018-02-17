@@ -1469,12 +1469,14 @@ def slackStatusPost(message):
             print('Could not post slack message, code ' + str(response.status_code) + ' ... continuing')
     except KeyError:
         print('Could not read slack API url')
+    except requests.exceptions.ConnectionError:
+        print('Slack connection error ... continuing')
 
 def main():
 
     #*****Setup*****
-    buildThreads = 4
-    reportFrequency = 5000
+    buildThreads = 1
+    reportFrequency = 2500
     #Create Suites
     firSuite = Suite('FIR', 'Testing feed forward system performance using FIR filters')
 
@@ -1485,8 +1487,8 @@ def main():
     #TODO remove format option from enum option
     #Create Naive FIR Kernel Instance
 
-    firTrials = 5
-    firStimLen = 50000
+    firTrials = 10
+    firStimLen = 100000
 
     #+++++++FIR Naive++++++++++++++++
 
