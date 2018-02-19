@@ -649,7 +649,7 @@ class Kernel:
         return kernelID
 
 class KernelInstance:
-    def __init__(self, kernel=None, description=None, fileList=None, compileOptions=None, runOptions=None, outputFileFormatStr='{}'):
+    def __init__(self, kernel=None, description=None, fileList=None, compileOptions=None, runOptions=None, outputFileFormatStr='{}', compileEnvSetup=None, libraryLinkStr=None, runEnvSetup=None):
         """
         FileList: List of files to compile
         CompileOptions: OptionList to be exersized at compile time
@@ -675,6 +675,10 @@ class KernelInstance:
 
         self._outputFileFormatStr = outputFileFormatStr
 
+        self._compileEnvSetup = compileEnvSetup
+        self._libraryLinkStr = libraryLinkStr
+        self._runEnvSetup = runEnvSetup
+
     def fileList(self, fileList=None):
         if fileList is not None:
             self._fileList = fileList
@@ -694,6 +698,21 @@ class KernelInstance:
         if outputFileFormatStr is not None:
             self._outputFileFormatStr = outputFileFormatStr
         return self._outputFileFormatStr
+
+    def compileEnvSetup(self, compileEnvSetup=None):
+        if compileEnvSetup is not None:
+            self._compileEnvSetup = compileEnvSetup
+        return self._compileEnvSetup
+
+    def libraryLinkStr(self, libraryLinkStr=None):
+        if libraryLinkStr is not None:
+            self._libraryLinkStr = libraryLinkStr
+        return self._libraryLinkStr
+
+    def runEnvSetup(self, runEnvSetup=None):
+        if runEnvSetup is not None:
+            self._runEnvSetup = runEnvSetup
+        return self._runEnvSetup
     
     def addFile(self, file):
         self._fileList.append(file)
@@ -1238,6 +1257,10 @@ def compileInstance(compiler, kernelInstance, compilerFlags, kernelInstanceCompi
     if compilerSetup is not None:
         cmd += compilerSetup + '; '
 
+    compilerEnvSetup = kernelInstance.compileEnvSetup()
+    if compilerEnvSetup is not None:
+        cmd += compilerEnvSetup + '; '
+
     cmd += 'cd build; '
 
     kernelInstFiles = kernelInstance.fileList()
@@ -1257,6 +1280,10 @@ def compileInstance(compiler, kernelInstance, compilerFlags, kernelInstanceCompi
     cmd += compiler.command() + ' ' + compilerFlagString + ' ' + kernelInstanceCompilerFlagString + ' ' + str.format(compiler.outputFormat(), linkedFilename) + ' '
     for compiledFile in kernelCompiledFilenames:
         cmd += compiledFile + ' '
+
+    libraryLinkStr = kernelInstance.libraryLinkStr()
+    if libraryLinkStr is not None:
+        cmd += libraryLinkStr + ' '
     
     #cmd += '; '
 
@@ -1273,7 +1300,7 @@ def compileInstanceThread(compiler, kernelInstance, compilerFlags, kernelInstanc
     resultArray[threadID] = compileInstance(compiler, kernelInstance, compilerFlags, kernelInstanceCompilerFlags, linkname, suffix)
 
 
-def runInstanceAndParseOutput(sqlCursor, kernelInstanceID, machineID, compilerID, compiler, compilerFlags, kernelInstanceCompilerFlags, kernelRuntimeFlags, linkedFilename, compilerCmd, compilerExitCode):
+def runInstanceAndParseOutput(sqlCursor, kernelInstance, kernelInstanceID, machineID, compilerID, compiler, compilerFlags, kernelInstanceCompilerFlags, kernelRuntimeFlags, linkedFilename, compilerCmd, compilerExitCode):
     #Create Run Entry (will update some table values later)
     sqlCursor.execute('INSERT INTO Run (`KernelInstanceID`, `MachineID`, `CompilerID`) VALUES (?, ?, ?);', (kernelInstanceID, machineID, compilerID))
     sqlCursor.execute('SELECT RunID FROM Run WHERE Run.rowid=?;', (sqlCursor.lastrowid,))
@@ -1297,6 +1324,10 @@ def runInstanceAndParseOutput(sqlCursor, kernelInstanceID, machineID, compilerID
         if compilerSetup is not None:
             cmd += compilerSetup + '; '
         
+        runEnvSetup = kernelInstance.runEnvSetup()
+        if runEnvSetup is not None:
+            cmd += runEnvSetup + '; '
+
         cmd = 'cd ./build; '
 
         #TODO: Refactor for report file not first argument
@@ -1429,7 +1460,7 @@ def runExperiment(compilerList, suiteList, sqlConnection, sqlCursor, machineID, 
 
             for kernelRuntimeFlags in kernelRuntimeFlagGenerator:
                 #Run the kernel
-                status = runInstanceAndParseOutput(sqlCursor, runKernelInstanceID, machineID, runCompilerID, runCompiler, runCompilerFlags, runKernelInstanceCompilerFlags, kernelRuntimeFlags, executableName, buildCmd, buildExitCode)
+                status = runInstanceAndParseOutput(sqlCursor, buildKernelInstance, runKernelInstanceID, machineID, runCompilerID, runCompiler, runCompilerFlags, runKernelInstanceCompilerFlags, kernelRuntimeFlags, executableName, buildCmd, buildExitCode)
 
                 if errorReported == False and status != 'Success':
                     msgTime = datetime.datetime.now()
@@ -1518,27 +1549,27 @@ def main():
     firRunOptions = OptionList()
 
     firSingleKernelNaive = KernelInstance(firSingleKernel, 'Naive implementation with blocked input and output, shift register state, no explicit vectorization or unrolling.', ['fir1_1_tester1.cpp'], firNaiveCompileOptions, firRunOptions)
-    firSingleKernel.addInstance(firSingleKernelNaive)
+    #firSingleKernel.addInstance(firSingleKernelNaive)
 
     #+++++++FIR Circular Buffer++++++++++++++++
     firCircularCompileOptions = firNaiveCompileOptions
     firSingleKernelCircular = KernelInstance(firSingleKernel, 'Circular buffer implementation with blocked input and output, circular buffer state, no explicit vectorization or unrolling.', ['fir1_2_tester1.cpp'], firCircularCompileOptions, firRunOptions)
-    firSingleKernel.addInstance(firSingleKernelCircular)
+    #firSingleKernel.addInstance(firSingleKernelCircular)
 
     #+++++++FIR Circular Buffer (No Mod)++++++++++++++++
     firCircularNoModCompileOptions = firNaiveCompileOptions
     firSingleKernelCircularNoMod = KernelInstance(firSingleKernel, 'Circular buffer implementation with no modulus, blocked input and output, circular buffer state, no explicit vectorization or unrolling.', ['fir1_2_2_tester1.cpp'], firCircularNoModCompileOptions, firRunOptions)
-    firSingleKernel.addInstance(firSingleKernelCircularNoMod)
+    #firSingleKernel.addInstance(firSingleKernelCircularNoMod)
 
     #+++++++FIR Circular Buffer - Reversed ++++++++++++++++
     firCircularRevCompileOptions = firNaiveCompileOptions
     firSingleKernelCircularRev = KernelInstance(firSingleKernel, 'Circular buffer implementation with blocked input and output, circular buffer state, no explicit vectorization or unrolling. - Reverse Direction', ['fir1_2b_tester1.cpp'], firCircularRevCompileOptions, firRunOptions)
-    firSingleKernel.addInstance(firSingleKernelCircularRev)
+    #firSingleKernel.addInstance(firSingleKernelCircularRev)
 
     #+++++++FIR Circular Buffer (No Mod) - Reversed ++++++++++++++++
     firCircularNoModRevCompileOptions = firNaiveCompileOptions
     firSingleKernelCircularNoModRev = KernelInstance(firSingleKernel, 'Circular buffer implementation with no modulus, blocked input and output, circular buffer state, no explicit vectorization or unrolling. - Reverse Direction', ['fir1_2_2b_tester1.cpp'], firCircularNoModRevCompileOptions, firRunOptions)
-    firSingleKernel.addInstance(firSingleKernelCircularNoModRev)
+    #firSingleKernel.addInstance(firSingleKernelCircularNoModRev)
 
     #+++++++FIR Naive Unroll 2++++++++++++++++
     firUnroll2CompileOptions = OptionList()
@@ -1567,7 +1598,7 @@ def main():
     firUnroll2CompileOptions.addOption(EnumOption('IO_LEN', firUnroll2BlockRange, '-D{}={}', True))
 
     firSingleKernelUnroll2 = KernelInstance(firSingleKernel, 'Naive implementation with blocked input and output, shift register state, manually unrolled by 2.', ['fir1_3_tester1.cpp'], firUnroll2CompileOptions, firRunOptions)
-    firSingleKernel.addInstance(firSingleKernelUnroll2)
+    #firSingleKernel.addInstance(firSingleKernelUnroll2)
 
     #+++++++FIR Naive Unroll 4++++++++++++++++
     firUnroll4CompileOptions = OptionList()
@@ -1597,7 +1628,38 @@ def main():
     firUnroll4CompileOptions.addOption(EnumOption('IO_LEN', firUnroll4BlockRange, '-D{}={}', True))
 
     firSingleKernelUnroll4 = KernelInstance(firSingleKernel, 'Naive implementation with blocked input and output, shift register state, manually unrolled by 4.', ['fir1_3_4_tester1.cpp'], firUnroll4CompileOptions, firRunOptions)
-    firSingleKernel.addInstance(firSingleKernelUnroll4)
+    #firSingleKernel.addInstance(firSingleKernelUnroll4)
+
+    #+++++++FIR Intel IPP++++++++++++++++
+    firIppCompileOptions = OptionList()
+    ippRangeIterator = itertools.chain(range(1, 2, 1), range(2, 31, 2))
+
+    ippRangeArray = []
+    for ippRangeVal in ippRangeIterator:
+        ippRangeArray.append(ippRangeVal)
+
+    #So itterator is not lost
+    #TODO: Investigate reseting iterator
+    firIppOrderRange = ippRangeArray
+    firIppBlockRange = ippRangeArray
+    #Static Options
+    firIppCompileOptions.addOption(EnumOption('PRINT_TITLE', [0], '-D{}={}', True))
+    firIppCompileOptions.addOption(EnumOption('PRINT_TRIALS', [0], '-D{}={}', True))
+    firIppCompileOptions.addOption(EnumOption('PRINT_STATS', [0], '-D{}={}', True))
+    firIppCompileOptions.addOption(EnumOption('WRITE_CSV', [1], '-D{}={}', True))
+    firIppCompileOptions.addOption(EnumOption('TRIALS', [firTrials], '-D{}={}', True))
+    firIppCompileOptions.addOption(EnumOption('STIM_LEN', [firStimLen], '-D{}={}', True))
+    #Dynamic Options
+    firIppCompileOptions.addOption(EnumOption('DATATYPE', ['int16_t', 'int32_t', 'float', 'double'], '-D{}={}', True))
+    #firIppCompileOptions.addOption(EnumOption('DATATYPE', ['double'], '-D{}={}', True))
+
+    firIppCompileOptions.addOption(EnumOption('COEF_LEN', firIppOrderRange, '-D{}={}', True))
+    firIppCompileOptions.addOption(EnumOption('IO_LEN', firIppBlockRange, '-D{}={}', True))
+
+    firRunOptions = OptionList()
+
+    firSingleKernelIpp = KernelInstance(firSingleKernel, 'FIR Intel IPP', ['fir1_ipp_tester1.cpp'], firIppCompileOptions, firRunOptions, '{}', 'source ~/.bashrc; module load ipp', '-lippcore -lipps', 'source ~/.bashrc; module load ipp')
+    firSingleKernel.addInstance(firSingleKernelIpp)
 
     #------------END FIR-----------------------
 
