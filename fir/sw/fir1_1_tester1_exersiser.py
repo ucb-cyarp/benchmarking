@@ -649,7 +649,7 @@ class Kernel:
         return kernelID
 
 class KernelInstance:
-    def __init__(self, kernel=None, description=None, fileList=None, compileOptions=None, runOptions=None, outputFileFormatStr='{}'):
+    def __init__(self, kernel=None, description=None, fileList=None, compileOptions=None, runOptions=None, outputFileFormatStr='{}', compileEnvSetup=None, libraryLinkStr=None, runEnvSetup=None):
         """
         FileList: List of files to compile
         CompileOptions: OptionList to be exersized at compile time
@@ -675,6 +675,10 @@ class KernelInstance:
 
         self._outputFileFormatStr = outputFileFormatStr
 
+        self._compileEnvSetup = compileEnvSetup
+        self._libraryLinkStr = libraryLinkStr
+        self._runEnvSetup = runEnvSetup
+
     def fileList(self, fileList=None):
         if fileList is not None:
             self._fileList = fileList
@@ -694,6 +698,21 @@ class KernelInstance:
         if outputFileFormatStr is not None:
             self._outputFileFormatStr = outputFileFormatStr
         return self._outputFileFormatStr
+
+    def compileEnvSetup(self, compileEnvSetup=None):
+        if compileEnvSetup is not None:
+            self._compileEnvSetup = compileEnvSetup
+        return self._compileEnvSetup
+
+    def libraryLinkStr(self, libraryLinkStr=None):
+        if libraryLinkStr is not None:
+            self._libraryLinkStr = libraryLinkStr
+        return self._libraryLinkStr
+
+    def runEnvSetup(self, runEnvSetup=None):
+        if runEnvSetup is not None:
+            self._runEnvSetup = runEnvSetup
+        return self._runEnvSetup
     
     def addFile(self, file):
         self._fileList.append(file)
@@ -1238,6 +1257,10 @@ def compileInstance(compiler, kernelInstance, compilerFlags, kernelInstanceCompi
     if compilerSetup is not None:
         cmd += compilerSetup + '; '
 
+    compilerEnvSetup = kernelInstance.compileEnvSetup()
+    if compilerEnvSetup is not None:
+        cmd += compilerEnvSetup + '; '
+
     cmd += 'cd build; '
 
     kernelInstFiles = kernelInstance.fileList()
@@ -1257,12 +1280,16 @@ def compileInstance(compiler, kernelInstance, compilerFlags, kernelInstanceCompi
     cmd += compiler.command() + ' ' + compilerFlagString + ' ' + kernelInstanceCompilerFlagString + ' ' + str.format(compiler.outputFormat(), linkedFilename) + ' '
     for compiledFile in kernelCompiledFilenames:
         cmd += compiledFile + ' '
+
+    libraryLinkStr = kernelInstance.libraryLinkStr()
+    if libraryLinkStr is not None:
+        cmd += libraryLinkStr + ' '
     
     #cmd += '; '
 
     #Execute Command
     print('Building: ' + cmd)
-    exitCode = subprocess.call(cmd, shell=True)
+    exitCode = subprocess.call(cmd, shell=True, executable='/bin/bash')
 
     return (cmd, exitCode)
 
@@ -1273,7 +1300,7 @@ def compileInstanceThread(compiler, kernelInstance, compilerFlags, kernelInstanc
     resultArray[threadID] = compileInstance(compiler, kernelInstance, compilerFlags, kernelInstanceCompilerFlags, linkname, suffix)
 
 
-def runInstanceAndParseOutput(sqlCursor, kernelInstanceID, machineID, compilerID, compiler, compilerFlags, kernelInstanceCompilerFlags, kernelRuntimeFlags, linkedFilename, compilerCmd, compilerExitCode):
+def runInstanceAndParseOutput(sqlCursor, kernelInstance, kernelInstanceID, machineID, compilerID, compiler, compilerFlags, kernelInstanceCompilerFlags, kernelRuntimeFlags, linkedFilename, compilerCmd, compilerExitCode):
     #Create Run Entry (will update some table values later)
     sqlCursor.execute('INSERT INTO Run (`KernelInstanceID`, `MachineID`, `CompilerID`) VALUES (?, ?, ?);', (kernelInstanceID, machineID, compilerID))
     sqlCursor.execute('SELECT RunID FROM Run WHERE Run.rowid=?;', (sqlCursor.lastrowid,))
@@ -1297,6 +1324,10 @@ def runInstanceAndParseOutput(sqlCursor, kernelInstanceID, machineID, compilerID
         if compilerSetup is not None:
             cmd += compilerSetup + '; '
         
+        runEnvSetup = kernelInstance.runEnvSetup()
+        if runEnvSetup is not None:
+            cmd += runEnvSetup + '; '
+
         cmd = 'cd ./build; '
 
         #TODO: Refactor for report file not first argument
@@ -1307,7 +1338,7 @@ def runInstanceAndParseOutput(sqlCursor, kernelInstanceID, machineID, compilerID
         #Start Timer
         startTime = datetime.datetime.now()
 
-        exitCode = subprocess.call(cmd, shell=True)
+        exitCode = subprocess.call(cmd, shell=True, executable='/bin/bash')
 
         #Stop Timer
         stopTime = datetime.datetime.now()
@@ -1429,7 +1460,7 @@ def runExperiment(compilerList, suiteList, sqlConnection, sqlCursor, machineID, 
 
             for kernelRuntimeFlags in kernelRuntimeFlagGenerator:
                 #Run the kernel
-                status = runInstanceAndParseOutput(sqlCursor, runKernelInstanceID, machineID, runCompilerID, runCompiler, runCompilerFlags, runKernelInstanceCompilerFlags, kernelRuntimeFlags, executableName, buildCmd, buildExitCode)
+                status = runInstanceAndParseOutput(sqlCursor, buildKernelInstance, runKernelInstanceID, machineID, runCompilerID, runCompiler, runCompilerFlags, runKernelInstanceCompilerFlags, kernelRuntimeFlags, executableName, buildCmd, buildExitCode)
 
                 if errorReported == False and status != 'Success':
                     msgTime = datetime.datetime.now()
@@ -1600,6 +1631,37 @@ def main():
 
     firSingleKernelUnroll4 = KernelInstance(firSingleKernel, 'Naive implementation with blocked input and output, shift register state, manually unrolled by 4.', ['fir1_3_4_tester1.cpp'], firUnroll4CompileOptions, firRunOptions)
     firSingleKernel.addInstance(firSingleKernelUnroll4)
+
+    #+++++++FIR Intel IPP++++++++++++++++
+    firIppCompileOptions = OptionList()
+    ippRangeIterator = itertools.chain(range(1, 2, 1), range(2, 31, 2))
+
+    ippRangeArray = []
+    for ippRangeVal in ippRangeIterator:
+        ippRangeArray.append(ippRangeVal)
+
+    #So itterator is not lost
+    #TODO: Investigate reseting iterator
+    firIppOrderRange = ippRangeArray
+    firIppBlockRange = ippRangeArray
+    #Static Options
+    firIppCompileOptions.addOption(EnumOption('PRINT_TITLE', [0], '-D{}={}', True))
+    firIppCompileOptions.addOption(EnumOption('PRINT_TRIALS', [0], '-D{}={}', True))
+    firIppCompileOptions.addOption(EnumOption('PRINT_STATS', [0], '-D{}={}', True))
+    firIppCompileOptions.addOption(EnumOption('WRITE_CSV', [1], '-D{}={}', True))
+    firIppCompileOptions.addOption(EnumOption('TRIALS', [firTrials], '-D{}={}', True))
+    firIppCompileOptions.addOption(EnumOption('STIM_LEN', [firStimLen], '-D{}={}', True))
+    #Dynamic Options
+    firIppCompileOptions.addOption(EnumOption('DATATYPE', ['float', 'double'], '-D{}={}', True))
+    #firIppCompileOptions.addOption(EnumOption('DATATYPE', ['double'], '-D{}={}', True))
+
+    firIppCompileOptions.addOption(EnumOption('COEF_LEN', firIppOrderRange, '-D{}={}', True))
+    firIppCompileOptions.addOption(EnumOption('IO_LEN', firIppBlockRange, '-D{}={}', True))
+
+    firRunOptions = OptionList()
+
+    firSingleKernelIpp = KernelInstance(firSingleKernel, 'FIR Intel IPP', ['fir1_ipp_tester1.cpp'], firIppCompileOptions, firRunOptions, '{}', 'source ~/.bashrc; module load ipp', '-lippcore -lipps', 'source ~/.bashrc; module load ipp')
+    firSingleKernel.addInstance(firSingleKernelIpp)
 
     #------------END FIR-----------------------
 
