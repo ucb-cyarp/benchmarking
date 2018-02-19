@@ -1289,7 +1289,7 @@ def compileInstance(compiler, kernelInstance, compilerFlags, kernelInstanceCompi
 
     #Execute Command
     print('Building: ' + cmd)
-    exitCode = subprocess.call(cmd, shell=True)
+    exitCode = subprocess.call(cmd, shell=True, executable='/bin/bash')
 
     return (cmd, exitCode)
 
@@ -1338,7 +1338,7 @@ def runInstanceAndParseOutput(sqlCursor, kernelInstance, kernelInstanceID, machi
         #Start Timer
         startTime = datetime.datetime.now()
 
-        exitCode = subprocess.call(cmd, shell=True)
+        exitCode = subprocess.call(cmd, shell=True, executable='/bin/bash')
 
         #Stop Timer
         stopTime = datetime.datetime.now()
@@ -1516,8 +1516,8 @@ def main():
     #TODO remove format option from enum option
     #Create Naive FIR Kernel Instance
 
-    firTrials = 5
-    firStimLen = 50000
+    firTrials = 10
+    firStimLen = 100000
 
     #+++++++FIR Naive++++++++++++++++
 
@@ -1549,27 +1549,27 @@ def main():
     firRunOptions = OptionList()
 
     firSingleKernelNaive = KernelInstance(firSingleKernel, 'Naive implementation with blocked input and output, shift register state, no explicit vectorization or unrolling.', ['fir1_1_tester1.cpp'], firNaiveCompileOptions, firRunOptions)
-    #firSingleKernel.addInstance(firSingleKernelNaive)
+    firSingleKernel.addInstance(firSingleKernelNaive)
 
     #+++++++FIR Circular Buffer++++++++++++++++
     firCircularCompileOptions = firNaiveCompileOptions
     firSingleKernelCircular = KernelInstance(firSingleKernel, 'Circular buffer implementation with blocked input and output, circular buffer state, no explicit vectorization or unrolling.', ['fir1_2_tester1.cpp'], firCircularCompileOptions, firRunOptions)
-    #firSingleKernel.addInstance(firSingleKernelCircular)
+    firSingleKernel.addInstance(firSingleKernelCircular)
 
     #+++++++FIR Circular Buffer (No Mod)++++++++++++++++
     firCircularNoModCompileOptions = firNaiveCompileOptions
     firSingleKernelCircularNoMod = KernelInstance(firSingleKernel, 'Circular buffer implementation with no modulus, blocked input and output, circular buffer state, no explicit vectorization or unrolling.', ['fir1_2_2_tester1.cpp'], firCircularNoModCompileOptions, firRunOptions)
-    #firSingleKernel.addInstance(firSingleKernelCircularNoMod)
+    firSingleKernel.addInstance(firSingleKernelCircularNoMod)
 
     #+++++++FIR Circular Buffer - Reversed ++++++++++++++++
     firCircularRevCompileOptions = firNaiveCompileOptions
     firSingleKernelCircularRev = KernelInstance(firSingleKernel, 'Circular buffer implementation with blocked input and output, circular buffer state, no explicit vectorization or unrolling. - Reverse Direction', ['fir1_2b_tester1.cpp'], firCircularRevCompileOptions, firRunOptions)
-    #firSingleKernel.addInstance(firSingleKernelCircularRev)
+    firSingleKernel.addInstance(firSingleKernelCircularRev)
 
     #+++++++FIR Circular Buffer (No Mod) - Reversed ++++++++++++++++
     firCircularNoModRevCompileOptions = firNaiveCompileOptions
     firSingleKernelCircularNoModRev = KernelInstance(firSingleKernel, 'Circular buffer implementation with no modulus, blocked input and output, circular buffer state, no explicit vectorization or unrolling. - Reverse Direction', ['fir1_2_2b_tester1.cpp'], firCircularNoModRevCompileOptions, firRunOptions)
-    #firSingleKernel.addInstance(firSingleKernelCircularNoModRev)
+    firSingleKernel.addInstance(firSingleKernelCircularNoModRev)
 
     #+++++++FIR Naive Unroll 2++++++++++++++++
     firUnroll2CompileOptions = OptionList()
@@ -1598,7 +1598,7 @@ def main():
     firUnroll2CompileOptions.addOption(EnumOption('IO_LEN', firUnroll2BlockRange, '-D{}={}', True))
 
     firSingleKernelUnroll2 = KernelInstance(firSingleKernel, 'Naive implementation with blocked input and output, shift register state, manually unrolled by 2.', ['fir1_3_tester1.cpp'], firUnroll2CompileOptions, firRunOptions)
-    #firSingleKernel.addInstance(firSingleKernelUnroll2)
+    firSingleKernel.addInstance(firSingleKernelUnroll2)
 
     #+++++++FIR Naive Unroll 4++++++++++++++++
     firUnroll4CompileOptions = OptionList()
@@ -1628,7 +1628,7 @@ def main():
     firUnroll4CompileOptions.addOption(EnumOption('IO_LEN', firUnroll4BlockRange, '-D{}={}', True))
 
     firSingleKernelUnroll4 = KernelInstance(firSingleKernel, 'Naive implementation with blocked input and output, shift register state, manually unrolled by 4.', ['fir1_3_4_tester1.cpp'], firUnroll4CompileOptions, firRunOptions)
-    #firSingleKernel.addInstance(firSingleKernelUnroll4)
+    firSingleKernel.addInstance(firSingleKernelUnroll4)
 
     #+++++++FIR Intel IPP++++++++++++++++
     firIppCompileOptions = OptionList()
@@ -1650,7 +1650,7 @@ def main():
     firIppCompileOptions.addOption(EnumOption('TRIALS', [firTrials], '-D{}={}', True))
     firIppCompileOptions.addOption(EnumOption('STIM_LEN', [firStimLen], '-D{}={}', True))
     #Dynamic Options
-    firIppCompileOptions.addOption(EnumOption('DATATYPE', ['int16_t', 'int32_t', 'float', 'double'], '-D{}={}', True))
+    firIppCompileOptions.addOption(EnumOption('DATATYPE', ['float', 'double'], '-D{}={}', True))
     #firIppCompileOptions.addOption(EnumOption('DATATYPE', ['double'], '-D{}={}', True))
 
     firIppCompileOptions.addOption(EnumOption('COEF_LEN', firIppOrderRange, '-D{}={}', True))
