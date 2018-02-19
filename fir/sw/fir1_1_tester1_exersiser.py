@@ -1506,7 +1506,7 @@ def slackStatusPost(message):
 def main():
 
     #*****Setup*****
-    buildThreads = 1
+    buildThreads = 4
     reportFrequency = 2500
     #Create Suites
     firSuite = Suite('FIR', 'Testing feed forward system performance using FIR filters')
@@ -1660,7 +1660,7 @@ def main():
 
     firRunOptions = OptionList()
 
-    firSingleKernelIpp = KernelInstance(firSingleKernel, 'FIR Intel IPP', ['fir1_ipp_tester1.cpp'], firIppCompileOptions, firRunOptions, '{}', 'source ~/.bashrc; module load ipp', '-lippcore -lipps', 'source ~/.bashrc; module load ipp')
+    firSingleKernelIpp = KernelInstance(firSingleKernel, 'FIR Intel IPP', ['fir1_ipp_tester1.cpp'], firIppCompileOptions, firRunOptions, '{}', 'eval `/usr/bin/modulecmd bash load ipp`', '-lippcore -lipps', 'eval `/usr/bin/modulecmd bash load ipp`')
     firSingleKernel.addInstance(firSingleKernelIpp)
 
     #------------END FIR-----------------------
