@@ -1328,7 +1328,7 @@ def runInstanceAndParseOutput(sqlCursor, kernelInstance, kernelInstanceID, machi
         if runEnvSetup is not None:
             cmd += runEnvSetup + '; '
 
-        cmd = 'cd ./build; '
+        cmd += 'cd ./build; '
 
         #TODO: Refactor for report file not first argument
         cmd += './' + linkedFilename + ' ' + rptFilename + ' ' + kernelInstanceRuntimeFlagString + ';'
