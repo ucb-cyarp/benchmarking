@@ -1209,7 +1209,7 @@ class icc(Compiler):
         #TODO: For Now, let's just try native
         compilerOptions.addOption(EnumOption('march', ['native'], '-{}={}', True))
 
-        super().__init__(name='Intel C/C++ Compiler', command='icc', envSetup=None, vendor='Intel', options=compilerOptions, defineFormat='-D{}={}', compileFormat='-c {}', outputFormat='-o {}')   
+        super().__init__(name='Intel C/C++ Compiler', command='icc', envSetup='eval `/usr/bin/modulecmd bash load PrgEnv-intel`', vendor='Intel', options=compilerOptions, defineFormat='-D{}={}', compileFormat='-c {}', outputFormat='-o {}')   
 
 def CompileRunCfgs(compilerList, suiteList, sqlConnection, sqlCursor, machineID):
     """
@@ -1687,6 +1687,7 @@ def main():
 
     #Select Tests to Run
     compilers = [gcc(), icc()]
+    #compilers = [icc()]
     suites = [firSuite]
 
     #*****GO*****
