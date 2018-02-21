@@ -1194,6 +1194,23 @@ class gcc(Compiler):
 
         super().__init__(name='gcc', command='g++', envSetup=None, vendor='GNU', options=compilerOptions, defineFormat='-D{}={}', compileFormat='-c {}', outputFormat='-o {}')   
 
+class icc(Compiler):
+    """
+    Represents the Intel C/C++ compiler
+    """
+
+    def __init__(self):
+        compilerOptions = OptionList()
+        compilerOptions.addOption(AlwaysOption('-std=c++11'))
+        #TODO: Omitted debugger optomization
+        compilerOptions.addOption(ExclusiveOptionList([AlwaysOption('-O0'), AlwaysOption('-O1'), AlwaysOption('-O2'), AlwaysOption('-O3'), AlwaysOption('-Os'), AlwaysOption('-Ofast')], True))
+        #TODO: For Now, let's just try the default and native
+        #compilerOptions.addOption(EnumOption('march', [native'], '-{}={}', False))
+        #TODO: For Now, let's just try native
+        compilerOptions.addOption(EnumOption('march', ['native'], '-{}={}', True))
+
+        super().__init__(name='Intel C/C++ Compiler', command='icc', envSetup=None, vendor='Intel', options=compilerOptions, defineFormat='-D{}={}', compileFormat='-c {}', outputFormat='-o {}')   
+
 def CompileRunCfgs(compilerList, suiteList, sqlConnection, sqlCursor, machineID):
     """
     Generator for compile and run configuration
@@ -1669,7 +1686,7 @@ def main():
     #TODO: Cleanup output file format str in KernelInstance
 
     #Select Tests to Run
-    compilers = [gcc()]
+    compilers = [gcc(), icc()]
     suites = [firSuite]
 
     #*****GO*****
