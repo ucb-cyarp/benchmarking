@@ -57,6 +57,43 @@
     #define PRINT_STATS 1
 #endif
 
+void statistics(std::chrono::duration<double, std::ratio<1, 1000>>* durations, double* durations_clock)
+{
+    //Print Average & StdDev
+    double avg_duration = 0;
+    double avg_duration_clock = 0;
+    for(size_t i = 0; i < TRIALS; i++)
+    {
+        avg_duration += (double) durations[i].count();
+        avg_duration_clock += (double) durations_clock[i];
+    }
+    avg_duration /= TRIALS;
+    avg_duration_clock /= TRIALS;
+
+    double std_dev_duration = 0;
+    double std_dev_duration_clock = 0;
+    for(size_t i = 0; i < TRIALS; i++)
+    {
+        double tmp = durations[i].count() - avg_duration;
+        double tmp_clock = durations_clock[i] - avg_duration_clock;
+        tmp = tmp*tmp;
+        tmp_clock = tmp_clock*tmp_clock;
+
+        std_dev_duration += tmp;
+        std_dev_duration_clock += tmp_clock;
+    }
+    std_dev_duration /= (TRIALS - 1);
+    std_dev_duration_clock /= (TRIALS - 1);
+    std_dev_duration = sqrt(std_dev_duration);
+    std_dev_duration_clock = sqrt(std_dev_duration_clock);
+
+    printf("High Res Clock - Sample Mean (ms): %f, Sample Std Dev: %f\n", avg_duration, std_dev_duration);
+    printf("         Clock - Sample Mean (ms): %f, Sample Std Dev: %f\n", avg_duration_clock, std_dev_duration_clock);
+
+    printf("High Res Clock - Sample Mean (MS/s): %f\n", STIM_LEN*1.0/(1000.0*avg_duration));
+    printf("         Clock - Sample Mean (MS/s): %f\n", STIM_LEN*1.0/(1000.0*avg_duration_clock));
+}
+
 void kernel_mm256_add_epi8( __m256i* a, __m256i* b, __m256i* c)
 {
     for(int i = 0; i<STIM_LEN/32; i++)
@@ -74,13 +111,13 @@ void test_mm256_add_epi8()
         printf("Add 32 Packed 8 bit Signed Integers (_mm256_add_epi8)\n");
     #endif
 
+    //Allocate timer arrays
+    std::chrono::duration<double, std::ratio<1, 1000>> durations[TRIALS];
+    double durations_clock[TRIALS];
+    double durations_rdtsc[TRIALS];
+
     for(int trial = 0; trial<TRIALS; trial++)
     {
-        //Allocate timer arrays
-        std::chrono::duration<double, std::ratio<1, 1000>> durations[TRIALS];
-        double durations_clock[TRIALS];
-        double durations_rdtsc[TRIALS];
-
         //Allocate the arrays to operate over
         //These arrays need to be aligned to the vector register size of 256a
         void* a = _mm_malloc (STIM_LEN*sizeof(int8_t), 32);
@@ -117,9 +154,10 @@ void test_mm256_add_epi8()
         _mm_free(c);
     }
 
-
+    #if PRINT_STATS == 1
+    statistics(durations, durations_clock);
+    #endif
 }
-
 
 int main(int argc, char *argv[])
 {
@@ -127,6 +165,8 @@ int main(int argc, char *argv[])
     printf("SSE/AVX/FMA Intrinsic Tester\n");
     printf("STIM_LEN: %d, TRIALS: %d\n", STIM_LEN, TRIALS);
     #endif
+
+
 
     test_mm256_add_epi8();
 }
