@@ -292,7 +292,7 @@ void test_mm256_add_epi32()
     #endif
 }
 
-//==========_mm256_add_epi32==========
+//==========_mm256_add_ps==========
 void kernel_mm256_add_ps( __m256* a, __m256* b, __m256* c)
 {
     float* a_float = (float*) a;
