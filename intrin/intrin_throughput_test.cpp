@@ -57,6 +57,17 @@
     #define PRINT_STATS 1
 #endif
 
+void kernel_mm256_add_epi8( __m256i* a, __m256i* b, __m256i* c)
+{
+    for(int i = 0; i<STIM_LEN/32; i++)
+    {
+        __m256i a_val = _mm256_load_si256(a+i);
+        __m256i b_val = _mm256_load_si256(b+i);
+        __m256i c_val = _mm256_add_epi8(a_val, b_val);
+        _mm256_store_si256(c+1, c_val);
+    }
+}
+
 void test_mm256_add_epi8()
 {
     #if PRINT_HEADER == 1
@@ -85,13 +96,7 @@ void test_mm256_add_epi8()
         clock_t start_clock = clock();
         uint64_t start_rdtsc = _rdtsc();
 
-        //Execute
-        for(int i = 0; i<STIM_LEN/32; i++)
-        {
-            __m256i a_val = _mm256_load_si256(a_m256+i);
-            __m256i b_val = _mm256_load_si256(b_m256+i);
-            __m256i c_val = _mm256_add_epi8(a_val, b_val);
-        }
+        kernel_mm256_add_epi8(a_m256, b_m256, c_m256);
 
         //Stop Timer and Report Time
         uint64_t stop_rdtsc = _rdtsc();
