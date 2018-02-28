@@ -56,8 +56,7 @@ int main(int argc, char *argv[])
     #endif
 
     test_add();
-    //test_mult();
-
+    test_mult();
     test_unroll2_add();
 
     return 0;
