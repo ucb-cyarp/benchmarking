@@ -18,6 +18,21 @@
 
 #include "intrin_bench_default_defines.h"
 #include "load_add_store.h"
+#include "load_mult_store.h"
+
+void test_add()
+{
+    test_mm256_add_epi8();
+    test_mm256_add_epi16();
+    test_mm256_add_epi32();
+    test_mm256_add_ps();
+    test_mm256_add_pd();
+}
+
+void test_mult()
+{
+    test_mm256_mullo_epi16();
+}
 
 int main(int argc, char *argv[])
 {
@@ -26,9 +41,8 @@ int main(int argc, char *argv[])
     printf("STIM_LEN: %d, TRIALS: %d\n", STIM_LEN, TRIALS);
     #endif
 
-    test_mm256_add_epi8();
-    test_mm256_add_epi16();
-    test_mm256_add_epi32();
-    test_mm256_add_ps();
-    test_mm256_add_pd();
+    test_add();
+    test_mult();
+
+    return 0;
 }

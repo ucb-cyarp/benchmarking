@@ -10,7 +10,7 @@ LIB=
 DEFINES=
 
 MAIN_FILE = intrin_throughput_test.cpp 
-LIB_SRCS = statistics.cpp load_add_store.cpp
+LIB_SRCS = statistics.cpp load_add_store.cpp load_mult_store.cpp
 
 SRCS=$(MAIN_FILE)
 SRCS+=$(LIB_SRCS)
