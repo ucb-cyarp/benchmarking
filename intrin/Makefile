@@ -12,7 +12,7 @@ DEFINES=
 
 MAIN_FILE = intrin_throughput_test.cpp 
 LIB_SRCS = statistics.cpp load_add_store.cpp load_mult_store.cpp load_add_store_unroll2.cpp
-KERNEL_SRCS = load_add_store_kernel.cpp load_mult_store_kernel.cpp
+KERNEL_SRCS = load_add_store_kernel.cpp load_mult_store_kernel.cpp load_add_store_unroll2_kernel.cpp
 
 SRCS=$(MAIN_FILE)
 SRCS+=$(LIB_SRCS)
