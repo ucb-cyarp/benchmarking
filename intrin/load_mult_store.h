@@ -11,3 +11,7 @@ void test_mm256_mullo_epi32();
 //==========_mm256_mul_ps==========
 void kernel_mm256_mul_ps( __m256* a, __m256* b, __m256* c);
 void test_mm256_mul_ps();
+
+//==========_mm256_mul_pd==========
+void kernel_mm256_mul_pd( __m256d* a, __m256d* b, __m256d* c);
+void test_mm256_mul_pd();
