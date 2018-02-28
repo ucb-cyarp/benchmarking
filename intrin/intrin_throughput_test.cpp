@@ -362,6 +362,76 @@ void test_mm256_add_ps()
     #endif
 }
 
+//==========_mm256_add_pd==========
+void kernel_mm256_add_pd( __m256d* a, __m256d* b, __m256d* c)
+{
+    double* a_double = (double*) a;
+    double* b_double = (double*) b;
+    double* c_double = (double*) c;
+
+    for(int i = 0; i<STIM_LEN; i+=4)
+    {
+        __m256d a_val = _mm256_load_pd(a_double+i);
+        __m256d b_val = _mm256_load_pd(b_double+i);
+        __m256d c_val = _mm256_add_pd(a_val, b_val);
+        _mm256_store_pd(c_double+i, c_val);
+    }
+}
+
+void test_mm256_add_pd()
+{
+    #if PRINT_HEADER == 1
+        printf("Add 4 Packed 64 bit Signed Floating Point Numbers (_mm256_add_pd)\n");
+    #endif
+
+    //Allocate timer arrays
+    std::chrono::duration<double, std::ratio<1, 1000>> durations[TRIALS];
+    double durations_clock[TRIALS];
+    double durations_rdtsc[TRIALS];
+
+    for(int trial = 0; trial<TRIALS; trial++)
+    {
+        //Allocate the arrays to operate over
+        //These arrays need to be aligned to the vector register size of 256a
+        void* a = _mm_malloc (STIM_LEN*sizeof(double), 32);
+        void* b = _mm_malloc (STIM_LEN*sizeof(double), 32);
+        void* c = _mm_malloc (STIM_LEN*sizeof(double), 32);
+
+        __m256d* a_m256d = (__m256d * ) a;
+        __m256d* b_m256d = (__m256d * ) b;
+        __m256d* c_m256d = (__m256d * ) c;
+
+        //Start Timer
+        std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
+        clock_t start_clock = clock();
+        uint64_t start_rdtsc = _rdtsc();
+
+        kernel_mm256_add_pd(a_m256d, b_m256d, c_m256d);
+
+        //Stop Timer and Report Time
+        uint64_t stop_rdtsc = _rdtsc();
+        clock_t stop_clock = clock();
+        std::chrono::high_resolution_clock::time_point stop = std::chrono::high_resolution_clock::now();
+
+        durations[trial] = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(stop-start);
+        durations_clock[trial] = 1000.0 * (stop_clock - start_clock) / CLOCKS_PER_SEC;
+        durations_rdtsc[trial] =  (stop_rdtsc - start_rdtsc);
+
+        #if PRINT_TRIALS == 1
+            printf("Trial %6d: %f, %f, %f\n", trial, durations[trial], durations_clock[trial], durations_rdtsc[trial]);
+        #endif 
+
+        //Clean up
+        _mm_free(a);
+        _mm_free(b);
+        _mm_free(c);
+    }
+
+    #if PRINT_STATS == 1
+    statistics(durations, durations_clock);
+    #endif
+}
+
 int main(int argc, char *argv[])
 {
     #if PRINT_TITLE == 1
@@ -373,4 +443,5 @@ int main(int argc, char *argv[])
     test_mm256_add_epi16();
     test_mm256_add_epi32();
     test_mm256_add_ps();
+    test_mm256_add_pd();
 }
