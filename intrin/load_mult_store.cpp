@@ -7,7 +7,7 @@
 void test_mm256_mullo_epi16()
 {
     #if PRINT_HEADER == 1
-        printf("Multiply 16 Packed 16 bit Signed Integers -> Produce 32 Bit Intermediates -> Store Lower 16 Bits of Intermediates (_mm256_mullo_epi16)\n");
+        printf("===== Load/Multiply 16 Packed 16 bit Signed Integers -> Produce 32 Bit Intermediates -> Store Lower 16 Bits of Intermediates (_mm256_mullo_epi16) =====\n");
     #endif
 
     //Allocate timer arrays
@@ -62,7 +62,7 @@ void test_mm256_mullo_epi16()
 void test_mm256_mullo_epi32()
 {
     #if PRINT_HEADER == 1
-        printf("Multiply 8 Packed 32 bit Signed Integers -> Produce 64 Bit Intermediates -> Store Lower 32 Bits of Intermediates (_mm256_mullo_epi32)\n");
+        printf("===== Load/Multiply 8 Packed 32 bit Signed Integers -> Produce 64 Bit Intermediates -> Store Lower 32 Bits of Intermediates (_mm256_mullo_epi32) =====\n");
     #endif
 
     //Allocate timer arrays
@@ -117,7 +117,7 @@ void test_mm256_mullo_epi32()
 void test_mm256_mul_ps()
 {
     #if PRINT_HEADER == 1
-        printf("Multiply 8 Packed 32 bit Signed Floating Point Numbers (_mm256_mul_ps)\n");
+        printf("===== Load/Multiply/Store 8 Packed 32 bit Signed Floating Point Numbers (_mm256_mul_ps) =====\n");
     #endif
 
     //Allocate timer arrays
@@ -172,7 +172,7 @@ void test_mm256_mul_ps()
 void test_mm256_mul_pd()
 {
     #if PRINT_HEADER == 1
-        printf("Multiply 4 Packed 64 bit Signed Floating Point Numbers (_mm256_mul_pd)\n");
+        printf("===== Load/Multiply/Store 4 Packed 64 bit Signed Floating Point Numbers (_mm256_mul_pd) =====\n");
     #endif
 
     //Allocate timer arrays
