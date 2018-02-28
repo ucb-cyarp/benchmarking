@@ -19,7 +19,7 @@
 
     //Set default options
     #ifndef STIM_LEN
-        #define STIM_LEN 160000000
+        #define STIM_LEN 32000000
     #endif
 
     #ifndef TRIALS
@@ -35,7 +35,7 @@
     #endif
 
     #ifndef PRINT_TRIALS
-        #define PRINT_TRIALS 1
+        #define PRINT_TRIALS 0
     #endif
 
     #ifndef PRINT_STATS
