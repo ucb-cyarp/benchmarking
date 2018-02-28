@@ -33,6 +33,7 @@ void test_mult()
 {
     test_mm256_mullo_epi16();
     test_mm256_mullo_epi32();
+    test_mm256_mul_ps();
 }
 
 int main(int argc, char *argv[])

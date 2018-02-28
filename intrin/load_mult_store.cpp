@@ -133,3 +133,73 @@ void test_mm256_mullo_epi32()
     statistics(durations, durations_clock);
     #endif
 }
+
+//==========_mm256_mul_ps==========
+void kernel_mm256_mul_ps( __m256* a, __m256* b, __m256* c)
+{
+    float* a_float = (float*) a;
+    float* b_float = (float*) b;
+    float* c_float = (float*) c;
+
+    for(int i = 0; i<STIM_LEN; i+=8)
+    {
+        __m256 a_val = _mm256_load_ps(a_float+i);
+        __m256 b_val = _mm256_load_ps(b_float+i);
+        __m256 c_val = _mm256_mul_ps(a_val, b_val);
+        _mm256_store_ps(c_float+i, c_val);
+    }
+}
+
+void test_mm256_mul_ps()
+{
+    #if PRINT_HEADER == 1
+        printf("Multiply 8 Packed 32 bit Signed Floating Point Numbers (_mm256_mul_ps)\n");
+    #endif
+
+    //Allocate timer arrays
+    std::chrono::duration<double, std::ratio<1, 1000>> durations[TRIALS];
+    double durations_clock[TRIALS];
+    double durations_rdtsc[TRIALS];
+
+    for(int trial = 0; trial<TRIALS; trial++)
+    {
+        //Allocate the arrays to operate over
+        //These arrays need to be aligned to the vector register size of 256a
+        void* a = _mm_malloc (STIM_LEN*sizeof(float), 32);
+        void* b = _mm_malloc (STIM_LEN*sizeof(float), 32);
+        void* c = _mm_malloc (STIM_LEN*sizeof(float), 32);
+
+        __m256* a_m256 = (__m256 * ) a;
+        __m256* b_m256 = (__m256 * ) b;
+        __m256* c_m256 = (__m256 * ) c;
+
+        //Start Timer
+        std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
+        clock_t start_clock = clock();
+        uint64_t start_rdtsc = _rdtsc();
+
+        kernel_mm256_mul_ps(a_m256, b_m256, c_m256);
+
+        //Stop Timer and Report Time
+        uint64_t stop_rdtsc = _rdtsc();
+        clock_t stop_clock = clock();
+        std::chrono::high_resolution_clock::time_point stop = std::chrono::high_resolution_clock::now();
+
+        durations[trial] = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(stop-start);
+        durations_clock[trial] = 1000.0 * (stop_clock - start_clock) / CLOCKS_PER_SEC;
+        durations_rdtsc[trial] =  (stop_rdtsc - start_rdtsc);
+
+        #if PRINT_TRIALS == 1
+            printf("Trial %6d: %f, %f, %f\n", trial, durations[trial], durations_clock[trial], durations_rdtsc[trial]);
+        #endif 
+
+        //Clean up
+        _mm_free(a);
+        _mm_free(b);
+        _mm_free(c);
+    }
+
+    #if PRINT_STATS == 1
+    statistics(durations, durations_clock);
+    #endif
+}
