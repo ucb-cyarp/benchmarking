@@ -20,6 +20,8 @@
 #include "load_add_store.h"
 #include "load_mult_store.h"
 
+#include "load_add_store_unroll2.h"
+
 void test_add()
 {
     test_mm256_add_epi8();
@@ -27,6 +29,15 @@ void test_add()
     test_mm256_add_epi32();
     test_mm256_add_ps();
     test_mm256_add_pd();
+}
+
+void test_unroll2_add()
+{
+    test_u2_mm256_add_epi8();
+    test_u2_mm256_add_epi16();
+    test_u2_mm256_add_epi32();
+    test_u2_mm256_add_ps();
+    test_u2_mm256_add_pd();
 }
 
 void test_mult()
@@ -45,7 +56,9 @@ int main(int argc, char *argv[])
     #endif
 
     test_add();
-    test_mult();
+    //test_mult();
+
+    test_unroll2_add();
 
     return 0;
 }
