@@ -12,7 +12,7 @@ DEFINES=
 
 MAIN_FILE = intrin_throughput_test.cpp 
 LIB_SRCS = statistics.cpp load_add_store.cpp load_mult_store.cpp load_add_store_unroll2.cpp
-KERNEL_SRCS = load_add_store_kernel.cpp
+KERNEL_SRCS = load_add_store_kernel.cpp load_mult_store_kernel.cpp
 
 SRCS=$(MAIN_FILE)
 SRCS+=$(LIB_SRCS)
@@ -27,7 +27,7 @@ all: intrin_throughput_test
 intrin_throughput_test: $(OBJS) $(KERNEL_OBJS)
 	$(CXX) $(INC) -o intrin_throughput_test $(OBJS) $(KERNEL_OBJS) $(LIB)
 
-$(KERNEL_OBJS): $(KERNEL_SRCS_FULLPATH) | $(BUILD_DIR)/ 
+$(KERNEL_OBJS): $(BUILD_DIR)/%.o : $(SRC_DIR)/%.cpp | $(BUILD_DIR)/ 
 	$(CXX) $(KERNEL_CFLAGS) $(INC) $(DEFINES) -o $@ $<
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)/ 
