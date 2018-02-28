@@ -17,10 +17,28 @@
  */
 
 #include "intrin_bench_default_defines.h"
+
+#include "load.h"
+#include "load_store.h"
+
 #include "load_add_store.h"
 #include "load_mult_store.h"
 
 #include "load_add_store_unroll2.h"
+
+void test_load()
+{
+    test_mm256_load_si256();
+    test_mm256_load_ps();
+    test_mm256_load_pd();
+}
+
+void test_load_store()
+{
+    test_mm256_load_si256__mm256_store_si256();
+    test_mm256_load_ps__mm256_store_ps();
+    test_mm256_load_pd__mm256_store_pd();
+}
 
 void test_add()
 {
@@ -55,8 +73,12 @@ int main(int argc, char *argv[])
     printf("STIM_LEN: %d, TRIALS: %d\n", STIM_LEN, TRIALS);
     #endif
 
+    test_load();
+    test_load_store();
+
     test_add();
     test_mult();
+
     test_unroll2_add();
 
     return 0;
