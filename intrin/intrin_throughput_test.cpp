@@ -26,6 +26,8 @@
 
 #include "load_add_store_unroll2.h"
 
+#include "load_add_store_nointrin.h"
+
 void test_load()
 {
     #ifdef __AVX__
@@ -56,6 +58,16 @@ void test_add()
         test_mm256_add_ps();
         test_mm256_add_pd();
     #endif
+}
+
+void test_nointrin_add()
+{
+    test_nointrin_mm256_add_epi8();
+    test_nointrin_mm256_add_epi16();
+    test_nointrin_mm256_add_epi32();
+
+    test_nointrin_mm256_add_ps();
+    test_nointrin_mm256_add_pd();
 }
 
 void test_unroll2_add()
@@ -99,6 +111,8 @@ int main(int argc, char *argv[])
     test_mult();
 
     test_unroll2_add();
+
+    test_nointrin_add();
 
     return 0;
 }

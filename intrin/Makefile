@@ -4,16 +4,16 @@ SRC_DIR=.
 #Compiler Parameters
 CXX=g++
 #CXX = $(MPICXX)
-CFLAGS = -O0 -c -std=c++11 -march=native
-KERNEL_CFLAGS = -O3 -c -std=c++11 -march=native
-KERNEL_NO_OPT_CFLAGS = -O0 -c -std=c++11 -march=native
+CFLAGS = -O0 -c -g -std=c++11 -march=native
+KERNEL_CFLAGS = -Ofast -c -g -std=c++11 -march=native
+KERNEL_NO_OPT_CFLAGS = -O0 -c -g -std=c++11 -march=native
 INC=
 LIB=
 DEFINES=
 
 MAIN_FILE = intrin_throughput_test.cpp 
-LIB_SRCS = statistics.cpp load.cpp load_store.cpp load_add_store.cpp load_mult_store.cpp load_add_store_unroll2.cpp
-KERNEL_SRCS = load_store_kernel.cpp load_add_store_kernel.cpp load_mult_store_kernel.cpp load_add_store_unroll2_kernel.cpp
+LIB_SRCS = statistics.cpp load.cpp load_store.cpp load_add_store.cpp load_mult_store.cpp load_add_store_unroll2.cpp load_add_store_nointrin.cpp
+KERNEL_SRCS = load_store_kernel.cpp load_add_store_kernel.cpp load_mult_store_kernel.cpp load_add_store_unroll2_kernel.cpp load_add_store_nointrin_kernel.cpp
 KERNEL_NO_OPT_SRCS = load_kernel.cpp
 
 SRCS=$(MAIN_FILE)
