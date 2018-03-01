@@ -7,7 +7,7 @@
 void test_mm256_load_si256()
 {
     #if PRINT_HEADER == 1
-        printf("===== Load Packed Signed Integers [Store in Local Var] (_mm256_load_si256) =====\n");
+        printf("[AVX] ===== Load Packed Signed Integers [Store in Local Var] (_mm256_load_si256) =====\n");
     #endif
 
     //Allocate timer arrays
@@ -56,7 +56,7 @@ void test_mm256_load_si256()
 void test_mm256_load_ps()
 {
     #if PRINT_HEADER == 1
-        printf("===== Load 8 Packed 32 bit Signed Floating Point Numbers [Store in Local Var] (_mm256_load_ps) =====\n");
+        printf("[AVX] ===== Load 8 Packed 32 bit Signed Floating Point Numbers [Store in Local Var] (_mm256_load_ps) =====\n");
     #endif
 
     //Allocate timer arrays
@@ -105,7 +105,7 @@ void test_mm256_load_ps()
 void test_mm256_load_pd()
 {
     #if PRINT_HEADER == 1
-        printf("===== Load 4 Packed 64 bit Signed Floating Point Numbers [Store in Local Var] (_mm256_load_pd) =====\n");
+        printf("[AVX] ===== Load 4 Packed 64 bit Signed Floating Point Numbers [Store in Local Var] (_mm256_load_pd) =====\n");
     #endif
 
     //Allocate timer arrays

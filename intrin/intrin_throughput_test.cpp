@@ -28,42 +28,61 @@
 
 void test_load()
 {
-    test_mm256_load_si256();
-    test_mm256_load_ps();
-    test_mm256_load_pd();
+    #ifdef __AVX__
+        test_mm256_load_si256();
+        test_mm256_load_ps();
+        test_mm256_load_pd();
+    #endif
 }
 
 void test_load_store()
 {
-    test_mm256_load_si256__mm256_store_si256();
-    test_mm256_load_ps__mm256_store_ps();
-    test_mm256_load_pd__mm256_store_pd();
+    #ifdef __AVX__
+        test_mm256_load_si256__mm256_store_si256();
+        test_mm256_load_ps__mm256_store_ps();
+        test_mm256_load_pd__mm256_store_pd();
+    #endif
 }
 
 void test_add()
 {
-    test_mm256_add_epi8();
-    test_mm256_add_epi16();
-    test_mm256_add_epi32();
-    test_mm256_add_ps();
-    test_mm256_add_pd();
+    #ifdef __AVX2__
+        test_mm256_add_epi8();
+        test_mm256_add_epi16();
+        test_mm256_add_epi32();
+    #endif
+
+    #ifdef __AVX__
+        test_mm256_add_ps();
+        test_mm256_add_pd();
+    #endif
 }
 
 void test_unroll2_add()
 {
-    test_u2_mm256_add_epi8();
-    test_u2_mm256_add_epi16();
-    test_u2_mm256_add_epi32();
-    test_u2_mm256_add_ps();
-    test_u2_mm256_add_pd();
+    #ifdef __AVX2__
+        test_u2_mm256_add_epi8();
+        test_u2_mm256_add_epi16();
+        test_u2_mm256_add_epi32();
+    #endif
+
+    #ifdef __AVX__
+        test_u2_mm256_add_ps();
+        test_u2_mm256_add_pd();
+    #endif
 }
 
 void test_mult()
 {
-    test_mm256_mullo_epi16();
-    test_mm256_mullo_epi32();
-    test_mm256_mul_ps();
-    test_mm256_mul_pd();
+    #ifdef __AVX2__
+        test_mm256_mullo_epi16();
+        test_mm256_mullo_epi32();
+    #endif
+
+    #ifdef __AVX__
+        test_mm256_mul_ps();
+        test_mm256_mul_pd();
+    #endif
 }
 
 int main(int argc, char *argv[])

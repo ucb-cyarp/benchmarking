@@ -7,7 +7,7 @@
 void test_mm256_load_si256__mm256_store_si256()
 {
     #if PRINT_HEADER == 1
-        printf("===== Load/Store (Copy) Packed Signed Integers (_mm256_load_si256 | _mm256_store_si256) =====\n");
+        printf("[AVX] ===== Load/Store (Copy) Packed Signed Integers (_mm256_load_si256 | _mm256_store_si256) =====\n");
     #endif
 
     //Allocate timer arrays
@@ -59,7 +59,7 @@ void test_mm256_load_si256__mm256_store_si256()
 void test_mm256_load_ps__mm256_store_ps()
 {
     #if PRINT_HEADER == 1
-        printf("===== Load/Store (Copy) 8 Packed 32 bit Signed Floating Point Numbers (_mm256_load_ps | _mm256_store_ps) =====\n");
+        printf("[AVX] ===== Load/Store (Copy) 8 Packed 32 bit Signed Floating Point Numbers (_mm256_load_ps | _mm256_store_ps) =====\n");
     #endif
 
     //Allocate timer arrays
@@ -111,7 +111,7 @@ void test_mm256_load_ps__mm256_store_ps()
 void test_mm256_load_pd__mm256_store_pd()
 {
     #if PRINT_HEADER == 1
-        printf("===== Load/Store (Copy) 4 Packed 64 bit Signed Floating Point Numbers (_mm256_load_pd | _mm256_store_pd) =====\n");
+        printf("[AVX] ===== Load/Store (Copy) 4 Packed 64 bit Signed Floating Point Numbers (_mm256_load_pd | _mm256_store_pd) =====\n");
     #endif
 
     //Allocate timer arrays

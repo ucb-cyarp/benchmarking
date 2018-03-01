@@ -7,7 +7,7 @@
 void test_u2_mm256_add_epi8()
 {
     #if PRINT_HEADER == 1
-        printf("===== (Unroll 2) Load/Add/Store 32 Packed 8 bit Signed Integers (_mm256_add_epi8) =====\n");
+        printf("[AVX2] ===== (Unroll 2) Load/Add/Store 32 Packed 8 bit Signed Integers (_mm256_add_epi8) =====\n");
     #endif
 
     //Allocate timer arrays
@@ -62,7 +62,7 @@ void test_u2_mm256_add_epi8()
 void test_u2_mm256_add_epi16()
 {
     #if PRINT_HEADER == 1
-        printf("===== (Unroll 2) Load/Add/Store 16 Packed 16 bit Signed Integers (_mm256_add_epi16) =====\n");
+        printf("[AVX2] ===== (Unroll 2) Load/Add/Store 16 Packed 16 bit Signed Integers (_mm256_add_epi16) =====\n");
     #endif
 
     //Allocate timer arrays
@@ -117,7 +117,7 @@ void test_u2_mm256_add_epi16()
 void test_u2_mm256_add_epi32()
 {
     #if PRINT_HEADER == 1
-        printf("===== (Unroll 2) Load/Add/Store 8 Packed 32 bit Signed Integers (_mm256_add_epi32) =====\n");
+        printf("[AVX2] ===== (Unroll 2) Load/Add/Store 8 Packed 32 bit Signed Integers (_mm256_add_epi32) =====\n");
     #endif
 
     //Allocate timer arrays
@@ -172,7 +172,7 @@ void test_u2_mm256_add_epi32()
 void test_u2_mm256_add_ps()
 {
     #if PRINT_HEADER == 1
-        printf("===== (Unroll 2) Load/Add/Store 8 Packed 32 bit Signed Floating Point Numbers (_mm256_add_ps) =====\n");
+        printf("[AVX] ===== (Unroll 2) Load/Add/Store 8 Packed 32 bit Signed Floating Point Numbers (_mm256_add_ps) =====\n");
     #endif
 
     //Allocate timer arrays
@@ -227,7 +227,7 @@ void test_u2_mm256_add_ps()
 void test_u2_mm256_add_pd()
 {
     #if PRINT_HEADER == 1
-        printf("===== (Unroll 2) Load/Add/Store 4 Packed 64 bit Signed Floating Point Numbers (_mm256_add_pd) =====\n");
+        printf("[AVX] ===== (Unroll 2) Load/Add/Store 4 Packed 64 bit Signed Floating Point Numbers (_mm256_add_pd) =====\n");
     #endif
 
     //Allocate timer arrays
