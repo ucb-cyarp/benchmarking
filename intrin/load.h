@@ -2,13 +2,13 @@
     #define _H_LOAD
     #include "intrin_bench_default_defines.h"
 
-    //==========_mm256_load_si256==========
-    void test_mm256_load_si256();
-
-    //==========_mm256_load_ps==========
-    void test_mm256_load_ps();
-
-    //==========_mm256_load_pd==========
-    void test_mm256_load_pd();
+    #ifdef __AVX__
+        //==========_mm256_load_si256==========
+        void test_mm256_load_si256();
+        //==========_mm256_load_ps==========
+        void test_mm256_load_ps();
+        //==========_mm256_load_pd==========
+        void test_mm256_load_pd();
+    #endif
 
 #endif
