@@ -12,8 +12,8 @@ LIB=
 DEFINES=
 
 MAIN_FILE = intrin_throughput_test.cpp 
-LIB_SRCS = statistics.cpp load.cpp load_store.cpp load_add_store.cpp load_mult_store.cpp load_add_store_unroll2.cpp load_add_store_nointrin.cpp
-KERNEL_SRCS = load_store_kernel.cpp load_add_store_kernel.cpp load_mult_store_kernel.cpp load_add_store_unroll2_kernel.cpp load_add_store_nointrin_kernel.cpp
+LIB_SRCS = statistics.cpp load.cpp store.cpp load_store.cpp load_add_store.cpp load_mult_store.cpp load_add_store_unroll2.cpp load_add_store_nointrin.cpp
+KERNEL_SRCS = store_kernel.cpp load_store_kernel.cpp load_add_store_kernel.cpp load_mult_store_kernel.cpp load_add_store_unroll2_kernel.cpp load_add_store_nointrin_kernel.cpp
 KERNEL_NO_OPT_SRCS = load_kernel.cpp
 
 SRCS=$(MAIN_FILE)

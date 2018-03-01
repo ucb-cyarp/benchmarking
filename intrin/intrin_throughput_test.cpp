@@ -19,6 +19,7 @@
 #include "intrin_bench_default_defines.h"
 
 #include "load.h"
+#include "store.h"
 #include "load_store.h"
 
 #include "load_add_store.h"
@@ -34,6 +35,15 @@ void test_load()
         test_mm256_load_si256();
         test_mm256_load_ps();
         test_mm256_load_pd();
+    #endif
+}
+
+void test_store()
+{
+    #ifdef __AVX__
+        test_mm256_store_si256();
+        test_mm256_store_ps();
+        test_mm256_store_pd();
     #endif
 }
 
@@ -105,6 +115,7 @@ int main(int argc, char *argv[])
     #endif
 
     test_load();
+    test_store();
     test_load_store();
 
     test_add();
