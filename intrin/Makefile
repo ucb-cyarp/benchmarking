@@ -4,9 +4,9 @@ SRC_DIR=.
 #Compiler Parameters
 CXX=g++
 #CXX = $(MPICXX)
-CFLAGS = -O0 -c -std=c++11 -march=native -mavx2
-KERNEL_CFLAGS = -O3 -c -std=c++11 -march=native -mavx2
-KERNEL_NO_OPT_CFLAGS = -O0 -c -std=c++11 -march=native -mavx2
+CFLAGS = -O0 -c -std=c++11 -march=native
+KERNEL_CFLAGS = -O3 -c -std=c++11 -march=native
+KERNEL_NO_OPT_CFLAGS = -O0 -c -std=c++11 -march=native
 INC=
 LIB=
 DEFINES=
