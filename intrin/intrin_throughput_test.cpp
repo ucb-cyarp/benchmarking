@@ -24,6 +24,7 @@
 
 #include "add.h"
 #include "mult.h"
+#include "fma.h"
 
 #include "load_add_store.h"
 #include "load_mult_store.h"
@@ -89,6 +90,15 @@ void test_only_mult()
     #ifdef __AVX__
         test_only_mm256_mul_ps();
         test_only_mm256_mul_pd();
+    #endif
+}
+
+void test_only_fma()
+{
+    printf("########## FMA Benchmarks ##########\n");
+    #ifdef __FMA__
+        test_only_mm256_fmadd_ps();
+        test_only_mm256_fmadd_pd();
     #endif
 }
 
@@ -173,6 +183,8 @@ int main(int argc, char *argv[])
     test_only_add();
     printf("\n");
     test_only_mult();
+    printf("\n");
+    test_only_fma();
     printf("\n");
 
     test_add();
