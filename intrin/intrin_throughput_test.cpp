@@ -22,6 +22,8 @@
 #include "store.h"
 #include "load_store.h"
 
+#include "add.h"
+
 #include "load_add_store.h"
 #include "load_mult_store.h"
 
@@ -56,6 +58,21 @@ void test_load_store()
         test_mm256_load_si256__mm256_store_si256();
         test_mm256_load_ps__mm256_store_ps();
         test_mm256_load_pd__mm256_store_pd();
+    #endif
+}
+
+void test_only_add()
+{
+    printf("########## Add Benchmarks ##########\n");
+    #ifdef __AVX2__
+        test_only_mm256_add_epi8();
+        test_only_mm256_add_epi16();
+        test_only_mm256_add_epi32();
+    #endif
+
+    #ifdef __AVX__
+        test_only_mm256_add_ps();
+        test_only_mm256_add_pd();
     #endif
 }
 
@@ -126,6 +143,9 @@ int main(int argc, char *argv[])
     test_store();
     printf("\n");
     test_load_store();
+    printf("\n");
+
+    test_only_add();
     printf("\n");
 
     test_add();
