@@ -8,7 +8,7 @@
     void test_mm256_load_si256__mm256_store_si256()
     {
         #if PRINT_HEADER == 1
-            printf("[AVX] ===== Load/Store (Copy) Packed Signed Integers (_mm256_load_si256 | _mm256_store_si256) =====\n");
+            printf("[AVX] ===== Load/Store (Copy) 32 Packed Signed Bytes (_mm256_load_si256 | _mm256_store_si256) =====\n");
         #endif
 
         //Allocate timer arrays

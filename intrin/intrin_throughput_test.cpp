@@ -31,6 +31,7 @@
 
 void test_load()
 {
+    printf("########## Load Benchmarks ##########\n");
     #ifdef __AVX__
         test_mm256_load_si256();
         test_mm256_load_ps();
@@ -40,6 +41,7 @@ void test_load()
 
 void test_store()
 {
+    printf("########## Store Benchmarks ##########\n");
     #ifdef __AVX__
         test_mm256_store_si256();
         test_mm256_store_ps();
@@ -49,6 +51,7 @@ void test_store()
 
 void test_load_store()
 {
+    printf("########## Load/Store Benchmarks ##########\n");
     #ifdef __AVX__
         test_mm256_load_si256__mm256_store_si256();
         test_mm256_load_ps__mm256_store_ps();
@@ -58,6 +61,7 @@ void test_load_store()
 
 void test_add()
 {
+    printf("########## Load/Add/Store Benchmarks ##########\n");
     #ifdef __AVX2__
         test_mm256_add_epi8();
         test_mm256_add_epi16();
@@ -72,6 +76,7 @@ void test_add()
 
 void test_nointrin_add()
 {
+    printf("########## Load/Add/Store (No Intrinsics) Benchmarks ##########\n");
     test_nointrin_mm256_add_epi8();
     test_nointrin_mm256_add_epi16();
     test_nointrin_mm256_add_epi32();
@@ -82,6 +87,7 @@ void test_nointrin_add()
 
 void test_unroll2_add()
 {
+    printf("########## Load/Add/Store (Unrolled by 2) Benchmarks ##########\n");
     #ifdef __AVX2__
         test_u2_mm256_add_epi8();
         test_u2_mm256_add_epi16();
@@ -96,6 +102,7 @@ void test_unroll2_add()
 
 void test_mult()
 {
+    printf("########## Load/Multiply/Store Benchmarks ##########\n");
     #ifdef __AVX2__
         test_mm256_mullo_epi16();
         test_mm256_mullo_epi32();
@@ -111,17 +118,23 @@ int main(int argc, char *argv[])
 {
     #if PRINT_TITLE == 1
     printf("SSE/AVX/FMA Intrinsic Tester\n");
-    printf("STIM_LEN: %d, TRIALS: %d\n", STIM_LEN, TRIALS);
+    printf("STIM_LEN: %d (Samples/Vector/Trial), TRIALS: %d\n", STIM_LEN, TRIALS);
     #endif
 
     test_load();
+    printf("\n");
     test_store();
+    printf("\n");
     test_load_store();
+    printf("\n");
 
     test_add();
+    printf("\n");
     test_mult();
+    printf("\n");
 
     test_unroll2_add();
+    printf("\n");
 
     test_nointrin_add();
 
