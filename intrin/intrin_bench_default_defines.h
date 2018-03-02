@@ -23,7 +23,7 @@
     #endif
 
     #ifndef TRIALS
-        #define TRIALS 10
+        #define TRIALS 20
     #endif
 
     #ifndef PRINT_TITLE

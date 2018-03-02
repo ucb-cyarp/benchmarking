@@ -27,6 +27,7 @@
 
 #include "load_add_store.h"
 #include "load_mult_store.h"
+#include "load_fma_store.h"
 
 #include "load_add_store_unroll2.h"
 
@@ -146,6 +147,15 @@ void test_mult()
     #endif
 }
 
+void test_fma()
+{
+    printf("########## Load/FMA/Store Benchmarks ##########\n");
+    #ifdef __AVX__
+        test_mm256_fmadd_ps();
+        test_mm256_fmadd_pd();
+    #endif
+}
+
 int main(int argc, char *argv[])
 {
     #if PRINT_TITLE == 1
@@ -168,6 +178,8 @@ int main(int argc, char *argv[])
     test_add();
     printf("\n");
     test_mult();
+    printf("\n");
+    test_fma();
     printf("\n");
 
     test_unroll2_add();
