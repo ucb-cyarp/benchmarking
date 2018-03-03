@@ -28,6 +28,7 @@
 
 #include "load_add_store.h"
 #include "load_mult_store.h"
+#include "load_div_store.h"
 #include "load_fma_store.h"
 
 #include "load_add_store_unroll2.h"
@@ -157,6 +158,15 @@ void test_mult()
     #endif
 }
 
+void test_div()
+{
+    printf("########## Load/Divide/Store Benchmarks ##########\n");
+    #ifdef __AVX__
+        test_mm256_div_ps();
+        test_mm256_div_pd();
+    #endif
+}
+
 void test_fma()
 {
     printf("########## Load/FMA/Store Benchmarks ##########\n");
@@ -190,6 +200,8 @@ int main(int argc, char *argv[])
     test_add();
     printf("\n");
     test_mult();
+    printf("\n");
+    test_div();
     printf("\n");
     test_fma();
     printf("\n");
