@@ -12,9 +12,9 @@ LIB=
 DEFINES=
 
 MAIN_FILE = intrin_throughput_test.cpp 
-LIB_SRCS = statistics.cpp load.cpp store.cpp load_store.cpp add.cpp mult.cpp fma.cpp load_add_store.cpp load_mult_store.cpp load_div_store.cpp load_fma_store.cpp load_add_store_unroll2.cpp load_add_store_nointrin.cpp
+LIB_SRCS = statistics.cpp load.cpp store.cpp load_store.cpp add.cpp mult.cpp div.cpp fma.cpp load_add_store.cpp load_mult_store.cpp load_div_store.cpp load_fma_store.cpp load_add_store_unroll2.cpp load_add_store_nointrin.cpp
 KERNEL_SRCS = store_kernel.cpp load_store_kernel.cpp load_add_store_kernel.cpp load_mult_store_kernel.cpp load_div_store_kernel.cpp load_fma_store_kernel.cpp load_add_store_unroll2_kernel.cpp load_add_store_nointrin_kernel.cpp
-KERNEL_NO_OPT_SRCS = load_kernel.cpp add_kernel.cpp mult_kernel.cpp fma_kernel.cpp
+KERNEL_NO_OPT_SRCS = load_kernel.cpp add_kernel.cpp mult_kernel.cpp div_kernel.cpp fma_kernel.cpp
 
 SRCS=$(MAIN_FILE)
 SRCS+=$(LIB_SRCS)

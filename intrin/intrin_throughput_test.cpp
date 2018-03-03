@@ -24,6 +24,7 @@
 
 #include "add.h"
 #include "mult.h"
+#include "div.h"
 #include "fma.h"
 
 #include "load_add_store.h"
@@ -91,6 +92,15 @@ void test_only_mult()
     #ifdef __AVX__
         test_only_mm256_mul_ps();
         test_only_mm256_mul_pd();
+    #endif
+}
+
+void test_only_div()
+{
+    printf("########## Divide Benchmarks ##########\n");
+    #ifdef __AVX__
+        test_only_mm256_div_ps();
+        test_only_mm256_div_pd();
     #endif
 }
 
@@ -193,6 +203,8 @@ int main(int argc, char *argv[])
     test_only_add();
     printf("\n");
     test_only_mult();
+    printf("\n");
+    test_only_div();
     printf("\n");
     test_only_fma();
     printf("\n");
