@@ -40,7 +40,9 @@ void test_load()
 {
     printf("########## Load Benchmarks ##########\n");
     #ifdef __AVX__
-        test_mm256_load_si256();
+        test_mm256_load_si256_int8();
+        test_mm256_load_si256_int16();
+        test_mm256_load_si256_int32();
         test_mm256_load_ps();
         test_mm256_load_pd();
     #endif
@@ -50,7 +52,9 @@ void test_store()
 {
     printf("########## Store Benchmarks ##########\n");
     #ifdef __AVX__
-        test_mm256_store_si256();
+        test_mm256_store_si256_int8();
+        test_mm256_store_si256_int16();
+        test_mm256_store_si256_int32();
         test_mm256_store_ps();
         test_mm256_store_pd();
     #endif
@@ -60,7 +64,9 @@ void test_load_store()
 {
     printf("########## Load/Store Benchmarks ##########\n");
     #ifdef __AVX__
-        test_mm256_load_si256__mm256_store_si256();
+        test_mm256_load_si256__mm256_store_si256_int8();
+        test_mm256_load_si256__mm256_store_si256_int16();
+        test_mm256_load_si256__mm256_store_si256_int32();
         test_mm256_load_ps__mm256_store_ps();
         test_mm256_load_pd__mm256_store_pd();
     #endif

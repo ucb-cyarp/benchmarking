@@ -1,10 +1,30 @@
 #include "intrin_bench_default_defines.h"
 
 #ifdef __AVX__
-    //==========_mm256_load_si256 | _mm256_store_si256==========
-    void kernel_mm256_load_si256__mm256_store_si256( __m256i* a, __m256i* b)
+    //==========_mm256_load_si256 | _mm256_store_si256 int8==========
+    void kernel_mm256_load_si256__mm256_store_si256_int8( __m256i* a, __m256i* b)
     {
         for(int i = 0; i<STIM_LEN/32; i++)
+        {
+            __m256i a_val = _mm256_load_si256(a+i);
+            _mm256_store_si256(b+i, a_val);
+        }
+    }
+
+    //==========_mm256_load_si256 | _mm256_store_si256 int16==========
+    void kernel_mm256_load_si256__mm256_store_si256_int16( __m256i* a, __m256i* b)
+    {
+        for(int i = 0; i<STIM_LEN/16; i++)
+        {
+            __m256i a_val = _mm256_load_si256(a+i);
+            _mm256_store_si256(b+i, a_val);
+        }
+    }
+
+    //==========_mm256_load_si256 | _mm256_store_si256 int32==========
+    void kernel_mm256_load_si256__mm256_store_si256_int32( __m256i* a, __m256i* b)
+    {
+        for(int i = 0; i<STIM_LEN/8; i++)
         {
             __m256i a_val = _mm256_load_si256(a+i);
             _mm256_store_si256(b+i, a_val);
