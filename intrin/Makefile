@@ -1,6 +1,11 @@
 BUILD_DIR=build
 SRC_DIR=.
 
+#Get Cache Sizes
+L1D_CACHE_SIZE = $(shell ./get_l1d_cache_size.py)
+L2_CACHE_SIZE = $(shell ./get_l2_cache_size.py)
+L3_CACHE_SIZE = $(shell ./get_l3_cache_size.py)
+
 #Compiler Parameters
 CXX=g++
 #CXX = $(MPICXX)
@@ -9,7 +14,7 @@ KERNEL_CFLAGS = -O3 -c -g -std=c++11 -march=native
 KERNEL_NO_OPT_CFLAGS = -O0 -c -g -std=c++11 -march=native
 INC=
 LIB=
-DEFINES=
+DEFINES= -DL1D_CACHE_SIZE=${L1D_CACHE_SIZE} -DL2_CACHE_SIZE=${L2_CACHE_SIZE} -DL3_CACHE_SIZE=${L3_CACHE_SIZE}
 
 MAIN_FILE = intrin_throughput_test.cpp 
 LIB_SRCS = statistics.cpp load.cpp store.cpp load_store.cpp add.cpp mult.cpp div.cpp fma.cpp load_add_store.cpp load_mult_store.cpp load_div_store.cpp load_fma_store.cpp load_add_store_unroll2.cpp load_add_store_nointrin.cpp
@@ -45,4 +50,9 @@ clean:
 	rm -f intrin_throughput_test
 	rm -rf build/*
 
-.PHONY: clean
+print_cfg:
+	@echo "L1D_CACHE_SIZE = ${L1D_CACHE_SIZE}"
+	@echo "L2_CACHE_SIZE  = ${L2_CACHE_SIZE}"
+	@echo "L3_CACHE_SIZE  = ${L3_CACHE_SIZE}"
+
+.PHONY: clean print_cfg
