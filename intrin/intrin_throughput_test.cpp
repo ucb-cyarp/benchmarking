@@ -186,7 +186,7 @@ void test_div()
 void test_fma()
 {
     printf("########## Load/FMA/Store Benchmarks ##########\n");
-    #ifdef __AVX__
+    #ifdef __FMA__
         test_mm256_fmadd_ps();
         test_mm256_fmadd_pd();
     #endif
