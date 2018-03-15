@@ -261,9 +261,9 @@ void test_fma()
     printf("########## Load/FMA/Store Benchmarks ##########\n");
     #ifdef __FMA__
         test_mm256_fmadd_ps();
-        load_store_three_arg_kernel<__m256,  float>    (&kernel_mm256_fmadd_ps,    "[FMA] ===== Load/FMA/Store 8 Packed 32 bit Signed Floating Point Numbers (_mm256_fmadd_ps) =====");
+        load_store_four_arg_kernel<__m256,  float>    (&kernel_mm256_fmadd_ps,    "[FMA] ===== Load/FMA/Store 8 Packed 32 bit Signed Floating Point Numbers (_mm256_fmadd_ps) =====");
         test_mm256_fmadd_pd();
-        load_store_three_arg_kernel<__m256d, double>   (&kernel_mm256_fmadd_pd,    "[FMA] ===== Load/FMA/Store 4 Packed 64 bit Signed Floating Point Numbers (_mm256_fmadd_pd) =====");
+        load_store_four_arg_kernel<__m256d, double>   (&kernel_mm256_fmadd_pd,    "[FMA] ===== Load/FMA/Store 4 Packed 64 bit Signed Floating Point Numbers (_mm256_fmadd_pd) =====");
     #endif
 }
 
