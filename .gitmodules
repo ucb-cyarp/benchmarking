@@ -1,0 +1,3 @@
+[submodule "intrin/depends/pcm"]
+	path = intrin/depends/pcm
+	url = git@github.com:cyarp/pcm.git
