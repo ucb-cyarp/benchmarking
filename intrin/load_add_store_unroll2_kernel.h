@@ -1,5 +1,5 @@
-#ifndef _H_LOAD_ADD_STORE_UNROLL2
-    #define _H_LOAD_ADD_STORE_UNROLL2
+#ifndef _H_LOAD_ADD_STORE_UNROLL2_KERNEL
+    #define _H_LOAD_ADD_STORE_UNROLL2_KERNEL
     #include "intrin_bench_default_defines.h"
 
     #ifdef __AVX2__
