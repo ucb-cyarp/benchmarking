@@ -35,13 +35,13 @@ all: intrin_throughput_test
 intrin_throughput_test: $(OBJS) $(KERNEL_OBJS) $(KERNEL_NO_OPT_OBJS)
 	$(CXX) $(INC) -o intrin_throughput_test $(OBJS) $(KERNEL_OBJS) $(KERNEL_NO_OPT_OBJS) $(LIB)
 
-$(KERNEL_NO_OPT_OBJS): $(BUILD_DIR)/%.o : $(SRC_DIR)/%.cpp | $(BUILD_DIR)/
+$(KERNEL_NO_OPT_OBJS): $(BUILD_DIR)/%.o : $(SRC_DIR)/%.cpp | $(BUILD_DIR)/ | $(DEPENDS_DIR)/pcm/libPCM.a
 	$(CXX) $(KERNEL_NO_OPT_CFLAGS) $(INC) $(DEFINES) -o $@ $<
 
 $(KERNEL_OBJS): $(BUILD_DIR)/%.o : $(SRC_DIR)/%.cpp | $(BUILD_DIR)/
 	$(CXX) $(KERNEL_CFLAGS) $(INC) $(DEFINES) -o $@ $<
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)/
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)/ | $(DEPENDS_DIR)/pcm/libPCM.a
 	$(CXX) $(CFLAGS) $(INC) $(DEFINES) -o $@ $<
 
 $(BUILD_DIR)/:
@@ -50,7 +50,7 @@ $(BUILD_DIR)/:
 $(DEPENDS_DIR)/pcm/Makefile:
 	git submodule update --init --recursive depends/pcm
 
-$(DEPENDS_DIR)/pcm/libPCM.a
+$(DEPENDS_DIR)/pcm/libPCM.a:
 	cd $(DEPENDS_DIR)/pcm; make libPCM.a
 	
 clean:
