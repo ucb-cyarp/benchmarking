@@ -18,6 +18,8 @@
 
 #include "intrin_bench_default_defines.h"
 
+#include "depends/pcm/cpucounters.h"
+
 #include "kernel_runner.h"
 
 //Kernels Load/Store
@@ -197,12 +199,57 @@ void test_fma()
     #endif
 }
 
+//Initialize PCM
+//Based off opcm/pcm example pcm-power.cpp
+PCM* init_PCM()
+{
+    set_signal_handlers();
+
+    PCM * m = PCM::getInstance();
+    m->disableJKTWorkaround();
+
+    if (m->program() != PCM::Success) exit(1);
+
+    const int cpu_model = m->getCPUModel();
+    if (!(m->hasPCICFGUncore()))
+    {
+        std::cerr << "Unsupported processor model (" << cpu_model << ")." << std::endl;
+        exit(1);
+    }
+
+    int default_freq_band[3] = { 12, 20, 40 };
+    
+    int imc_profile = -1; //Do not gather DRAM statistics (for now)
+    int pcu_profile = 5; //Get frequency Change statistics
+    int* freq_band = default_freq_band;
+
+    if (PCM::Success != m->programServerUncorePowerMetrics(imc_profile, pcu_profile, freq_band))
+    {
+        #ifdef _MSC_VER
+        std::cerr << "You must have signed msr.sys driver in your current directory and have administrator rights to run this program" << std::endl;
+        #elif defined(__linux__)
+        std::cerr << "You need to be root and loaded 'msr' Linux kernel module to execute the program. You may load the 'msr' module with 'modprobe msr'. \n";
+        #endif
+        exit(EXIT_FAILURE);
+    }
+
+    // m->setBlocked(true);
+
+    return m;
+}
+
 int main(int argc, char *argv[])
 {
     #if PRINT_TITLE == 1
     printf("SSE/AVX/FMA Intrinsic Tester\n");
     printf("STIM_LEN: %d (Samples/Vector/Trial), TRIALS: %d\n", STIM_LEN, TRIALS);
     #endif
+
+    printf("\n");
+    printf("****** Platform Information Provided by PCM ******\n");
+    PCM* pcm = init_PCM();
+    printf("**************************************************\n");
+    printf("\n");
 
     test_load();
     printf("\n");
@@ -233,6 +280,9 @@ int main(int argc, char *argv[])
     printf("\n");
 
     test_nointrin_add();
+
+    printf("****** PCM Ceanup ******\n");
+    //Output from PCM appears when distructor runs
 
     return 0;
 }

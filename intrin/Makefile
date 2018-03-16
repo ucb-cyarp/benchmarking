@@ -13,8 +13,9 @@ CXX=g++
 CFLAGS = -O0 -c -g -std=c++11 -march=native
 KERNEL_CFLAGS = -O3 -c -g -std=c++11 -march=native
 KERNEL_NO_OPT_CFLAGS = -O0 -c -g -std=c++11 -march=native
-INC=
-LIB=
+INC=-I $(DEPENDS_DIR)/pcm
+LIB_DIRS=-L $(DEPENDS_DIR)/pcm
+LIB=-pthread -lrt -lPCM
 DEFINES= -DL1D_CACHE_SIZE=${L1D_CACHE_SIZE} -DL2_CACHE_SIZE=${L2_CACHE_SIZE} -DL3_CACHE_SIZE=${L3_CACHE_SIZE}
 
 MAIN_FILE = intrin_throughput_test.cpp 
@@ -33,7 +34,7 @@ all: intrin_throughput_test
 #all: ray_tracer ray_tracer_mpi pb2obj_txt obj2boost $(PB_REDUCE_FILE) $(CLUSTER_GRAPH_FILE) $(GRAPH_GEN_FILE) $(CLUSTER_AN_FILE)
 
 intrin_throughput_test: $(OBJS) $(KERNEL_OBJS) $(KERNEL_NO_OPT_OBJS)
-	$(CXX) $(INC) -o intrin_throughput_test $(OBJS) $(KERNEL_OBJS) $(KERNEL_NO_OPT_OBJS) $(LIB)
+	$(CXX) $(INC) $(LIB_DIRS) -o intrin_throughput_test $(OBJS) $(KERNEL_OBJS) $(KERNEL_NO_OPT_OBJS) $(LIB)
 
 $(KERNEL_NO_OPT_OBJS): $(BUILD_DIR)/%.o : $(SRC_DIR)/%.cpp | $(BUILD_DIR)/ $(DEPENDS_DIR)/pcm/libPCM.a
 	$(CXX) $(KERNEL_NO_OPT_CFLAGS) $(INC) $(DEFINES) -o $@ $<
