@@ -2,8 +2,9 @@
     #define _H_KERNEL_RUNNER
 
     #include "statistics.h"
+    #include "depends/pcm/cpucounters.h"
 
-    void zero_arg_kernel(void (*kernel_fun)(), const char* title)
+    void zero_arg_kernel(PCM* pcm, void (*kernel_fun)(), const char* title)
     {
         #if PRINT_HEADER == 1
             printf("%s\n", title);
@@ -43,7 +44,7 @@
     }
 
     template <typename VecType, typename KernelType>
-    void load_store_one_arg_kernel(void (*kernel_fun)(VecType*), const char* title)
+    void load_store_one_arg_kernel(PCM* pcm, void (*kernel_fun)(VecType*), const char* title)
     {
         #if PRINT_HEADER == 1
             printf("%s\n", title);
@@ -92,18 +93,27 @@
     }
 
     template <typename VecType, typename KernelType>
-    void load_store_two_arg_kernel(void (*kernel_fun)(VecType*, VecType*), const char* title)
+    void load_store_two_arg_kernel(PCM* pcm, void (*kernel_fun)(VecType*, VecType*), const char* title)
     {
         #if PRINT_HEADER == 1
             printf("%s\n", title);
         #endif
 
+        int sockets = m->getNumSockets();
+
         //Allocate timer arrays
         std::chrono::duration<double, std::ratio<1, 1000>> durations[TRIALS];
         double durations_clock[TRIALS];
         double durations_rdtsc[TRIALS];
+        double avgCPUFreq[sockets][TRIALS];
+        double avgActiveCPUFreq[sockets][TRIALS];
+        double energyCPUUsed[sockets][TRIALS];
+        double energyDRAMUsed[sockets][TRIALS];
 
-        for(int trial = 0; trial<TRIALS; trial++)
+        ServerUncorePowerState* startPowerState = new ServerUncorePowerState[sockets];
+
+        int trial = 0
+        while(trial<TRIALS)
         {
             //Allocate the arrays to operate over
             //These arrays need to be aligned to the vector register size of 256a
@@ -118,7 +128,14 @@
             clock_t start_clock = clock();
             uint64_t start_rdtsc = _rdtsc();
 
+            //Get Power States
+            for (i = 0; i < sockets; i++)
+                startPowerState[i] = m->getServerUncorePowerState(i);
+
+            //Run Kernel
             kernel_fun(a_vec, b_vec);
+
+            //Get Power States
 
             //Stop Timer and Report Time
             uint64_t stop_rdtsc = _rdtsc();
@@ -136,6 +153,10 @@
             //Clean up
             _mm_free(a);
             _mm_free(b);
+
+            //TODO: If no frequency change event occured
+            trial++
+            //Else, throw out result and try again
         }
 
         #if PRINT_STATS == 1
@@ -144,7 +165,7 @@
     }
 
     template <typename VecType, typename KernelType>
-    void load_store_three_arg_kernel(void (*kernel_fun)(VecType*, VecType*, VecType*), const char* title)
+    void load_store_three_arg_kernel(PCM* pcm, void (*kernel_fun)(VecType*, VecType*, VecType*), const char* title)
     {
         #if PRINT_HEADER == 1
             printf("%s\n", title);
@@ -199,7 +220,7 @@
     }
 
     template <typename VecType, typename KernelType>
-    void load_store_four_arg_kernel(void (*kernel_fun)(VecType*, VecType*, VecType*, VecType*), const char* title)
+    void load_store_four_arg_kernel(PCM* pcm, void (*kernel_fun)(VecType*, VecType*, VecType*, VecType*), const char* title)
     {
         #if PRINT_HEADER == 1
             printf("%s\n", title);
@@ -257,7 +278,7 @@
     }
 
     template <typename KernelType>
-    void no_vec_three_arg_kernel(void (*kernel_fun)(KernelType*, KernelType*, KernelType*), const char* title)
+    void no_vec_three_arg_kernel(PCM* pcm, void (*kernel_fun)(KernelType*, KernelType*, KernelType*), const char* title)
     {
         #if PRINT_HEADER == 1
             printf("%s\n", title);
