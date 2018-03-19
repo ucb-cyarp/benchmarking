@@ -16,6 +16,8 @@
  *     
  */
 
+#include <pthread.h>
+
 #include "intrin_bench_default_defines.h"
 
 #include "depends/pcm/cpucounters.h"
@@ -206,11 +208,10 @@ PCM* init_PCM()
     set_signal_handlers();
 
     PCM * m = PCM::getInstance();
+    //m->allowMultipleInstances();
     m->disableJKTWorkaround();
 
     //Configure PCM
-    if (m->program() != PCM::Success) exit(1);
-
     const int cpu_model = m->getCPUModel();
     if (!(m->hasPCICFGUncore()))
     {
@@ -239,12 +240,14 @@ PCM* init_PCM()
         exit(EXIT_FAILURE);
     }
 
-    //m->setBlocked(true);
+    if (m->program() != PCM::Success) exit(EXIT_FAILURE);
+
+    m->setBlocked(true);
 
     return m;
 }
 
-int main(int argc, char *argv[])
+void* run_benchmarks(void* null)
 {
     #if PRINT_TITLE == 1
     printf("SSE/AVX/FMA Intrinsic Tester\n");
@@ -292,6 +295,62 @@ int main(int argc, char *argv[])
 
     printf("****** PCM Ceanup ******\n");
     //Output from PCM appears when distructor runs
+
+    return NULL;
+}
+
+int main(int argc, char *argv[])
+{
+    //Run these single-threaded benchmarks on CPU 0 (all machines should have CPU 0)
+
+    //Based off of http://man7.org/linux/man-pages/man3/pthread_setaffinity_np.3.html
+    //http://man7.org/linux/man-pages/man3/pthread_create.3.html
+    //http://man7.org/linux/man-pages/man3/pthread_attr_setaffinity_np.3.html,
+    //http://man7.org/linux/man-pages/man3/pthread_join.3.html
+
+    cpu_set_t cpuset;
+    pthread_t thread;
+    pthread_attr_t attr;
+    void *res;
+
+    int status;
+
+    status = pthread_attr_init(&attr);
+
+    if(status != 0)
+    {
+        printf("Could not create pthread attributes ... exiting\n");
+        exit(1);
+    }
+
+
+    CPU_ZERO(&cpuset);
+    CPU_SET(0, &cpuset);
+
+    status = pthread_attr_setaffinity_np(&attr, sizeof(cpu_set_t), &cpuset);
+
+    if(status != 0)
+    {
+        printf("Could not set thread core affinity ... exiting\n");
+        exit(1);
+    }
+
+    status = pthread_create(&thread, &attr, &run_benchmarks, NULL);
+    if(status != 0)
+    {
+        printf("Could not create thread ... exiting\n");
+        exit(1);
+    }
+
+    status = pthread_join(thread, &res);
+
+    if(status != 0)
+    {
+        printf("Could not join thread ... exiting\n");
+        exit(1);
+    }
+
+    free(res);
 
     return 0;
 }

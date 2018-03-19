@@ -30,6 +30,25 @@
         return freq_changed;
     }
 
+    /**
+     * Calculate durations (for different clocks) for a given trial
+     * 
+     */
+    void calculate_durations(std::chrono::duration<double, std::ratio<1, 1000>>& durations,
+    double& durations_clock,
+    double& durations_rdtsc,
+    std::chrono::high_resolution_clock::time_point start,
+    std::chrono::high_resolution_clock::time_point stop,
+    clock_t start_clock,
+    clock_t stop_clock,
+    uint64_t start_rdtsc,
+    uint64_t stop_rdtsc)
+    {
+        durations = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(stop-start);
+        durations_clock = 1000.0 * (stop_clock - start_clock) / CLOCKS_PER_SEC;
+        durations_rdtsc =  (stop_rdtsc - start_rdtsc);
+    }
+
     void zero_arg_kernel(PCM* pcm, void (*kernel_fun)(), const char* title)
     {
         #if PRINT_HEADER == 1
@@ -60,7 +79,7 @@
             durations_rdtsc[trial] =  (stop_rdtsc - start_rdtsc);
 
             #if PRINT_TRIALS == 1
-                printf("Trial %6d: %f, %f, %f\n", trial, durations[trial], durations_clock[trial], durations_rdtsc[trial]);
+                printf("Trial %6d: %f, %f, %f\n", trial, durations[trial].count(), durations_clock[trial], durations_rdtsc[trial]);
             #endif 
         }
 
@@ -106,7 +125,7 @@
             durations_rdtsc[trial] =  (stop_rdtsc - start_rdtsc);
 
             #if PRINT_TRIALS == 1
-                printf("Trial %6d: %f, %f, %f\n", trial, durations[trial], durations_clock[trial], durations_rdtsc[trial]);
+                printf("Trial %6d: %f, %f, %f\n", trial, durations[trial].count(), durations_clock[trial], durations_rdtsc[trial]);
             #endif 
 
             //Clean up
@@ -126,13 +145,14 @@
         #endif
 
         int sockets = pcm->getNumSockets();
+        int cores = pcm->getNumCores();
 
-        //Allocate timer arrays
+        //Allocate measurement arrays
         std::chrono::duration<double, std::ratio<1, 1000>> durations[TRIALS];
         double durations_clock[TRIALS];
         double durations_rdtsc[TRIALS];
-        double avgCPUFreq[sockets][TRIALS];
-        double avgActiveCPUFreq[sockets][TRIALS];
+        double avgCPUFreq[cores][TRIALS];
+        double avgActiveCPUFreq[cores][TRIALS];
         double energyCPUUsed[sockets][TRIALS];
         double energyDRAMUsed[sockets][TRIALS];
 
@@ -167,7 +187,7 @@
             //Run Kernel
             kernel_fun(a_vec, b_vec);
 
-            //Stop Timer and 
+            //Stop Timer 
             uint64_t stop_rdtsc = _rdtsc();
             clock_t stop_clock = clock();
             std::chrono::high_resolution_clock::time_point stop = std::chrono::high_resolution_clock::now();
@@ -178,12 +198,32 @@
                 endPowerState[i] = pcm->getServerUncorePowerState(i);
             
             //Report Time
-            durations[trial] = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(stop-start);
-            durations_clock[trial] = 1000.0 * (stop_clock - start_clock) / CLOCKS_PER_SEC;
-            durations_rdtsc[trial] =  (stop_rdtsc - start_rdtsc);
+            calculate_durations(durations[trial], durations_clock[trial], durations_rdtsc[trial], start, stop, start_clock, stop_clock, start_rdtsc, stop_rdtsc);
+            
+            //Report Freq, Power
+            for(int i = 0; i<cores; i++)
+            {  
+                avgCPUFreq[i][trial] = getAverageFrequency(startCstates[i], endCstates[i]);
+                avgActiveCPUFreq[i][trial] = getActiveAverageFrequency(startCstates[i], endCstates[i]);
+            }
+            for(int i = 0; i<sockets; i++)
+            {
+                energyCPUUsed[i][trial] = getConsumedJoules(startPowerState[i], endPowerState[i]);
+                energyDRAMUsed[i][trial] = getDRAMConsumedJoules(startPowerState[i], endPowerState[i]);
+            }
 
             #if PRINT_TRIALS == 1
-                printf("Trial %6d: %f, %f, %f\n", trial, durations[trial], durations_clock[trial], durations_rdtsc[trial]);
+                printf("Trial %6d: Duration: %f, Duration (Clk): %f, Duration (rdtsc): %f", trial, durations[trial].count(), durations_clock[trial], durations_rdtsc[trial]);
+                for(int i = 0; i<sockets; i++)
+                {
+                      printf("\nEnergyCPUUsed[%d]: %8.4f, EnergyDRAMUsed[%d]: %8.4f ", i, energyCPUUsed[i][trial], i, energyDRAMUsed[i][trial]);
+                }
+
+                for(int i = 0; i<cores; i++)
+                {
+                      printf("\nAvgCPUFreq[%d]: %15.4f, AvgActiveCPUFreq[%d]: %15.4f", i, avgCPUFreq[i][trial], i, avgActiveCPUFreq[i][trial]);
+                }
+                printf("\n");
             #endif 
 
             //Clean up
@@ -195,6 +235,7 @@
             if(freq_change_events_occured == false)
             {
                 trial++;
+                discard_count=0;
             }
             
             else
@@ -261,7 +302,7 @@
             durations_rdtsc[trial] =  (stop_rdtsc - start_rdtsc);
 
             #if PRINT_TRIALS == 1
-                printf("Trial %6d: %f, %f, %f\n", trial, durations[trial], durations_clock[trial], durations_rdtsc[trial]);
+                printf("Trial %6d: %f, %f, %f\n", trial, durations[trial].count(), durations_clock[trial], durations_rdtsc[trial]);
             #endif 
 
             //Clean up
@@ -318,7 +359,7 @@
             durations_rdtsc[trial] =  (stop_rdtsc - start_rdtsc);
 
             #if PRINT_TRIALS == 1
-                printf("Trial %6d: %f, %f, %f\n", trial, durations[trial], durations_clock[trial], durations_rdtsc[trial]);
+                printf("Trial %6d: %f, %f, %f\n", trial, durations[trial].count(), durations_clock[trial], durations_rdtsc[trial]);
             #endif 
 
             //Clean up
@@ -374,7 +415,7 @@
                 durations_rdtsc[trial] =  (stop_rdtsc - start_rdtsc);
 
                 #if PRINT_TRIALS == 1
-                    printf("Trial %6d: %f, %f, %f\n", trial, durations[trial], durations_clock[trial], durations_rdtsc[trial]);
+                    printf("Trial %6d: %f, %f, %f\n", trial, durations[trial].count(), durations_clock[trial], durations_rdtsc[trial]);
                 #endif 
 
                 //Clean up

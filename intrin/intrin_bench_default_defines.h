@@ -39,7 +39,7 @@
     #endif
 
     #ifndef PRINT_TRIALS
-        #define PRINT_TRIALS 0
+        #define PRINT_TRIALS 1
     #endif
 
     #ifndef PRINT_STATS
