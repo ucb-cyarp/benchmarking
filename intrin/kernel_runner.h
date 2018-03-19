@@ -4,6 +4,32 @@
     #include "statistics.h"
     #include "depends/pcm/cpucounters.h"
 
+    /**
+     * Check for frequency changed events.  Assumes PMU counter 1 was set to track frequency change events
+     */
+    bool check_any_freq_changes(PCM* pcm, ServerUncorePowerState* startStates, ServerUncorePowerState* endStates, const char* print_prefix = "Warning: ")
+    {
+        int sockets = pcm->getNumSockets();
+
+        bool freq_changed = false;
+
+        for(int i = 0; i < sockets; i++)
+        {
+            int freq_change_events = getPCUCounter(1, startStates[i], endStates[i]);
+            if(freq_change_events > 0)
+            {
+                freq_changed = true;
+                #ifdef PRINT_FREQ_CHANGE_EVENT
+                    printf("%sSocket %d experienced %d clock frequency change events!\n", print_prefix, i, freq_change_events);
+                #else
+                    break; //No need to check other sockets, frequency changed
+                #endif
+            }
+        }
+
+        return freq_changed;
+    }
+
     void zero_arg_kernel(PCM* pcm, void (*kernel_fun)(), const char* title)
     {
         #if PRINT_HEADER == 1
@@ -99,7 +125,7 @@
             printf("%s\n", title);
         #endif
 
-        int sockets = m->getNumSockets();
+        int sockets = pcm->getNumSockets();
 
         //Allocate timer arrays
         std::chrono::duration<double, std::ratio<1, 1000>> durations[TRIALS];
@@ -112,11 +138,12 @@
 
         ServerUncorePowerState* startPowerState = new ServerUncorePowerState[sockets];
         ServerUncorePowerState* endPowerState = new ServerUncorePowerState[sockets];
-        std::vector<CoreCounterState> cstates1, cstates2;
-        std::vector<SocketCounterState> sktstate1, sktstate2;
-        SystemCounterState sstate1, sstate2;
+        std::vector<CoreCounterState> startCstates, endCstates;
+        std::vector<SocketCounterState> startSktstate, endSktstate;
+        SystemCounterState startSstate, endSstate;
 
-        int trial = 0
+        int trial = 0;
+        int discard_count = 0;
         while(trial<TRIALS)
         {
             //Allocate the arrays to operate over
@@ -127,27 +154,30 @@
             VecType* a_vec = (VecType * ) a;
             VecType* b_vec = (VecType * ) b;
 
+            //Get CPU Core/Socket/Power States
+            for (int i = 0; i < sockets; i++)
+                startPowerState[i] = pcm->getServerUncorePowerState(i);
+            pcm->getAllCounterStates(startSstate, startSktstate, startCstates);
+
             //Start Timer
             std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
             clock_t start_clock = clock();
             uint64_t start_rdtsc = _rdtsc();
 
-            //Get Power States
-            for (i = 0; i < sockets; i++)
-                startPowerState[i] = m->getServerUncorePowerState(i);
-
             //Run Kernel
             kernel_fun(a_vec, b_vec);
 
-            //Get Power States
-            for (i = 0; i < sockets; i++)
-                endPowerState[i] = m->getServerUncorePowerState(i);
-
-            //Stop Timer and Report Time
+            //Stop Timer and 
             uint64_t stop_rdtsc = _rdtsc();
             clock_t stop_clock = clock();
             std::chrono::high_resolution_clock::time_point stop = std::chrono::high_resolution_clock::now();
 
+            //Get CPU Core/Socket/Power States
+            pcm->getAllCounterStates(endSstate, endSktstate, endCstates);
+            for (int i = 0; i < sockets; i++)
+                endPowerState[i] = pcm->getServerUncorePowerState(i);
+            
+            //Report Time
             durations[trial] = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(stop-start);
             durations_clock[trial] = 1000.0 * (stop_clock - start_clock) / CLOCKS_PER_SEC;
             durations_rdtsc[trial] =  (stop_rdtsc - start_rdtsc);
@@ -160,9 +190,29 @@
             _mm_free(a);
             _mm_free(b);
 
-            //TODO: If no frequency change event occured
-            trial++
-            //Else, throw out result and try again
+            bool freq_change_events_occured = check_any_freq_changes(pcm, startPowerState, endPowerState);
+            //Proceed if no freq changes occured
+            if(freq_change_events_occured == false)
+            {
+                trial++;
+            }
+            
+            else
+            {
+                discard_count++;
+                #ifdef PRINT_FREQ_CHANGE_EVENT
+                    printf("Frequency Change Event Occured Durring Kernel Run ... Discarding Run\n");
+                #endif
+
+                if(discard_count >= MAX_DISCARD-1)
+                {
+                    #ifdef PRINT_FREQ_CHANGE_EVENT
+                        printf("Max Discards Reached ... Exiting\n");
+                    #endif
+                    exit(1);
+                }
+            }
+            
         }
 
         #if PRINT_STATS == 1

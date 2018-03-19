@@ -26,6 +26,10 @@
         #define TRIALS 20
     #endif
 
+    #ifndef MAX_DISCARD
+        #define MAX_DISCARD 10
+    #endif
+
     #ifndef PRINT_TITLE
         #define PRINT_TITLE 1
     #endif
@@ -40,5 +44,9 @@
 
     #ifndef PRINT_STATS
         #define PRINT_STATS 1
+    #endif
+
+    #ifndef PRINT_FREQ_CHANGE_EVENT
+        #define PRINT_FREQ_CHANGE_EVENT 1
     #endif
 #endif
