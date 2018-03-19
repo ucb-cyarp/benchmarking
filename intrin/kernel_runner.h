@@ -111,6 +111,10 @@
         double energyDRAMUsed[sockets][TRIALS];
 
         ServerUncorePowerState* startPowerState = new ServerUncorePowerState[sockets];
+        ServerUncorePowerState* endPowerState = new ServerUncorePowerState[sockets];
+        std::vector<CoreCounterState> cstates1, cstates2;
+        std::vector<SocketCounterState> sktstate1, sktstate2;
+        SystemCounterState sstate1, sstate2;
 
         int trial = 0
         while(trial<TRIALS)
@@ -136,6 +140,8 @@
             kernel_fun(a_vec, b_vec);
 
             //Get Power States
+            for (i = 0; i < sockets; i++)
+                endPowerState[i] = m->getServerUncorePowerState(i);
 
             //Stop Timer and Report Time
             uint64_t stop_rdtsc = _rdtsc();
