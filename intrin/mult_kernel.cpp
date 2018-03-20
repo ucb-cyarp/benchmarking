@@ -9,7 +9,7 @@
 
         for(int i = 0; i<STIM_LEN/16; i++)
         {
-            _mm256_mullo_epi16(a_val, b_val);
+            __m256i c_val = _mm256_mullo_epi16(a_val, b_val);
         }
     }
 
@@ -21,7 +21,7 @@
 
         for(int i = 0; i<STIM_LEN/8; i++)
         {
-            _mm256_mullo_epi32(a_val, b_val);
+            __m256i c_val = _mm256_mullo_epi32(a_val, b_val);
         }
     }
 #endif
@@ -35,7 +35,7 @@
 
         for(int i = 0; i<STIM_LEN; i+=8)
         {
-            _mm256_mul_ps(a_val, b_val);
+            __m256 c_val = _mm256_mul_ps(a_val, b_val);
         }
     }
 
@@ -47,7 +47,7 @@
 
         for(int i = 0; i<STIM_LEN; i+=4)
         {
-            _mm256_mul_pd(a_val, b_val);
+            __m256d c_val = _mm256_mul_pd(a_val, b_val);
         }
     }
 #endif
