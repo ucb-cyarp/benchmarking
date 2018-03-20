@@ -10,7 +10,7 @@
 
         for(int i = 0; i<STIM_LEN; i+=8)
         {
-            __m256 d_val = _mm256_fmadd_ps(a_val, b_val, c_val);
+            _mm256_fmadd_ps(a_val, b_val, c_val);
         }
     }
 
@@ -23,7 +23,7 @@
 
         for(int i = 0; i<STIM_LEN; i+=4)
         {
-            __m256d d_val = _mm256_fmadd_pd(a_val, b_val, c_val);
+            _mm256_fmadd_pd(a_val, b_val, c_val);
         }
     }
 #endif

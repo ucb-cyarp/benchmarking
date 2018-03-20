@@ -9,7 +9,7 @@
 
         for(int i = 0; i<STIM_LEN; i+=8)
         {
-            __m256 c_val = _mm256_div_ps(a_val, b_val);
+            _mm256_div_ps(a_val, b_val);
         }
     }
 
@@ -21,7 +21,7 @@
 
         for(int i = 0; i<STIM_LEN; i+=4)
         {
-            __m256d c_val = _mm256_div_pd(a_val, b_val);
+            _mm256_div_pd(a_val, b_val);
         }
     }
 #endif
