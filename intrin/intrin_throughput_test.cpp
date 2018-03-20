@@ -537,6 +537,7 @@ void* run_benchmarks(void* cpu_num)
         }
         fprintf(csv_file, "\n");
     }
+
     //Print Energy Use Normalized to 1 Sample
         for(size_t i = 0; i<types.size(); i++)
     {
@@ -578,6 +579,103 @@ void* run_benchmarks(void* cpu_num)
 
                     double stddev_cpu_energy = result_it->second->stddev_EnergyCPUUsed(socket);
                     double scaled_stddev = stddev_cpu_energy*1000000000/STIM_LEN;
+
+                    fprintf(csv_file, ",%e,%e", scaled_mean, scaled_stddev);
+                }
+            }
+        }
+        fprintf(csv_file, "\n");
+    }
+
+    //Print Clk Frequency
+    for(size_t i = 0; i<types.size(); i++)
+    {
+        std::string datatype = types[i];
+
+        //Print Descr:
+        if(i == 0)
+        {
+            fprintf(csv_file, "\"CPU Clk Frequency (MHz)\",\"%s\"", datatype.c_str());
+        }
+        else
+        {
+            fprintf(csv_file, ",\"%s\"", datatype.c_str());
+        }
+
+        //Print Data
+        for(size_t j = 0; j<kernels.size(); j++)
+        {
+            std::string kernel_name = kernels[j];
+            std::map<std::string, std::map<std::string, Results*>*>::iterator result_container_it = kernel_results.find(kernel_name);
+
+            if(result_container_it == kernel_results.end())
+            {
+                //No such kernel exists.  Print empty values
+                fprintf(csv_file, ",,");
+            }
+            else
+            {
+                std::map<std::string, Results*>::iterator result_it = result_container_it->second->find(datatype);
+                if(result_it == result_container_it->second->end())
+                {
+                    //No such result exists.  Print empty values
+                    fprintf(csv_file, ",,");
+                }
+                else
+                {
+                    double avg_cpu_per_dbl = result_it->second->avg_CPUPer(*cpu_num_int);
+                    double freq_mean = 1/avg_cpu_per_dbl/1000000;
+
+
+                    fprintf(csv_file, ",%e,", freq_mean);
+                }
+            }
+        }
+        fprintf(csv_file, "\n");
+    }
+
+    //Print Clk Per
+    for(size_t i = 0; i<types.size(); i++)
+    {
+        std::string datatype = types[i];
+
+        //Print Descr:
+        if(i == 0)
+        {
+            fprintf(csv_file, "\"CPU Clk Period (ns)\",\"%s\"", datatype.c_str());
+        }
+        else
+        {
+            fprintf(csv_file, ",\"%s\"", datatype.c_str());
+        }
+
+        //Print Data
+        for(size_t j = 0; j<kernels.size(); j++)
+        {
+            std::string kernel_name = kernels[j];
+            std::map<std::string, std::map<std::string, Results*>*>::iterator result_container_it = kernel_results.find(kernel_name);
+
+            if(result_container_it == kernel_results.end())
+            {
+                //No such kernel exists.  Print empty values
+                fprintf(csv_file, ",,");
+            }
+            else
+            {
+                std::map<std::string, Results*>::iterator result_it = result_container_it->second->find(datatype);
+                if(result_it == result_container_it->second->end())
+                {
+                    //No such result exists.  Print empty values
+                    fprintf(csv_file, ",,");
+                }
+                else
+                {
+                    double avg_cpu_per_dbl = result_it->second->avg_CPUPer(*cpu_num_int);
+                    double scaled_mean = avg_cpu_per_dbl*1000000000;
+
+                    double stddev_cpu_per_dbl = result_it->second->stddev_CPUPer(*cpu_num_int);
+                    double scaled_stddev = stddev_cpu_per_dbl*1000000000;
+
 
                     fprintf(csv_file, ",%e,%e", scaled_mean, scaled_stddev);
                 }
