@@ -5,17 +5,15 @@
     #include "depends/pcm/cpucounters.h"
 
     /**
-     * Check for frequency changed events.  Assumes PMU counter 1 was set to track frequency change events
+     * Check for frequency changed events.  Assumes PMU counter 1 was set to track frequency change events.
      */
-    bool check_any_freq_changes(PCM* pcm, ServerUncorePowerState* startStates, ServerUncorePowerState* endStates, const char* print_prefix = "Warning: ")
+    bool check_any_freq_changes(PCM* pcm, ServerUncorePowerState* startStates, ServerUncorePowerState* endStates, std::vector<int> sockets_of_interest, const char* print_prefix = "Warning: ")
     {
-        int sockets = pcm->getNumSockets();
-
         bool freq_changed = false;
 
-        for(int i = 0; i < sockets; i++)
+        for(int i = 0; i < sockets_of_interest.size(); i++)
         {
-            int freq_change_events = getPCUCounter(1, startStates[i], endStates[i]);
+            int freq_change_events = getPCUCounter(1, startStates[sockets_of_interest[i]], endStates[sockets_of_interest[i]]);
             if(freq_change_events > 0)
             {
                 freq_changed = true;
@@ -49,7 +47,44 @@
         durations_rdtsc =  (stop_rdtsc - start_rdtsc);
     }
 
-    void zero_arg_kernel(PCM* pcm, void (*kernel_fun)(), const char* title)
+    void calc_freq_and_power(PCM* pcm, int trial, double avgCPUFreq[][TRIALS], double avgActiveCPUFreq[][TRIALS], double energyCPUUsed[][TRIALS], double energyDRAMUsed[][TRIALS],
+    std::vector<CoreCounterState>& startCstates, std::vector<CoreCounterState>& endCstates, ServerUncorePowerState* startPowerState, ServerUncorePowerState* endPowerState)
+    {
+        int cores = pcm->getNumCores();
+        int sockets = pcm->getNumSockets();
+
+        for(int i = 0; i<cores; i++)
+        {  
+            avgCPUFreq[i][trial] = getAverageFrequency(startCstates[i], endCstates[i]);
+            avgActiveCPUFreq[i][trial] = getActiveAverageFrequency(startCstates[i], endCstates[i]);
+        }
+        for(int i = 0; i<sockets; i++)
+        {
+            energyCPUUsed[i][trial] = getConsumedJoules(startPowerState[i], endPowerState[i]);
+            energyDRAMUsed[i][trial] = getDRAMConsumedJoules(startPowerState[i], endPowerState[i]);
+        }
+    }
+
+    void print_trial(PCM* pcm, int trial, std::chrono::duration<double, std::ratio<1, 1000>> durations[], double durations_clock[], double durations_rdtsc[], 
+    double avgCPUFreq[][TRIALS], double avgActiveCPUFreq[][TRIALS], double energyCPUUsed[][TRIALS], double energyDRAMUsed[][TRIALS])
+    {
+        int sockets = pcm->getNumSockets();
+        int cores = pcm->getNumCores();
+
+        printf("Trial %6d: Duration: %f, Duration (Clk): %f, Duration (rdtsc): %f", trial, durations[trial].count(), durations_clock[trial], durations_rdtsc[trial]);
+        for(int i = 0; i<sockets; i++)
+        {
+                printf("\nEnergyCPUUsed[%d]: %8.4f, EnergyDRAMUsed[%d]: %8.4f ", i, energyCPUUsed[i][trial], i, energyDRAMUsed[i][trial]);
+        }
+
+        for(int i = 0; i<cores; i++)
+        {
+                printf("\nAvgCPUFreq[%d]: %15.4f, AvgActiveCPUFreq[%d]: %15.4f", i, avgCPUFreq[i][trial], i, avgActiveCPUFreq[i][trial]);
+        }
+        printf("\n");
+    }
+
+    void zero_arg_kernel(PCM* pcm, void (*kernel_fun)(), int cpu_num, const char* title)
     {
         #if PRINT_HEADER == 1
             printf("%s\n", title);
@@ -89,7 +124,7 @@
     }
 
     template <typename VecType, typename KernelType>
-    void load_store_one_arg_kernel(PCM* pcm, void (*kernel_fun)(VecType*), const char* title)
+    void load_store_one_arg_kernel(PCM* pcm, void (*kernel_fun)(VecType*), int cpu_num, const char* title)
     {
         #if PRINT_HEADER == 1
             printf("%s\n", title);
@@ -138,7 +173,7 @@
     }
 
     template <typename VecType, typename KernelType>
-    void load_store_two_arg_kernel(PCM* pcm, void (*kernel_fun)(VecType*, VecType*), const char* title)
+    void load_store_two_arg_kernel(PCM* pcm, void (*kernel_fun)(VecType*, VecType*), int cpu_num, const char* title)
     {
         #if PRINT_HEADER == 1
             printf("%s\n", title);
@@ -156,6 +191,7 @@
         double energyCPUUsed[sockets][TRIALS];
         double energyDRAMUsed[sockets][TRIALS];
 
+        //Allocate counter states
         ServerUncorePowerState* startPowerState = new ServerUncorePowerState[sockets];
         ServerUncorePowerState* endPowerState = new ServerUncorePowerState[sockets];
         std::vector<CoreCounterState> startCstates, endCstates;
@@ -201,36 +237,22 @@
             calculate_durations(durations[trial], durations_clock[trial], durations_rdtsc[trial], start, stop, start_clock, stop_clock, start_rdtsc, stop_rdtsc);
             
             //Report Freq, Power
-            for(int i = 0; i<cores; i++)
-            {  
-                avgCPUFreq[i][trial] = getAverageFrequency(startCstates[i], endCstates[i]);
-                avgActiveCPUFreq[i][trial] = getActiveAverageFrequency(startCstates[i], endCstates[i]);
-            }
-            for(int i = 0; i<sockets; i++)
-            {
-                energyCPUUsed[i][trial] = getConsumedJoules(startPowerState[i], endPowerState[i]);
-                energyDRAMUsed[i][trial] = getDRAMConsumedJoules(startPowerState[i], endPowerState[i]);
-            }
+            calc_freq_and_power(pcm, trial, avgCPUFreq, avgActiveCPUFreq, energyCPUUsed, energyDRAMUsed,
+            startCstates, endCstates, startPowerState, endPowerState);
 
             #if PRINT_TRIALS == 1
-                printf("Trial %6d: Duration: %f, Duration (Clk): %f, Duration (rdtsc): %f", trial, durations[trial].count(), durations_clock[trial], durations_rdtsc[trial]);
-                for(int i = 0; i<sockets; i++)
-                {
-                      printf("\nEnergyCPUUsed[%d]: %8.4f, EnergyDRAMUsed[%d]: %8.4f ", i, energyCPUUsed[i][trial], i, energyDRAMUsed[i][trial]);
-                }
-
-                for(int i = 0; i<cores; i++)
-                {
-                      printf("\nAvgCPUFreq[%d]: %15.4f, AvgActiveCPUFreq[%d]: %15.4f", i, avgCPUFreq[i][trial], i, avgActiveCPUFreq[i][trial]);
-                }
-                printf("\n");
+                print_trial(pcm, trial, durations, durations_clock, durations_rdtsc, avgCPUFreq, avgActiveCPUFreq, energyCPUUsed, energyDRAMUsed);
             #endif 
 
             //Clean up
             _mm_free(a);
             _mm_free(b);
 
-            bool freq_change_events_occured = check_any_freq_changes(pcm, startPowerState, endPowerState);
+            //Limit check to socket of interest (single socket for now)
+            std::vector<int> sockets_of_interest;
+            sockets_of_interest.push_back(pcm->getSocketId(cpu_num));
+
+            bool freq_change_events_occured = check_any_freq_changes(pcm, startPowerState, endPowerState, sockets_of_interest);
             //Proceed if no freq changes occured
             if(freq_change_events_occured == false)
             {
@@ -262,7 +284,7 @@
     }
 
     template <typename VecType, typename KernelType>
-    void load_store_three_arg_kernel(PCM* pcm, void (*kernel_fun)(VecType*, VecType*, VecType*), const char* title)
+    void load_store_three_arg_kernel(PCM* pcm, void (*kernel_fun)(VecType*, VecType*, VecType*), int cpu_num, const char* title)
     {
         #if PRINT_HEADER == 1
             printf("%s\n", title);
@@ -317,7 +339,7 @@
     }
 
     template <typename VecType, typename KernelType>
-    void load_store_four_arg_kernel(PCM* pcm, void (*kernel_fun)(VecType*, VecType*, VecType*, VecType*), const char* title)
+    void load_store_four_arg_kernel(PCM* pcm, void (*kernel_fun)(VecType*, VecType*, VecType*, VecType*), int cpu_num, const char* title)
     {
         #if PRINT_HEADER == 1
             printf("%s\n", title);
@@ -375,7 +397,7 @@
     }
 
     template <typename KernelType>
-    void no_vec_three_arg_kernel(PCM* pcm, void (*kernel_fun)(KernelType*, KernelType*, KernelType*), const char* title)
+    void no_vec_three_arg_kernel(PCM* pcm, void (*kernel_fun)(KernelType*, KernelType*, KernelType*), int cpu_num, const char* title)
     {
         #if PRINT_HEADER == 1
             printf("%s\n", title);
