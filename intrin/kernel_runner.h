@@ -1,7 +1,7 @@
 #ifndef _H_KERNEL_RUNNER
     #define _H_KERNEL_RUNNER
 
-    #include "statistics.h"
+    #include "results.h"
     #include "depends/pcm/cpucounters.h"
 
     /**
@@ -32,7 +32,7 @@
      * Calculate durations (for different clocks) for a given trial
      * 
      */
-    void calculate_durations(std::chrono::duration<double, std::ratio<1, 1000>>& durations,
+    void calculate_durations(double& durations,
     double& durations_clock,
     double& durations_rdtsc,
     std::chrono::high_resolution_clock::time_point start,
@@ -42,12 +42,12 @@
     uint64_t start_rdtsc,
     uint64_t stop_rdtsc)
     {
-        durations = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(stop-start);
+        durations = (std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(stop-start)).count();
         durations_clock = 1000.0 * (stop_clock - start_clock) / CLOCKS_PER_SEC;
         durations_rdtsc =  (stop_rdtsc - start_rdtsc);
     }
 
-    void calc_freq_and_power(PCM* pcm, int trial, double avgCPUFreq[][TRIALS], double avgActiveCPUFreq[][TRIALS], double energyCPUUsed[][TRIALS], double energyDRAMUsed[][TRIALS],
+    void calc_freq_and_power(PCM* pcm, double* avgCPUFreq, double* avgActiveCPUFreq, double* energyCPUUsed, double* energyDRAMUsed,
     std::vector<CoreCounterState>& startCstates, std::vector<CoreCounterState>& endCstates, ServerUncorePowerState* startPowerState, ServerUncorePowerState* endPowerState)
     {
         int cores = pcm->getNumCores();
@@ -55,33 +55,14 @@
 
         for(int i = 0; i<cores; i++)
         {  
-            avgCPUFreq[i][trial] = getAverageFrequency(startCstates[i], endCstates[i]);
-            avgActiveCPUFreq[i][trial] = getActiveAverageFrequency(startCstates[i], endCstates[i]);
+            avgCPUFreq[i] = getAverageFrequency(startCstates[i], endCstates[i]);
+            avgActiveCPUFreq[i] = getActiveAverageFrequency(startCstates[i], endCstates[i]);
         }
         for(int i = 0; i<sockets; i++)
         {
-            energyCPUUsed[i][trial] = getConsumedJoules(startPowerState[i], endPowerState[i]);
-            energyDRAMUsed[i][trial] = getDRAMConsumedJoules(startPowerState[i], endPowerState[i]);
+            energyCPUUsed[i] = getConsumedJoules(startPowerState[i], endPowerState[i]);
+            energyDRAMUsed[i] = getDRAMConsumedJoules(startPowerState[i], endPowerState[i]);
         }
-    }
-
-    void print_trial(PCM* pcm, int trial, std::chrono::duration<double, std::ratio<1, 1000>> durations[], double durations_clock[], double durations_rdtsc[], 
-    double avgCPUFreq[][TRIALS], double avgActiveCPUFreq[][TRIALS], double energyCPUUsed[][TRIALS], double energyDRAMUsed[][TRIALS])
-    {
-        int sockets = pcm->getNumSockets();
-        int cores = pcm->getNumCores();
-
-        printf("Trial %6d: Duration: %f, Duration (Clk): %f, Duration (rdtsc): %f", trial, durations[trial].count(), durations_clock[trial], durations_rdtsc[trial]);
-        for(int i = 0; i<sockets; i++)
-        {
-                printf("\nEnergyCPUUsed[%d]: %8.4f, EnergyDRAMUsed[%d]: %8.4f ", i, energyCPUUsed[i][trial], i, energyDRAMUsed[i][trial]);
-        }
-
-        for(int i = 0; i<cores; i++)
-        {
-                printf("\nAvgCPUFreq[%d]: %15.4f, AvgActiveCPUFreq[%d]: %15.4f", i, avgCPUFreq[i][trial], i, avgActiveCPUFreq[i][trial]);
-        }
-        printf("\n");
     }
 
     void zero_arg_kernel(PCM* pcm, void (*kernel_fun)(), int cpu_num, const char* title)
@@ -182,14 +163,10 @@
         int sockets = pcm->getNumSockets();
         int cores = pcm->getNumCores();
 
+        Results* results = new Results(sockets, cores);
+
         //Allocate measurement arrays
         std::chrono::duration<double, std::ratio<1, 1000>> durations[TRIALS];
-        double durations_clock[TRIALS];
-        double durations_rdtsc[TRIALS];
-        double avgCPUFreq[cores][TRIALS];
-        double avgActiveCPUFreq[cores][TRIALS];
-        double energyCPUUsed[sockets][TRIALS];
-        double energyDRAMUsed[sockets][TRIALS];
 
         //Allocate counter states
         ServerUncorePowerState* startPowerState = new ServerUncorePowerState[sockets];
@@ -233,15 +210,17 @@
             for (int i = 0; i < sockets; i++)
                 endPowerState[i] = pcm->getServerUncorePowerState(i);
             
+            TrialResult* trial_result = new TrialResult(sockets, cores, trial);
+
             //Report Time
-            calculate_durations(durations[trial], durations_clock[trial], durations_rdtsc[trial], start, stop, start_clock, stop_clock, start_rdtsc, stop_rdtsc);
+            calculate_durations(trial_result->duration, trial_result->duration_clock, trial_result->duration_rdtsc, start, stop, start_clock, stop_clock, start_rdtsc, stop_rdtsc);
             
             //Report Freq, Power
-            calc_freq_and_power(pcm, trial, avgCPUFreq, avgActiveCPUFreq, energyCPUUsed, energyDRAMUsed,
+            calc_freq_and_power(pcm, trial_result->avgCPUFreq, trial_result->avgActiveCPUFreq, trial_result->energyCPUUsed, trial_result->energyDRAMUsed,
             startCstates, endCstates, startPowerState, endPowerState);
 
             #if PRINT_TRIALS == 1
-                print_trial(pcm, trial, durations, durations_clock, durations_rdtsc, avgCPUFreq, avgActiveCPUFreq, energyCPUUsed, energyDRAMUsed);
+                trial_result->print_trial();
             #endif 
 
             //Clean up
@@ -257,6 +236,7 @@
             if(freq_change_events_occured == false)
             {
                 trial++;
+                results->add_trial(trial_result);
                 discard_count=0;
             }
             
@@ -279,8 +259,12 @@
         }
 
         #if PRINT_STATS == 1
-        statistics(durations, durations_clock);
+            results->print_statistics(pcm->getSocketId(cpu_num), cpu_num);
         #endif
+
+        //TODO: move to main function later
+        results->delete_results();
+        delete(results);
     }
 
     template <typename VecType, typename KernelType>
