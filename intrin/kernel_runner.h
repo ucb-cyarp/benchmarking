@@ -65,7 +65,7 @@
         }
     }
 
-    void zero_arg_kernel(PCM* pcm, void (*kernel_fun)(), int cpu_num, const char* title)
+    Results* zero_arg_kernel(PCM* pcm, void (*kernel_fun)(), int cpu_num, const char* title)
     {
         #if PRINT_HEADER == 1
             printf("%s\n", title);
@@ -161,13 +161,11 @@
             results->print_statistics(pcm->getSocketId(cpu_num), cpu_num);
         #endif
 
-        //TODO: move to main function later
-        results->delete_results();
-        delete(results);
+        return results;
     }
 
     template <typename VecType, typename KernelType>
-    void load_store_one_arg_kernel(PCM* pcm, void (*kernel_fun)(VecType*), int cpu_num, const char* title)
+    Results* load_store_one_arg_kernel(PCM* pcm, void (*kernel_fun)(VecType*), int cpu_num, const char* title)
     {
         #if PRINT_HEADER == 1
             printf("%s\n", title);
@@ -272,13 +270,11 @@
             results->print_statistics(pcm->getSocketId(cpu_num), cpu_num);
         #endif
 
-        //TODO: move to main function later
-        results->delete_results();
-        delete(results);
+        return results;
     }
 
     template <typename VecType, typename KernelType>
-    void load_store_two_arg_kernel(PCM* pcm, void (*kernel_fun)(VecType*, VecType*), int cpu_num, const char* title)
+    Results* load_store_two_arg_kernel(PCM* pcm, void (*kernel_fun)(VecType*, VecType*), int cpu_num, const char* title)
     {
         #if PRINT_HEADER == 1
             printf("%s\n", title);
@@ -386,13 +382,11 @@
             results->print_statistics(pcm->getSocketId(cpu_num), cpu_num);
         #endif
 
-        //TODO: move to main function later
-        results->delete_results();
-        delete(results);
+        return results;
     }
 
     template <typename VecType, typename KernelType>
-    void load_store_three_arg_kernel(PCM* pcm, void (*kernel_fun)(VecType*, VecType*, VecType*), int cpu_num, const char* title)
+    Results* load_store_three_arg_kernel(PCM* pcm, void (*kernel_fun)(VecType*, VecType*, VecType*), int cpu_num, const char* title)
     {
         #if PRINT_HEADER == 1
             printf("%s\n", title);
@@ -503,13 +497,11 @@
             results->print_statistics(pcm->getSocketId(cpu_num), cpu_num);
         #endif
 
-        //TODO: move to main function later
-        results->delete_results();
-        delete(results);
+        return results;
     }
 
     template <typename VecType, typename KernelType>
-    void load_store_four_arg_kernel(PCM* pcm, void (*kernel_fun)(VecType*, VecType*, VecType*, VecType*), int cpu_num, const char* title)
+    Results* load_store_four_arg_kernel(PCM* pcm, void (*kernel_fun)(VecType*, VecType*, VecType*, VecType*), int cpu_num, const char* title)
     {
         #if PRINT_HEADER == 1
             printf("%s\n", title);
@@ -623,13 +615,11 @@
             results->print_statistics(pcm->getSocketId(cpu_num), cpu_num);
         #endif
 
-        //TODO: move to main function later
-        results->delete_results();
-        delete(results);
+        return results;
     }
 
     template <typename KernelType>
-    void no_vec_three_arg_kernel(PCM* pcm, void (*kernel_fun)(KernelType*, KernelType*, KernelType*), int cpu_num, const char* title)
+    Results* no_vec_three_arg_kernel(PCM* pcm, void (*kernel_fun)(KernelType*, KernelType*, KernelType*), int cpu_num, const char* title)
     {
         #if PRINT_HEADER == 1
             printf("%s\n", title);
@@ -740,9 +730,7 @@
             results->print_statistics(pcm->getSocketId(cpu_num), cpu_num);
         #endif
 
-        //TODO: move to main function later
-        results->delete_results();
-        delete(results);
+        return results;
     }
 
 #endif
