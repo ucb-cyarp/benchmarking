@@ -10,9 +10,9 @@ L3_CACHE_SIZE = $(shell ./get_l3_cache_size.py)
 #Compiler Parameters
 CXX=g++
 #CXX = $(MPICXX)
-CFLAGS = -O0 -c -g -std=c++11 -march=native
-KERNEL_CFLAGS = -O3 -c -g -std=c++11 -march=native
-KERNEL_NO_OPT_CFLAGS = -O0 -c -g -std=c++11 -march=native
+CFLAGS = -O0 -c -g -std=c++11 -march=native -masm=att
+KERNEL_CFLAGS = -O3 -c -g -std=c++11 -march=native -masm=att
+KERNEL_NO_OPT_CFLAGS = -O0 -c -g -std=c++11 -march=native -masm=att
 INC=-I $(DEPENDS_DIR)/pcm
 LIB_DIRS=-L $(DEPENDS_DIR)/pcm
 LIB=-pthread -lrt -lPCM
@@ -20,8 +20,9 @@ DEFINES= -DL1D_CACHE_SIZE=${L1D_CACHE_SIZE} -DL2_CACHE_SIZE=${L2_CACHE_SIZE} -DL
 
 MAIN_FILE = intrin_throughput_test.cpp 
 LIB_SRCS = results.cpp
-KERNEL_SRCS = store_kernel.cpp load_store_kernel.cpp load_add_store_kernel.cpp load_mult_store_kernel.cpp load_div_store_kernel.cpp load_fma_store_kernel.cpp load_add_store_unroll2_kernel.cpp load_add_store_nointrin_kernel.cpp add_kernel_asm.cpp div_kernel_asm.cpp fma_kernel_asm.cpp mult_kernel_asm.cpp
-KERNEL_NO_OPT_SRCS = load_kernel.cpp add_kernel.cpp mult_kernel.cpp div_kernel.cpp fma_kernel.cpp
+KERNEL_SRCS = store_kernel.cpp load_store_kernel.cpp load_add_store_kernel.cpp load_mult_store_kernel.cpp load_div_store_kernel.cpp load_fma_store_kernel.cpp load_add_store_unroll2_kernel.cpp load_add_store_nointrin_kernel.cpp add_kernel_asm.cpp div_kernel_asm.cpp fma_kernel_asm.cpp mult_kernel_asm.cpp load_kernel_asm.cpp store_kernel_asm.cpp
+#KERNEL_NO_OPT_SRCS = load_kernel.cpp add_kernel.cpp mult_kernel.cpp div_kernel.cpp fma_kernel.cpp
+KERNEL_NO_OPT_SRCS = 
 
 SRCS=$(MAIN_FILE)
 SRCS+=$(LIB_SRCS)

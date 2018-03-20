@@ -29,8 +29,8 @@
 #include "results.h"
 
 //Kernels Load/Store
-#include "load_kernel.h"
-#include "store_kernel.h"
+#include "load_kernel_asm.h"
+#include "store_kernel_asm.h"
 #include "load_store_kernel.h"
 
 //Kernels Load-op-Store
@@ -53,15 +53,15 @@ void test_load(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type_resu
 {
     printf("########## Load Benchmarks ##########\n");
     #ifdef __AVX__
-        Results* res_int8_t =  load_store_one_arg_kernel<__m256i, int8_t>  (pcm, &kernel_mm256_load_si256_int8,  cpu_num, "[AVX] ===== Load 32 Signed Bytes [Store in Local Var] (_mm256_load_si256) =====");
+        Results* res_int8_t =  load_store_one_arg_kernel<__m256i, int8_t>  (pcm, &kernel_asm_mm256_load_si256_int8,  cpu_num, "[AVX] ===== Load 32 Signed Bytes (_mm256_load_si256) =====");
         type_result["int8_t"] = res_int8_t;
-        Results* res_int16_t = load_store_one_arg_kernel<__m256i, int16_t> (pcm, &kernel_mm256_load_si256_int16, cpu_num, "[AVX] ===== Load 16 Signed 16 Bit Integers [Store in Local Var] (_mm256_load_si256) =====");
+        Results* res_int16_t = load_store_one_arg_kernel<__m256i, int16_t> (pcm, &kernel_asm_mm256_load_si256_int16, cpu_num, "[AVX] ===== Load 16 Signed 16 Bit Integers(_mm256_load_si256) =====");
         type_result["int16_t"] = res_int16_t;
-        Results* res_int32_t = load_store_one_arg_kernel<__m256i, int32_t> (pcm, &kernel_mm256_load_si256_int32, cpu_num, "[AVX] ===== Load 8 Signed 32 Bit Integers [Store in Local Var] (_mm256_load_si256) =====");
+        Results* res_int32_t = load_store_one_arg_kernel<__m256i, int32_t> (pcm, &kernel_asm_mm256_load_si256_int32, cpu_num, "[AVX] ===== Load 8 Signed 32 Bit Integers (_mm256_load_si256) =====");
         type_result["int32_t"] = res_int32_t;
-        Results* res_float =   load_store_one_arg_kernel<__m256,  float>   (pcm, &kernel_mm256_load_ps,          cpu_num, "[AVX] ===== Load 8 Packed 32 bit Signed Floating Point Numbers [Store in Local Var] (_mm256_load_ps) =====");
+        Results* res_float =   load_store_one_arg_kernel<__m256,  float>   (pcm, &kernel_asm_mm256_load_ps,          cpu_num, "[AVX] ===== Load 8 Packed 32 bit Signed Floating Point Numbers (_mm256_load_ps) =====");
         type_result["float"] = res_float;
-        Results* res_double =  load_store_one_arg_kernel<__m256d, double>  (pcm, &kernel_mm256_load_pd,          cpu_num, "[AVX] ===== Load 4 Packed 64 bit Signed Floating Point Numbers [Store in Local Var] (_mm256_load_pd) =====");
+        Results* res_double =  load_store_one_arg_kernel<__m256d, double>  (pcm, &kernel_asm_mm256_load_pd,          cpu_num, "[AVX] ===== Load 4 Packed 64 bit Signed Floating Point Numbers (_mm256_load_pd) =====");
         type_result["double"] = res_double;
     #endif
 }
@@ -70,15 +70,15 @@ void test_store(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type_res
 {
     printf("########## Store Benchmarks ##########\n");
     #ifdef __AVX__
-        Results* res_int8_t =  load_store_one_arg_kernel<__m256i, int8_t>   (pcm, &kernel_mm256_store_si256_int8,  cpu_num, "[AVX] ===== Store 32 Packed Signed Bytes (_mm256_store_si256) =====");
+        Results* res_int8_t =  load_store_one_arg_kernel<__m256i, int8_t>   (pcm, &kernel_asm_mm256_store_si256_int8,  cpu_num, "[AVX] ===== Store 32 Packed Signed Bytes (_mm256_store_si256) =====");
         type_result["int8_t"] = res_int8_t;
-        Results* res_int16_t = load_store_one_arg_kernel<__m256i, int16_t>  (pcm, &kernel_mm256_store_si256_int16, cpu_num, "[AVX] ===== Store 16 Packed Signed 16 Bit Integers (_mm256_store_si256) =====");
+        Results* res_int16_t = load_store_one_arg_kernel<__m256i, int16_t>  (pcm, &kernel_asm_mm256_store_si256_int16, cpu_num, "[AVX] ===== Store 16 Packed Signed 16 Bit Integers (_mm256_store_si256) =====");
         type_result["int16_t"] = res_int16_t;
-        Results* res_int32_t = load_store_one_arg_kernel<__m256i, int32_t>  (pcm, &kernel_mm256_store_si256_int32, cpu_num, "[AVX] ===== Store 8 Packed Signed 32 Bit Integers (_mm256_store_si256) =====");
+        Results* res_int32_t = load_store_one_arg_kernel<__m256i, int32_t>  (pcm, &kernel_asm_mm256_store_si256_int32, cpu_num, "[AVX] ===== Store 8 Packed Signed 32 Bit Integers (_mm256_store_si256) =====");
         type_result["int32_t"] = res_int32_t;
-        Results* res_float = load_store_one_arg_kernel<__m256, float>     (pcm, &kernel_mm256_store_ps,          cpu_num, "[AVX] ===== Store 8 Packed 32 bit Signed Floating Point Numbers (_mm256_store_ps) =====");
+        Results* res_float = load_store_one_arg_kernel<__m256, float>     (pcm, &kernel_asm_mm256_store_ps,          cpu_num, "[AVX] ===== Store 8 Packed 32 bit Signed Floating Point Numbers (_mm256_store_ps) =====");
         type_result["float"] = res_float;
-        Results* res_double = load_store_one_arg_kernel<__m256d, double>   (pcm, &kernel_mm256_store_pd,          cpu_num, "[AVX] ===== Store 4 Packed 64 bit Signed Floating Point Numbers (_mm256_store_pd) =====");
+        Results* res_double = load_store_one_arg_kernel<__m256d, double>   (pcm, &kernel_asm_mm256_store_pd,          cpu_num, "[AVX] ===== Store 4 Packed 64 bit Signed Floating Point Numbers (_mm256_store_pd) =====");
         type_result["double"] = res_double;
     #endif
 }
