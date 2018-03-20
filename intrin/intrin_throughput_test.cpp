@@ -17,7 +17,9 @@
  */
 
 #include <pthread.h>
+#include <stdio.h>
 #include <map>
+#include <unistd.h>
 
 #include "intrin_bench_default_defines.h"
 
@@ -402,14 +404,100 @@ void* run_benchmarks(void* cpu_num)
     vec_ext.push_back("AVX (Float) / AVX2 (Int)");
     vec_ext.push_back("FMA");
 
-    //TODO: Print header
+    //Open CSV File to write
+    FILE * csv_file;
+    csv_file = fopen("intrin_report.csv", "w");
+    
+    //=====Write header=====
+    //Number of columns = 2 + Number of Benchmarks*2 (1 for Mean and 1 for StdDev)
+    //Print Title + Benchmark Names
+    fprintf(csv_file, "\"x86_64 Vector Extension Micro-Benchmarks\",");
+    for(std::vector<std::string>::iterator it = kernels.begin(); it != kernels.end(); it++)
+    {
+        fprintf(csv_file, ",\"%s\",", it->c_str());
+    }
+    fprintf(csv_file, "\n");
 
-    //TODO: Print table
+    //Print machine information + Vector Extensions
+    fprintf(csv_file, "\"%s\",", pcm->getCPUBrandString().c_str());
+    for(std::vector<std::string>::iterator it = vec_ext.begin(); it != vec_ext.end(); it++)
+    {
+        fprintf(csv_file, ",\"%s\",", it->c_str());
+    }
+    fprintf(csv_file, "\n");
 
+    //Print Hostname, Mean, StdDev Labels
+    char hostname[300];
+    int got_host = gethostname(hostname, 300);
+    if(got_host != 0)
+    {
+        sprintf(hostname, "Unavailable");
+    }
 
+    fprintf(csv_file, "\"Host: %s\",", hostname);
+    for(size_t i = 0; i<kernels.size(); i++)
+    {
+        fprintf(csv_file, ",\"Mean\",\"Std Dev\"");
+    }
+    fprintf(csv_file, "\n");
+
+    //======Print table======
+    //Print Rate (Ms/s)
+    for(size_t i = 0; i<types.size(); i++)
+    {
+        std::string datatype = types[i];
+
+        //Print Descr:
+        if(i == 0)
+        {
+            fprintf(csv_file, "\"Rate (Ms/s)\",\"%s\"", datatype.c_str());
+        }
+        else
+        {
+            fprintf(csv_file, ",\"%s\"", datatype.c_str());
+        }
+
+        //Print Data
+        for(size_t j = 0; j<kernels.size(); j++)
+        {
+            std::string kernel_name = kernels[j];
+            std::map<std::string, std::map<std::string, Results*>*>::iterator result_container_it = kernel_results.find(kernel_name);
+
+            if(result_container_it == kernel_results.end())
+            {
+                //No such kernel exists.  Print empty values
+                fprintf(csv_file, ",,");
+            }
+            else
+            {
+                std::map<std::string, Results*>::iterator result_it = result_container_it->second->find(datatype);
+                if(result_it == result_container_it->second->end())
+                {
+                    //No such result exists.  Print empty values
+                    fprintf(csv_file, ",,");
+                }
+                else
+                {
+                    //Print result (only mean in this case)
+
+                    double mean = result_it->second->avg_duration();
+                    double scaled_mean = STIM_LEN*1.0/(1000.0*mean);
+                    fprintf(csv_file, ",%e,", scaled_mean);
+                }
+            }
+        }
+        fprintf(csv_file, "\n");
+
+    }
+
+    //Print Execution Time Normalized to 1 Sample
+
+    //Print Energy Use Normalized to 1 Sample
+
+    fclose(csv_file);
 
     //Cleanup
-    for (std::map<std::str, std::map<std::string, Results*>*>::iterator it = kernel_results.begin(); it != kernel_results.end(); it++)
+    for (std::map<std::string, std::map<std::string, Results*>*>::iterator it = kernel_results.begin(); it != kernel_results.end(); it++)
     {
         std::map<std::string, Results*>* sub_result = it->second;
 
