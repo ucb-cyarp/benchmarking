@@ -40,10 +40,10 @@
 #include "load_fma_store_kernel.h"
 
 //Kernels Op Only
-#include "add_kernel.h"
-#include "mult_kernel.h"
-#include "div_kernel.h"
-#include "fma_kernel.h"
+#include "add_kernel_asm.h"
+#include "mult_kernel_asm.h"
+#include "div_kernel_asm.h"
+#include "fma_kernel_asm.h"
 
 //Kernels Special Case
 #include "load_add_store_nointrin_kernel.h"
@@ -104,18 +104,18 @@ void test_only_add(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type_
 {
     printf("########## Add Benchmarks ##########\n");
     #ifdef __AVX2__
-        Results* res_int8_t =  zero_arg_kernel(pcm, &kernel_only_mm256_add_epi8,  cpu_num, "[AVX2] ===== Add 32 Packed 8 bit Signed Integers [Store in Local Var] (_mm256_add_epi8) =====");
+        Results* res_int8_t =  zero_arg_kernel(pcm, &kernel_only_asm_mm256_add_epi8,  cpu_num, "[AVX2] ===== Add 32 Packed 8 bit Signed Integers (_mm256_add_epi8) =====");
         type_result["int8_t"] = res_int8_t;
-        Results* res_int16_t = zero_arg_kernel(pcm, &kernel_only_mm256_add_epi16, cpu_num, "[AVX2] ===== Add 16 Packed 16 bit Signed Integers [Store in Local Var] (_mm256_add_epi16) =====");
+        Results* res_int16_t = zero_arg_kernel(pcm, &kernel_only_asm_mm256_add_epi16, cpu_num, "[AVX2] ===== Add 16 Packed 16 bit Signed Integers (_mm256_add_epi16) =====");
         type_result["int16_t"] = res_int16_t;
-        Results* res_int32_t = zero_arg_kernel(pcm, &kernel_only_mm256_add_epi32, cpu_num, "[AVX2] ===== Add 8 Packed 32 bit Signed Integers [Store in Local Var] (_mm256_add_epi32) =====");
+        Results* res_int32_t = zero_arg_kernel(pcm, &kernel_only_asm_mm256_add_epi32, cpu_num, "[AVX2] ===== Add 8 Packed 32 bit Signed Integers (_mm256_add_epi32) =====");
         type_result["int32_t"] = res_int32_t;
     #endif
 
     #ifdef __AVX__
-        Results* res_float =   zero_arg_kernel(pcm, &kernel_only_mm256_add_ps,    cpu_num, "[AVX] ===== Add 8 Packed 32 bit Signed Floating Point Numbers [Store in Local Var] (_mm256_add_ps) =====");
+        Results* res_float =   zero_arg_kernel(pcm, &kernel_only_asm_mm256_add_ps,    cpu_num, "[AVX] ===== Add 8 Packed 32 bit Signed Floating Point Numbers (_mm256_add_ps) =====");
         type_result["float"] = res_float;
-        Results* res_double =  zero_arg_kernel(pcm, &kernel_only_mm256_add_pd,    cpu_num, "[AVX] ===== Add 4 Packed 64 bit Signed Floating Point Numbers [Store in Local Var] (_mm256_add_pd) =====");
+        Results* res_double =  zero_arg_kernel(pcm, &kernel_only_asm_mm256_add_pd,    cpu_num, "[AVX] ===== Add 4 Packed 64 bit Signed Floating Point Numbers (_mm256_add_pd) =====");
         type_result["double"] = res_double;
     #endif
 }
@@ -124,16 +124,16 @@ void test_only_mult(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type
 {
     printf("########## Multiply Benchmarks ##########\n");
     #ifdef __AVX2__
-        Results* res_int16_t = zero_arg_kernel(pcm, &kernel_only_mm256_mullo_epi16, cpu_num, "[AVX2] ===== Multiply 16 Packed 16 bit Signed Integers -> Produce 32 Bit Intermediates -> Store Lower 16 Bits of Intermediates [In Local Var] (_mm256_mullo_epi16) =====");
+        Results* res_int16_t = zero_arg_kernel(pcm, &kernel_only_asm_mm256_mullo_epi16, cpu_num, "[AVX2] ===== Multiply 16 Packed 16 bit Signed Integers -> Produce 32 Bit Intermediates (_mm256_mullo_epi16) =====");
         type_result["int16_t"] = res_int16_t;
-        Results* res_int32_t = zero_arg_kernel(pcm, &kernel_only_mm256_mullo_epi32, cpu_num, "[AVX2] ===== Multiply 8 Packed 32 bit Signed Integers -> Produce 64 Bit Intermediates -> Store Lower 32 Bits of Intermediates [In Local Var] (_mm256_mullo_epi32) =====");
+        Results* res_int32_t = zero_arg_kernel(pcm, &kernel_only_asm_mm256_mullo_epi32, cpu_num, "[AVX2] ===== Multiply 8 Packed 32 bit Signed Integers -> Produce 64 Bit Intermediates  (_mm256_mullo_epi32) =====");
         type_result["int32_t"] = res_int32_t;
     #endif
 
     #ifdef __AVX__
-        Results* res_float   = zero_arg_kernel(pcm, &kernel_only_mm256_mul_ps, cpu_num, "[AVX] ===== Multiply 8 Packed 32 bit Signed Floating Point Numbers [Store In Local Var] (_mm256_mul_ps) =====");
+        Results* res_float   = zero_arg_kernel(pcm, &kernel_only_asm_mm256_mul_ps, cpu_num, "[AVX] ===== Multiply 8 Packed 32 bit Signed Floating Point Numbers (_mm256_mul_ps) =====");
         type_result["float"] = res_float;
-        Results* res_double  = zero_arg_kernel(pcm, &kernel_only_mm256_mul_pd, cpu_num, "[AVX] ===== Multiply 4 Packed 64 bit Signed Floating Point Numbers [Store In Local Var] (_mm256_mul_pd) =====");
+        Results* res_double  = zero_arg_kernel(pcm, &kernel_only_asm_mm256_mul_pd, cpu_num, "[AVX] ===== Multiply 4 Packed 64 bit Signed Floating Point Numbers (_mm256_mul_pd) =====");
         type_result["double"] = res_double;
     #endif
 }
@@ -142,9 +142,9 @@ void test_only_div(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type_
 {
     printf("########## Divide Benchmarks ##########\n");
     #ifdef __AVX__
-        Results* res_float = zero_arg_kernel(pcm, &kernel_only_mm256_div_ps, cpu_num, "[AVX] ===== Divide 8 Packed 32 bit Signed Floating Point Numbers [Store In Local Var] (_mm256_div_ps) =====");
+        Results* res_float = zero_arg_kernel(pcm, &kernel_only_asm_mm256_div_ps, cpu_num, "[AVX] ===== Divide 8 Packed 32 bit Signed Floating Point Numbers (_mm256_div_ps) =====");
         type_result["float"] = res_float;
-        Results* res_double = zero_arg_kernel(pcm, &kernel_only_mm256_div_pd, cpu_num, "[AVX] ===== Divide 4 Packed 64 bit Signed Floating Point Numbers [Store In Local Var] (_mm256_div_pd) =====");
+        Results* res_double = zero_arg_kernel(pcm, &kernel_only_asm_mm256_div_pd, cpu_num, "[AVX] ===== Divide 4 Packed 64 bit Signed Floating Point Numbers (_mm256_div_pd) =====");
         type_result["double"] = res_double;
     #endif
 }
