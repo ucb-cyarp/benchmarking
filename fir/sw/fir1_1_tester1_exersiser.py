@@ -1289,7 +1289,8 @@ def compileInstance(compiler, kernelInstance, compilerFlags, kernelInstanceCompi
         
         #Get the filename without extension
         #TODO: Check for complex paths (ex. ../filename.cpp)
-        outputFileName = kernelFile.split('.')[0] + '-' + suffix + '.o'
+        split_segments = len(kernelFile.split('.'))
+        outputFileName = kernelFile.split('.')[split_segments-1] + '-' + suffix + '.o'
         kernelCompiledFilenames.append(outputFileName)
 
         cmd += compiler.command() + ' ' + compilerFlagString + ' ' + kernelInstanceCompilerFlagString + ' ' + str.format(compiler.compileFormat(), '') + ' ' + str.format(compiler.outputFormat(), outputFileName) + ' ../' + kernelFile +'; '
@@ -1554,6 +1555,7 @@ def main():
     firNaiveOrderRange = naiveRangeArray
     firNaiveBlockRange = naiveRangeArray
     #Static Options
+    firNaiveCompileOptions.addOption(AlwaysOption('-I ../common'))
     firNaiveCompileOptions.addOption(EnumOption('PRINT_TITLE', [0], '-D{}={}', True))
     firNaiveCompileOptions.addOption(EnumOption('PRINT_TRIALS', [0], '-D{}={}', True))
     firNaiveCompileOptions.addOption(EnumOption('PRINT_STATS', [0], '-D{}={}', True))
@@ -1569,27 +1571,27 @@ def main():
 
     firRunOptions = OptionList()
 
-    firSingleKernelNaive = KernelInstance(firSingleKernel, 'Naive implementation with blocked input and output, shift register state, no explicit vectorization or unrolling.', ['fir1_1_tester1.cpp'], firNaiveCompileOptions, firRunOptions)
+    firSingleKernelNaive = KernelInstance(firSingleKernel, 'Naive implementation with blocked input and output, shift register state, no explicit vectorization or unrolling.', ['fir1_1_tester1.cpp', '../common/pcm_helper.cpp'], firNaiveCompileOptions, firRunOptions)
     firSingleKernel.addInstance(firSingleKernelNaive)
 
     #+++++++FIR Circular Buffer++++++++++++++++
     firCircularCompileOptions = firNaiveCompileOptions
-    firSingleKernelCircular = KernelInstance(firSingleKernel, 'Circular buffer implementation with blocked input and output, circular buffer state, no explicit vectorization or unrolling.', ['fir1_2_tester1.cpp'], firCircularCompileOptions, firRunOptions)
+    firSingleKernelCircular = KernelInstance(firSingleKernel, 'Circular buffer implementation with blocked input and output, circular buffer state, no explicit vectorization or unrolling.', ['fir1_2_tester1.cpp', '../common/pcm_helper.cpp'], firCircularCompileOptions, firRunOptions)
     firSingleKernel.addInstance(firSingleKernelCircular)
 
     #+++++++FIR Circular Buffer (No Mod)++++++++++++++++
     firCircularNoModCompileOptions = firNaiveCompileOptions
-    firSingleKernelCircularNoMod = KernelInstance(firSingleKernel, 'Circular buffer implementation with no modulus, blocked input and output, circular buffer state, no explicit vectorization or unrolling.', ['fir1_2_2_tester1.cpp'], firCircularNoModCompileOptions, firRunOptions)
+    firSingleKernelCircularNoMod = KernelInstance(firSingleKernel, 'Circular buffer implementation with no modulus, blocked input and output, circular buffer state, no explicit vectorization or unrolling.', ['fir1_2_2_tester1.cpp', '../common/pcm_helper.cpp'], firCircularNoModCompileOptions, firRunOptions)
     firSingleKernel.addInstance(firSingleKernelCircularNoMod)
 
     #+++++++FIR Circular Buffer - Reversed ++++++++++++++++
     firCircularRevCompileOptions = firNaiveCompileOptions
-    firSingleKernelCircularRev = KernelInstance(firSingleKernel, 'Circular buffer implementation with blocked input and output, circular buffer state, no explicit vectorization or unrolling. - Reverse Direction', ['fir1_2b_tester1.cpp'], firCircularRevCompileOptions, firRunOptions)
+    firSingleKernelCircularRev = KernelInstance(firSingleKernel, 'Circular buffer implementation with blocked input and output, circular buffer state, no explicit vectorization or unrolling. - Reverse Direction', ['fir1_2b_tester1.cpp', '../common/pcm_helper.cpp'], firCircularRevCompileOptions, firRunOptions)
     firSingleKernel.addInstance(firSingleKernelCircularRev)
 
     #+++++++FIR Circular Buffer (No Mod) - Reversed ++++++++++++++++
     firCircularNoModRevCompileOptions = firNaiveCompileOptions
-    firSingleKernelCircularNoModRev = KernelInstance(firSingleKernel, 'Circular buffer implementation with no modulus, blocked input and output, circular buffer state, no explicit vectorization or unrolling. - Reverse Direction', ['fir1_2_2b_tester1.cpp'], firCircularNoModRevCompileOptions, firRunOptions)
+    firSingleKernelCircularNoModRev = KernelInstance(firSingleKernel, 'Circular buffer implementation with no modulus, blocked input and output, circular buffer state, no explicit vectorization or unrolling. - Reverse Direction', ['fir1_2_2b_tester1.cpp', '../common/pcm_helper.cpp'], firCircularNoModRevCompileOptions, firRunOptions)
     firSingleKernel.addInstance(firSingleKernelCircularNoModRev)
 
     #+++++++FIR Naive Unroll 2++++++++++++++++
@@ -1605,6 +1607,7 @@ def main():
     firUnroll2OrderRange = unroll2RangeArray
     firUnroll2BlockRange = unroll2RangeArray
     #Static Options
+    firUnroll2CompileOptions.addOption(AlwaysOption('-I ../common'))
     firUnroll2CompileOptions.addOption(EnumOption('PRINT_TITLE', [0], '-D{}={}', True))
     firUnroll2CompileOptions.addOption(EnumOption('PRINT_TRIALS', [0], '-D{}={}', True))
     firUnroll2CompileOptions.addOption(EnumOption('PRINT_STATS', [0], '-D{}={}', True))
@@ -1618,7 +1621,7 @@ def main():
     firUnroll2CompileOptions.addOption(EnumOption('COEF_LEN', firUnroll2OrderRange, '-D{}={}', True))
     firUnroll2CompileOptions.addOption(EnumOption('IO_LEN', firUnroll2BlockRange, '-D{}={}', True))
 
-    firSingleKernelUnroll2 = KernelInstance(firSingleKernel, 'Naive implementation with blocked input and output, shift register state, manually unrolled by 2.', ['fir1_3_tester1.cpp'], firUnroll2CompileOptions, firRunOptions)
+    firSingleKernelUnroll2 = KernelInstance(firSingleKernel, 'Naive implementation with blocked input and output, shift register state, manually unrolled by 2.', ['fir1_3_tester1.cpp', '../common/pcm_helper.cpp'], firUnroll2CompileOptions, firRunOptions)
     firSingleKernel.addInstance(firSingleKernelUnroll2)
 
     #+++++++FIR Naive Unroll 4++++++++++++++++
@@ -1634,6 +1637,7 @@ def main():
     firUnroll4OrderRange = unroll4RangeArray
     firUnroll4BlockRange = unroll4RangeArray
     #Static Options
+    firUnroll4CompileOptions.addOption(AlwaysOption('-I ../common'))
     firUnroll4CompileOptions.addOption(EnumOption('PRINT_TITLE', [0], '-D{}={}', True))
     firUnroll4CompileOptions.addOption(EnumOption('PRINT_TRIALS', [0], '-D{}={}', True))
     firUnroll4CompileOptions.addOption(EnumOption('PRINT_STATS', [0], '-D{}={}', True))
@@ -1648,7 +1652,7 @@ def main():
     firUnroll4CompileOptions.addOption(EnumOption('COEF_LEN', firUnroll4OrderRange, '-D{}={}', True))
     firUnroll4CompileOptions.addOption(EnumOption('IO_LEN', firUnroll4BlockRange, '-D{}={}', True))
 
-    firSingleKernelUnroll4 = KernelInstance(firSingleKernel, 'Naive implementation with blocked input and output, shift register state, manually unrolled by 4.', ['fir1_3_4_tester1.cpp'], firUnroll4CompileOptions, firRunOptions)
+    firSingleKernelUnroll4 = KernelInstance(firSingleKernel, 'Naive implementation with blocked input and output, shift register state, manually unrolled by 4.', ['fir1_3_4_tester1.cpp', '../common/pcm_helper.cpp'], firUnroll4CompileOptions, firRunOptions)
     firSingleKernel.addInstance(firSingleKernelUnroll4)
 
     #+++++++FIR Intel IPP++++++++++++++++
@@ -1664,6 +1668,7 @@ def main():
     firIppOrderRange = ippRangeArray
     firIppBlockRange = ippRangeArray
     #Static Options
+    firIppCompileOptions.addOption(AlwaysOption('-I ../common'))
     firIppCompileOptions.addOption(EnumOption('PRINT_TITLE', [0], '-D{}={}', True))
     firIppCompileOptions.addOption(EnumOption('PRINT_TRIALS', [0], '-D{}={}', True))
     firIppCompileOptions.addOption(EnumOption('PRINT_STATS', [0], '-D{}={}', True))
@@ -1679,7 +1684,7 @@ def main():
 
     firRunOptions = OptionList()
 
-    firSingleKernelIpp = KernelInstance(firSingleKernel, 'FIR Intel IPP', ['fir1_ipp_tester1.cpp'], firIppCompileOptions, firRunOptions, '{}', 'eval `/usr/bin/modulecmd bash load ipp`', '-lippcore -lipps', 'eval `/usr/bin/modulecmd bash load ipp`')
+    firSingleKernelIpp = KernelInstance(firSingleKernel, 'FIR Intel IPP', ['fir1_ipp_tester1.cpp', '../common/pcm_helper.cpp'], firIppCompileOptions, firRunOptions, '{}', 'eval `/usr/bin/modulecmd bash load ipp`', '-lippcore -lipps', 'eval `/usr/bin/modulecmd bash load ipp`')
     firSingleKernel.addInstance(firSingleKernelIpp)
 
     #------------END FIR-----------------------

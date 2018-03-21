@@ -90,13 +90,47 @@
     #define TESTER_HEADER_STR "Unknown Test\n"
 #endif
 
-int main(int argc, char *argv[])
+struct cli_args{
+    int argc;
+    char* argv[];
+    
+    int cpu_number;
+};
+
+void* run_benchmark(void* args_ptr)
 {
-    //Create Timer Result Array
+    cli_args* args = (cli_args*) args_ptr;
+
+    int argc = args->argc;
+    char *argv[] = args->argv;
+
+    printf("\n");
+    printf("****** Platform Information Provided by PCM ******\n");
+    PCM* pcm = init_PCM();
+
+    printf("**************************************************\n");
+    printf("CPU Brand String: %s\n", pcm->getCPUBrandString().c_str());
+    printf("**************************************************\n");
+
+    int* cpu_num_int = (int*) cpu_num;
+    int socket = pcm->getSocketId(*cpu_num_int);
+    printf("Executing on Core: %3d (Socket: %2d)\n", *cpu_num_int, socket);
+    printf("**************************************************\n");
+    printf("\n");
+
+    int sockets = pcm->getNumSockets();
+    int cores = pcm->getNumCores();
+    Results* results = new Results(sockets, cores);
+
+    //Allocate measurement arrays
     std::chrono::duration<double, std::ratio<1, 1000>> durations[TRIALS];
-    double durations_clock[TRIALS];
 
-
+    //Allocate counter states
+    ServerUncorePowerState* startPowerState = new ServerUncorePowerState[sockets];
+    ServerUncorePowerState* endPowerState = new ServerUncorePowerState[sockets];
+    std::vector<CoreCounterState> startCstates, endCstates;
+    std::vector<SocketCounterState> startSktstate, endSktstate;
+    SystemCounterState startSstate, endSstate;
 
     //Allocate Arrays on Heap
     DATATYPE *stimulus = new DATATYPE[STIM_LEN];
@@ -109,73 +143,84 @@ int main(int argc, char *argv[])
     printf("COEF_LEN: %d, IO_LEN: %d, STIM_LEN: %d, TRIALS: %d\n", COEF_LEN, IO_LEN, STIM_LEN, TRIALS);
     #endif
 
-    //Conduct multiple trials
-    for(size_t trial = 0; trial < TRIALS; trial++)
+    int trial = 0;
+    int discard_count = 0;
+    while(trial<TRIALS)
     {
-        //Construct Random Coef Array & Init Array
-        for(size_t i = 0; i<COEF_LEN; i++)
-        {
-            //coefs[i] = (DATATYPE) 1;
-            init[i] = 0;
-        }
-
         //Construct FIR
         Fir<DATATYPE, COEF_LEN, IO_LEN> fir1(coefs, init);
 
-        //Start Timer and Filter
+        //Get CPU Core/Socket/Power States
+        for (int i = 0; i < sockets; i++)
+            startPowerState[i] = pcm->getServerUncorePowerState(i);
+        pcm->getAllCounterStates(startSstate, startSktstate, startCstates);
+
+        //Start Timer
         std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
         clock_t start_clock = clock();
+        uint64_t start_rdtsc = _rdtsc();
 
+        //Run Kernel
         for(size_t i = 0; i<(STIM_LEN/IO_LEN); i++)
         {
             fir1.filter(&stimulus[IO_LEN*i], &output[IO_LEN*i]);
         }
 
-        //Stop Timer and Report Time
+        //Stop Timer 
+        uint64_t stop_rdtsc = _rdtsc();
         clock_t stop_clock = clock();
         std::chrono::high_resolution_clock::time_point stop = std::chrono::high_resolution_clock::now();
-        durations[trial] = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(stop-start);
-        durations_clock[trial] = 1000.0 * (stop_clock - start_clock) / CLOCKS_PER_SEC;
+
+        //Get CPU Core/Socket/Power States
+        pcm->getAllCounterStates(endSstate, endSktstate, endCstates);
+        for (int i = 0; i < sockets; i++)
+            endPowerState[i] = pcm->getServerUncorePowerState(i);
+        
+        TrialResult* trial_result = new TrialResult(sockets, cores, trial);
+
+        //Report Time
+        calculate_durations(trial_result->duration, trial_result->duration_clock, trial_result->duration_rdtsc, start, stop, start_clock, stop_clock, start_rdtsc, stop_rdtsc);
+        
+        //Report Freq, Power
+        calc_freq_and_power(pcm, trial_result->avgCPUFreq, trial_result->avgActiveCPUFreq, trial_result->energyCPUUsed, trial_result->energyDRAMUsed,
+        startCstates, endCstates, startPowerState, endPowerState);
 
         #if PRINT_TRIALS == 1
-            printf("Trial %6d: %f, %f\n", trial, durations[trial], durations_clock[trial]);
+            trial_result->print_trial();
         #endif 
+
+        //Limit check to socket of interest (single socket for now)
+        std::vector<int> sockets_of_interest;
+        sockets_of_interest.push_back(pcm->getSocketId(cpu_num));
+
+        bool freq_change_events_occured = check_any_freq_changes(pcm, startPowerState, endPowerState, sockets_of_interest);
+        //Proceed if no freq changes occured
+        if(freq_change_events_occured == false)
+        {
+            trial++;
+            results->add_trial(trial_result);
+            discard_count=0;
+        }
+        
+        else
+        {
+            discard_count++;
+            #if PRINT_FREQ_CHANGE_EVENT == 1
+                printf("Frequency Change Event Occured Durring Kernel Run ... Discarding Run\n");
+            #endif
+
+            if(discard_count >= MAX_DISCARD-1)
+            {
+                #if PRINT_FREQ_CHANGE_EVENT == 1
+                    printf("Max Discards Reached ... Exiting\n");
+                #endif
+                exit(1);
+            }
+        }
     }
 
     #if PRINT_STATS == 1
-    //Print Average & StdDev
-    double avg_duration = 0;
-    double avg_duration_clock = 0;
-    for(size_t i = 0; i < TRIALS; i++)
-    {
-        avg_duration += (double) durations[i].count();
-        avg_duration_clock += (double) durations_clock[i];
-    }
-    avg_duration /= TRIALS;
-    avg_duration_clock /= TRIALS;
-
-    double std_dev_duration = 0;
-    double std_dev_duration_clock = 0;
-    for(size_t i = 0; i < TRIALS; i++)
-    {
-        double tmp = durations[i].count() - avg_duration;
-        double tmp_clock = durations_clock[i] - avg_duration_clock;
-        tmp = tmp*tmp;
-        tmp_clock = tmp_clock*tmp_clock;
-
-        std_dev_duration += tmp;
-        std_dev_duration_clock += tmp_clock;
-    }
-    std_dev_duration /= (TRIALS - 1);
-    std_dev_duration_clock /= (TRIALS - 1);
-    std_dev_duration = sqrt(std_dev_duration);
-    std_dev_duration_clock = sqrt(std_dev_duration_clock);
-
-    printf("High Res Clock - Sample Mean (ms): %f, Sample Std Dev: %f\n", avg_duration, std_dev_duration);
-    printf("         Clock - Sample Mean (ms): %f, Sample Std Dev: %f\n", avg_duration_clock, std_dev_duration_clock);
-
-    printf("High Res Clock - Sample Mean (MS/s): %f\n", STIM_LEN*1.0/(1000.0*avg_duration));
-    printf("         Clock - Sample Mean (MS/s): %f\n", STIM_LEN*1.0/(1000.0*avg_duration_clock));
+        results->print_statistics(pcm->getSocketId(cpu_num), cpu_num);
     #endif
 
     #if WRITE_CSV == 1
@@ -190,15 +235,7 @@ int main(int argc, char *argv[])
         {
             csv_file << "\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\"" << std::endl;
 
-            for(size_t i = 0; i < TRIALS; i++)
-            {
-                csv_file << (double) durations[i].count() << "," << durations_clock[i] << std::endl;
-            }
-
-            // if(TRIALS>0)
-            // {
-            //     csv_file << (double) durations[TRIALS-1].count() << std::endl;
-            // }
+            results->write_csv(csv_file, socket, core);
 
             csv_file.close();
         }
@@ -214,10 +251,74 @@ int main(int argc, char *argv[])
     #endif
 
     //Cleanup
+    delete startPowerState;
+    delete endPowerState;
+
     delete[] stimulus;
     delete[] output;
     delete[] coefs;
     delete[] init;
+}
+
+int main(int argc, char *argv[])
+{
+    //Run these single-threaded benchmarks on CPU 0 (all machines should have CPU 0)
+
+    //Based off of http://man7.org/linux/man-pages/man3/pthread_setaffinity_np.3.html
+    //http://man7.org/linux/man-pages/man3/pthread_create.3.html
+    //http://man7.org/linux/man-pages/man3/pthread_attr_setaffinity_np.3.html,
+    //http://man7.org/linux/man-pages/man3/pthread_join.3.html
+
+    cpu_set_t cpuset;
+    pthread_t thread;
+    pthread_attr_t attr;
+    void *res;
+
+    int status;
+
+    status = pthread_attr_init(&attr);
+
+    if(status != 0)
+    {
+        printf("Could not create pthread attributes ... exiting\n");
+        exit(1);
+    }
+
+    int cpu_number = 0;
+
+    CPU_ZERO(&cpuset);
+    CPU_SET(cpu_number, &cpuset);
+
+    status = pthread_attr_setaffinity_np(&attr, sizeof(cpu_set_t), &cpuset);
+
+    if(status != 0)
+    {
+        printf("Could not set thread core affinity ... exiting\n");
+        exit(1);
+    }
+
+    cli_args* args = new cli_args;
+    args->argc = argc;
+    args->argv = argv;
+    args->cpu_number = cpu_number;
+
+    status = pthread_create(&thread, &attr, &run_benchmark, args);
+    if(status != 0)
+    {
+        printf("Could not create thread ... exiting\n");
+        exit(1);
+    }
+
+    status = pthread_join(thread, &res);
+
+    if(status != 0)
+    {
+        printf("Could not join thread ... exiting\n");
+        exit(1);
+    }
+
+    free(res);
+    delete args;
 
     return 0;
 }

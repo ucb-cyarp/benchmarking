@@ -1,5 +1,7 @@
 #include "results.h"
 #include "intrin_bench_default_defines.h"
+#include <fstream>
+#include <iostream>
 
 double average(double* arr, size_t len)
 {
@@ -359,8 +361,18 @@ void Results::print_statistics(int socket, int core)
 
     printf("         CPU Energy Mean - Normalized to Sample (nJ): %f, Sample Std Dev: %f\n", avg_cpu_energy_dbl*1000000000/STIM_LEN, stddev_cpu_energy_dbl*1000000000/STIM_LEN);
     printf("         DRAM Energy Mean - Normalized to Sample (nJ): %f, Sample Std Dev: %f\n", avg_dram_energy_dbl*1000000000/STIM_LEN, stddev_dram_energy_dbl*1000000000/STIM_LEN);
+}
 
+void Results::write_csv(std::ofstream csv_file, int socket, int core)
+{
+    //Print Header
+    csv_file << "\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\",\"Average CPU Frequency (Hz)\",\"Average Active CPU Frequency (Hz)\",\"Energy CPU Used (J)\",\"Energy DRAM Used (J)\",\"Socket Executed On\",\"Core Executed On\"" << std::endl;
 
+    size_t trials = trial_results.size();
+    for(size_t i = 0; i < TRIALS; i++)
+    {
+        csv_file <<  trial_results[i]->duration << "," << trial_results[i]->durations_clock << "," << trial_results[i]->duration_rdtsc << "," << trial_results[i]->avgCPUFreq[core] << "," << trial_results[i]->avgActiveCPUFreq[core] << "," << trial_results[i]->energyCPUUsed[socket] << "," <<  trial_results[i]->energyDRAMUsed[socket] << "," << socket << "," << core << std::endl;
+    }
 }
 
 void statistics(std::chrono::duration<double, std::ratio<1, 1000>>* durations, double* durations_clock)

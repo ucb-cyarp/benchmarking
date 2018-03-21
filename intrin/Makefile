@@ -1,5 +1,6 @@
 BUILD_DIR=build
 DEPENDS_DIR=../depends
+COMMON_DIR=../common
 SRC_DIR=.
 
 #Get Cache Sizes
@@ -13,34 +14,39 @@ CXX=g++
 CFLAGS = -O0 -c -g -std=c++11 -march=native -masm=att
 KERNEL_CFLAGS = -O3 -c -g -std=c++11 -march=native -masm=att
 KERNEL_NO_OPT_CFLAGS = -O0 -c -g -std=c++11 -march=native -masm=att
-INC=-I $(DEPENDS_DIR)/pcm
+INC=-I $(DEPENDS_DIR)/pcm -I $(COMMON_DIR)
 LIB_DIRS=-L $(DEPENDS_DIR)/pcm
 LIB=-pthread -lrt -lPCM
 DEFINES= -DL1D_CACHE_SIZE=${L1D_CACHE_SIZE} -DL2_CACHE_SIZE=${L2_CACHE_SIZE} -DL3_CACHE_SIZE=${L3_CACHE_SIZE}
 
 MAIN_FILE = intrin_throughput_test.cpp 
-LIB_SRCS = results.cpp
+LIB_SRCS = 
 KERNEL_SRCS = store_kernel.cpp load_store_kernel.cpp load_add_store_kernel.cpp load_mult_store_kernel.cpp load_div_store_kernel.cpp load_fma_store_kernel.cpp load_add_store_unroll2_kernel.cpp load_add_store_nointrin_kernel.cpp add_kernel_asm.cpp div_kernel_asm.cpp fma_kernel_asm.cpp mult_kernel_asm.cpp load_kernel_asm.cpp store_kernel_asm.cpp
 #KERNEL_NO_OPT_SRCS = load_kernel.cpp add_kernel.cpp mult_kernel.cpp div_kernel.cpp fma_kernel.cpp
 KERNEL_NO_OPT_SRCS = 
+COMMON_SRCS = pcm_helper.cpp results.cpp
 
 SRCS=$(MAIN_FILE)
 SRCS+=$(LIB_SRCS)
 OBJS=$(patsubst %.cpp,$(BUILD_DIR)/%.o,$(SRCS))
 KERNEL_OBJS=$(patsubst %.cpp,$(BUILD_DIR)/%.o,$(KERNEL_SRCS))
 KERNEL_NO_OPT_OBJS=$(patsubst %.cpp,$(BUILD_DIR)/%.o,$(KERNEL_NO_OPT_SRCS))
+COMMON_OBJS=$(patsubst %.cpp,$(BUILD_DIR)/%.o,$(COMMON_SRCS))
 
 #Production
 all: intrin_throughput_test
 #all: ray_tracer ray_tracer_mpi pb2obj_txt obj2boost $(PB_REDUCE_FILE) $(CLUSTER_GRAPH_FILE) $(GRAPH_GEN_FILE) $(CLUSTER_AN_FILE)
 
-intrin_throughput_test: $(OBJS) $(KERNEL_OBJS) $(KERNEL_NO_OPT_OBJS)
-	$(CXX) $(INC) $(LIB_DIRS) -o intrin_throughput_test $(OBJS) $(KERNEL_OBJS) $(KERNEL_NO_OPT_OBJS) $(LIB)
+intrin_throughput_test: $(OBJS) $(KERNEL_OBJS) $(KERNEL_NO_OPT_OBJS) $(COMMON_OBJS)
+	$(CXX) $(INC) $(LIB_DIRS) -o intrin_throughput_test $(OBJS) $(KERNEL_OBJS) $(KERNEL_NO_OPT_OBJS) $(COMMON_OBJS) $(LIB)
 
 $(KERNEL_NO_OPT_OBJS): $(BUILD_DIR)/%.o : $(SRC_DIR)/%.cpp | $(BUILD_DIR)/ $(DEPENDS_DIR)/pcm/libPCM.a
 	$(CXX) $(KERNEL_NO_OPT_CFLAGS) $(INC) $(DEFINES) -o $@ $<
 
 $(KERNEL_OBJS): $(BUILD_DIR)/%.o : $(SRC_DIR)/%.cpp | $(BUILD_DIR)/
+	$(CXX) $(KERNEL_CFLAGS) $(INC) $(DEFINES) -o $@ $<
+
+$(COMMON_OBJS): $(BUILD_DIR)/%.o : $(COMMON_DIR)/%.cpp | $(BUILD_DIR)/
 	$(CXX) $(KERNEL_CFLAGS) $(INC) $(DEFINES) -o $@ $<
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)/ $(DEPENDS_DIR)/pcm/libPCM.a

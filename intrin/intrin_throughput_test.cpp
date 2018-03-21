@@ -256,52 +256,6 @@ void test_fma(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type_resul
     #endif
 }
 
-//Initialize PCM
-//Based off opcm/pcm example pcm-power.cpp
-PCM* init_PCM()
-{
-    set_signal_handlers();
-
-    PCM * m = PCM::getInstance();
-    //m->allowMultipleInstances();
-    m->disableJKTWorkaround();
-
-    //Configure PCM
-    const int cpu_model = m->getCPUModel();
-    if (!(m->hasPCICFGUncore()))
-    {
-        std::cerr << "Unsupported processor model (" << cpu_model << ")." << std::endl;
-        exit(1);
-    }
-
-    printf("**************************************************\n");
-    printf("Resetting PMU\n");
-    m->resetPMU();
-
-    int default_freq_band[3] = { 12, 20, 40 };
-    
-    int imc_profile = -1; //Do not gather DRAM statistics (for now)
-    int pcu_profile = 5; //Get frequency Change statistics
-    int* freq_band = default_freq_band;
-
-    //Configure PCM PCU Monitoring
-    if (PCM::Success != m->programServerUncorePowerMetrics(imc_profile, pcu_profile, freq_band))
-    {
-        #ifdef _MSC_VER
-        std::cerr << "You must have signed msr.sys driver in your current directory and have administrator rights to run this program" << std::endl;
-        #elif defined(__linux__)
-        std::cerr << "You need to be root and loaded 'msr' Linux kernel module to execute the program. You may load the 'msr' module with 'modprobe msr'. \n";
-        #endif
-        exit(EXIT_FAILURE);
-    }
-
-    if (m->program() != PCM::Success) exit(EXIT_FAILURE);
-
-    m->setBlocked(true);
-
-    return m;
-}
-
 void* run_benchmarks(void* cpu_num)
 {
     #if PRINT_TITLE == 1
