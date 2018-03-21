@@ -50,7 +50,7 @@ $(BUILD_DIR)/:
 	mkdir -p $@
 
 $(DEPENDS_DIR)/pcm/Makefile:
-	git submodule update --init --recursive depends/pcm
+	git submodule update --init --recursive $(DEPENDS_DIR)/pcm
 
 $(DEPENDS_DIR)/pcm/libPCM.a: $(DEPENDS_DIR)/pcm/Makefile
 	cd $(DEPENDS_DIR)/pcm; make libPCM.a
