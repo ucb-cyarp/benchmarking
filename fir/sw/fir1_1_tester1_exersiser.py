@@ -1063,6 +1063,8 @@ def autoPopulateMachineInfo(sqlCursor, machineFriendlyName=None, interconnect=No
         hypervisor = regexp.search(lscpu)
         if hypervisor is not None:
             hypervisorStr = hypervisor.group(1).strip()
+        else:
+            hypervisorStr = "None"
 
         #Find Core and Socket Info
         regexp = re.compile('Socket[(]s[)].*:(.*)')
