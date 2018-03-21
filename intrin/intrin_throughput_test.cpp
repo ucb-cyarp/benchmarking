@@ -153,9 +153,9 @@ void test_only_fma(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type_
 {
     printf("########## FMA Benchmarks ##########\n");
     #ifdef __FMA__
-        Results* res_float   = zero_arg_kernel(pcm, &kernel_only_mm256_fmadd_ps, cpu_num, "[FMA] ===== FMA 8 Packed 32 bit Signed Floating Point Numbers [Store in Local Var] (_mm256_fmadd_ps) =====");
+        Results* res_float   = zero_arg_kernel(pcm, &kernel_only_asm_mm256_fmadd_ps, cpu_num, "[FMA] ===== FMA 8 Packed 32 bit Signed Floating Point Numbers [Store in Local Var] (_mm256_fmadd_ps) =====");
         type_result["float"] = res_float;
-        Results* res_double  = zero_arg_kernel(pcm, &kernel_only_mm256_fmadd_pd, cpu_num, "[FMA] ===== FMA 4 Packed 64 bit Signed Floating Point Numbers [Store in Local Var] (_mm256_fmadd_pd) =====");
+        Results* res_double  = zero_arg_kernel(pcm, &kernel_only_asm_mm256_fmadd_pd, cpu_num, "[FMA] ===== FMA 4 Packed 64 bit Signed Floating Point Numbers [Store in Local Var] (_mm256_fmadd_pd) =====");
         type_result["double"] = res_double;
     #endif
 }

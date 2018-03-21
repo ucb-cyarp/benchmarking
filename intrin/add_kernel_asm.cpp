@@ -17,7 +17,7 @@
     }
 
     //==========_mm256_add_epi16==========
-    void kernel_only_mm256_asm_add_epi16()
+    void kernel_only_asm_mm256_add_epi16()
     {
         for(int i = 0; i<STIM_LEN/16; i++)
         {
