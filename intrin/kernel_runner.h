@@ -2,7 +2,7 @@
     #define _H_KERNEL_RUNNER
 
     #include "results.h"
-    #include "depends/pcm/cpucounters.h"
+    #include "cpucounters.h"
 
     /**
      * Check for frequency changed events.  Assumes PMU counter 1 was set to track frequency change events.

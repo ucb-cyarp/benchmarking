@@ -23,7 +23,7 @@
 
 #include "intrin_bench_default_defines.h"
 
-#include "depends/pcm/cpucounters.h"
+#include "cpucounters.h"
 
 #include "kernel_runner.h"
 #include "results.h"
