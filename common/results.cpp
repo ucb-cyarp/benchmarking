@@ -369,9 +369,9 @@ void Results::write_csv(std::ofstream csv_file, int socket, int core)
     csv_file << "\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\",\"Average CPU Frequency (Hz)\",\"Average Active CPU Frequency (Hz)\",\"Energy CPU Used (J)\",\"Energy DRAM Used (J)\",\"Socket Executed On\",\"Core Executed On\"" << std::endl;
 
     size_t trials = trial_results.size();
-    for(size_t i = 0; i < TRIALS; i++)
+    for(size_t i = 0; i < trials; i++)
     {
-        csv_file <<  trial_results[i]->duration << "," << trial_results[i]->durations_clock << "," << trial_results[i]->duration_rdtsc << "," << trial_results[i]->avgCPUFreq[core] << "," << trial_results[i]->avgActiveCPUFreq[core] << "," << trial_results[i]->energyCPUUsed[socket] << "," <<  trial_results[i]->energyDRAMUsed[socket] << "," << socket << "," << core << std::endl;
+        csv_file <<  trial_results[i]->duration << "," << trial_results[i]->duration_clock << "," << trial_results[i]->duration_rdtsc << "," << trial_results[i]->avgCPUFreq[core] << "," << trial_results[i]->avgActiveCPUFreq[core] << "," << trial_results[i]->energyCPUUsed[socket] << "," <<  trial_results[i]->energyDRAMUsed[socket] << "," << socket << "," << core << std::endl;
     }
 }
 

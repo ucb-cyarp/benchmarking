@@ -1524,7 +1524,6 @@ def slackStatusPost(message):
         print('Slack connection error ... continuing')
 
 def main():
-
     #*****Setup*****
     buildThreads = 4
     reportFrequency = 2500
@@ -1571,27 +1570,32 @@ def main():
 
     firRunOptions = OptionList()
 
-    firSingleKernelNaive = KernelInstance(firSingleKernel, 'Naive implementation with blocked input and output, shift register state, no explicit vectorization or unrolling.', ['fir1_1_tester1.cpp', '../common/pcm_helper.cpp'], firNaiveCompileOptions, firRunOptions)
+    firSingleKernelNaive = KernelInstance(firSingleKernel, 'Naive implementation with blocked input and output, shift register state, no explicit vectorization or unrolling.', ['fir1_1_tester1.cpp'], firNaiveCompileOptions, firRunOptions)
+    firSingleKernelNaive.libraryLinkStr("-L ../depends/pcm -pthread -lrt -lpcmHelper -lPCM")
     firSingleKernel.addInstance(firSingleKernelNaive)
 
     #+++++++FIR Circular Buffer++++++++++++++++
     firCircularCompileOptions = firNaiveCompileOptions
-    firSingleKernelCircular = KernelInstance(firSingleKernel, 'Circular buffer implementation with blocked input and output, circular buffer state, no explicit vectorization or unrolling.', ['fir1_2_tester1.cpp', '../common/pcm_helper.cpp'], firCircularCompileOptions, firRunOptions)
+    firSingleKernelCircular = KernelInstance(firSingleKernel, 'Circular buffer implementation with blocked input and output, circular buffer state, no explicit vectorization or unrolling.', ['fir1_2_tester1.cpp'], firCircularCompileOptions, firRunOptions)
+    firSingleKernelCircular.libraryLinkStr("-L ../depends/pcm -pthread -lrt -lpcmHelper -lPCM")
     firSingleKernel.addInstance(firSingleKernelCircular)
 
     #+++++++FIR Circular Buffer (No Mod)++++++++++++++++
     firCircularNoModCompileOptions = firNaiveCompileOptions
-    firSingleKernelCircularNoMod = KernelInstance(firSingleKernel, 'Circular buffer implementation with no modulus, blocked input and output, circular buffer state, no explicit vectorization or unrolling.', ['fir1_2_2_tester1.cpp', '../common/pcm_helper.cpp'], firCircularNoModCompileOptions, firRunOptions)
+    firSingleKernelCircularNoMod = KernelInstance(firSingleKernel, 'Circular buffer implementation with no modulus, blocked input and output, circular buffer state, no explicit vectorization or unrolling.', ['fir1_2_2_tester1.cpp'], firCircularNoModCompileOptions, firRunOptions)
+    firSingleKernelCircularNoMod.libraryLinkStr("-L ../depends/pcm -pthread -lrt -lpcmHelper -lPCM")
     firSingleKernel.addInstance(firSingleKernelCircularNoMod)
 
     #+++++++FIR Circular Buffer - Reversed ++++++++++++++++
     firCircularRevCompileOptions = firNaiveCompileOptions
-    firSingleKernelCircularRev = KernelInstance(firSingleKernel, 'Circular buffer implementation with blocked input and output, circular buffer state, no explicit vectorization or unrolling. - Reverse Direction', ['fir1_2b_tester1.cpp', '../common/pcm_helper.cpp'], firCircularRevCompileOptions, firRunOptions)
+    firSingleKernelCircularRev = KernelInstance(firSingleKernel, 'Circular buffer implementation with blocked input and output, circular buffer state, no explicit vectorization or unrolling. - Reverse Direction', ['fir1_2b_tester1.cpp'], firCircularRevCompileOptions, firRunOptions)
+    firSingleKernelCircularRev.libraryLinkStr("-L ../depends/pcm -pthread -lrt -lpcmHelper -lPCM")
     firSingleKernel.addInstance(firSingleKernelCircularRev)
 
     #+++++++FIR Circular Buffer (No Mod) - Reversed ++++++++++++++++
     firCircularNoModRevCompileOptions = firNaiveCompileOptions
-    firSingleKernelCircularNoModRev = KernelInstance(firSingleKernel, 'Circular buffer implementation with no modulus, blocked input and output, circular buffer state, no explicit vectorization or unrolling. - Reverse Direction', ['fir1_2_2b_tester1.cpp', '../common/pcm_helper.cpp'], firCircularNoModRevCompileOptions, firRunOptions)
+    firSingleKernelCircularNoModRev = KernelInstance(firSingleKernel, 'Circular buffer implementation with no modulus, blocked input and output, circular buffer state, no explicit vectorization or unrolling. - Reverse Direction', ['fir1_2_2b_tester1.cpp'], firCircularNoModRevCompileOptions, firRunOptions)
+    firSingleKernelCircularNoModRev.libraryLinkStr("-L ../depends/pcm -pthread -lrt -lpcmHelper -lPCM")
     firSingleKernel.addInstance(firSingleKernelCircularNoModRev)
 
     #+++++++FIR Naive Unroll 2++++++++++++++++
@@ -1621,7 +1625,8 @@ def main():
     firUnroll2CompileOptions.addOption(EnumOption('COEF_LEN', firUnroll2OrderRange, '-D{}={}', True))
     firUnroll2CompileOptions.addOption(EnumOption('IO_LEN', firUnroll2BlockRange, '-D{}={}', True))
 
-    firSingleKernelUnroll2 = KernelInstance(firSingleKernel, 'Naive implementation with blocked input and output, shift register state, manually unrolled by 2.', ['fir1_3_tester1.cpp', '../common/pcm_helper.cpp'], firUnroll2CompileOptions, firRunOptions)
+    firSingleKernelUnroll2 = KernelInstance(firSingleKernel, 'Naive implementation with blocked input and output, shift register state, manually unrolled by 2.', ['fir1_3_tester1.cpp'], firUnroll2CompileOptions, firRunOptions)
+    firSingleKernelUnroll2.libraryLinkStr("-L ../depends/pcm -pthread -lrt -lpcmHelper -lPCM")
     firSingleKernel.addInstance(firSingleKernelUnroll2)
 
     #+++++++FIR Naive Unroll 4++++++++++++++++
@@ -1652,7 +1657,8 @@ def main():
     firUnroll4CompileOptions.addOption(EnumOption('COEF_LEN', firUnroll4OrderRange, '-D{}={}', True))
     firUnroll4CompileOptions.addOption(EnumOption('IO_LEN', firUnroll4BlockRange, '-D{}={}', True))
 
-    firSingleKernelUnroll4 = KernelInstance(firSingleKernel, 'Naive implementation with blocked input and output, shift register state, manually unrolled by 4.', ['fir1_3_4_tester1.cpp', '../common/pcm_helper.cpp'], firUnroll4CompileOptions, firRunOptions)
+    firSingleKernelUnroll4 = KernelInstance(firSingleKernel, 'Naive implementation with blocked input and output, shift register state, manually unrolled by 4.', ['fir1_3_4_tester1.cpp'], firUnroll4CompileOptions, firRunOptions)
+    firSingleKernelUnroll4.libraryLinkStr("-L ../depends/pcm -pthread -lrt -lpcmHelper -lpcmHelper -lPCM")
     firSingleKernel.addInstance(firSingleKernelUnroll4)
 
     #+++++++FIR Intel IPP++++++++++++++++
@@ -1684,7 +1690,7 @@ def main():
 
     firRunOptions = OptionList()
 
-    firSingleKernelIpp = KernelInstance(firSingleKernel, 'FIR Intel IPP', ['fir1_ipp_tester1.cpp', '../common/pcm_helper.cpp'], firIppCompileOptions, firRunOptions, '{}', 'eval `/usr/bin/modulecmd bash load ipp`', '-lippcore -lipps', 'eval `/usr/bin/modulecmd bash load ipp`')
+    firSingleKernelIpp = KernelInstance(firSingleKernel, 'FIR Intel IPP', ['fir1_ipp_tester1.cpp'], firIppCompileOptions, firRunOptions, '{}', 'eval `/usr/bin/modulecmd bash load ipp`', '-L ../depends/pcm -pthread -lrt -lpcmHelper -lPCM -lippcore -lipps', 'eval `/usr/bin/modulecmd bash load ipp`')
     firSingleKernel.addInstance(firSingleKernelIpp)
 
     #------------END FIR-----------------------
