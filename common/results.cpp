@@ -363,7 +363,7 @@ void Results::print_statistics(int socket, int core)
     printf("         DRAM Energy Mean - Normalized to Sample (nJ): %f, Sample Std Dev: %f\n", avg_dram_energy_dbl*1000000000/STIM_LEN, stddev_dram_energy_dbl*1000000000/STIM_LEN);
 }
 
-void Results::write_csv(std::ofstream csv_file, int socket, int core)
+void Results::write_csv(std::ofstream &csv_file, int socket, int core)
 {
     //Print Header
     csv_file << "\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\",\"Average CPU Frequency (Hz)\",\"Average Active CPU Frequency (Hz)\",\"Energy CPU Used (J)\",\"Energy DRAM Used (J)\",\"Socket Executed On\",\"Core Executed On\"" << std::endl;

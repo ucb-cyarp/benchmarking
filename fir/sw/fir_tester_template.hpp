@@ -35,6 +35,12 @@
 #include <fstream>
 #include <iostream>
 #include <cstdint>
+#include <pthread.h>
+#include <unistd.h>
+#include <stdio.h>
+#include "cpucounters.h"
+#include "results.h"
+#include "pcm_helper.h"
 
 #ifndef DATATYPE
     #define DATATYPE double
@@ -86,14 +92,20 @@
     #define WRITE_CSV 0
 #endif
 
+#ifndef PRINT_FREQ_CHANGE_EVENT
+    #define PRINT_FREQ_CHANGE_EVENT 0
+#endif
+
+#ifndef MAX_DISCARD
+    #define MAX_DISCARD 20
+#endif
+
 #ifndef TESTER_HEADER_STR
     #define TESTER_HEADER_STR "Unknown Test\n"
 #endif
 
 struct cli_args{
-    int argc;
-    char* argv[];
-    
+    std::string csv_filename;
     int cpu_number;
 };
 
@@ -101,8 +113,8 @@ void* run_benchmark(void* args_ptr)
 {
     cli_args* args = (cli_args*) args_ptr;
 
-    int argc = args->argc;
-    char *argv[] = args->argv;
+    int cpu_num = args->cpu_number;
+    std::string csv_filename = args->csv_filename;
 
     printf("\n");
     printf("****** Platform Information Provided by PCM ******\n");
@@ -112,9 +124,8 @@ void* run_benchmark(void* args_ptr)
     printf("CPU Brand String: %s\n", pcm->getCPUBrandString().c_str());
     printf("**************************************************\n");
 
-    int* cpu_num_int = (int*) cpu_num;
-    int socket = pcm->getSocketId(*cpu_num_int);
-    printf("Executing on Core: %3d (Socket: %2d)\n", *cpu_num_int, socket);
+    int socket = pcm->getSocketId(cpu_num);
+    printf("Executing on Core: %3d (Socket: %2d)\n", cpu_num, socket);
     printf("**************************************************\n");
     printf("\n");
 
@@ -191,7 +202,7 @@ void* run_benchmark(void* args_ptr)
 
         //Limit check to socket of interest (single socket for now)
         std::vector<int> sockets_of_interest;
-        sockets_of_interest.push_back(pcm->getSocketId(cpu_num));
+        sockets_of_interest.push_back(socket);
 
         bool freq_change_events_occured = check_any_freq_changes(pcm, startPowerState, endPowerState, sockets_of_interest);
         //Proceed if no freq changes occured
@@ -220,44 +231,37 @@ void* run_benchmark(void* args_ptr)
     }
 
     #if PRINT_STATS == 1
-        results->print_statistics(pcm->getSocketId(cpu_num), cpu_num);
+        results->print_statistics(socket, cpu_num);
     #endif
 
     #if WRITE_CSV == 1
     //Write CSV File
-    if(argc >= 2)
+    std::ofstream csv_file;
+    //printf("Writing results to %s\n", csv_filename.c_str());
+    csv_file.open(csv_filename.c_str());
+
+    if(csv_file.is_open())
     {
-        std::ofstream csv_file;
-        //printf("Writing results to %s\n", argv[1]);
-        csv_file.open(argv[1]);
+        results->write_csv(csv_file, socket, cpu_num);
 
-        if(csv_file.is_open())
-        {
-            csv_file << "\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\"" << std::endl;
-
-            results->write_csv(csv_file, socket, core);
-
-            csv_file.close();
-        }
-        else
-        {
-            fprintf(stderr, "Unable to open file\n");
-        }
+        csv_file.close();
     }
     else
     {
-        fprintf(stderr, "Need CSV Filename as First CLI Argument\n");
+        fprintf(stderr, "Unable to open file\n");
     }
     #endif
 
     //Cleanup
-    delete startPowerState;
-    delete endPowerState;
+    delete[] startPowerState;
+    delete[] endPowerState;
 
     delete[] stimulus;
     delete[] output;
     delete[] coefs;
     delete[] init;
+
+    return NULL;
 }
 
 int main(int argc, char *argv[])
@@ -268,6 +272,26 @@ int main(int argc, char *argv[])
     //http://man7.org/linux/man-pages/man3/pthread_create.3.html
     //http://man7.org/linux/man-pages/man3/pthread_attr_setaffinity_np.3.html,
     //http://man7.org/linux/man-pages/man3/pthread_join.3.html
+
+    int cpu_number = 0;
+
+    cli_args* args = new cli_args;
+    args->cpu_number = cpu_number;
+
+    #if WRITE_CSV == 1
+    //Write CSV File
+    if(argc < 2)
+    {
+        fprintf(stderr, "Need CSV Filename as First CLI Argument\n");
+        return 1;
+    }
+    else
+    {
+        args->csv_filename = argv[1];
+    }
+    #else
+        args->csv_filename = "default_report.csv";
+    #endif
 
     cpu_set_t cpuset;
     pthread_t thread;
@@ -284,8 +308,6 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    int cpu_number = 0;
-
     CPU_ZERO(&cpuset);
     CPU_SET(cpu_number, &cpuset);
 
@@ -296,11 +318,6 @@ int main(int argc, char *argv[])
         printf("Could not set thread core affinity ... exiting\n");
         exit(1);
     }
-
-    cli_args* args = new cli_args;
-    args->argc = argc;
-    args->argv = argv;
-    args->cpu_number = cpu_number;
 
     status = pthread_create(&thread, &attr, &run_benchmark, args);
     if(status != 0)

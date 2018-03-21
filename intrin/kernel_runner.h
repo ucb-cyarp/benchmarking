@@ -101,8 +101,8 @@
             results->print_statistics(pcm->getSocketId(cpu_num), cpu_num);
         #endif
 
-        delete startPowerState;
-        delete endPowerState;
+        delete[] startPowerState;
+        delete[] endPowerState;
         
         return results;
     }
@@ -213,8 +213,8 @@
             results->print_statistics(pcm->getSocketId(cpu_num), cpu_num);
         #endif
 
-        delete startPowerState;
-        delete endPowerState;
+        delete[] startPowerState;
+        delete[] endPowerState;
         
         return results;
     }
@@ -328,8 +328,8 @@
             results->print_statistics(pcm->getSocketId(cpu_num), cpu_num);
         #endif
 
-        delete startPowerState;
-        delete endPowerState;
+        delete[] startPowerState;
+        delete[] endPowerState;
         
         return results;
     }
@@ -446,8 +446,8 @@
             results->print_statistics(pcm->getSocketId(cpu_num), cpu_num);
         #endif
 
-        delete startPowerState;
-        delete endPowerState;
+        delete[] startPowerState;
+        delete[] endPowerState;
         
         return results;
     }
@@ -567,8 +567,8 @@
             results->print_statistics(pcm->getSocketId(cpu_num), cpu_num);
         #endif
 
-        delete startPowerState;
-        delete endPowerState;
+        delete[] startPowerState;
+        delete[] endPowerState;
         
         return results;
     }
@@ -685,8 +685,8 @@
             results->print_statistics(pcm->getSocketId(cpu_num), cpu_num);
         #endif
 
-        delete startPowerState;
-        delete endPowerState;
+        delete[] startPowerState;
+        delete[] endPowerState;
         
         return results;
     }

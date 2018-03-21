@@ -4,10 +4,10 @@
 echo "Building Dependencies"
 
 STARTING_DIR=`pwd`
-cd ../depends/pcm
+cd ../../depends/pcm
 make libPCM.a
 cd $STARTING_DIR
-cd ../common
+cd ../../common
 make
 cd $STARTING_DIR
 

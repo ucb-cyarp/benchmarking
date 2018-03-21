@@ -67,7 +67,7 @@
             double stddev_EnergyDRAMUsed(int socket);
 
             void print_statistics(int socket, int core);
-            void write_csv(std::ofstream csv_file, int socket, int core);
+            void write_csv(std::ofstream &csv_file, int socket, int core);
 
             void delete_results();
     };
