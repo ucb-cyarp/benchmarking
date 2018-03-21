@@ -1,5 +1,5 @@
 BUILD_DIR=build
-DEPENDS_DIR=depends
+DEPENDS_DIR=../depends
 SRC_DIR=.
 
 #Get Cache Sizes
