@@ -44,6 +44,9 @@ TrialResult::TrialResult(int _sockets, int _cores, int _trial)
 
     energyCPUUsed = new double[sockets];
     energyDRAMUsed = new double[sockets];
+
+    startPackageThermalHeadroom = new int32_t[sockets];
+    endPackageThermalHeadroom = new int32_t[sockets];
 }
 
 TrialResult::~TrialResult()
@@ -53,6 +56,9 @@ TrialResult::~TrialResult()
 
     delete[] energyCPUUsed;
     delete[] energyDRAMUsed;
+
+    delete[] startPackageThermalHeadroom;
+    delete[] endPackageThermalHeadroom;
 }
 
 
@@ -62,6 +68,8 @@ void TrialResult::print_trial()
         for(int i = 0; i<sockets; i++)
         {
                 printf("\nEnergyCPUUsed[%d]: %8.4f, EnergyDRAMUsed[%d]: %8.4f ", i, energyCPUUsed[i], i, energyDRAMUsed[i]);
+                printf("\nStart thermal headroom below TjMax (deg C): %d", startPackageThermalHeadroom[i]);
+                printf("\nEnd thermal headroom below TjMax (deg C): %d", endPackageThermalHeadroom[i]);
         }
 
         for(int i = 0; i<cores; i++)
@@ -366,12 +374,12 @@ void Results::print_statistics(int socket, int core)
 void Results::write_csv(std::ofstream &csv_file, int socket, int core)
 {
     //Print Header
-    csv_file << "\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\",\"Average CPU Frequency (Hz)\",\"Average Active CPU Frequency (Hz)\",\"Energy CPU Used (J)\",\"Energy DRAM Used (J)\",\"Socket Executed On\",\"Core Executed On\"" << std::endl;
+    csv_file << "\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\",\"Average CPU Frequency (Hz)\",\"Average Active CPU Frequency (Hz)\",\"Energy CPU Used (J)\",\"Energy DRAM Used (J)\",\"Socket Executed On\",\"Core Executed On\",\"Start thermal headroom below TjMax (deg C)\",\"End thermal headroom below TjMax (deg C)\"" << std::endl;
 
     size_t trials = trial_results.size();
     for(size_t i = 0; i < trials; i++)
     {
-        csv_file <<  trial_results[i]->duration << "," << trial_results[i]->duration_clock << "," << trial_results[i]->duration_rdtsc << "," << trial_results[i]->avgCPUFreq[core] << "," << trial_results[i]->avgActiveCPUFreq[core] << "," << trial_results[i]->energyCPUUsed[socket] << "," <<  trial_results[i]->energyDRAMUsed[socket] << "," << socket << "," << core << std::endl;
+        csv_file <<  trial_results[i]->duration << "," << trial_results[i]->duration_clock << "," << trial_results[i]->duration_rdtsc << "," << trial_results[i]->avgCPUFreq[core] << "," << trial_results[i]->avgActiveCPUFreq[core] << "," << trial_results[i]->energyCPUUsed[socket] << "," <<  trial_results[i]->energyDRAMUsed[socket] << "," << socket << "," << core << "," << trial_results[i]->startPackageThermalHeadroom[socket] << "," << trial_results[i]->endPackageThermalHeadroom[socket] << std::endl;
     }
 }
 

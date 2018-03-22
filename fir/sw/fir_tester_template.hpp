@@ -207,6 +207,9 @@ void* run_benchmark(void* args_ptr)
         calc_freq_and_power(pcm, trial_result->avgCPUFreq, trial_result->avgActiveCPUFreq, trial_result->energyCPUUsed, trial_result->energyDRAMUsed,
         startCstates, endCstates, startPowerState, endPowerState);
 
+        //Report Temp
+        calc_temp(pcm, trial_result->startPackageThermalHeadroom, trial_result->endPackageThermalHeadroom, startPowerState, startPowerState);
+
         #if PRINT_TRIALS == 1
             trial_result->print_trial();
         #endif 

@@ -25,6 +25,9 @@
             double* energyCPUUsed;
             double* energyDRAMUsed;
 
+            int32_t* startPackageThermalHeadroom;
+            int32_t* endPackageThermalHeadroom;
+
             TrialResult(int _sockets, int _cores, int _trial);
             ~TrialResult();
 

@@ -62,6 +62,17 @@ std::vector<CoreCounterState>& startCstates, std::vector<CoreCounterState>& endC
     }
 }
 
+void calc_temp(PCM* pcm, int32_t* startPackageThermalHeadroom, int32_t* endPackageThermalHeadroom, ServerUncorePowerState* startPowerState, ServerUncorePowerState* endPowerState)
+{
+    int sockets = pcm->getNumSockets();
+
+    for(int i = 0; i<sockets; i++)
+    {
+        startPackageThermalHeadroom[i] = startPowerState[i].getPackageThermalHeadroom();
+        endPackageThermalHeadroom[i] = endPowerState[i].getPackageThermalHeadroom();
+    }
+}
+
 //Initialize PCM
 //Based off opcm/pcm example pcm-power.cpp
 PCM* init_PCM(bool print_info)
