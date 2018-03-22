@@ -11,12 +11,13 @@ cd ../../common
 make
 cd $STARTING_DIR
 
+#Source Enviornment Setup
+echo "Setting Up Enviornment Modules"
+source module_setup.sh
+
 echo "Setting Up Slack Reporting"
 #Export API Key
 source secretkey.sh
-
-#Source Enviornment Setup
-source module_setup.sh
 
 echo "Running"
 #Run
