@@ -116,18 +116,34 @@ void* run_benchmark(void* args_ptr)
     int cpu_num = args->cpu_number;
     std::string csv_filename = args->csv_filename;
 
+    bool print_topology=false;
+    #if PRINT_TITLE == 1
+    print_topology=true;
+    #endif
+
+    #if PRINT_TITLE == 1
+    printf(TESTER_HEADER_STR);
+    printf("COEF_LEN: %d, IO_LEN: %d, STIM_LEN: %d, TRIALS: %d\n", COEF_LEN, IO_LEN, STIM_LEN, TRIALS);
+
     printf("\n");
     printf("****** Platform Information Provided by PCM ******\n");
-    PCM* pcm = init_PCM();
+    #endif
 
+    PCM* pcm = init_PCM(print_topology);
+
+    #if PRINT_TITLE == 1
     printf("**************************************************\n");
     printf("CPU Brand String: %s\n", pcm->getCPUBrandString().c_str());
     printf("**************************************************\n");
+    #endif
 
     int socket = pcm->getSocketId(cpu_num);
+
+    #if PRINT_TITLE == 1
     printf("Executing on Core: %3d (Socket: %2d)\n", cpu_num, socket);
     printf("**************************************************\n");
     printf("\n");
+    #endif
 
     int sockets = pcm->getNumSockets();
     int cores = pcm->getNumCores();
@@ -148,11 +164,6 @@ void* run_benchmark(void* args_ptr)
     DATATYPE *output = new DATATYPE[STIM_LEN];
     DATATYPE *coefs = new DATATYPE[COEF_LEN];
     DATATYPE *init = new DATATYPE[COEF_LEN];
-
-    #if PRINT_TITLE == 1
-    printf(TESTER_HEADER_STR);
-    printf("COEF_LEN: %d, IO_LEN: %d, STIM_LEN: %d, TRIALS: %d\n", COEF_LEN, IO_LEN, STIM_LEN, TRIALS);
-    #endif
 
     int trial = 0;
     int discard_count = 0;

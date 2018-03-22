@@ -64,11 +64,23 @@ std::vector<CoreCounterState>& startCstates, std::vector<CoreCounterState>& endC
 
 //Initialize PCM
 //Based off opcm/pcm example pcm-power.cpp
-PCM* init_PCM()
+PCM* init_PCM(bool print_info)
 {
     set_signal_handlers();
 
     PCM * m = PCM::getInstance();
+
+    if(print_info)
+    {
+        m->printSystemTopology();
+        //Replicate the rest of the topology output
+        std::cerr << "Nominal core frequency: " << m->getNominalFrequency() << " Hz" << std::endl;
+        
+        std::cerr << "Package thermal spec power: "<< m->getPackageThermalSpecPower() << " Watt; ";
+        std::cerr << "Package minimum power: "<< m->getPackageMinimumPower() << " Watt; ";
+        std::cerr << "Package maximum power: "<< m->getPackageMaximumPower() << " Watt; " << std::endl;
+    }
+
     //m->allowMultipleInstances();
     m->disableJKTWorkaround();
 
@@ -80,8 +92,11 @@ PCM* init_PCM()
         exit(1);
     }
 
-    printf("**************************************************\n");
-    printf("Resetting PMU\n");
+    if(print_info)
+    {
+        printf("**************************************************\n");
+        printf("Resetting PMU\n");
+    }
     m->resetPMU();
 
     int default_freq_band[3] = { 12, 20, 40 };

@@ -263,19 +263,32 @@ void* run_benchmarks(void* cpu_num)
     printf("STIM_LEN: %d (Samples/Vector/Trial), TRIALS: %d\n", STIM_LEN, TRIALS);
     #endif
 
+    bool print_topology = false;
+    #if PRINT_TITLE == 1
+    print_topology = true;
+    #endif
+
+    #if PRINT_TITLE == 1
     printf("\n");
     printf("****** Platform Information Provided by PCM ******\n");
-    PCM* pcm = init_PCM();
+    #endif
 
+    PCM* pcm = init_PCM(print_topology);
+
+    #if PRINT_TITLE == 1
     printf("**************************************************\n");
     printf("CPU Brand String: %s\n", pcm->getCPUBrandString().c_str());
     printf("**************************************************\n");
+    #endif
 
     int* cpu_num_int = (int*) cpu_num;
     int socket = pcm->getSocketId(*cpu_num_int);
+
+    #if PRINT_TITLE == 1
     printf("Executing on Core: %3d (Socket: %2d)\n", *cpu_num_int, socket);
     printf("**************************************************\n");
     printf("\n");
+    #endif
 
     std::map<std::string, std::map<std::string, Results*>*> kernel_results;
 
@@ -655,7 +668,9 @@ void* run_benchmarks(void* cpu_num)
         delete it->second;
     }
 
+    #if PRINT_TITLE == 1
     printf("****** PCM Ceanup ******\n");
+    #endif
     //Output from PCM appears when distructor runs
 
     return NULL;

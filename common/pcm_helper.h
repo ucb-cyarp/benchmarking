@@ -19,6 +19,6 @@
     void calc_freq_and_power(PCM* pcm, double* avgCPUFreq, double* avgActiveCPUFreq, double* energyCPUUsed, double* energyDRAMUsed,
     std::vector<CoreCounterState>& startCstates, std::vector<CoreCounterState>& endCstates, ServerUncorePowerState* startPowerState, ServerUncorePowerState* endPowerState);
 
-    PCM* init_PCM();
+    PCM* init_PCM(bool print_info);
 #endif
 
