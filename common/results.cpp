@@ -379,7 +379,7 @@ void Results::write_csv(std::ofstream &csv_file, int socket, int core)
     size_t trials = trial_results.size();
     for(size_t i = 0; i < trials; i++)
     {
-        csv_file <<  trial_results[i]->duration << "," << trial_results[i]->duration_clock << "," << trial_results[i]->duration_rdtsc << "," << trial_results[i]->avgCPUFreq[core] << "," << trial_results[i]->avgActiveCPUFreq[core] << "," << trial_results[i]->energyCPUUsed[socket] << "," <<  trial_results[i]->energyDRAMUsed[socket] << "," << socket << "," << core << "," << trial_results[i]->startPackageThermalHeadroom[socket] << "," << trial_results[i]->endPackageThermalHeadroom[socket] << std::endl;
+        csv_file << std::scientific <<  trial_results[i]->duration << "," << trial_results[i]->duration_clock << "," << trial_results[i]->duration_rdtsc << "," << trial_results[i]->avgCPUFreq[core] << "," << trial_results[i]->avgActiveCPUFreq[core] << "," << trial_results[i]->energyCPUUsed[socket] << "," <<  trial_results[i]->energyDRAMUsed[socket] << "," << socket << "," << core << "," << trial_results[i]->startPackageThermalHeadroom[socket] << "," << trial_results[i]->endPackageThermalHeadroom[socket] << std::endl;
     }
 }
 
