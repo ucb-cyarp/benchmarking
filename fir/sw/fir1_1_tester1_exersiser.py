@@ -1525,7 +1525,7 @@ def slackStatusPost(message):
 
 def main():
     #*****Setup*****
-    buildThreads = 4
+    buildThreads = 8
     reportFrequency = 2500
     #Create Suites
     firSuite = Suite('FIR', 'Testing feed forward system performance using FIR filters')
@@ -1538,7 +1538,7 @@ def main():
     #Create Naive FIR Kernel Instance
 
     firTrials = 10
-    firStimLen = 100000
+    firStimLen = 10000
 
     #+++++++FIR Naive++++++++++++++++
 
