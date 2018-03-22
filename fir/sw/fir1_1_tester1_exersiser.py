@@ -1538,12 +1538,13 @@ def main():
     #Create Naive FIR Kernel Instance
 
     firTrials = 10
-    firStimLen = 2000000
+    firStimLen = 100000
 
     #+++++++FIR Naive++++++++++++++++
 
     firNaiveCompileOptions = OptionList()
-    naiveRangeIterator = itertools.chain(range(1, 2, 1), range(2, 31, 8))
+    naiveRangeIterator = itertools.chain(range(1, 2, 1), range(2, 31, 2))
+    #naiveRangeIterator = range(1, 3, 1)
 
     naiveRangeArray = []
     for naiveRangeVal in naiveRangeIterator:
@@ -1600,7 +1601,8 @@ def main():
 
     #+++++++FIR Naive Unroll 2++++++++++++++++
     firUnroll2CompileOptions = OptionList()
-    unroll2RangeIterator = range(2, 31, 8)
+    unroll2RangeIterator = range(2, 31, 2)
+    #unroll2RangeIterator = range(2, 7, 2)
 
     unroll2RangeArray = []
     for unroll2RangeVal in unroll2RangeIterator:
@@ -1631,7 +1633,8 @@ def main():
 
     #+++++++FIR Naive Unroll 4++++++++++++++++
     firUnroll4CompileOptions = OptionList()
-    unroll4RangeIterator = range(4, 31, 8)
+    unroll4RangeIterator = range(4, 31, 4)
+    #unroll4RangeIterator = range(4, 13, 4)
 
     unroll4RangeArray = []
     for unroll4RangeVal in unroll4RangeIterator:
@@ -1663,7 +1666,7 @@ def main():
 
     #+++++++FIR Intel IPP++++++++++++++++
     firIppCompileOptions = OptionList()
-    ippRangeIterator = itertools.chain(range(1, 2, 1), range(2, 31, 8))
+    ippRangeIterator = itertools.chain(range(1, 2, 1), range(2, 31, 2))
 
     ippRangeArray = []
     for ippRangeVal in ippRangeIterator:
@@ -1699,7 +1702,8 @@ def main():
     #TODO: Cleanup output file format str in KernelInstance
 
     #Select Tests to Run
-    compilers = [gcc(), icc()]
+    #compilers = [gcc(), icc()]
+    compilers = [gcc()]
     #compilers = [icc()]
     suites = [firSuite]
 
