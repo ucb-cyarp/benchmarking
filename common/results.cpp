@@ -1,5 +1,8 @@
 #include "results.h"
-#include "intrin_bench_default_defines.h"
+//#include "intrin_bench_default_defines.h"
+#include <fstream>
+#include <iostream>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 
@@ -20,7 +23,7 @@ double standard_dev(double* arr, size_t len)
     double std_dev = 0;
     double avg = average(arr, len);
 
-    for(size_t i = 0; i < TRIALS; i++)
+    for(size_t i = 0; i < len; i++)
     {
         double tmp = arr[i] - avg;
         tmp = tmp*tmp;
@@ -339,7 +342,7 @@ void Results::delete_results()
     }
 }
 
-void Results::print_statistics(int socket, int core)
+void Results::print_statistics(int socket, int core, int stim_len)
 {
     double avg_cpu_per_dbl = this->avg_CPUPer(core);
     double stddev_cpu_per_dbl = this->stddev_CPUPer(core);
@@ -359,16 +362,16 @@ void Results::print_statistics(int socket, int core)
 
     // printf("High Res Clock - Sample Mean (ms): %f, Sample Std Dev: %f\n", avg_duration, std_dev_duration);
     printf("         Clock - Sample Mean (ms): %f, Sample Std Dev: %f\n", avg_duration_clock_dbl, stddev_duration_clock_dbl);
-    printf("         Clock Normalized to Sample - Sample Mean (ns): %f, Sample Std Dev: %f\n", avg_duration_clock_dbl*1000000/STIM_LEN, stddev_duration_clock_dbl*1000000/STIM_LEN);
+    printf("         Clock Normalized to Sample - Sample Mean (ns): %f, Sample Std Dev: %f\n", avg_duration_clock_dbl*1000000/stim_len, stddev_duration_clock_dbl*1000000/stim_len);
 
-    // printf("High Res Clock - Sample Mean (MS/s): %f\n", STIM_LEN*1.0/(1000.0*avg_duration));
-    printf("         Clock - Sample Mean (MS/s): %f\n", STIM_LEN*1.0/(1000.0*avg_duration_clock_dbl));
+    // printf("High Res Clock - Sample Mean (MS/s): %f\n", stim_len*1.0/(1000.0*avg_duration));
+    printf("         Clock - Sample Mean (MS/s): %f\n", stim_len*1.0/(1000.0*avg_duration_clock_dbl));
 
     printf("         CPU Energy Mean (J): %f, Sample Std Dev: %f\n", avg_cpu_energy_dbl, stddev_cpu_energy_dbl);
     printf("         DRAM Energy Mean (J): %f, Sample Std Dev: %f\n", avg_dram_energy_dbl, stddev_dram_energy_dbl);
 
-    printf("         CPU Energy Mean - Normalized to Sample (nJ): %f, Sample Std Dev: %f\n", avg_cpu_energy_dbl*1000000000/STIM_LEN, stddev_cpu_energy_dbl*1000000000/STIM_LEN);
-    printf("         DRAM Energy Mean - Normalized to Sample (nJ): %f, Sample Std Dev: %f\n", avg_dram_energy_dbl*1000000000/STIM_LEN, stddev_dram_energy_dbl*1000000000/STIM_LEN);
+    printf("         CPU Energy Mean - Normalized to Sample (nJ): %f, Sample Std Dev: %f\n", avg_cpu_energy_dbl*1000000000/stim_len, stddev_cpu_energy_dbl*1000000000/stim_len);
+    printf("         DRAM Energy Mean - Normalized to Sample (nJ): %f, Sample Std Dev: %f\n", avg_dram_energy_dbl*1000000000/stim_len, stddev_dram_energy_dbl*1000000000/stim_len);
 }
 
 void Results::write_csv(std::ofstream &csv_file, int socket, int core)
@@ -381,42 +384,4 @@ void Results::write_csv(std::ofstream &csv_file, int socket, int core)
     {
         csv_file << std::scientific <<  trial_results[i]->duration << "," << trial_results[i]->duration_clock << "," << trial_results[i]->duration_rdtsc << "," << trial_results[i]->avgCPUFreq[core] << "," << trial_results[i]->avgActiveCPUFreq[core] << "," << trial_results[i]->energyCPUUsed[socket] << "," <<  trial_results[i]->energyDRAMUsed[socket] << "," << socket << "," << core << "," << trial_results[i]->startPackageThermalHeadroom[socket] << "," << trial_results[i]->endPackageThermalHeadroom[socket] << std::endl;
     }
-}
-
-void statistics(std::chrono::duration<double, std::ratio<1, 1000>>* durations, double* durations_clock)
-{
-    //Print Average & StdDev
-    double avg_duration = 0;
-    double avg_duration_clock = 0;
-    for(size_t i = 0; i < TRIALS; i++)
-    {
-        avg_duration += (double) durations[i].count();
-        avg_duration_clock += (double) durations_clock[i];
-    }
-    avg_duration /= TRIALS;
-    avg_duration_clock /= TRIALS;
-
-    double std_dev_duration = 0;
-    double std_dev_duration_clock = 0;
-    for(size_t i = 0; i < TRIALS; i++)
-    {
-        double tmp = durations[i].count() - avg_duration;
-        double tmp_clock = durations_clock[i] - avg_duration_clock;
-        tmp = tmp*tmp;
-        tmp_clock = tmp_clock*tmp_clock;
-
-        std_dev_duration += tmp;
-        std_dev_duration_clock += tmp_clock;
-    }
-    std_dev_duration /= (TRIALS - 1);
-    std_dev_duration_clock /= (TRIALS - 1);
-    std_dev_duration = sqrt(std_dev_duration);
-    std_dev_duration_clock = sqrt(std_dev_duration_clock);
-
-    // printf("High Res Clock - Sample Mean (ms): %f, Sample Std Dev: %f\n", avg_duration, std_dev_duration);
-    printf("         Clock - Sample Mean (ms): %f, Sample Std Dev: %f\n", avg_duration_clock, std_dev_duration_clock);
-    printf("         Clock Normalized to Sample - Sample Mean (ns): %f, Sample Std Dev: %f\n", avg_duration_clock*1000000/STIM_LEN, std_dev_duration_clock*1000000/STIM_LEN);
-
-    // printf("High Res Clock - Sample Mean (MS/s): %f\n", STIM_LEN*1.0/(1000.0*avg_duration));
-    printf("         Clock - Sample Mean (MS/s): %f\n", STIM_LEN*1.0/(1000.0*avg_duration_clock));
 }

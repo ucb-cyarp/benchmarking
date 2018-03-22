@@ -131,9 +131,9 @@
 
         #if PRINT_STATS == 1
 #if USE_PCM == 1
-            results->print_statistics(pcm->getSocketId(cpu_num), cpu_num);
+            results->print_statistics(pcm->getSocketId(cpu_num), cpu_num, STIM_LEN);
 #else
-            results->print_statistics(0, cpu_num);
+            results->print_statistics(0, cpu_num, STIM_LEN);
 #endif
         #endif
 
@@ -282,9 +282,9 @@
 
         #if PRINT_STATS == 1
 #if USE_PCM == 1
-            results->print_statistics(pcm->getSocketId(cpu_num), cpu_num);
+            results->print_statistics(pcm->getSocketId(cpu_num), cpu_num, STIM_LEN);
 #else
-            results->print_statistics(0, cpu_num);
+            results->print_statistics(0, cpu_num, STIM_LEN);
 #endif
         #endif
 
@@ -436,9 +436,9 @@
 
         #if PRINT_STATS == 1
 #if USE_PCM == 1
-            results->print_statistics(pcm->getSocketId(cpu_num), cpu_num);
+            results->print_statistics(pcm->getSocketId(cpu_num), cpu_num, STIM_LEN);
 #else
-            results->print_statistics(0, cpu_num);
+            results->print_statistics(0, cpu_num, STIM_LEN);
 #endif
         #endif
 
@@ -593,9 +593,9 @@
 
         #if PRINT_STATS == 1
 #if USE_PCM == 1
-            results->print_statistics(pcm->getSocketId(cpu_num), cpu_num);
+            results->print_statistics(pcm->getSocketId(cpu_num), cpu_num, STIM_LEN);
 #else
-            results->print_statistics(0, cpu_num);
+            results->print_statistics(0, cpu_num, STIM_LEN);
 #endif
         #endif
 
@@ -753,9 +753,9 @@
 
         #if PRINT_STATS == 1
 #if USE_PCM == 1
-            results->print_statistics(pcm->getSocketId(cpu_num), cpu_num);
+            results->print_statistics(pcm->getSocketId(cpu_num), cpu_num, STIM_LEN);
 #else
-            results->print_statistics(0, cpu_num);
+            results->print_statistics(0, cpu_num, STIM_LEN);
 #endif
         #endif
 
@@ -910,9 +910,9 @@
 
         #if PRINT_STATS == 1
 #if USE_PCM == 1
-            results->print_statistics(pcm->getSocketId(cpu_num), cpu_num);
+            results->print_statistics(pcm->getSocketId(cpu_num), cpu_num, STIM_LEN);
 #else
-            results->print_statistics(0, cpu_num);
+            results->print_statistics(0, cpu_num, STIM_LEN);
 #endif
         #endif
 
