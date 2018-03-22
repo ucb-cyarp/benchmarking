@@ -15,6 +15,9 @@ echo "Setting Up Slack Reporting"
 #Export API Key
 source secretkey.sh
 
+#Source Enviornment Setup
+source module_setup.sh
+
 echo "Running"
 #Run
 ./fir1_1_tester1_exersiser.py
