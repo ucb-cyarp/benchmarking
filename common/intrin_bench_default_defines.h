@@ -49,4 +49,8 @@
     #ifndef PRINT_FREQ_CHANGE_EVENT
         #define PRINT_FREQ_CHANGE_EVENT 0
     #endif
+
+    #ifndef USE_PCM
+        #define USE_PCM 1
+    #endif
 #endif

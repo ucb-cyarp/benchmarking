@@ -263,6 +263,8 @@ void* run_benchmarks(void* cpu_num)
     printf("STIM_LEN: %d (Samples/Vector/Trial), TRIALS: %d\n", STIM_LEN, TRIALS);
     #endif
 
+#if USE_PCM == 1
+
     bool print_topology = false;
     #if PRINT_TITLE == 1
     print_topology = true;
@@ -289,6 +291,12 @@ void* run_benchmarks(void* cpu_num)
     printf("**************************************************\n");
     printf("\n");
     #endif
+
+#else
+    PCM* pcm = NULL;
+    int* cpu_num_int = (int*) cpu_num;
+    int socket = 0;
+#endif
 
     std::map<std::string, std::map<std::string, Results*>*> kernel_results;
 
