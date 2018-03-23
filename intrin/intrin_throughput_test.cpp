@@ -388,13 +388,13 @@ void* run_benchmarks(void* cpu_num)
     vec_ext.push_back("AVX (Float) / AVX2 (Int)");
     vec_ext.push_back("AVX");
     vec_ext.push_back("FMA");
-    vec_ext.push_back("AVX (Float) / AVX2 (Int)");
+    vec_ext.push_back("AVX");
     vec_ext.push_back("AVX (Float) / AVX2 (Int)");
     vec_ext.push_back("AVX (Float) / AVX2 (Int)");
     vec_ext.push_back("AVX");
     vec_ext.push_back("FMA");
     vec_ext.push_back("AVX (Float) / AVX2 (Int)");
-    vec_ext.push_back("AVX (Float) / AVX2 (Int)");
+    vec_ext.push_back("N/A");
 
     //Open CSV File to write
     FILE * csv_file;
