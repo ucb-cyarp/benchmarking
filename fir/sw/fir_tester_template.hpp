@@ -42,6 +42,11 @@
 #include "results.h"
 #include "pcm_helper.h"
 
+//Include Intrinsics
+#include <x86intrin.h>
+#include <immintrin.h>
+#include <mm_malloc.h>
+
 #ifndef DATATYPE
     #define DATATYPE double
 #endif
@@ -93,7 +98,7 @@
 #endif
 
 #ifndef PRINT_FREQ_CHANGE_EVENT
-    #define PRINT_FREQ_CHANGE_EVENT 0
+    #define PRINT_FREQ_CHANGE_EVENT 1
 #endif
 
 #ifndef MAX_DISCARD
