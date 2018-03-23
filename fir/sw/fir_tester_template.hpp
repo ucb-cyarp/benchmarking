@@ -98,7 +98,7 @@
 #endif
 
 #ifndef PRINT_FREQ_CHANGE_EVENT
-    #define PRINT_FREQ_CHANGE_EVENT 1
+    #define PRINT_FREQ_CHANGE_EVENT 0
 #endif
 
 #ifndef MAX_DISCARD
