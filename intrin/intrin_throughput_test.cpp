@@ -21,6 +21,9 @@
 #include <map>
 #include <unistd.h>
 
+#include <chrono>
+#include <ctime>
+
 #include "intrin_bench_default_defines.h"
 
 #include "cpucounters.h"
@@ -370,14 +373,28 @@ void* run_benchmarks(void* cpu_num)
     kernels.push_back("Mult");
     kernels.push_back("Div");
     kernels.push_back("FMA");
+    kernels.push_back("Load/Store");
+    kernels.push_back("Load/Add/Store");
+    kernels.push_back("Load/Mult/Store");
+    kernels.push_back("Load/Div/Store");
+    kernels.push_back("Load/FMA/Store");
+    kernels.push_back("Load/Add/Store No Intrin");
+    kernels.push_back("Load/Add/Store Unroll2");
 
     std::vector<std::string> vec_ext;
     vec_ext.push_back("AVX");
     vec_ext.push_back("AVX");
     vec_ext.push_back("AVX (Float) / AVX2 (Int)");
     vec_ext.push_back("AVX (Float) / AVX2 (Int)");
-    vec_ext.push_back("AVX (Float) / AVX2 (Int)");
+    vec_ext.push_back("AVX");
     vec_ext.push_back("FMA");
+    vec_ext.push_back("AVX (Float) / AVX2 (Int)");
+    vec_ext.push_back("AVX (Float) / AVX2 (Int)");
+    vec_ext.push_back("AVX (Float) / AVX2 (Int)");
+    vec_ext.push_back("AVX");
+    vec_ext.push_back("FMA");
+    vec_ext.push_back("AVX (Float) / AVX2 (Int)");
+    vec_ext.push_back("AVX (Float) / AVX2 (Int)");
 
     //Open CSV File to write
     FILE * csv_file;
@@ -409,7 +426,11 @@ void* run_benchmarks(void* cpu_num)
         sprintf(hostname, "Unavailable");
     }
 
-    fprintf(csv_file, "\"Host: %s\",", hostname);
+    //Getting time: Example from http://en.cppreference.com/w/cpp/chrono
+    auto wall_clock = std::chrono::system_clock::now();
+    std::time_t report_gen_time = std::chrono::system_clock::to_time_t(wall_clock);
+
+    fprintf(csv_file, "\"Host: %s, Stimulus Length: %d, Trials: %d, Report Generated: %s\",", hostname, STIM_LEN, TRIALS, ctime(&report_gen_time));
     for(size_t i = 0; i<kernels.size(); i++)
     {
         fprintf(csv_file, ",\"Mean\",\"Std Dev\"");
