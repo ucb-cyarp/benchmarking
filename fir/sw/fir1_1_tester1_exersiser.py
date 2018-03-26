@@ -1538,7 +1538,7 @@ def main():
     #Create Naive FIR Kernel Instance
 
     firTrials = 10
-    firStimLen = 320000
+    firStimLen = 32000
 
     #+++++++FIR Naive++++++++++++++++
 
