@@ -62,3 +62,123 @@
  * Arguments
  *     
  */
+
+#include <pthread.h>
+#include <stdio.h>
+#include <map>
+#include <unistd.h>
+
+#include <chrono>
+#include <ctime>
+
+#include "intrin_bench_default_defines.h"
+
+#include "cpucounters.h"
+#include "results.h"
+#include "pcm_helper.h"
+
+#include "kernel_server_runner.h"
+#include "latency_single_kernel.h"
+
+int main(int argc, char *argv[])
+{
+    //Run these single-threaded benchmarks on CPU 0 (all machines should have CPU 0)
+
+    //Based off of http://man7.org/linux/man-pages/man3/pthread_setaffinity_np.3.html
+    //http://man7.org/linux/man-pages/man3/pthread_create.3.html
+    //http://man7.org/linux/man-pages/man3/pthread_attr_setaffinity_np.3.html,
+    //http://man7.org/linux/man-pages/man3/pthread_join.3.html
+
+    if(argc < 3)
+    {
+        printf("core-core core-a core-b\n    core-a: Processor ID for first processor core\n    core-b: Processor ID for second processor core");
+    }
+    std::string cpu_a_str(argv[1]);
+    int cpu_a = std::stoi(cpu_a_str);
+
+    std::string cpu_b_str(argv[2]);
+    int cpu_b = std::stoi(cpu_b_str);
+
+    #if PRINT_TITLE == 1
+        printf("Core-Core Communication Test: From CPU%d to CPU%d\n", cpu_a, cpu_b);
+        printf("STIM_LEN: %d (Samples/Vector/Trial), TRIALS: %d\n", STIM_LEN, TRIALS);
+    #endif
+
+    #if USE_PCM == 1
+        bool print_topology = false;
+        #if PRINT_TITLE == 1
+        print_topology = true;
+        #endif
+
+        #if PRINT_TITLE == 1
+        printf("\n");
+        printf("****** Platform Information Provided by PCM ******\n");
+        #endif
+
+        PCM* pcm = init_PCM(print_topology);
+
+        #if PRINT_TITLE == 1
+        printf("**************************************************\n");
+        printf("CPU Brand String: %s\n", pcm->getCPUBrandString().c_str());
+        printf("**************************************************\n");
+        #endif
+
+        #if PRINT_TITLE == 1
+
+        printf("**************************************************\n");
+        int cpu_a_socket = pcm->getSocketId(cpu_a);
+        int cpu_a_core = pcm->getCoreId(cpu_a);
+        int cpu_a_tile = pcm->getTileId(cpu_a);
+        printf("CPU A = Logical CPU#: %d, Socket #: %d, Physical Core #: %d, L2 Tile #: %d\n", cpu_a, cpu_a_socket, cpu_a_core, cpu_a_tile);
+        int cpu_b_socket = pcm->getSocketId(cpu_b);
+        int cpu_b_core = pcm->getCoreId(cpu_b);
+        int cpu_b_tile = pcm->getTileId(cpu_b);
+        printf("CPU B = Logical CPU#: %d, Socket #: %d, Physical Core #: %d, L2 Tile #: %d\n", cpu_b, cpu_b_socket, cpu_b_core, cpu_b_tile);
+        printf("**************************************************\n");
+        #endif
+
+    #endif
+
+    //=====Test 1=====
+    #if PRINT_TITLE == 1
+    printf("\n");
+    printf("Single Memory Location\n");
+    #endif
+
+    //Initialize
+    int32_t* shared_loc = new int32_t;
+
+    //Init to 0
+    *shared_loc = 0;
+
+    LatencySingleKernelArgs* arg_a = new LatencySingleKernelArgs();
+    arg_a->init_counter = -1; //(server)
+    arg_a->shared_ptr = shared_loc;
+
+    LatencySingleKernelArgs* arg_b = new LatencySingleKernelArgs();
+    arg_b->init_counter = 0; //(client)
+    arg_b->shared_ptr = shared_loc;
+
+    void* reset_arg = shared_loc; //Argument for reset function is shared location
+
+
+    Results* results = execute_kernel(pcm, latency_single_kernel, latency_single_kernel_reset, arg_a, arg_b, reset_arg, cpu_a, cpu_b);
+
+    #if PRINT_STATS == 1
+        #if USE_PCM == 1
+                results->print_statistics(pcm->getSocketId(cpu_a), cpu_a, STIM_LEN);
+        #else
+                results->print_statistics(0, cpu_a, STIM_LEN);
+        #endif
+    #endif
+
+    //Clean Up
+    free(shared_loc);
+    free(arg_a);
+    free(arg_b);
+
+    results->delete_results();
+    free(results);
+
+    return 0;
+}
