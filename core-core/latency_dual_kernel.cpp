@@ -60,12 +60,5 @@ void* latency_dual_kernel(void* arg)
         //Poll on the memory location until the above condition is met or the counter exceeds STIM_LEN
     }
 
-    //Execute 1 more time to prevent other thread waiting forever
-    if(*other_shared_ptr > counter)
-    {
-        counter = *other_shared_ptr+1;
-        *my_shared_ptr = counter;
-    }
-
     return NULL;
 }
