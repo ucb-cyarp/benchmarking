@@ -91,7 +91,8 @@ int main(int argc, char *argv[])
 
     if(argc < 3)
     {
-        printf("core-core core-a core-b\n    core-a: Processor ID for first processor core\n    core-b: Processor ID for second processor core");
+        printf("core-core core-a core-b\n    core-a: Processor ID for first processor core\n    core-b: Processor ID for second processor core\n");
+        exit(1);
     }
     std::string cpu_a_str(argv[1]);
     int cpu_a = std::stoi(cpu_a_str);
@@ -173,7 +174,7 @@ int main(int argc, char *argv[])
     #endif
 
     //Clean Up
-    free(shared_loc);
+    delete[](shared_loc);
     free(arg_a);
     free(arg_b);
 

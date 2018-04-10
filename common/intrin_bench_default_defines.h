@@ -27,7 +27,7 @@
     #endif
 
     #ifndef MAX_DISCARD
-        #define MAX_DISCARD 20
+        #define MAX_DISCARD 40
     #endif
 
     #ifndef PRINT_TITLE
