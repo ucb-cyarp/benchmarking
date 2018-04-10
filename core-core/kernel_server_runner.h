@@ -178,7 +178,7 @@
                 exit(1);
             }
 
-            status = pthread_attr_init(&attr_a);
+            status = pthread_attr_init(&attr_b);
             if(status != 0)
             {
                 printf("Could not create pthread attributes ... exiting\n");
