@@ -347,6 +347,9 @@ void Results::print_statistics(int socket, int core, int stim_len)
     double avg_cpu_per_dbl = this->avg_CPUPer(core);
     double stddev_cpu_per_dbl = this->stddev_CPUPer(core);
 
+    double avg_duration_dbl = this->avg_duration();
+    double stddev_duration_dbl = this->stddev_duration();
+
     double avg_duration_clock_dbl = this->avg_duration_clock();
     double stddev_duration_clock_dbl = this->stddev_duration_clock();
 
@@ -363,9 +366,11 @@ void Results::print_statistics(int socket, int core, int stim_len)
     // printf("High Res Clock - Sample Mean (ms): %f, Sample Std Dev: %f\n", avg_duration, std_dev_duration);
     printf("         Clock - Sample Mean (ms): %f, Sample Std Dev: %f\n", avg_duration_clock_dbl, stddev_duration_clock_dbl);
     printf("         Clock Normalized to Sample - Sample Mean (ns): %f, Sample Std Dev: %f\n", avg_duration_clock_dbl*1000000/stim_len, stddev_duration_clock_dbl*1000000/stim_len);
-
-    // printf("High Res Clock - Sample Mean (MS/s): %f\n", stim_len*1.0/(1000.0*avg_duration));
     printf("         Clock - Sample Mean (MS/s): %f\n", stim_len*1.0/(1000.0*avg_duration_clock_dbl));
+
+    printf("         High Resolution Timer - Sample Mean (ms): %f, Sample Std Dev: %f\n", avg_duration_dbl, stddev_duration_dbl);
+    printf("         High Resolution Timer Normalized to Sample - Sample Mean (ns): %f, Sample Std Dev: %f\n", avg_duration_dbl*1000000/stim_len, stddev_duration_dbl*1000000/stim_len);
+    printf("         High Resolution Timer - Sample Mean (MS/s): %f\n", stim_len*1.0/(1000.0*avg_duration_dbl));
 
     printf("         CPU Energy Mean (J): %f, Sample Std Dev: %f\n", avg_cpu_energy_dbl, stddev_cpu_energy_dbl);
     printf("         DRAM Energy Mean (J): %f, Sample Std Dev: %f\n", avg_dram_energy_dbl, stddev_dram_energy_dbl);
