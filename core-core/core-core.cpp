@@ -78,7 +78,130 @@
 #include "pcm_helper.h"
 
 #include "kernel_server_runner.h"
+
 #include "latency_single_kernel.h"
+#include "latency_dual_kernel.h"
+
+Results* run_latency_single_kernel(PCM* pcm, int cpu_a, int cpu_b)
+{
+    //=====Test 1=====
+    #if PRINT_TITLE == 1
+    printf("\n");
+    printf("Single Memory Location\n");
+    #endif
+
+    //Initialize
+    int32_t* shared_loc = new int32_t;
+
+    //Init to 0
+    *shared_loc = 0;
+
+    LatencySingleKernelArgs* arg_a = new LatencySingleKernelArgs();
+    arg_a->init_counter = -1; //(server)
+    arg_a->shared_ptr = shared_loc;
+
+    LatencySingleKernelArgs* arg_b = new LatencySingleKernelArgs();
+    arg_b->init_counter = 0; //(client)
+    arg_b->shared_ptr = shared_loc;
+
+    void* reset_arg = shared_loc; //Argument for reset function is shared location
+
+
+    Results* results = execute_kernel(pcm, latency_single_kernel, latency_single_kernel_reset, arg_a, arg_b, reset_arg, cpu_a, cpu_b);
+
+    #if PRINT_STATS == 1
+        #if USE_PCM == 1
+                std::vector<int> sockets;
+                int socket_a = pcm->getSocketId(cpu_a);
+                int socket_b = pcm->getSocketId(cpu_b);
+
+                sockets.push_back(socket_a);
+                if(socket_b != socket_a)
+                {
+                    sockets.push_back(socket_b);
+                }
+
+                std::vector<int> cores;
+                cores.push_back(cpu_a);
+                cores.push_back(cpu_b);
+        
+                results->print_statistics(sockets, cores, STIM_LEN);
+        #else
+                results->print_statistics(0, cpu_a, STIM_LEN);
+        #endif
+    #endif
+
+    //Clean Up
+    delete shared_loc;
+    delete arg_a;
+    delete arg_b;
+
+    return results;
+}
+
+Results* run_latency_dual_kernel(PCM* pcm, int cpu_a, int cpu_b)
+{
+#if PRINT_TITLE == 1
+    printf("\n");
+    printf("Dual Memory Locations\n");
+    #endif
+
+    //Initialize
+    int32_t* shared_loc_a = new int32_t;
+    int32_t* shared_loc_b = new int32_t;
+
+    //Init to 0
+    *shared_loc_a = 0;
+    *shared_loc_b = 0;
+
+    LatencyDualKernelArgs* arg_a = new LatencyDualKernelArgs();
+    arg_a->init_counter = -1; //(server)
+    arg_a->my_shared_ptr = shared_loc_a;
+    arg_a->other_shared_ptr = shared_loc_b;
+
+    LatencyDualKernelArgs* arg_b = new LatencyDualKernelArgs();
+    arg_b->init_counter = 0; //(client)
+    arg_b->my_shared_ptr = shared_loc_b; //Swapped from above
+    arg_b->other_shared_ptr = shared_loc_a;
+
+    LatencyDualKernelResetArgs* reset_arg = new LatencyDualKernelResetArgs();
+    reset_arg->shared_ptr_a = shared_loc_a;
+    reset_arg->shared_ptr_b = shared_loc_b;
+
+    Results* results = execute_kernel(pcm, latency_dual_kernel, latency_dual_kernel_reset, arg_a, arg_b, reset_arg, cpu_a, cpu_b);
+
+    #if PRINT_STATS == 1
+        #if USE_PCM == 1
+                std::vector<int> sockets;
+                int socket_a = pcm->getSocketId(cpu_a);
+                int socket_b = pcm->getSocketId(cpu_b);
+
+                sockets.push_back(socket_a);
+                if(socket_b != socket_a)
+                {
+                    sockets.push_back(socket_b);
+                }
+
+                std::vector<int> cores;
+                cores.push_back(cpu_a);
+                cores.push_back(cpu_b);
+        
+                results->print_statistics(sockets, cores, STIM_LEN);
+        #else
+                results->print_statistics(0, cpu_a, STIM_LEN);
+        #endif
+    #endif
+
+    //Clean Up
+    delete shared_loc_a;
+    delete shared_loc_b;
+    delete arg_a;
+    delete arg_b;
+    delete reset_arg;
+
+    return results;
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -126,7 +249,7 @@ int main(int argc, char *argv[])
 
         #if PRINT_TITLE == 1
 
-        printf("**************************************************\n");
+        printf("\n");
         int cpu_a_socket = pcm->getSocketId(cpu_a);
         int cpu_a_core = pcm->getCoreId(cpu_a);
         int cpu_a_tile = pcm->getTileId(cpu_a);
@@ -135,51 +258,22 @@ int main(int argc, char *argv[])
         int cpu_b_core = pcm->getCoreId(cpu_b);
         int cpu_b_tile = pcm->getTileId(cpu_b);
         printf("CPU B = Logical CPU#: %d, Socket #: %d, Physical Core #: %d, L2 Tile #: %d\n", cpu_b, cpu_b_socket, cpu_b_core, cpu_b_tile);
-        printf("**************************************************\n");
         #endif
 
     #endif
 
     //=====Test 1=====
-    #if PRINT_TITLE == 1
-    printf("\n");
-    printf("Single Memory Location\n");
-    #endif
+    Results* latency_single_kernel_results = run_latency_single_kernel(pcm, cpu_a, cpu_b);
 
-    //Initialize
-    int32_t* shared_loc = new int32_t;
+    //=====Test 1.1=====
+    Results* latency_dual_kernel_results = run_latency_dual_kernel(pcm, cpu_a, cpu_b);
+    
 
-    //Init to 0
-    *shared_loc = 0;
+    latency_single_kernel_results->delete_results();
+    delete latency_single_kernel_results;
 
-    LatencySingleKernelArgs* arg_a = new LatencySingleKernelArgs();
-    arg_a->init_counter = -1; //(server)
-    arg_a->shared_ptr = shared_loc;
-
-    LatencySingleKernelArgs* arg_b = new LatencySingleKernelArgs();
-    arg_b->init_counter = 0; //(client)
-    arg_b->shared_ptr = shared_loc;
-
-    void* reset_arg = shared_loc; //Argument for reset function is shared location
-
-
-    Results* results = execute_kernel(pcm, latency_single_kernel, latency_single_kernel_reset, arg_a, arg_b, reset_arg, cpu_a, cpu_b);
-
-    #if PRINT_STATS == 1
-        #if USE_PCM == 1
-                results->print_statistics(pcm->getSocketId(cpu_a), cpu_a, STIM_LEN);
-        #else
-                results->print_statistics(0, cpu_a, STIM_LEN);
-        #endif
-    #endif
-
-    //Clean Up
-    delete[](shared_loc);
-    free(arg_a);
-    free(arg_b);
-
-    results->delete_results();
-    free(results);
+    latency_dual_kernel_results->delete_results();
+    delete latency_dual_kernel_results;
 
     return 0;
 }
