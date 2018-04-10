@@ -209,7 +209,9 @@
             status = pthread_create(&thread_b, &attr_b, kernel_fun, arg_b);
             if(status != 0)
             {
-                printf("Could not create thread ... exiting\n");
+                printf("Could not create b thread ... exiting\n");
+                errno = status;
+                perror(NULL);
                 exit(1);
             }
 
@@ -230,7 +232,9 @@
             status = pthread_create(&thread_a, &attr_a, kernel_server_wrapper, server_args);
             if(status != 0)
             {
-                printf("Could not create thread ... exiting\n");
+                printf("Could not create a thread ... exiting\n");
+                errno = status;
+                perror(NULL);
                 exit(1);
             }
 
@@ -238,17 +242,19 @@
             status = pthread_join(thread_a, &res_a);
             if(status != 0)
             {
-                printf("Could not join thread ... exiting\n");
+                printf("Could not join a thread ... exiting\n");
+                errno = status;
+                perror(NULL);
                 exit(1);
             }
 
-            //Wait for client thread to finish
-            status = pthread_join(thread_b, &res_b);
-            if(status != 0)
-            {
-                printf("Could not join thread ... exiting\n");
-                exit(1);
-            }
+            // //Wait for client thread to finish
+            // status = pthread_join(thread_b, &res_b);
+            // if(status != 0)
+            // {
+            //     printf("Could not join thread ... exiting\n");
+            //     exit(1);
+            // }
 
             //Parse results
             if(res_a != NULL)
@@ -282,7 +288,7 @@
 
             //Delete temportary results
             free(res_a);
-            free(res_b);
+            // free(res_b);
         }
 
         return results;
