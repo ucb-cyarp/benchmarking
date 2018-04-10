@@ -359,24 +359,27 @@ void Results::print_statistics(int socket, int core, int stim_len)
     double avg_dram_energy_dbl = this->avg_EnergyDRAMUsed(socket);
     double stddev_dram_energy_dbl = this->stddev_EnergyDRAMUsed(socket);
 
-
-    printf("         CPU Period Mean (ns): %f, Sample Std Dev: %f\n", avg_cpu_per_dbl*1000000000, stddev_cpu_per_dbl*1000000000);
-    printf("         CPU Freq (MHz): %f\n", 1/avg_cpu_per_dbl/1000000);
+    printf("         ##### CPU Frequency #####\n");
+    printf("             CPU Period Mean (ns): %f, Sample Std Dev: %f\n", avg_cpu_per_dbl*1000000000, stddev_cpu_per_dbl*1000000000);
+    printf("             CPU Freq (MHz): %f\n", 1/avg_cpu_per_dbl/1000000);
 
     // printf("High Res Clock - Sample Mean (ms): %f, Sample Std Dev: %f\n", avg_duration, std_dev_duration);
-    printf("         Clock - Sample Mean (ms): %f, Sample Std Dev: %f\n", avg_duration_clock_dbl, stddev_duration_clock_dbl);
-    printf("         Clock Normalized to Sample - Sample Mean (ns): %f, Sample Std Dev: %f\n", avg_duration_clock_dbl*1000000/stim_len, stddev_duration_clock_dbl*1000000/stim_len);
-    printf("         Clock - Sample Mean (MS/s): %f\n", stim_len*1.0/(1000.0*avg_duration_clock_dbl));
 
-    printf("         High Resolution Timer - Sample Mean (ms): %f, Sample Std Dev: %f\n", avg_duration_dbl, stddev_duration_dbl);
-    printf("         High Resolution Timer Normalized to Sample - Sample Mean (ns): %f, Sample Std Dev: %f\n", avg_duration_dbl*1000000/stim_len, stddev_duration_dbl*1000000/stim_len);
-    printf("         High Resolution Timer - Sample Mean (MS/s): %f\n", stim_len*1.0/(1000.0*avg_duration_dbl));
+    printf("         ##### High Resolution Clock - Clock With Smallest Tick on System #####\n");
+    printf("             High Resolution Timer - Sample Mean (ms): %f, Sample Std Dev: %f\n", avg_duration_dbl, stddev_duration_dbl);
+    printf("             High Resolution Timer Normalized to Sample - Sample Mean (ns): %f, Sample Std Dev: %f\n", avg_duration_dbl*1000000/stim_len, stddev_duration_dbl*1000000/stim_len);
+    printf("             High Resolution Timer - Sample Mean (MS/s): %f\n", stim_len*1.0/(1000.0*avg_duration_dbl));
 
-    printf("         CPU Energy Mean (J): %f, Sample Std Dev: %f\n", avg_cpu_energy_dbl, stddev_cpu_energy_dbl);
-    printf("         DRAM Energy Mean (J): %f, Sample Std Dev: %f\n", avg_dram_energy_dbl, stddev_dram_energy_dbl);
+    printf("         ##### clock() Duration - Process CPU Time (May be Different from Wall Clock Time - Cumulative Time For All Threads) #####\n");
+    printf("             Clock - Sample Mean (ms): %f, Sample Std Dev: %f\n", avg_duration_clock_dbl, stddev_duration_clock_dbl);
+    printf("             *Clock Normalized to Sample - Sample Mean (ns): %f, Sample Std Dev: %f\n", avg_duration_clock_dbl*1000000/stim_len, stddev_duration_clock_dbl*1000000/stim_len);
+    printf("             *Clock - Sample Mean (MS/s): %f\n", stim_len*1.0/(1000.0*avg_duration_clock_dbl));
 
-    printf("         CPU Energy Mean - Normalized to Sample (nJ): %f, Sample Std Dev: %f\n", avg_cpu_energy_dbl*1000000000/stim_len, stddev_cpu_energy_dbl*1000000000/stim_len);
-    printf("         DRAM Energy Mean - Normalized to Sample (nJ): %f, Sample Std Dev: %f\n", avg_dram_energy_dbl*1000000000/stim_len, stddev_dram_energy_dbl*1000000000/stim_len);
+    printf("         ##### System Energy Use #####\n");
+    printf("             CPU Energy Mean (J): %f, Sample Std Dev: %f\n", avg_cpu_energy_dbl, stddev_cpu_energy_dbl);
+    printf("             DRAM Energy Mean (J): %f, Sample Std Dev: %f\n", avg_dram_energy_dbl, stddev_dram_energy_dbl);
+    printf("             CPU Energy Mean - Normalized to Sample (nJ): %f, Sample Std Dev: %f\n", avg_cpu_energy_dbl*1000000000/stim_len, stddev_cpu_energy_dbl*1000000000/stim_len);
+    printf("             DRAM Energy Mean - Normalized to Sample (nJ): %f, Sample Std Dev: %f\n", avg_dram_energy_dbl*1000000000/stim_len, stddev_dram_energy_dbl*1000000000/stim_len);
 }
 
 void Results::write_csv(std::ofstream &csv_file, int socket, int core)
