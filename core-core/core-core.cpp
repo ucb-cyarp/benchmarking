@@ -82,6 +82,27 @@
 #include "latency_single_kernel.h"
 #include "latency_dual_kernel.h"
 
+void print_results(Results* results, int bytes_per_transfer)
+{
+    double avg_duration_ms = results->avg_duration();
+    double stddev_duration_ms = results->stddev_duration();
+    double avg_latency_ns = avg_duration_ms*1000000/STIM_LEN;
+    double stddev_latency_ns = stddev_duration_ms*1000000/STIM_LEN;
+
+    double transactions_rate_msps = STIM_LEN/(1000.0*avg_duration_ms);
+
+    double data_rate_mbps = bytes_per_transfer*STIM_LEN*8/(1000.0*avg_duration_ms);
+
+    printf("        =======================================================\n");
+    printf("        Metric                   |     Avg      |    StdDev    \n");
+    printf("        =======================================================\n");
+    //printf("        Duration (ms)            |%14.6f|%14.6f\n", STIM_LEN, avg_duration_ms, stddev_duration_ms);
+    printf("        One Way Latency (ns)     |%14.6f|%14.6f\n", avg_latency_ns, stddev_latency_ns);
+    printf("        Transaction Rate (MT/s)  |%14.6f|\n", transactions_rate_msps);
+    printf("        Data Rate (Mbps)         |%14.6f|\n", data_rate_mbps);
+    printf("        =======================================================\n");
+}
+
 Results* run_latency_single_kernel(PCM* pcm, int cpu_a, int cpu_b)
 {
     //=====Test 1=====
@@ -126,8 +147,12 @@ Results* run_latency_single_kernel(PCM* pcm, int cpu_a, int cpu_b)
                 cores.push_back(cpu_b);
         
                 results->print_statistics(sockets, cores, STIM_LEN);
+
+                print_results(results, sizeof(*shared_loc));
+
         #else
                 results->print_statistics(0, cpu_a, STIM_LEN);
+                print_results(results, sizeof(*shared_loc));
         #endif
     #endif
 
@@ -187,8 +212,10 @@ Results* run_latency_dual_kernel(PCM* pcm, int cpu_a, int cpu_b)
                 cores.push_back(cpu_b);
         
                 results->print_statistics(sockets, cores, STIM_LEN);
+                print_results(results, sizeof(*shared_loc_a));
         #else
                 results->print_statistics(0, cpu_a, STIM_LEN);
+                print_results(results, sizeof(*shared_loc_a));
         #endif
     #endif
 
