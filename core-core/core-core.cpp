@@ -92,7 +92,7 @@ void print_results(Results* results, int bytes_per_transfer)
 
     double transactions_rate_msps = STIM_LEN/(1000.0*avg_duration_ms);
 
-    double data_rate_mbps = bytes_per_transfer*STIM_LEN*8/(1000.0*avg_duration_ms);
+    double data_rate_mbps = 8.0*bytes_per_transfer*STIM_LEN/(1000.0*avg_duration_ms);
 
     printf("        =======================================================\n");
     printf("        Metric                   |     Avg      |    StdDev    \n");
@@ -236,7 +236,7 @@ Results* run_latency_single_array_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t 
     #if PRINT_TITLE == 1
     printf("\n");
     printf("Single Memory Location - Array\n");
-    printf("Array Length: %d int32_t Elements\n", array_length);
+    printf("Array Length: %lu int32_t Elements\n", array_length);
     #endif
 
     //Initialize
@@ -259,7 +259,7 @@ Results* run_latency_single_array_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t 
     reset_arg->shared_ptr = shared_loc;
     reset_arg->length = array_length;
 
-    Results* results = execute_kernel(pcm, latency_single_kernel, latency_single_kernel_reset, arg_a, arg_b, reset_arg, cpu_a, cpu_b);
+    Results* results = execute_kernel(pcm, latency_single_array_kernel, latency_single_array_kernel_reset, arg_a, arg_b, reset_arg, cpu_a, cpu_b);
 
     #if PRINT_STATS == 1
         #if USE_PCM == 1
@@ -358,19 +358,28 @@ int main(int argc, char *argv[])
 
     //=====Test 1=====
     Results* latency_single_kernel_results = run_latency_single_kernel(pcm, cpu_a, cpu_b);
-
-    //=====Test 1.1=====
-    Results* latency_dual_kernel_results = run_latency_dual_kernel(pcm, cpu_a, cpu_b);
-
-    //=====Test 2=====
-    Results* latency_single_array_kernel_results = run_latency_single_array_kernel(pcm, cpu_a, cpu_b, 4);
-
     latency_single_kernel_results->delete_results();
     delete latency_single_kernel_results;
 
+    //=====Test 1.1=====
+    Results* latency_dual_kernel_results = run_latency_dual_kernel(pcm, cpu_a, cpu_b);
     latency_dual_kernel_results->delete_results();
     delete latency_dual_kernel_results;
 
+    //=====Test 2=====
+    Results* latency_single_array_kernel_results = run_latency_single_array_kernel(pcm, cpu_a, cpu_b, 1);
+    latency_single_array_kernel_results->delete_results();
+    delete latency_single_array_kernel_results;
+
+    latency_single_array_kernel_results = run_latency_single_array_kernel(pcm, cpu_a, cpu_b, 2);
+    latency_single_array_kernel_results->delete_results();
+    delete latency_single_array_kernel_results;
+
+    latency_single_array_kernel_results = run_latency_single_array_kernel(pcm, cpu_a, cpu_b, 4);
+    latency_single_array_kernel_results->delete_results();
+    delete latency_single_array_kernel_results;
+
+    latency_single_array_kernel_results = run_latency_single_array_kernel(pcm, cpu_a, cpu_b, 8);
     latency_single_array_kernel_results->delete_results();
     delete latency_single_array_kernel_results;
 
