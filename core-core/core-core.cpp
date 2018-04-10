@@ -108,6 +108,20 @@ void print_results(Results* results, int bytes_per_transfer)
     printf("        =======================================================\n");
 }
 
+void print_results(Results* results, int bytes_per_transfer, int length, std::string format)
+{
+    double avg_duration_ms = results->avg_duration();
+    double stddev_duration_ms = results->stddev_duration();
+    double avg_latency_ns = avg_duration_ms*1000000/STIM_LEN;
+    double stddev_latency_ns = stddev_duration_ms*1000000/STIM_LEN;
+
+    double transactions_rate_msps = STIM_LEN/(1000.0*avg_duration_ms);
+
+    double data_rate_mbps = 8.0*bytes_per_transfer*STIM_LEN/(1000.0*avg_duration_ms);
+
+    printf(format.c_str(), length, avg_latency_ns, stddev_latency_ns, transactions_rate_msps, data_rate_mbps);
+}
+
 Results* run_latency_single_kernel(PCM* pcm, int cpu_a, int cpu_b)
 {
     //=====Test 1=====
@@ -250,13 +264,16 @@ Results* run_latency_dual_kernel(PCM* pcm, int cpu_a, int cpu_b)
     return results;
 }
 
-Results* run_latency_single_array_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t array_length)
+Results* run_latency_single_array_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t array_length, bool report_standalone=true, std::string format = "")
 {
     //=====Test 1=====
     #if PRINT_TITLE == 1
-    printf("\n");
-    printf("Single Memory Location - Array\n");
-    printf("Array Length: %lu int32_t Elements\n", array_length);
+    if(report_standalone)
+    {
+        printf("\n");
+        printf("Single Memory Location - Array\n");
+        printf("Array Length: %lu int32_t Elements\n", array_length);
+    }
     #endif
 
     //Initialize
@@ -282,36 +299,43 @@ Results* run_latency_single_array_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t 
     Results* results = execute_kernel(pcm, latency_single_array_kernel, latency_single_array_kernel_reset, arg_a, arg_b, reset_arg, cpu_a, cpu_b);
 
     #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1
-        #if USE_PCM == 1
-                std::vector<int> sockets;
-                int socket_a = pcm->getSocketId(cpu_a);
-                int socket_b = pcm->getSocketId(cpu_b);
+        if(report_standalone)
+        {
+            #if USE_PCM == 1
+                    std::vector<int> sockets;
+                    int socket_a = pcm->getSocketId(cpu_a);
+                    int socket_b = pcm->getSocketId(cpu_b);
 
-                sockets.push_back(socket_a);
-                if(socket_b != socket_a)
-                {
-                    sockets.push_back(socket_b);
-                }
+                    sockets.push_back(socket_a);
+                    if(socket_b != socket_a)
+                    {
+                        sockets.push_back(socket_b);
+                    }
 
-                std::vector<int> cores;
-                cores.push_back(cpu_a);
-                cores.push_back(cpu_b);
-        
-                #if PRINT_FULL_STATS == 1
-                    results->print_statistics(sockets, cores, STIM_LEN);
-                #endif
+                    std::vector<int> cores;
+                    cores.push_back(cpu_a);
+                    cores.push_back(cpu_b);
+            
+                    #if PRINT_FULL_STATS == 1
+                        results->print_statistics(sockets, cores, STIM_LEN);
+                    #endif
 
-                #if PRINT_STATS == 1
-                print_results(results, sizeof(*shared_loc)*array_length);
-                #endif
+                    #if PRINT_STATS == 1
+                    print_results(results, sizeof(*shared_loc)*array_length);
+                    #endif
 
-        #else
-                #if PRINT_FULL_STATS
-                results->print_statistics(0, cpu_a, STIM_LEN);
-                #endif
+            #else
+                    #if PRINT_FULL_STATS
+                    results->print_statistics(0, cpu_a, STIM_LEN);
+                    #endif
 
-                print_results(results, sizeof(*shared_loc)*array_length);
-        #endif
+                    print_results(results, sizeof(*shared_loc)*array_length);
+            #endif
+        }
+        else
+        {
+            print_results(results, sizeof(*shared_loc)*array_length, array_length, format);
+        }
     #endif
 
     //Clean Up
@@ -323,6 +347,29 @@ Results* run_latency_single_array_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t 
     return results;
 }
 
+void run_latency_single_array_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<size_t> array_lengths)
+{
+    //Print header
+    printf("Single Memory Location - Array\n");
+    printf("        ==========================================================================================\n");
+    printf("          Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
+    printf("        (int32_t Elements) |       Avg, StdDev        |                         |                 \n");
+    printf("        ==========================================================================================\n");
+
+    std::string format = "        %18d | %11.6f, %11.6f | %23.6f | %15.6f \n";
+
+    for(int i = 0; i<array_lengths.size(); i++)
+    {
+        size_t array_length = array_lengths[i];
+        Results* latency_single_array_kernel_results = run_latency_single_array_kernel(pcm, cpu_a, cpu_b, array_length, false, format);
+
+        //Cleanup
+        latency_single_array_kernel_results->delete_results();
+        delete latency_single_array_kernel_results;
+    }
+
+    printf("        ==========================================================================================\n");
+}
 
 int main(int argc, char *argv[])
 {
@@ -393,22 +440,20 @@ int main(int argc, char *argv[])
     latency_dual_kernel_results->delete_results();
     delete latency_dual_kernel_results;
 
+    printf("\n");
+
     //=====Test 2=====
-    Results* latency_single_array_kernel_results = run_latency_single_array_kernel(pcm, cpu_a, cpu_b, 1);
-    latency_single_array_kernel_results->delete_results();
-    delete latency_single_array_kernel_results;
+    //std::vector<size_t> array_sizes = {1, 2, 4, 8, 16, 32, 64};
+    std::vector<size_t> array_sizes;
+    size_t start = 1;
+    size_t stop = 65;
 
-    latency_single_array_kernel_results = run_latency_single_array_kernel(pcm, cpu_a, cpu_b, 2);
-    latency_single_array_kernel_results->delete_results();
-    delete latency_single_array_kernel_results;
+    for(int i = start; i < stop; i++)
+    {
+        array_sizes.push_back(i);
+    }
 
-    latency_single_array_kernel_results = run_latency_single_array_kernel(pcm, cpu_a, cpu_b, 4);
-    latency_single_array_kernel_results->delete_results();
-    delete latency_single_array_kernel_results;
-
-    latency_single_array_kernel_results = run_latency_single_array_kernel(pcm, cpu_a, cpu_b, 8);
-    latency_single_array_kernel_results->delete_results();
-    delete latency_single_array_kernel_results;
+    run_latency_single_array_kernel(pcm, cpu_a, cpu_b, array_sizes);
 
     return 0;
 }
