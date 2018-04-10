@@ -2,19 +2,6 @@
     #define _H_LATENCY_SINGLE_KERNEL
     #include "cpucounters.h"
 
-    // class LatencySingleKernelServerArgs
-    // {
-    //     public:
-    //         PCM* pcm;
-    //         int32_t* shared_ptr;
-    // };
-
-    // class LatencySingleKernelClientArgs
-    // {
-    //     public:
-    //         int32_t* shared_ptr;
-    // };
-
     class LatencySingleKernelArgs
     {
         public:
