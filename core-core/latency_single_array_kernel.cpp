@@ -61,8 +61,7 @@ void* latency_single_array_kernel(void* arg)
             {
                 //Checked the last element in the array
                 //Can increment the counter now
-                counter = *shared_ptr+1;
-                *shared_ptr = counter;
+                counter = shared_ptr[index-1]+1;
 
                 //Increment the entire array
                 for(size_t i = 0; i<length; i++)
@@ -76,13 +75,6 @@ void* latency_single_array_kernel(void* arg)
         }
 
         //Poll on the memory location until the above condition is met or the counter exceeds STIM_LEN
-    }
-
-    //Execute 1 more time to prevent other thread waiting forever
-    if(*shared_ptr > counter)
-    {
-        counter = *shared_ptr+1;
-        *shared_ptr = counter;
     }
 
     return NULL;
