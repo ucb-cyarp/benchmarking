@@ -83,6 +83,10 @@
 #include "latency_dual_kernel.h"
 #include "latency_single_array_kernel.h"
 
+#ifndef PRINT_FULL_STATS
+    #define PRINT_FULL_STATS 0
+#endif
+
 void print_results(Results* results, int bytes_per_transfer)
 {
     double avg_duration_ms = results->avg_duration();
@@ -131,7 +135,7 @@ Results* run_latency_single_kernel(PCM* pcm, int cpu_a, int cpu_b)
 
     Results* results = execute_kernel(pcm, latency_single_kernel, latency_single_kernel_reset, arg_a, arg_b, reset_arg, cpu_a, cpu_b);
 
-    #if PRINT_STATS == 1
+    #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1
         #if USE_PCM == 1
                 std::vector<int> sockets;
                 int socket_a = pcm->getSocketId(cpu_a);
@@ -147,12 +151,19 @@ Results* run_latency_single_kernel(PCM* pcm, int cpu_a, int cpu_b)
                 cores.push_back(cpu_a);
                 cores.push_back(cpu_b);
         
-                results->print_statistics(sockets, cores, STIM_LEN);
+                #if PRINT_FULL_STATS == 1
+                    results->print_statistics(sockets, cores, STIM_LEN);
+                #endif
 
+                #if PRINT_STATS == 1
                 print_results(results, sizeof(*shared_loc));
+                #endif
 
         #else
+                #if PRINT_FULL_STATS
                 results->print_statistics(0, cpu_a, STIM_LEN);
+                #endif
+
                 print_results(results, sizeof(*shared_loc));
         #endif
     #endif
@@ -196,7 +207,7 @@ Results* run_latency_dual_kernel(PCM* pcm, int cpu_a, int cpu_b)
 
     Results* results = execute_kernel(pcm, latency_dual_kernel, latency_dual_kernel_reset, arg_a, arg_b, reset_arg, cpu_a, cpu_b);
 
-    #if PRINT_STATS == 1
+    #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1
         #if USE_PCM == 1
                 std::vector<int> sockets;
                 int socket_a = pcm->getSocketId(cpu_a);
@@ -212,10 +223,19 @@ Results* run_latency_dual_kernel(PCM* pcm, int cpu_a, int cpu_b)
                 cores.push_back(cpu_a);
                 cores.push_back(cpu_b);
         
-                results->print_statistics(sockets, cores, STIM_LEN);
+                #if PRINT_FULL_STATS == 1
+                    results->print_statistics(sockets, cores, STIM_LEN);
+                #endif
+
+                #if PRINT_STATS == 1
                 print_results(results, sizeof(*shared_loc_a));
+                #endif
+
         #else
+                #if PRINT_FULL_STATS
                 results->print_statistics(0, cpu_a, STIM_LEN);
+                #endif
+
                 print_results(results, sizeof(*shared_loc_a));
         #endif
     #endif
@@ -261,7 +281,7 @@ Results* run_latency_single_array_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t 
 
     Results* results = execute_kernel(pcm, latency_single_array_kernel, latency_single_array_kernel_reset, arg_a, arg_b, reset_arg, cpu_a, cpu_b);
 
-    #if PRINT_STATS == 1
+    #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1
         #if USE_PCM == 1
                 std::vector<int> sockets;
                 int socket_a = pcm->getSocketId(cpu_a);
@@ -277,13 +297,20 @@ Results* run_latency_single_array_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t 
                 cores.push_back(cpu_a);
                 cores.push_back(cpu_b);
         
-                results->print_statistics(sockets, cores, STIM_LEN);
+                #if PRINT_FULL_STATS == 1
+                    results->print_statistics(sockets, cores, STIM_LEN);
+                #endif
 
+                #if PRINT_STATS == 1
                 print_results(results, sizeof(*shared_loc)*array_length);
+                #endif
 
         #else
+                #if PRINT_FULL_STATS
                 results->print_statistics(0, cpu_a, STIM_LEN);
-                print_results(results, sizeof(*shared_loc));
+                #endif
+
+                print_results(results, sizeof(*shared_loc)*array_length);
         #endif
     #endif
 
