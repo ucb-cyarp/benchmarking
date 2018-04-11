@@ -75,6 +75,8 @@
             void print_statistics(int socket, int core, int stim_len);
             void print_statistics(std::vector<int> socket, std::vector<int> cores, int stim_len);
             void write_csv(std::ofstream &csv_file, int socket, int core);
+            void write_csv(std::ofstream &csv_file, int socket, int core, std::string col0_name, int col0_val);
+            void write_durations(std::ofstream &csv_file, std::string col0_name, int col0_val, bool include_header);
 
             void delete_results();
     };
