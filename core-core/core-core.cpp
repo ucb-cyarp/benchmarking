@@ -88,6 +88,10 @@
     #define PRINT_FULL_STATS 0
 #endif
 
+#ifndef WRITE_CSV
+    #define WRITE_CSV 1
+#endif
+
 void print_results(Results* results, int bytes_per_transfer)
 {
     double avg_duration_ms = results->avg_duration();
@@ -109,7 +113,7 @@ void print_results(Results* results, int bytes_per_transfer)
     printf("        =======================================================\n");
 }
 
-void print_results(Results* results, int bytes_per_transfer, int length, std::string format)
+void print_results(Results* results, int bytes_per_transfer, int length, std::string format, FILE* file=NULL)
 {
     double avg_duration_ms = results->avg_duration();
     double stddev_duration_ms = results->stddev_duration();
@@ -120,7 +124,13 @@ void print_results(Results* results, int bytes_per_transfer, int length, std::st
 
     double data_rate_mbps = 8.0*bytes_per_transfer*STIM_LEN/(1000.0*avg_duration_ms);
 
+    #if PRINT_STATS == 1
     printf(format.c_str(), length, avg_latency_ns, stddev_latency_ns, transactions_rate_msps, data_rate_mbps);
+    #endif
+
+    #if WRITE_CSV == 1
+    fprintf(file, "%d, %f, %f, %f, %f\n", length, avg_latency_ns, stddev_latency_ns, transactions_rate_msps, data_rate_mbps);
+    #endif
 }
 
 Results* run_latency_single_kernel(PCM* pcm, int cpu_a, int cpu_b)
@@ -265,7 +275,7 @@ Results* run_latency_dual_kernel(PCM* pcm, int cpu_a, int cpu_b)
     return results;
 }
 
-Results* run_latency_single_array_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t array_length, bool report_standalone=true, std::string format = "")
+Results* run_latency_single_array_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file=NULL)
 {
     //=====Test 2=====
     #if PRINT_TITLE == 1
@@ -302,7 +312,7 @@ Results* run_latency_single_array_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t 
 
     Results* results = execute_kernel(pcm, latency_single_array_kernel, latency_single_array_kernel_reset, arg_a, arg_b, reset_arg, cpu_a, cpu_b);
 
-    #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1
+    #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
         if(report_standalone)
         {
             #if USE_PCM == 1
@@ -338,7 +348,7 @@ Results* run_latency_single_array_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t 
         }
         else
         {
-            print_results(results, sizeof(*shared_loc)*array_length, array_length, format);
+            print_results(results, sizeof(*shared_loc)*array_length, array_length, format, file);
         }
     #endif
 
@@ -351,7 +361,7 @@ Results* run_latency_single_array_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t 
     return results;
 }
 
-void run_latency_single_array_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<size_t> array_lengths)
+void run_latency_single_array_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, FILE* file=NULL)
 {
     //Print header
     printf("Single Memory Location - Array\n");
@@ -360,12 +370,21 @@ void run_latency_single_array_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector
     printf("        (int32_t Elements) |       Avg, StdDev        |                         |                 \n");
     printf("        ==========================================================================================\n");
 
+    #if WRITE_CSV == 1
+    fprintf(file, "\"Transfer Length (int32_t Elements)\", \"One Way Latency (ns) - Avg\", \"One Way Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
+    fflush(file);
+    #endif
+
     std::string format = "        %18d | %11.6f, %11.6f | %23.6f | %15.6f \n";
 
     for(int i = 0; i<array_lengths.size(); i++)
     {
         size_t array_length = array_lengths[i];
-        Results* latency_single_array_kernel_results = run_latency_single_array_kernel(pcm, cpu_a, cpu_b, array_length, false, format);
+        Results* latency_single_array_kernel_results = run_latency_single_array_kernel(pcm, cpu_a, cpu_b, array_length, false, format, file);
+
+        #if WRITE_CSV == 1
+        fflush(file);
+        #endif
 
         //Cleanup
         latency_single_array_kernel_results->delete_results();
@@ -375,7 +394,7 @@ void run_latency_single_array_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector
     printf("        ==========================================================================================\n");
 }
 
-Results* run_latency_dual_array_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t array_length, bool report_standalone=true, std::string format = "")
+Results* run_latency_dual_array_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file = NULL)
 {
     //=====Test 2=====
     #if PRINT_TITLE == 1
@@ -417,7 +436,7 @@ Results* run_latency_dual_array_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t ar
 
     Results* results = execute_kernel(pcm, latency_dual_array_kernel, latency_dual_array_kernel_reset, arg_a, arg_b, reset_arg, cpu_a, cpu_b);
 
-    #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1
+    #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
         if(report_standalone)
         {
             #if USE_PCM == 1
@@ -453,7 +472,7 @@ Results* run_latency_dual_array_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t ar
         }
         else
         {
-            print_results(results, sizeof(*shared_loc_a)*array_length, array_length, format);
+            print_results(results, sizeof(*shared_loc_a)*array_length, array_length, format, file);
         }
     #endif
 
@@ -467,7 +486,7 @@ Results* run_latency_dual_array_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t ar
     return results;
 }
 
-void run_latency_dual_array_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<size_t> array_lengths)
+void run_latency_dual_array_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, FILE* file = NULL)
 {
     //Print header
     printf("Dual Memory Location - Array\n");
@@ -476,12 +495,21 @@ void run_latency_dual_array_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<s
     printf("        (int32_t Elements) |       Avg, StdDev        |                         |                 \n");
     printf("        ==========================================================================================\n");
 
+    #if WRITE_CSV == 1
+    fprintf(file, "\"Transfer Length (int32_t Elements)\", \"One Way Latency (ns) - Avg\", \"One Way Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
+    fflush(file);
+    #endif
+
     std::string format = "        %18d | %11.6f, %11.6f | %23.6f | %15.6f \n";
 
     for(int i = 0; i<array_lengths.size(); i++)
     {
         size_t array_length = array_lengths[i];
-        Results* latency_dual_array_kernel_results = run_latency_dual_array_kernel(pcm, cpu_a, cpu_b, array_length, false, format);
+        Results* latency_dual_array_kernel_results = run_latency_dual_array_kernel(pcm, cpu_a, cpu_b, array_length, false, format, file);
+
+        #if WRITE_CSV == 1
+        fflush(file);
+        #endif
 
         //Cleanup
         latency_dual_array_kernel_results->delete_results();
@@ -573,11 +601,25 @@ int main(int argc, char *argv[])
 
     printf("\n");
 
-    run_latency_single_array_kernel(pcm, cpu_a, cpu_b, array_sizes);
+    FILE* single_array_csv_file = NULL;
+    #if WRITE_CSV == 1
+    single_array_csv_file = fopen("report_single_array.csv", "w");
+    #endif
+
+    run_latency_single_array_kernel(pcm, cpu_a, cpu_b, array_sizes, single_array_csv_file);
+    
+    fclose(single_array_csv_file);
 
     printf("\n");
 
-    run_latency_dual_array_kernel(pcm, cpu_a, cpu_b, array_sizes);
+    FILE* dual_array_csv_file = NULL;
+    #if WRITE_CSV == 1
+    dual_array_csv_file = fopen("report_dual_array.csv", "w");
+    #endif
+
+    run_latency_dual_array_kernel(pcm, cpu_a, cpu_b, array_sizes, dual_array_csv_file);
+
+    fclose(dual_array_csv_file);
 
     return 0;
 }
