@@ -294,4 +294,156 @@
         return results;
     }
 
+    Results* execute_client_server_kernel(PCM* pcm, void* (*kernel_server)(void*), void* (*kernel_client)(void*), void* (*kernel_reset)(void*), void* arg_server, void* arg_client, void* reset_arg, int cpu_a, int cpu_b)
+    {
+        #if USE_PCM == 1
+            int sockets = pcm->getNumSockets();
+            int cores = pcm->getNumCores();
+        #else
+            int sockets = 1;
+            int cores = 1;
+        #endif
+
+        Results* results = new Results(sockets, cores);
+
+        int trial = 0;
+        int discard_count=0;
+        while(trial<TRIALS)
+        {
+            //Reset before creating threads (and before timer started)
+            kernel_reset(reset_arg);
+
+            //=====Create a thread for the server and client on the specified cores=====
+
+            cpu_set_t cpuset_a, cpuset_b;
+            pthread_t thread_a, thread_b;
+            pthread_attr_t attr_a, attr_b;
+            void *res_a, *res_b;
+
+            int status;
+
+            //Create pthread attributes
+            status = pthread_attr_init(&attr_a);
+            if(status != 0)
+            {
+                printf("Could not create pthread attributes ... exiting\n");
+                exit(1);
+            }
+
+            status = pthread_attr_init(&attr_b);
+            if(status != 0)
+            {
+                printf("Could not create pthread attributes ... exiting\n");
+                exit(1);
+            }
+
+            //Set CPU affinity
+            CPU_ZERO(&cpuset_a);
+            CPU_SET(cpu_a, &cpuset_a);
+            status = pthread_attr_setaffinity_np(&attr_a, sizeof(cpu_set_t), &cpuset_a);
+            if(status != 0)
+            {
+                printf("Could not set thread core affinity ... exiting\n");
+                exit(1);
+            }
+
+            CPU_ZERO(&cpuset_b);
+            CPU_SET(cpu_b, &cpuset_b);
+            status = pthread_attr_setaffinity_np(&attr_b, sizeof(cpu_set_t), &cpuset_b);
+            if(status != 0)
+            {
+                printf("Could not set thread core affinity ... exiting\n");
+                exit(1);
+            }
+
+            //Create threads.  Create thread b (client) before thread a (server) which performs measurments
+            // - Start Thread B
+            status = pthread_create(&thread_b, &attr_b, kernel_client, arg_client);
+            if(status != 0)
+            {
+                printf("Could not create b thread ... exiting\n");
+                errno = status;
+                perror(NULL);
+                exit(1);
+            }
+
+            // status = pthread_detach(thread_b);
+            // if(status != 0)
+            // {
+            //     printf("Could not detach thread ... exiting\n");
+            //     exit(1);
+            // }
+
+            // - Start Thread A
+            KernelServerWrapperArgs* server_args = new KernelServerWrapperArgs();
+            server_args->pcm = pcm;
+            server_args->kernel_fun = kernel_server;
+            server_args->kernel_arg = arg_server;
+            server_args->cpu_num = cpu_a;
+
+            status = pthread_create(&thread_a, &attr_a, kernel_server_wrapper, server_args);
+            if(status != 0)
+            {
+                printf("Could not create a thread ... exiting\n");
+                errno = status;
+                perror(NULL);
+                exit(1);
+            }
+
+            //Wait for server thread (measuring thread) to finish
+            status = pthread_join(thread_a, &res_a);
+            if(status != 0)
+            {
+                printf("Could not join a thread ... exiting\n");
+                errno = status;
+                perror(NULL);
+                exit(1);
+            }
+
+            // //Wait for client thread to finish
+            // status = pthread_join(thread_b, &res_b);
+            // if(status != 0)
+            // {
+            //     printf("Could not join thread ... exiting\n");
+            //     exit(1);
+            // }
+
+            //Parse results
+            if(res_a != NULL)
+            {
+                //Decode the results from the server thread
+                Results* result_obj = (Results*) res_a;
+
+                //Copy trial into results
+                for(size_t i = 0; i<result_obj->trial_results.size(); i++)
+                {
+                    results->add_trial((result_obj->trial_results)[i]);
+                }
+
+                trial++;
+            }
+            else
+            {
+                discard_count++;
+                #if PRINT_FREQ_CHANGE_EVENT == 1
+                    printf("Frequency Change Event Occured Durring Kernel Run ... Discarding Run\n");
+                #endif
+
+                if(discard_count >= MAX_DISCARD-1)
+                {
+                    #if PRINT_FREQ_CHANGE_EVENT == 1
+                        printf("Max Discards Reached ... Exiting\n");
+                    #endif
+                    exit(1);
+                }
+            }
+
+            //Delete temportary results
+            free(res_a);
+            // free(res_b);
+        }
+
+        return results;
+    }
+
 #endif

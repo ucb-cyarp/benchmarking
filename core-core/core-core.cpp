@@ -83,6 +83,7 @@
 #include "latency_dual_kernel.h"
 #include "latency_single_array_kernel.h"
 #include "latency_dual_array_kernel.h"
+#include "latency_fifo_kernel.h"
 
 #ifndef PRINT_FULL_STATS
     #define PRINT_FULL_STATS 0
@@ -92,37 +93,37 @@
     #define WRITE_CSV 1
 #endif
 
-void print_results(Results* results, int bytes_per_transfer)
+void print_results(Results* results, int bytes_per_transfer, int stim_len)
 {
     double avg_duration_ms = results->avg_duration();
     double stddev_duration_ms = results->stddev_duration();
-    double avg_latency_ns = avg_duration_ms*1000000/STIM_LEN;
-    double stddev_latency_ns = stddev_duration_ms*1000000/STIM_LEN;
+    double avg_latency_ns = avg_duration_ms*1000000/stim_len;
+    double stddev_latency_ns = stddev_duration_ms*1000000/stim_len;
 
-    double transactions_rate_msps = STIM_LEN/(1000.0*avg_duration_ms);
+    double transactions_rate_msps = stim_len/(1000.0*avg_duration_ms);
 
-    double data_rate_mbps = 8.0*bytes_per_transfer*STIM_LEN/(1000.0*avg_duration_ms);
+    double data_rate_mbps = 8.0*bytes_per_transfer*stim_len/(1000.0*avg_duration_ms);
 
     printf("        =======================================================\n");
     printf("        Metric                   |     Avg      |    StdDev    \n");
     printf("        =======================================================\n");
-    //printf("        Duration (ms)            |%14.6f|%14.6f\n", STIM_LEN, avg_duration_ms, stddev_duration_ms);
+    //printf("        Duration (ms)            |%14.6f|%14.6f\n", stim_len, avg_duration_ms, stddev_duration_ms);
     printf("        One Way Latency (ns)     |%14.6f|%14.6f\n", avg_latency_ns, stddev_latency_ns);
     printf("        Transaction Rate (MT/s)  |%14.6f|\n", transactions_rate_msps);
     printf("        Data Rate (Mbps)         |%14.6f|\n", data_rate_mbps);
     printf("        =======================================================\n");
 }
 
-void print_results(Results* results, int bytes_per_transfer, int length, std::string format, FILE* file=NULL)
+void print_results(Results* results, int bytes_per_transfer, int stim_len, int length, std::string format, FILE* file=NULL)
 {
     double avg_duration_ms = results->avg_duration();
     double stddev_duration_ms = results->stddev_duration();
-    double avg_latency_ns = avg_duration_ms*1000000/STIM_LEN;
-    double stddev_latency_ns = stddev_duration_ms*1000000/STIM_LEN;
+    double avg_latency_ns = avg_duration_ms*1000000/stim_len;
+    double stddev_latency_ns = stddev_duration_ms*1000000/stim_len;
 
-    double transactions_rate_msps = STIM_LEN/(1000.0*avg_duration_ms);
+    double transactions_rate_msps = stim_len/(1000.0*avg_duration_ms);
 
-    double data_rate_mbps = 8.0*bytes_per_transfer*STIM_LEN/(1000.0*avg_duration_ms);
+    double data_rate_mbps = 8.0*bytes_per_transfer*stim_len/(1000.0*avg_duration_ms);
 
     #if PRINT_STATS == 1
     printf(format.c_str(), length, avg_latency_ns, stddev_latency_ns, transactions_rate_msps, data_rate_mbps);
@@ -181,7 +182,7 @@ Results* run_latency_single_kernel(PCM* pcm, int cpu_a, int cpu_b)
                 #endif
 
                 #if PRINT_STATS == 1
-                print_results(results, sizeof(*shared_loc));
+                print_results(results, sizeof(*shared_loc), STIM_LEN);
                 #endif
 
         #else
@@ -189,7 +190,7 @@ Results* run_latency_single_kernel(PCM* pcm, int cpu_a, int cpu_b)
                 results->print_statistics(0, cpu_a, STIM_LEN);
                 #endif
 
-                print_results(results, sizeof(*shared_loc));
+                print_results(results, sizeof(*shared_loc), STIM_LEN);
         #endif
     #endif
 
@@ -253,7 +254,7 @@ Results* run_latency_dual_kernel(PCM* pcm, int cpu_a, int cpu_b)
                 #endif
 
                 #if PRINT_STATS == 1
-                print_results(results, sizeof(*shared_loc_a));
+                print_results(results, sizeof(*shared_loc_a), STIM_LEN);
                 #endif
 
         #else
@@ -261,7 +262,7 @@ Results* run_latency_dual_kernel(PCM* pcm, int cpu_a, int cpu_b)
                 results->print_statistics(0, cpu_a, STIM_LEN);
                 #endif
 
-                print_results(results, sizeof(*shared_loc_a));
+                print_results(results, sizeof(*shared_loc_a), STIM_LEN);
         #endif
     #endif
 
@@ -335,7 +336,7 @@ Results* run_latency_single_array_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t 
                     #endif
 
                     #if PRINT_STATS == 1
-                    print_results(results, sizeof(*shared_loc)*array_length);
+                    print_results(results, sizeof(*shared_loc)*array_length, STIM_LEN);
                     #endif
 
             #else
@@ -343,12 +344,12 @@ Results* run_latency_single_array_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t 
                     results->print_statistics(0, cpu_a, STIM_LEN);
                     #endif
 
-                    print_results(results, sizeof(*shared_loc)*array_length);
+                    print_results(results, sizeof(*shared_loc)*array_length, STIM_LEN);
             #endif
         }
         else
         {
-            print_results(results, sizeof(*shared_loc)*array_length, array_length, format, file);
+            print_results(results, sizeof(*shared_loc)*array_length, STIM_LEN, array_length, format, file);
         }
     #endif
 
@@ -459,7 +460,7 @@ Results* run_latency_dual_array_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t ar
                     #endif
 
                     #if PRINT_STATS == 1
-                    print_results(results, sizeof(*shared_loc_a)*array_length);
+                    print_results(results, sizeof(*shared_loc_a)*array_length, STIM_LEN);
                     #endif
 
             #else
@@ -467,12 +468,12 @@ Results* run_latency_dual_array_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t ar
                     results->print_statistics(0, cpu_a, STIM_LEN);
                     #endif
 
-                    print_results(results, sizeof(*shared_loc)*array_length);
+                    print_results(results, sizeof(*shared_loc)*array_length, STIM_LEN);
             #endif
         }
         else
         {
-            print_results(results, sizeof(*shared_loc_a)*array_length, array_length, format, file);
+            print_results(results, sizeof(*shared_loc_a)*array_length, STIM_LEN, array_length, format, file);
         }
     #endif
 
@@ -514,6 +515,115 @@ void run_latency_dual_array_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<s
         //Cleanup
         latency_dual_array_kernel_results->delete_results();
         delete latency_dual_array_kernel_results;
+    }
+
+    printf("        ==========================================================================================\n");
+}
+
+Results* run_latency_fifo_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file=NULL)
+{
+    #if PRINT_TITLE == 1
+    if(report_standalone)
+    {
+        printf("\n");
+        printf("FIFO - Array\n");
+        printf("Array Length: %lu int32_t Elements\n", array_length);
+    }
+    #endif
+
+    //Initialize
+    int32_t* shared_array_loc = new int32_t[array_length];
+    int32_t* shared_ack_loc = new int32_t;
+
+    //Init to 0
+    for(size_t i = 0; i < array_length; i++)
+    {
+        shared_array_loc[i] = 0;
+    }
+
+    LatencyFIFOKernelArgs* args = new LatencyFIFOKernelArgs();
+    args->array_shared_ptr = shared_array_loc;
+    args->ack_shared_ptr = shared_ack_loc;
+    args->length = array_length;
+
+    Results* results = execute_client_server_kernel(pcm, latency_fifo_server_kernel, latency_fifo_client_kernel, latency_fifo_kernel_reset, args, args, args, cpu_a, cpu_b);
+
+    #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
+        if(report_standalone)
+        {
+            #if USE_PCM == 1
+                    std::vector<int> sockets;
+                    int socket_a = pcm->getSocketId(cpu_a);
+                    int socket_b = pcm->getSocketId(cpu_b);
+
+                    sockets.push_back(socket_a);
+                    if(socket_b != socket_a)
+                    {
+                        sockets.push_back(socket_b);
+                    }
+
+                    std::vector<int> cores;
+                    cores.push_back(cpu_a);
+                    cores.push_back(cpu_b);
+            
+                    #if PRINT_FULL_STATS == 1
+                        results->print_statistics(sockets, cores, STIM_LEN);
+                    #endif
+
+                    #if PRINT_STATS == 1
+                    print_results(results, sizeof(*shared_array_loc)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                    #endif
+
+            #else
+                    #if PRINT_FULL_STATS
+                    results->print_statistics(0, cpu_a, STIM_LEN);
+                    #endif
+
+                    print_results(results, sizeof(*shared_loc)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+            #endif
+        }
+        else
+        {
+            print_results(results, sizeof(*shared_array_loc)*array_length, STIM_LEN/2, array_length, format, file); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+        }
+    #endif
+
+    //Clean Up
+    delete[] shared_array_loc;
+    delete shared_ack_loc;
+    delete args;
+
+    return results;
+}
+
+void run_latency_fifo_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, FILE* file = NULL)
+{
+    //Print header
+    printf("FIFO - Array\n");
+    printf("        ==========================================================================================\n");
+    printf("          Transfer Length  |  Round Trip Latency (ns) | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
+    printf("        (int32_t Elements) |       Avg, StdDev        |                         |                 \n");
+    printf("        ==========================================================================================\n");
+
+    #if WRITE_CSV == 1
+    fprintf(file, "\"Transfer Length (int32_t Elements)\", \"Round Trip Latency (ns) - Avg\", \"Round Trip Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
+    fflush(file);
+    #endif
+
+    std::string format = "        %18d | %11.6f, %11.6f | %23.6f | %15.6f \n";
+
+    for(int i = 0; i<array_lengths.size(); i++)
+    {
+        size_t array_length = array_lengths[i];
+        Results* latency_fifo_kernel_results = run_latency_fifo_kernel(pcm, cpu_a, cpu_b, array_length, false, format, file);
+
+        #if WRITE_CSV == 1
+        fflush(file);
+        #endif
+
+        //Cleanup
+        latency_fifo_kernel_results->delete_results();
+        delete latency_fifo_kernel_results;
     }
 
     printf("        ==========================================================================================\n");
@@ -620,6 +730,17 @@ int main(int argc, char *argv[])
     run_latency_dual_array_kernel(pcm, cpu_a, cpu_b, array_sizes, dual_array_csv_file);
 
     fclose(dual_array_csv_file);
+
+    printf("\n");
+
+    FILE* fifo_array_csv_file = NULL;
+    #if WRITE_CSV == 1
+    fifo_array_csv_file = fopen("report_fifo_array.csv", "w");
+    #endif
+
+    run_latency_fifo_kernel(pcm, cpu_a, cpu_b, array_sizes, fifo_array_csv_file);
+
+    fclose(fifo_array_csv_file);
 
     return 0;
 }
