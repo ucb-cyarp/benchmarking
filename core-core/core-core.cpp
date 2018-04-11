@@ -82,6 +82,7 @@
 #include "latency_single_kernel.h"
 #include "latency_dual_kernel.h"
 #include "latency_single_array_kernel.h"
+#include "latency_dual_array_kernel.h"
 
 #ifndef PRINT_FULL_STATS
     #define PRINT_FULL_STATS 0
@@ -266,7 +267,7 @@ Results* run_latency_dual_kernel(PCM* pcm, int cpu_a, int cpu_b)
 
 Results* run_latency_single_array_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t array_length, bool report_standalone=true, std::string format = "")
 {
-    //=====Test 1=====
+    //=====Test 2=====
     #if PRINT_TITLE == 1
     if(report_standalone)
     {
@@ -280,7 +281,10 @@ Results* run_latency_single_array_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t 
     int32_t* shared_loc = new int32_t[array_length];
 
     //Init to 0
-    *shared_loc = 0;
+    for(size_t i = 0; i < array_length; i++)
+    {
+        shared_loc[i] = 0;
+    }
 
     LatencySingleArrayKernelArgs* arg_a = new LatencySingleArrayKernelArgs();
     arg_a->init_counter = -1; //(server)
@@ -371,6 +375,122 @@ void run_latency_single_array_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector
     printf("        ==========================================================================================\n");
 }
 
+Results* run_latency_dual_array_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t array_length, bool report_standalone=true, std::string format = "")
+{
+    //=====Test 2=====
+    #if PRINT_TITLE == 1
+    if(report_standalone)
+    {
+        printf("\n");
+        printf("Dual Memory Location - Array\n");
+        printf("Array Length: %lu int32_t Elements\n", array_length);
+    }
+    #endif
+
+    //Initialize
+    int32_t* shared_loc_a = new int32_t[array_length];
+    int32_t* shared_loc_b = new int32_t[array_length];
+
+    //Init to 0
+    for(size_t i = 0; i < array_length; i++)
+    {
+        shared_loc_a[i] = 0;
+        shared_loc_b[i] = 0;
+    }
+
+    LatencyDualArrayKernelArgs* arg_a = new LatencyDualArrayKernelArgs();
+    arg_a->init_counter = -1; //(server)
+    arg_a->my_shared_ptr = shared_loc_a;
+    arg_a->other_shared_ptr = shared_loc_b;
+    arg_a->length = array_length;
+
+    LatencyDualArrayKernelArgs* arg_b = new LatencyDualArrayKernelArgs();
+    arg_b->init_counter = 0; //(client)
+    arg_b->my_shared_ptr = shared_loc_b; //Swapped from server
+    arg_b->other_shared_ptr = shared_loc_a;
+    arg_b->length = array_length;
+
+    LatencyDualArrayKernelResetArgs* reset_arg = new LatencyDualArrayKernelResetArgs();
+    reset_arg->shared_ptr_a = shared_loc_a;
+    reset_arg->shared_ptr_b = shared_loc_b;
+    reset_arg->length = array_length;
+
+    Results* results = execute_kernel(pcm, latency_dual_array_kernel, latency_dual_array_kernel_reset, arg_a, arg_b, reset_arg, cpu_a, cpu_b);
+
+    #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1
+        if(report_standalone)
+        {
+            #if USE_PCM == 1
+                    std::vector<int> sockets;
+                    int socket_a = pcm->getSocketId(cpu_a);
+                    int socket_b = pcm->getSocketId(cpu_b);
+
+                    sockets.push_back(socket_a);
+                    if(socket_b != socket_a)
+                    {
+                        sockets.push_back(socket_b);
+                    }
+
+                    std::vector<int> cores;
+                    cores.push_back(cpu_a);
+                    cores.push_back(cpu_b);
+            
+                    #if PRINT_FULL_STATS == 1
+                        results->print_statistics(sockets, cores, STIM_LEN);
+                    #endif
+
+                    #if PRINT_STATS == 1
+                    print_results(results, sizeof(*shared_loc_a)*array_length);
+                    #endif
+
+            #else
+                    #if PRINT_FULL_STATS
+                    results->print_statistics(0, cpu_a, STIM_LEN);
+                    #endif
+
+                    print_results(results, sizeof(*shared_loc)*array_length);
+            #endif
+        }
+        else
+        {
+            print_results(results, sizeof(*shared_loc_a)*array_length, array_length, format);
+        }
+    #endif
+
+    //Clean Up
+    delete[] shared_loc_a;
+    delete[] shared_loc_b;
+    delete arg_a;
+    delete arg_b;
+    delete reset_arg;
+
+    return results;
+}
+
+void run_latency_dual_array_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<size_t> array_lengths)
+{
+    //Print header
+    printf("Dual Memory Location - Array\n");
+    printf("        ==========================================================================================\n");
+    printf("          Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
+    printf("        (int32_t Elements) |       Avg, StdDev        |                         |                 \n");
+    printf("        ==========================================================================================\n");
+
+    std::string format = "        %18d | %11.6f, %11.6f | %23.6f | %15.6f \n";
+
+    for(int i = 0; i<array_lengths.size(); i++)
+    {
+        size_t array_length = array_lengths[i];
+        Results* latency_dual_array_kernel_results = run_latency_dual_array_kernel(pcm, cpu_a, cpu_b, array_length, false, format);
+
+        //Cleanup
+        latency_dual_array_kernel_results->delete_results();
+        delete latency_dual_array_kernel_results;
+    }
+
+    printf("        ==========================================================================================\n");
+}
+
 int main(int argc, char *argv[])
 {
     //Run these single-threaded benchmarks on CPU 0 (all machines should have CPU 0)
@@ -440,8 +560,6 @@ int main(int argc, char *argv[])
     latency_dual_kernel_results->delete_results();
     delete latency_dual_kernel_results;
 
-    printf("\n");
-
     //=====Test 2=====
     //std::vector<size_t> array_sizes = {1, 2, 4, 8, 16, 32, 64};
     std::vector<size_t> array_sizes;
@@ -453,7 +571,13 @@ int main(int argc, char *argv[])
         array_sizes.push_back(i);
     }
 
+    printf("\n");
+
     run_latency_single_array_kernel(pcm, cpu_a, cpu_b, array_sizes);
+
+    printf("\n");
+
+    run_latency_dual_array_kernel(pcm, cpu_a, cpu_b, array_sizes);
 
     return 0;
 }
