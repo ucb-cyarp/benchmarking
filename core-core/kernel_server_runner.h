@@ -248,13 +248,13 @@
                 exit(1);
             }
 
-            // //Wait for client thread to finish
-            // status = pthread_join(thread_b, &res_b);
-            // if(status != 0)
-            // {
-            //     printf("Could not join thread ... exiting\n");
-            //     exit(1);
-            // }
+            //Wait for client thread to finish
+            status = pthread_join(thread_b, &res_b);
+            if(status != 0)
+            {
+                printf("Could not join thread ... exiting\n");
+                exit(1);
+            }
 
             //Parse results
             if(res_a != NULL)
@@ -288,7 +288,7 @@
 
             //Delete temportary results
             free(res_a);
-            // free(res_b);
+            free(res_b);
         }
 
         return results;
@@ -400,13 +400,13 @@
                 exit(1);
             }
 
-            // //Wait for client thread to finish
-            // status = pthread_join(thread_b, &res_b);
-            // if(status != 0)
-            // {
-            //     printf("Could not join thread ... exiting\n");
-            //     exit(1);
-            // }
+            //Wait for client thread to finish
+            status = pthread_join(thread_b, &res_b);
+            if(status != 0)
+            {
+                printf("Could not join thread ... exiting\n");
+                exit(1);
+            }
 
             //Parse results
             if(res_a != NULL)
@@ -440,7 +440,7 @@
 
             //Delete temportary results
             free(res_a);
-            // free(res_b);
+            free(res_b);
         }
 
         return results;
