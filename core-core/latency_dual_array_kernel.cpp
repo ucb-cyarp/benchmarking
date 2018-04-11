@@ -21,8 +21,8 @@ void* latency_dual_array_kernel_reset(void* arg)
 {
     LatencyDualArrayKernelResetArgs* args = (LatencyDualArrayKernelResetArgs*) arg;
 
-    int32_t* shared_ptr_a_int = args->shared_ptr_a;
-    int32_t* shared_ptr_b_int = args->shared_ptr_b;
+    volatile int32_t* shared_ptr_a_int = args->shared_ptr_a;
+    volatile int32_t* shared_ptr_b_int = args->shared_ptr_b;
     size_t length = args->length;
 
     for(size_t i = 0; i<length; i++)
@@ -43,8 +43,8 @@ void* latency_dual_array_kernel(void* arg)
 {
     //Get the shared pointer and the initial counter value
     LatencyDualArrayKernelArgs* kernel_args = (LatencyDualArrayKernelArgs*) arg;
-    int32_t* my_shared_ptr = kernel_args->my_shared_ptr;
-    int32_t* other_shared_ptr = kernel_args->other_shared_ptr;
+    volatile int32_t* my_shared_ptr = kernel_args->my_shared_ptr;
+    volatile int32_t* other_shared_ptr = kernel_args->other_shared_ptr;
     size_t length = kernel_args->length;
     int32_t counter = kernel_args->init_counter;
 

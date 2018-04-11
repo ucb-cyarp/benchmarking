@@ -25,11 +25,12 @@ LIB=-pthread -lrt -lpcmHelper -lPCM
 DEFINES = -DSTIM_LEN=400000 -DTRIALS=40
 
 MAIN_FILE = core-core.cpp
-LIB_SRCS = latency_single_kernel.cpp latency_dual_kernel.cpp latency_single_array_kernel.cpp latency_dual_array_kernel.cpp
+KERNEL_SRCS = latency_single_kernel.cpp latency_dual_kernel.cpp latency_single_array_kernel.cpp latency_dual_array_kernel.cpp
 
 SRCS=$(MAIN_FILE)
 SRCS+=$(LIB_SRCS)
 OBJS=$(patsubst %.cpp,$(BUILD_DIR)/%.o,$(SRCS))
+KERNEL_OBJS=$(patsubst %.cpp,$(BUILD_DIR)/%.o,$(KERNEL_SRCS))
 
 #Production
 all: core-core
@@ -37,6 +38,9 @@ all: core-core
 
 core-core: $(OBJS) $(KERNEL_OBJS) $(KERNEL_NO_OPT_OBJS) $(COMMON_DIR)/libpcmHelper.a $(DEPENDS_DIR)/pcm/libPCM.a 
 	$(CXX) $(INC) $(LIB_DIRS) -o core-core $(OBJS) $(KERNEL_OBJS) $(KERNEL_NO_OPT_OBJS) $(LIB)
+
+$(KERNEL_OBJS): $(BUILD_DIR)/%.o : $(SRC_DIR)/%.cpp | $(BUILD_DIR)/ $(DEPENDS_DIR)/pcm/Makefile
+	$(CXX) $(KERNEL_CFLAGS) $(INC) $(DEFINES) -o $@ $<
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)/ $(DEPENDS_DIR)/pcm/Makefile
 	$(CXX) $(CFLAGS) $(INC) $(DEFINES) -o $@ $<

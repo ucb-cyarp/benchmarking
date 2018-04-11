@@ -21,7 +21,7 @@ void* latency_single_array_kernel_reset(void* arg)
 {
     LatencySingleArrayKernelResetArgs* args = (LatencySingleArrayKernelResetArgs*) arg;
 
-    int32_t* shared_ptr_int = args->shared_ptr;
+    volatile int32_t* shared_ptr_int = args->shared_ptr;
     size_t length = args->length;
 
     for(size_t i = 0; i<length; i++)
@@ -41,7 +41,7 @@ void* latency_single_array_kernel(void* arg)
 {
     //Get the shared pointer and the initial counter value
     LatencySingleArrayKernelArgs* kernel_args = (LatencySingleArrayKernelArgs*) arg;
-    int32_t* shared_ptr = kernel_args->shared_ptr;
+    volatile int32_t* shared_ptr = kernel_args->shared_ptr;
     size_t length = kernel_args->length;
     int32_t counter = kernel_args->init_counter;
 

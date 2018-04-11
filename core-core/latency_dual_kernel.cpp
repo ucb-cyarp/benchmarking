@@ -28,9 +28,11 @@
 void* latency_dual_kernel_reset(void* arg)
 {
     LatencyDualKernelResetArgs* args = (LatencyDualKernelResetArgs*) arg;
+    volatile int32_t* shared_ptr_a_int = args->shared_ptr_a;
+    volatile int32_t* shared_ptr_b_int = args->shared_ptr_b;
 
-    *(args->shared_ptr_a) = 0;
-    *(args->shared_ptr_b) = 0;
+    *shared_ptr_a_int = 0;
+    *shared_ptr_b_int = 0;
 
     return NULL;
 }
@@ -44,8 +46,8 @@ void* latency_dual_kernel(void* arg)
 {
     //Get the shared pointer and the initial counter value
     LatencyDualKernelArgs* kernel_args = (LatencyDualKernelArgs*) arg;
-    int32_t* my_shared_ptr = kernel_args->my_shared_ptr;
-    int32_t* other_shared_ptr = kernel_args->other_shared_ptr;
+    volatile int32_t* my_shared_ptr = kernel_args->my_shared_ptr;
+    volatile int32_t* other_shared_ptr = kernel_args->other_shared_ptr;
     int32_t counter = kernel_args->init_counter;
 
     //Execute until the specified number of transactions has occured
