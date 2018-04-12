@@ -29,52 +29,62 @@ single_data_rate = (bits_per_element.*single_array_length.*data_len./1000000)./(
 dual_data_rate = (bits_per_element.*dual_array_length.*data_len./1000000)./(dual_duration_high_res_clock./1000);
 fifo_data_rate = (bits_per_element.*fifo_array_length.*(data_len/2)./1000000)./(fifo_duration_high_res_clock./1000);
 
-
 %% Plot
 figure;
-%subplot(3, 1, 1);
-yyaxis left;
-boxplot(single_latency, single_array_length);
+subplot(2, 1, 1);
+boxplot(single_latency, single_array_length');
 xlabel('Transaction Length (int32_t Elements)', 'Interpreter', 'none');
 ylabel('Transaction Latency - One Way (ns)')
 title('Core-Core Transactions with Single Shared Array');
 hold all;
 plot(single_array_length_avg, single_latency_avg);
-yyaxis right;
+xlim([0,66]);
+hold off;
+grid on;
+subplot(2, 1, 2);
 % boxplot(single_data_rate, single_array_length);
 plot(single_array_length_avg, single_data_rate_avg);
-ylabel('Throughput (Mbps)')
-hold off;
+xlim([0,66]);
+ylabel('Throughput (Mbps)');
+xlabel('Transaction Length (int32_t Elements)', 'Interpreter', 'none');
 grid on;
 
 %subplot(3, 1, 2);
 figure;
-yyaxis left;
+subplot(2, 1, 1);
 boxplot(dual_latency, dual_array_length);
 xlabel('Transaction Length (int32_t Elements)', 'Interpreter', 'none');
 ylabel('Transaction Latency - One Way (ns)')
 title('Core-Core Transactions with Dual Shared Arrays');
 hold all;
 plot(dual_array_length_avg, dual_latency_avg);
-yyaxis right;
+xlim([0,66]);
+hold off;
+grid on;
+subplot(2, 1, 2);
 % boxplot(dual_data_rate, dual_array_length);
 plot(dual_array_length_avg, dual_data_rate_avg);
-ylabel('Throughput (Mbps)')
-hold off;
+xlim([0,66]);
+ylabel('Throughput (Mbps)');
+xlabel('Transaction Length (int32_t Elements)', 'Interpreter', 'none');
 grid on;
 
 %subplot(3, 1, 3);
 figure;
-yyaxis left;
+subplot(2, 1, 1);
 boxplot(fifo_latency, fifo_array_length);
 xlabel('Transaction Length (int32_t Elements)', 'Interpreter', 'none');
 ylabel('Transaction Latency - Round Trip (ns)')
 title('Core-Core FIFO Transactions with Ack');
 hold all;
 plot(fifo_array_length_avg, fifo_latency_avg);
-yyaxis right;
+xlim([0,66]);
+hold off;
+grid on;
+subplot(2, 1, 2);
 % boxplot(fifo_data_rate, fifo_array_length);
 plot(fifo_array_length_avg, fifo_data_rate_avg);
-ylabel('Throughput (Mbps)')
-hold off;
+xlim([0,66]);
+ylabel('Throughput (Mbps)');
+xlabel('Transaction Length (int32_t Elements)', 'Interpreter', 'none');
 grid on;
