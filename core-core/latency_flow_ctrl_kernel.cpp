@@ -1,18 +1,18 @@
 /*
- * Latency FIFO
- *       Very similar to the latency test except that the array transfer only goes from server to client.
+ * Latency Flow Control
+ *       Very similar to the latency test except that the array transfer only goes from server to client.  An ack is used to signal to the procucer that it is OK to send more data
  *       
  */
 
-#include "latency_fifo_kernel.h"
+#include "latency_flow_ctrl_kernel.h"
 #include "intrin_bench_default_defines.h"
 
 /*
  * Resets shared ptr array to 0
  */
-void* latency_fifo_kernel_reset(void* arg)
+void* latency_flow_ctrl_kernel_reset(void* arg)
 {
-    LatencyFIFOKernelArgs* args = (LatencyFIFOKernelArgs*) arg;
+    LatencyFlowCtrlKernelArgs* args = (LatencyFlowCtrlKernelArgs*) arg;
 
     volatile int32_t* array_shared_ptr_int = args->array_shared_ptr;
     volatile int32_t* ack_shared_ptr_int = args->ack_shared_ptr;
@@ -33,10 +33,10 @@ void* latency_fifo_kernel_reset(void* arg)
  * 
  * returns nothing (reporting handled by server wrapper)
  */
-void* latency_fifo_server_kernel(void* arg)
+void* latency_flow_ctrl_server_kernel(void* arg)
 {
     //Get the shared pointer and the initial counter value
-    LatencyFIFOKernelArgs* kernel_args = (LatencyFIFOKernelArgs*) arg;
+    LatencyFlowCtrlKernelArgs* kernel_args = (LatencyFlowCtrlKernelArgs*) arg;
     volatile int32_t* array_shared_ptr = kernel_args->array_shared_ptr;
     volatile int32_t* ack_shared_ptr = kernel_args->ack_shared_ptr;
     size_t length = kernel_args->length;
@@ -73,10 +73,10 @@ void* latency_fifo_server_kernel(void* arg)
  * 
  * returns nothing (reporting handled by server wrapper)
  */
-void* latency_fifo_client_kernel(void* arg)
+void* latency_flow_ctrl_client_kernel(void* arg)
 {
     //Get the shared pointer and the initial counter value
-    LatencyFIFOKernelArgs* kernel_args = (LatencyFIFOKernelArgs*) arg;
+    LatencyFlowCtrlKernelArgs* kernel_args = (LatencyFlowCtrlKernelArgs*) arg;
     volatile int32_t* array_shared_ptr = kernel_args->array_shared_ptr;
     volatile int32_t* ack_shared_ptr = kernel_args->ack_shared_ptr;
     size_t length = kernel_args->length;

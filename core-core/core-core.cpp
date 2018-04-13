@@ -83,7 +83,7 @@
 #include "latency_dual_kernel.h"
 #include "latency_single_array_kernel.h"
 #include "latency_dual_array_kernel.h"
-#include "latency_fifo_kernel.h"
+#include "latency_flow_ctrl_kernel.h"
 
 #ifndef PRINT_FULL_STATS
     #define PRINT_FULL_STATS 0
@@ -523,7 +523,7 @@ void run_latency_dual_array_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<s
     printf("        ==========================================================================================\n");
 }
 
-Results* run_latency_fifo_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file=NULL, std::ofstream* raw_file=NULL)
+Results* run_latency_flow_ctrl_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file=NULL, std::ofstream* raw_file=NULL)
 {
     #if PRINT_TITLE == 1
     if(report_standalone)
@@ -544,12 +544,12 @@ Results* run_latency_fifo_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t array_le
         shared_array_loc[i] = 0;
     }
 
-    LatencyFIFOKernelArgs* args = new LatencyFIFOKernelArgs();
+    LatencyFlowCtrlKernelArgs* args = new LatencyFlowCtrlKernelArgs();
     args->array_shared_ptr = shared_array_loc;
     args->ack_shared_ptr = shared_ack_loc;
     args->length = array_length;
 
-    Results* results = execute_client_server_kernel(pcm, latency_fifo_server_kernel, latency_fifo_client_kernel, latency_fifo_kernel_reset, args, args, args, cpu_a, cpu_b);
+    Results* results = execute_client_server_kernel(pcm, latency_flow_ctrl_server_kernel, latency_flow_ctrl_client_kernel, latency_flow_ctrl_kernel_reset, args, args, args, cpu_a, cpu_b);
 
     #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
         if(report_standalone)
@@ -599,10 +599,10 @@ Results* run_latency_fifo_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t array_le
     return results;
 }
 
-void run_latency_fifo_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, FILE* file = NULL, std::ofstream* raw_file=NULL)
+void run_latency_flow_ctrl_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, FILE* file = NULL, std::ofstream* raw_file=NULL)
 {
     //Print header
-    printf("FIFO - Array\n");
+    printf("Flow Control - Array\n");
     printf("        ==========================================================================================\n");
     printf("          Transfer Length  |  Round Trip Latency (ns) | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
     printf("        (int32_t Elements) |       Avg, StdDev        |                         |                 \n");
@@ -619,7 +619,7 @@ void run_latency_fifo_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<size_t>
     for(int i = 0; i<array_lengths.size(); i++)
     {
         size_t array_length = array_lengths[i];
-        Results* latency_fifo_kernel_results = run_latency_fifo_kernel(pcm, cpu_a, cpu_b, array_length, false, format, file, raw_file);
+        Results* latency_fifo_kernel_results = run_latency_flow_ctrl_kernel(pcm, cpu_a, cpu_b, array_length, false, format, file, raw_file);
 
         #if WRITE_CSV == 1
         fflush(file);
@@ -746,11 +746,11 @@ int main(int argc, char *argv[])
     FILE* fifo_array_csv_file = NULL;
     std::ofstream fifo_array_raw_csv_file;
     #if WRITE_CSV == 1
-    fifo_array_csv_file = fopen("report_fifo_array.csv", "w");
-    fifo_array_raw_csv_file.open("report_fifo_array_raw.csv", std::ofstream::out);
+    fifo_array_csv_file = fopen("report_flow_ctrl_array.csv", "w");
+    fifo_array_raw_csv_file.open("report_flow_ctrl_array_raw.csv", std::ofstream::out);
     #endif
 
-    run_latency_fifo_kernel(pcm, cpu_a, cpu_b, array_sizes, fifo_array_csv_file, &fifo_array_raw_csv_file);
+    run_latency_flow_ctrl_kernel(pcm, cpu_a, cpu_b, array_sizes, fifo_array_csv_file, &fifo_array_raw_csv_file);
 
     fclose(fifo_array_csv_file);
     fifo_array_raw_csv_file.close();
