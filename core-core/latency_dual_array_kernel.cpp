@@ -64,7 +64,7 @@ void* latency_dual_array_kernel(void* arg)
             {
                 //Checked the last element in the array
                 //Can increment the counter now
-                counter = other_shared_ptr[index-1]+1;
+                counter+=2;
 
                 //Increment the entire array
                 for(size_t i = 0; i<length; i++)

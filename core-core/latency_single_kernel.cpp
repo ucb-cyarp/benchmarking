@@ -51,7 +51,7 @@ void* latency_single_kernel(void* arg)
     {
         if(*shared_ptr == (counter+1))
         {
-            counter = *shared_ptr+1;
+            counter+=2;
             *shared_ptr = counter;
         }
 

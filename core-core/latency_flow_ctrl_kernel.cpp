@@ -100,7 +100,7 @@ void* latency_flow_ctrl_client_kernel(void* arg)
                 //Checked the last element in the array
                 
                 //Increment counter and ackowlege
-                counter = array_shared_ptr[index-1]+1;
+                counter+=2;
 
                 *ack_shared_ptr = counter;
 

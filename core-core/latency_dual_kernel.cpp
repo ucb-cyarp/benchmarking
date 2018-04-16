@@ -55,7 +55,7 @@ void* latency_dual_kernel(void* arg)
     {
         if(*other_shared_ptr == (counter+1))
         {
-            counter = *other_shared_ptr+1;
+            counter+=2;
             *my_shared_ptr = counter;
         }
 
