@@ -84,6 +84,7 @@
 #include "latency_single_array_kernel.h"
 #include "latency_dual_array_kernel.h"
 #include "latency_flow_ctrl_kernel.h"
+#include "bandwidth_circular_fifo_kernel.h"
 
 #ifndef PRINT_FULL_STATS
     #define PRINT_FULL_STATS 0
@@ -132,6 +133,27 @@ void print_results(Results* results, int bytes_per_transfer, int stim_len, int l
     #if WRITE_CSV == 1
     fprintf(file, "%d, %f, %f, %f, %f\n", length, avg_latency_ns, stddev_latency_ns, transactions_rate_msps, data_rate_mbps);
     results->write_durations(*raw_file, "", length, false);
+    #endif
+}
+
+void print_results(Results* results, int bytes_per_transfer, int stim_len, int length, int max_write_per_transaction, std::string format, FILE* file=NULL, std::ofstream* raw_file=NULL)
+{
+    double avg_duration_ms = results->avg_duration();
+    double stddev_duration_ms = results->stddev_duration();
+    double avg_latency_ns = avg_duration_ms*1000000/stim_len;
+    double stddev_latency_ns = stddev_duration_ms*1000000/stim_len;
+
+    double transactions_rate_msps = stim_len/(1000.0*avg_duration_ms);
+
+    double data_rate_mbps = 8.0*bytes_per_transfer*stim_len/(1000.0*avg_duration_ms);
+
+    #if PRINT_STATS == 1
+    printf(format.c_str(), data_rate_mbps);
+    #endif
+
+    #if WRITE_CSV == 1
+    fprintf(file, "%f", data_rate_mbps);
+    results->write_durations(*raw_file, "", length, "", max_write_per_transaction, false);
     #endif
 }
 
@@ -529,7 +551,7 @@ Results* run_latency_flow_ctrl_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t arr
     if(report_standalone)
     {
         printf("\n");
-        printf("FIFO - Array\n");
+        printf("Flow Control - Array\n");
         printf("Array Length: %lu int32_t Elements\n", array_length);
     }
     #endif
@@ -631,6 +653,179 @@ void run_latency_flow_ctrl_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<si
     }
 
     printf("        ==========================================================================================\n");
+}
+
+Results* run_bandwidth_fifo_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t array_length, int32_t max_write_per_transaction, bool report_standalone=true, std::string format = "", FILE* file=NULL, std::ofstream* raw_file=NULL)
+{
+    #if PRINT_TITLE == 1
+    if(report_standalone)
+    {
+        printf("\n");
+        printf("FIFO - Array\n");
+        printf("Array Length: %lu int32_t Elements, Max Write Per Transaction: %d\n", array_length, max_write_per_transaction);
+    }
+    #endif
+
+    //Initialize
+    int32_t* shared_array_loc = new int32_t[array_length];
+    int32_t* shared_write_id_loc = new int32_t;
+    int32_t* shared_read_id_loc = new int32_t;
+
+    //Init to 0
+    for(size_t i = 0; i < array_length; i++)
+    {
+        shared_array_loc[i] = 0;
+    }
+
+    BandwidthCircularFifoKernelArgs* args = new BandwidthCircularFifoKernelArgs();
+    args->array_shared_ptr = shared_array_loc;
+    args->write_pos_shared_ptr = shared_write_id_loc;
+    args->read_pos_shared_ptr = shared_read_id_loc;
+    args->length = array_length;
+    args->max_write_per_transaction = max_write_per_transaction;
+
+    Results* results = execute_client_server_kernel(pcm, bandwidth_circular_fifo_server_kernel, bandwidth_circular_fifo_client_kernel, bandwidth_circular_fifo_kernel_reset, args, args, args, cpu_a, cpu_b);
+
+    #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
+        if(report_standalone)
+        {
+            #if USE_PCM == 1
+                    std::vector<int> sockets;
+                    int socket_a = pcm->getSocketId(cpu_a);
+                    int socket_b = pcm->getSocketId(cpu_b);
+
+                    sockets.push_back(socket_a);
+                    if(socket_b != socket_a)
+                    {
+                        sockets.push_back(socket_b);
+                    }
+
+                    std::vector<int> cores;
+                    cores.push_back(cpu_a);
+                    cores.push_back(cpu_b);
+            
+                    #if PRINT_FULL_STATS == 1
+                        results->print_statistics(sockets, cores, STIM_LEN);
+                    #endif
+
+                    #if PRINT_STATS == 1
+                    print_results(results, sizeof(*shared_array_loc)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                    #endif
+
+            #else
+                    #if PRINT_FULL_STATS
+                    results->print_statistics(0, cpu_a, STIM_LEN);
+                    #endif
+
+                    print_results(results, sizeof(*shared_loc)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+            #endif
+        }
+        else
+        {
+            print_results(results, sizeof(*shared_array_loc)*array_length, STIM_LEN/2, array_length, max_write_per_transaction, format, file, raw_file); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+        }
+    #endif
+
+    //Clean Up
+    delete[] shared_array_loc;
+    delete shared_write_id_loc;
+    delete shared_read_id_loc;
+    delete args;
+
+    return results;
+}
+
+//MAKE A 2D Table
+void run_bandwidth_fifo_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, std::vector<int32_t> max_writes_per_transaction, FILE* file = NULL, std::ofstream* raw_file=NULL)
+{
+    int32_t data_col_width = 14;
+
+    //Print header
+    printf("FIFO - Array\n");
+    printf("        Lengths in int32_t Elements, Data Rates in Mbps\n");
+    printf("        ===========================");
+    for(int i = 0; i<max_writes_per_transaction.size(); i++)
+    {
+        for(int j = 0; j<data_col_width+1; j++) //+1 for divider
+        {
+            printf("=");
+        }
+    }
+    printf("\n");
+    printf("        Array Len \ Max Trans. Len ");
+    for(int i = 0; i<max_writes_per_transaction.size(); i++)
+    {
+        printf("| %12d ", max_writes_per_transaction[i]); //12 becaused of spaces
+    }
+    printf("\n");
+    printf("        ===========================");
+    for(int i = 0; i<max_writes_per_transaction.size(); i++)
+    {
+        for(int j = 0; j<data_col_width+1; j++) //+1 for divider
+        {
+            printf("=");
+        }
+    }
+    printf("\n");
+
+    #if WRITE_CSV == 1
+    fprintf(file, "\"Array Len \ Max Trans. Len (int32_t elements)\"");//Command inserted below
+    for(int i = 0; i<max_writes_per_transaction.size(); i++)
+    {
+        fprintf(file, ",%d", max_writes_per_transaction[i]);
+    }
+    //fprintf(file, "\n"); //Done below
+    fflush(file);
+    *raw_file << "\"Transfer Length (int32_t Elements)\",\"Max Writes Per Transaction (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
+    #endif
+
+    std::string format = "|%12.6f\n";
+
+    for(int i = 0; i<array_lengths.size(); i++)
+    {
+        size_t array_length = array_lengths[i];
+
+        //Print the newlinem indent and new array length
+        printf("\n        %27d", array_length);
+        #if WRITE_CSV == 1
+        fprintf(file, "\n%d", array_length);
+        fflush(file);
+        #endif
+
+        for(int j = 0; j<max_writes_per_transaction.size(); j++)
+        {
+            int32_t max_writes = max_writes_per_transaction[j];
+
+            if(max_writes <= array_length) //Check if we should bother running this case
+            {
+                #if WRITE_CSV == 1
+                fprintf(file, ",");
+                fflush(file);
+                #endif
+
+                Results* latency_fifo_kernel_results = run_latency_flow_ctrl_kernel(pcm, cpu_a, cpu_b, array_length, false, format, file, raw_file);
+
+                //Cleanup
+                latency_fifo_kernel_results->delete_results();
+                delete latency_fifo_kernel_results;
+            }
+            else
+            {
+                //We did not run this test case
+
+            }
+        }
+    }
+
+    printf("        ===========================");
+    for(int i = 0; i<max_writes_per_transaction.size(); i++)
+    {
+        for(int j = 0; j<data_col_width+1; j++) //+1 for divider
+        {
+            printf("=");
+        }
+    }
+    printf("\n");
 }
 
 int main(int argc, char *argv[])
@@ -743,14 +938,35 @@ int main(int argc, char *argv[])
 
     printf("\n");
 
+    FILE* flow_ctrl_array_csv_file = NULL;
+    std::ofstream flow_ctrl_array_raw_csv_file;
+    #if WRITE_CSV == 1
+    flow_ctrl_array_csv_file = fopen("report_flow_ctrl_array.csv", "w");
+    flow_ctrl_array_raw_csv_file.open("report_flow_ctrl_array_raw.csv", std::ofstream::out);
+    #endif
+
+    run_latency_flow_ctrl_kernel(pcm, cpu_a, cpu_b, array_sizes, flow_ctrl_array_csv_file, &flow_ctrl_array_raw_csv_file);
+
+    fclose(flow_ctrl_array_csv_file);
+    flow_ctrl_array_raw_csv_file.close();
+
+    std::vector<int32_t> transaction_sizes;
+    size_t start = 1;
+    size_t stop = 65;
+
+    for(int i = start; i < stop; i++)
+    {
+        transaction_sizes.push_back(i);
+    }
+
     FILE* fifo_array_csv_file = NULL;
     std::ofstream fifo_array_raw_csv_file;
     #if WRITE_CSV == 1
-    fifo_array_csv_file = fopen("report_flow_ctrl_array.csv", "w");
-    fifo_array_raw_csv_file.open("report_flow_ctrl_array_raw.csv", std::ofstream::out);
+    fifo_array_csv_file = fopen("report_fifo_array.csv", "w");
+    fifo_array_raw_csv_file.open("report_fifo_array_raw.csv", std::ofstream::out);
     #endif
 
-    run_latency_flow_ctrl_kernel(pcm, cpu_a, cpu_b, array_sizes, fifo_array_csv_file, &fifo_array_raw_csv_file);
+    run_bandwidth_fifo_kernel(pcm, cpu_a, cpu_b, array_sizes, transaction_sizes, fifo_array_csv_file, &fifo_array_raw_csv_file);
 
     fclose(fifo_array_csv_file);
     fifo_array_raw_csv_file.close();

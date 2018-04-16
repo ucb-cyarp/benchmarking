@@ -77,6 +77,7 @@
             void write_csv(std::ofstream &csv_file, int socket, int core);
             void write_csv(std::ofstream &csv_file, int socket, int core, std::string col0_name, int col0_val);
             void write_durations(std::ofstream &csv_file, std::string col0_name, int col0_val, bool include_header);
+            void write_durations(std::ofstream &csv_file, std::string col0_name, int col0_val, std::string col1_name, int col1_val, bool include_header);
 
             void delete_results();
     };

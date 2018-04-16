@@ -461,3 +461,18 @@ void Results::write_durations(std::ofstream &csv_file, std::string col0_name, in
         csv_file << col0_val << "," << std::scientific <<  trial_results[i]->duration << "," << trial_results[i]->duration_clock << "," << trial_results[i]->duration_rdtsc << std::endl;
     }
 }
+
+void Results::write_durations(std::ofstream &csv_file, std::string col0_name, int col0_val, std::string col1_name, int col1_val, bool include_header)
+{
+    //Print Header
+    if(include_header)
+    {
+        csv_file << "\"" << col0_name << "\",\"" << col1_name << "\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
+    }
+
+    size_t trials = trial_results.size();
+    for(size_t i = 0; i < trials; i++)
+    {
+        csv_file << col0_val << "," << col1_val << "," << std::scientific <<  trial_results[i]->duration << "," << trial_results[i]->duration_clock << "," << trial_results[i]->duration_rdtsc << std::endl;
+    }
+}
