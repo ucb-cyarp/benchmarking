@@ -51,7 +51,7 @@ void* latency_single_array_kernel(void* arg)
     while(counter < STIM_LEN)
     {
         //Check all of the 
-        if(shared_ptr[index] > counter)
+        if(shared_ptr[index] == (counter+1))
         {
             //The current location has incremented
             //Check the next one

@@ -49,7 +49,7 @@ void* latency_flow_ctrl_server_kernel(void* arg)
     while(counter < STIM_LEN)
     {
         //Check the ack memory location
-        if(*ack_shared_ptr > counter)
+        if(*ack_shared_ptr == (counter+1))
         {
             //Last transaction has been acked, increment counter
             counter = *ack_shared_ptr+1;
@@ -89,7 +89,7 @@ void* latency_flow_ctrl_client_kernel(void* arg)
     while(counter < STIM_LEN)
     {
         //Check all of the memory locations
-        if(array_shared_ptr[index] > counter)
+        if(array_shared_ptr[index] == (counter+1))
         {
             //The current location has incremented
             //Check the next one

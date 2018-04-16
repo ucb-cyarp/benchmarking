@@ -53,7 +53,7 @@ void* latency_dual_kernel(void* arg)
     //Execute until the specified number of transactions has occured
     while(counter < STIM_LEN)
     {
-        if(*other_shared_ptr > counter)
+        if(*other_shared_ptr == (counter+1))
         {
             counter = *other_shared_ptr+1;
             *my_shared_ptr = counter;

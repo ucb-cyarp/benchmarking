@@ -6,6 +6,12 @@
  *     The consumer writes to a seperate shared memory location the ID of the last element it consumed.  The address of this element is the element ID 
  *     % array length.  The producer will not write into the array if the ID of the new element - ID of the last read elemeent > array length.
  *     Likewise, the consumer will not read if ID of the last read element == ID of last written element.
+ * 
+ *     Note! This assumes memory transactions occur in order.  Specifically, that the array is completely written before the write pointer is updated
+ *           It also assumes that the cache coherency engine guarentees that memory writes are handled in order.
+ *           This needs to be confirmed by the Intel platform.
+ * 
+ *           Note: It looks like volitile may enforce the write ordering condition.  Further research required.
  */
 
 #include "bandwidth_circular_fifo_kernel.h"
