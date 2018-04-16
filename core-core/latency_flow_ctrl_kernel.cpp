@@ -52,7 +52,7 @@ void* latency_flow_ctrl_server_kernel(void* arg)
         if(*ack_shared_ptr == (counter+1))
         {
             //Last transaction has been acked, increment counter
-            counter = *ack_shared_ptr+1;
+            counter+=2;
 
             //Send next batch
             //Increment the entire array
