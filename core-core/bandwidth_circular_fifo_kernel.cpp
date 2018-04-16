@@ -14,7 +14,7 @@
 /*
  * Resets shared ptr array to 0
  */
-void* latency_flow_ctrl_kernel_reset(void* arg)
+void* bandwidth_circular_fifo_kernel_reset(void* arg)
 {
     BandwidthCircularFifoKernelArgs* args = (BandwidthCircularFifoKernelArgs*) arg;
 
@@ -39,7 +39,7 @@ void* latency_flow_ctrl_kernel_reset(void* arg)
  * 
  * returns nothing (reporting handled by server wrapper)
  */
-void* latency_flow_ctrl_server_kernel(void* arg)
+void* bandwidth_circular_fifo_server_kernel(void* arg)
 {
     //Get the shared pointer and the initial counter value
     BandwidthCircularFifoKernelArgs* kernel_args = (BandwidthCircularFifoKernelArgs*) arg;
@@ -96,7 +96,7 @@ void* latency_flow_ctrl_server_kernel(void* arg)
  * 
  * returns nothing (reporting handled by server wrapper)
  */
-void* latency_flow_ctrl_client_kernel(void* arg)
+void* bandwidth_circular_fifo_client_kernel(void* arg)
 {
     //Get the shared pointer and the initial counter value
     BandwidthCircularFifoKernelArgs* kernel_args = (BandwidthCircularFifoKernelArgs*) arg;

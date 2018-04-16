@@ -22,8 +22,8 @@ LIB=-pthread -lrt -lpcmHelper -lPCM
 #DEFINES = -DPRINT_FREQ_CHANGE_EVENT=1
 #DEFINES = -DPRINT_FREQ_CHANGE_EVENT=1 -DPRINT_TRIALS=1 -DSTIM_LEN=2000000 -DTRIALS=20
 #DEFINES = -DSTIM_LEN=16000000 -DTRIALS=20
-DEFINES = -DSTIM_LEN=1000000 -DTRIALS=400 -DMAX_DISCARD=4000
-#DEFINES = -DSTIM_LEN=200000 -DTRIALS=10 -DMAX_DISCARD=20000
+#DEFINES = -DSTIM_LEN=1000000 -DTRIALS=400 -DMAX_DISCARD=4000
+DEFINES = -DSTIM_LEN=200000 -DTRIALS=10 -DMAX_DISCARD=20000
 
 MAIN_FILE = core-core.cpp
 KERNEL_SRCS = latency_single_kernel.cpp latency_dual_kernel.cpp latency_single_array_kernel.cpp latency_dual_array_kernel.cpp latency_flow_ctrl_kernel.cpp bandwidth_circular_fifo_kernel.cpp

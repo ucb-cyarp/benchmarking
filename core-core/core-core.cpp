@@ -738,7 +738,7 @@ Results* run_bandwidth_fifo_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t array_
 //MAKE A 2D Table
 void run_bandwidth_fifo_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, std::vector<int32_t> max_writes_per_transaction, FILE* file = NULL, std::ofstream* raw_file=NULL)
 {
-    int32_t data_col_width = 14;
+    int32_t data_col_width = 10;
 
     //Print header
     printf("FIFO - Array\n");
@@ -746,30 +746,29 @@ void run_bandwidth_fifo_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<size_
     printf("        ===========================");
     for(int i = 0; i<max_writes_per_transaction.size(); i++)
     {
-        for(int j = 0; j<data_col_width+1; j++) //+1 for divider
+        for(int j = 0; j<data_col_width; j++)
         {
             printf("=");
         }
     }
     printf("\n");
-    printf("        Array Len \ Max Trans. Len ");
+    printf("        Array Len \\ Max Trans. Len ");
     for(int i = 0; i<max_writes_per_transaction.size(); i++)
     {
-        printf("| %12d ", max_writes_per_transaction[i]); //12 becaused of spaces
+        printf("|%9.2d", max_writes_per_transaction[i]); //12 becaused of spaces
     }
     printf("\n");
     printf("        ===========================");
     for(int i = 0; i<max_writes_per_transaction.size(); i++)
     {
-        for(int j = 0; j<data_col_width+1; j++) //+1 for divider
+        for(int j = 0; j<data_col_width; j++) 
         {
             printf("=");
         }
     }
-    printf("\n");
 
     #if WRITE_CSV == 1
-    fprintf(file, "\"Array Len \ Max Trans. Len (int32_t elements)\"");//Command inserted below
+    fprintf(file, "\"Array Len \\ Max Trans. Len (int32_t elements)\"");//Command inserted below
     for(int i = 0; i<max_writes_per_transaction.size(); i++)
     {
         fprintf(file, ",%d", max_writes_per_transaction[i]);
@@ -779,16 +778,16 @@ void run_bandwidth_fifo_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<size_
     *raw_file << "\"Transfer Length (int32_t Elements)\",\"Max Writes Per Transaction (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
     #endif
 
-    std::string format = "|%12.6f\n";
+    std::string format = "|%9.2f";
 
     for(int i = 0; i<array_lengths.size(); i++)
     {
         size_t array_length = array_lengths[i];
 
         //Print the newlinem indent and new array length
-        printf("\n        %27d", array_length);
+        printf("\n        %27lu", array_length);
         #if WRITE_CSV == 1
-        fprintf(file, "\n%d", array_length);
+        fprintf(file, "\n%lu", array_length);
         fflush(file);
         #endif
 
@@ -803,7 +802,7 @@ void run_bandwidth_fifo_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<size_
                 fflush(file);
                 #endif
 
-                Results* latency_fifo_kernel_results = run_latency_flow_ctrl_kernel(pcm, cpu_a, cpu_b, array_length, false, format, file, raw_file);
+                Results* latency_fifo_kernel_results = run_bandwidth_fifo_kernel(pcm, cpu_a, cpu_b, array_length, max_writes, false, format, file, raw_file);
 
                 //Cleanup
                 latency_fifo_kernel_results->delete_results();
@@ -812,15 +811,26 @@ void run_bandwidth_fifo_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<size_
             else
             {
                 //We did not run this test case
+                #if WRITE_CSV == 1
+                fprintf(file, ",");
+                fflush(file);
+                #endif
 
+                printf(format.c_str(), 0);
             }
         }
     }
 
-    printf("        ===========================");
+    //Print the newline
+    #if WRITE_CSV == 1
+    fprintf(file, "\n");
+    fflush(file);
+    #endif
+
+    printf("\n        ===========================");
     for(int i = 0; i<max_writes_per_transaction.size(); i++)
     {
-        for(int j = 0; j<data_col_width+1; j++) //+1 for divider
+        for(int j = 0; j<data_col_width; j++)
         {
             printf("=");
         }
@@ -901,7 +911,8 @@ int main(int argc, char *argv[])
     //std::vector<size_t> array_sizes = {1, 2, 4, 8, 16, 32, 64};
     std::vector<size_t> array_sizes;
     size_t start = 1;
-    size_t stop = 65;
+    size_t stop = 17;
+    //size_t stop = 65;
 
     for(int i = start; i < stop; i++)
     {
@@ -951,9 +962,6 @@ int main(int argc, char *argv[])
     flow_ctrl_array_raw_csv_file.close();
 
     std::vector<int32_t> transaction_sizes;
-    size_t start = 1;
-    size_t stop = 65;
-
     for(int i = start; i < stop; i++)
     {
         transaction_sizes.push_back(i);
