@@ -132,7 +132,7 @@ void* bandwidth_circular_fifo_client_kernel(void* arg)
             //         elements to be enqueued before updating the write_pos_shared_ptr.
             //         One question is how quickly this can be expected to happen in normal operation.
 
-            for(int32_t i = 1; i <= num_to_read; i++) //Starting at 1 because ready_id is the last read element, we need to reade elements after it
+            for(int32_t i = 1; i <= num_to_read; i++) //Starting at 1 because ready_id is the last read element, we need to read elements after it
             {
                 //Read the value
                 int32_t expected_read_id = read_id+i;

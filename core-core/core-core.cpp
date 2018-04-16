@@ -812,7 +812,7 @@ void run_bandwidth_fifo_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<size_
             {
                 //We did not run this test case
                 #if WRITE_CSV == 1
-                fprintf(file, ",");
+                fprintf(file, ",%d", 0);
                 fflush(file);
                 #endif
 
@@ -911,8 +911,8 @@ int main(int argc, char *argv[])
     //std::vector<size_t> array_sizes = {1, 2, 4, 8, 16, 32, 64};
     std::vector<size_t> array_sizes;
     size_t start = 1;
-    size_t stop = 17;
-    //size_t stop = 65;
+    size_t stop = 129;
+    // size_t stop = 65;
 
     for(int i = start; i < stop; i++)
     {
