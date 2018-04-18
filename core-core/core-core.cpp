@@ -1015,7 +1015,7 @@ Results* run_bandwidth_fifo_blocked_kernel(PCM* pcm, int cpu_a, int cpu_b, size_
                     results->print_statistics(0, cpu_a, STIM_LEN);
                     #endif
 
-                    print_results(results, sizeof(*shared_loc), STIM_LEN); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                    print_results(results, sizeof(*shared_array_loc), STIM_LEN); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
             #endif
         }
         else
@@ -1292,6 +1292,8 @@ int main(int argc, char *argv[])
 
     fclose(fifo_array_csv_file);
     fifo_array_raw_csv_file.close();
+
+    printf("\n");
 
     FILE* fifo_blocked_array_csv_file = NULL;
     std::ofstream fifo_blocked_array_raw_csv_file;
