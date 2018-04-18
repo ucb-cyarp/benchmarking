@@ -776,7 +776,7 @@ Results* run_bandwidth_fifo_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t array_
     {
         printf("\n");
         printf("FIFO - Array\n");
-        printf("Array Length: %lu int32_t Elements, Max Write Per Transaction: %d\n", array_length, max_write_per_transaction);
+        printf("Array Length: %lu int32_t Elements, Max Read/Write Per Transaction: %d\n", array_length, max_write_per_transaction);
     }
     #endif
 
@@ -889,7 +889,7 @@ void run_bandwidth_fifo_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<size_
     }
     //fprintf(file, "\n"); //Done below
     fflush(file);
-    *raw_file << "\"Transfer Length (int32_t Elements)\",\"Max Writes Per Transaction (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
+    *raw_file << "\"Transfer Length (int32_t Elements)\",\"Max Reads/Writes Per Transaction (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
     #endif
 
     std::string format = "|%9.2f";

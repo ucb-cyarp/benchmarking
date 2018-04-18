@@ -110,6 +110,8 @@ void* bandwidth_circular_fifo_client_kernel(void* arg)
     volatile int32_t* write_pos_shared_ptr = kernel_args->write_pos_shared_ptr;
     volatile int32_t* read_pos_shared_ptr = kernel_args->read_pos_shared_ptr;
 
+    int32_t max_write_per_transaction = kernel_args->max_write_per_transaction;
+
     size_t length = kernel_args->length;
 
     int32_t read_id = 0;
@@ -126,7 +128,9 @@ void* bandwidth_circular_fifo_client_kernel(void* arg)
             //Yes, we can read
             
             //Let us determine how many elements we can read
-            int32_t num_to_read = write_id - read_id;
+            int32_t num_avail_to_read = write_id - read_id;
+
+            int32_t num_to_read = (num_avail_to_read > max_write_per_transaction) ? max_write_per_transaction : num_avail_to_read;
 
             //Let's read all of them then update the read_pos_shared_ptr
             //This avoids creating more for the read_pos_shared_ptr
