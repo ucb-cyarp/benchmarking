@@ -59,6 +59,8 @@ void* bandwidth_circular_fifo_server_kernel(void* arg)
     int32_t write_id = 0;
     *write_pos_shared_ptr = write_id; //sync write id
 
+    int32_t write_index = 0;
+
     while(write_id < STIM_LEN)
     {
         //Get the current read_id
@@ -78,7 +80,13 @@ void* bandwidth_circular_fifo_server_kernel(void* arg)
             for(int32_t i = 1; i <= number_to_write; i++) //start at 1 because write_id is for last written element, need to write into following elements
             {
                 int32_t new_write_id = write_id + i;
-                int32_t write_index = new_write_id%length;
+
+                //Handle the mod with a branch as it should be cheaper 
+                write_index++;
+                if(write_index == length)
+                {
+                    write_index = 0;
+                }
 
                 //We could write anything but let's write the ID value for this test
                 array_shared_ptr[write_index] = new_write_id;
@@ -115,6 +123,8 @@ void* bandwidth_circular_fifo_client_kernel(void* arg)
     int32_t read_id = 0;
     *read_pos_shared_ptr = read_id; //sync read id
 
+    int32_t read_index = 0;
+
     while(read_id < STIM_LEN)
     {
         
@@ -142,7 +152,13 @@ void* bandwidth_circular_fifo_client_kernel(void* arg)
             {
                 //Read the value
                 int32_t expected_read_id = read_id+i;
-                int32_t read_index = expected_read_id%length;
+                
+                //Handle the mod with a branch as it should be cheaper 
+                read_index++; //always increments by 1 for each loop itteration
+                if(read_index == length)
+                {
+                    read_index = 0;
+                }
 
                 int32_t read_value = array_shared_ptr[read_index];
 
