@@ -493,7 +493,7 @@ Results* run_latency_dual_array_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t ar
                     results->print_statistics(0, cpu_a, STIM_LEN);
                     #endif
 
-                    print_results(results, sizeof(*shared_loc)*array_length, STIM_LEN);
+                    print_results(results, sizeof(*shared_loc_a)*array_length, STIM_LEN);
             #endif
         }
         else
@@ -605,7 +605,7 @@ Results* run_latency_flow_ctrl_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t arr
                     results->print_statistics(0, cpu_a, STIM_LEN);
                     #endif
 
-                    print_results(results, sizeof(*shared_loc)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                    print_results(results, sizeof(*shared_array_loc)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
             #endif
         }
         else
@@ -717,7 +717,7 @@ Results* run_latency_flow_ctrl_blocked_read_kernel(PCM* pcm, int cpu_a, int cpu_
                     results->print_statistics(0, cpu_a, STIM_LEN);
                     #endif
 
-                    print_results(results, sizeof(*shared_loc)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                    print_results(results, sizeof(*shared_array_loc)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
             #endif
         }
         else
@@ -831,7 +831,7 @@ Results* run_bandwidth_fifo_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t array_
                     results->print_statistics(0, cpu_a, STIM_LEN);
                     #endif
 
-                    print_results(results, sizeof(*shared_loc), STIM_LEN); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                    print_results(results, sizeof(*shared_array_loc), STIM_LEN); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
             #endif
         }
         else
@@ -1008,7 +1008,8 @@ int main(int argc, char *argv[])
         int cpu_b_tile = pcm->getTileId(cpu_b);
         printf("CPU B = Logical CPU#: %d, Socket #: %d, Physical Core #: %d, L2 Tile #: %d\n", cpu_b, cpu_b_socket, cpu_b_core, cpu_b_tile);
         #endif
-
+    #else
+        PCM* pcm = NULL;
     #endif
 
     //=====Test 1=====
