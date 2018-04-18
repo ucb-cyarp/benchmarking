@@ -1039,7 +1039,7 @@ void run_bandwidth_fifo_blocked_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vect
     int32_t data_col_width = 10;
 
     //Print header
-    printf("FIFO - Array\n");
+    printf("FIFO - Array - Blocked Transfers\n");
     printf("        Lengths in int32_t Elements, Data Rates in Mbps\n");
     printf("        ===========================");
     for(int i = 0; i<block_lengths.size(); i++)
@@ -1066,14 +1066,14 @@ void run_bandwidth_fifo_blocked_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vect
     }
 
     #if WRITE_CSV == 1
-    fprintf(file, "\"Array Len \\ Max Trans. Len (int32_t elements)\"");//Command inserted below
+    fprintf(file, "\"Array Len \\ Block Length (int32_t elements)\"");//Command inserted below
     for(int i = 0; i<block_lengths.size(); i++)
     {
         fprintf(file, ",%d", block_lengths[i]);
     }
     //fprintf(file, "\n"); //Done below
     fflush(file);
-    *raw_file << "\"Transfer Length (int32_t Elements)\",\"Reads/Writes Per Transaction (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
+    *raw_file << "\"Transfer Length (int32_t Elements)\",\"Block Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
     #endif
 
     std::string format = "|%9.2f";
@@ -1100,7 +1100,7 @@ void run_bandwidth_fifo_blocked_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vect
                 fflush(file);
                 #endif
 
-                Results* latency_fifo_kernel_results = run_bandwidth_fifo_kernel(pcm, cpu_a, cpu_b, array_length, block_length, false, format, file, raw_file);
+                Results* latency_fifo_kernel_results = run_bandwidth_fifo_blocked_kernel(pcm, cpu_a, cpu_b, array_length, block_length, false, format, file, raw_file);
 
                 //Cleanup
                 latency_fifo_kernel_results->delete_results();
