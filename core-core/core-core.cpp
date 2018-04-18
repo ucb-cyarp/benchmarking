@@ -709,7 +709,7 @@ Results* run_bandwidth_fifo_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t array_
                     #endif
 
                     #if PRINT_STATS == 1
-                    print_results(results, sizeof(*shared_array_loc)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                    print_results(results, sizeof(*shared_array_loc), STIM_LEN);
                     #endif
 
             #else
@@ -717,12 +717,12 @@ Results* run_bandwidth_fifo_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t array_
                     results->print_statistics(0, cpu_a, STIM_LEN);
                     #endif
 
-                    print_results(results, sizeof(*shared_loc)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                    print_results(results, sizeof(*shared_loc), STIM_LEN); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
             #endif
         }
         else
         {
-            print_results(results, sizeof(*shared_array_loc)*array_length, STIM_LEN/2, array_length, max_write_per_transaction, format, file, raw_file); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+            print_results(results, sizeof(*shared_array_loc), STIM_LEN, array_length, max_write_per_transaction, format, file, raw_file); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
         }
     #endif
 
