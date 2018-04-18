@@ -960,7 +960,7 @@ Results* run_bandwidth_fifo_blocked_kernel(PCM* pcm, int cpu_a, int cpu_b, size_
     {
         printf("\n");
         printf("FIFO - Array - Blocked Transfers\n");
-        printf("Array Length: %lu int32_t Elements, Reads/Write Per Transaction: %d\n", array_length, block_length);
+        printf("Array Length: %lu int32_t Elements, Block Length Transaction: %d\n", array_length, block_length);
     }
     #endif
 
