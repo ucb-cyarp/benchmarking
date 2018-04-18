@@ -1,24 +1,32 @@
 /*
  * Latency Flow Control
- *       Very similar to the latency test except that the array transfer only goes from server to client.  An ack is used to signal to the procucer that it is OK to send more data
- *       
+ *       Same as flow contol case except that the array is not read until a signal from the writer (the valid signal) is written.
+ *       This should limit contention for the cache lines containing the array.
+ * 
+ *       Note! This assumes memory transactions occur in order.  Specifically, that the array is completely written before the valid
+ *             signal is written.  It also assumes that the cache coherency engine guarentees that memory writes are handled in order.
+ *             This needs to be confirmed by the intel platform.
+ * 
+ *             Note: It looks like volitile may enforce the write ordering condition.  Further research required.
  */
 
-#include "latency_flow_ctrl_kernel.h"
+#include "latency_flow_ctrl_blocked_read_kernel.h"
 #include "intrin_bench_default_defines.h"
 
 /*
  * Resets shared ptr array to 0
  */
-void* latency_flow_ctrl_kernel_reset(void* arg)
+void* latency_flow_ctrl_blocked_read_kernel_reset(void* arg)
 {
-    LatencyFlowCtrlKernelArgs* args = (LatencyFlowCtrlKernelArgs*) arg;
+    LatencyFlowCtrlBlockedReadKernelArgs* args = (LatencyFlowCtrlBlockedReadKernelArgs*) arg;
 
     volatile int32_t* array_shared_ptr_int = args->array_shared_ptr;
     volatile int32_t* ack_shared_ptr_int = args->ack_shared_ptr;
+    volatile int32_t* valid_shared_ptr_int = args->valid_shared_ptr;
     size_t length = args->length;
 
     *ack_shared_ptr_int = 0;
+    *valid_shared_ptr_int = 0;
 
     for(size_t i = 0; i<length; i++)
     {
@@ -33,12 +41,13 @@ void* latency_flow_ctrl_kernel_reset(void* arg)
  * 
  * returns nothing (reporting handled by server wrapper)
  */
-void* latency_flow_ctrl_server_kernel(void* arg)
+void* latency_flow_ctrl_blocked_read_server_kernel(void* arg)
 {
     //Get the shared pointer and the initial counter value
-    LatencyFlowCtrlKernelArgs* kernel_args = (LatencyFlowCtrlKernelArgs*) arg;
+    LatencyFlowCtrlBlockedReadKernelArgs* kernel_args = (LatencyFlowCtrlBlockedReadKernelArgs*) arg;
     volatile int32_t* array_shared_ptr = kernel_args->array_shared_ptr;
     volatile int32_t* ack_shared_ptr = kernel_args->ack_shared_ptr;
+    volatile int32_t* valid_shared_ptr = kernel_args->valid_shared_ptr;
     size_t length = kernel_args->length;
 
     int32_t counter = -1; //Server
@@ -60,6 +69,9 @@ void* latency_flow_ctrl_server_kernel(void* arg)
             {
                 array_shared_ptr[i] = counter;
             }
+
+            //Increment the valid memory location
+            *valid_shared_ptr = counter;
         }
 
         //Poll on the memory location until the above condition is met or the counter exceeds STIM_LEN
@@ -73,12 +85,13 @@ void* latency_flow_ctrl_server_kernel(void* arg)
  * 
  * returns nothing (reporting handled by server wrapper)
  */
-void* latency_flow_ctrl_client_kernel(void* arg)
+void* latency_flow_ctrl_blocked_read_client_kernel(void* arg)
 {
     //Get the shared pointer and the initial counter value
-    LatencyFlowCtrlKernelArgs* kernel_args = (LatencyFlowCtrlKernelArgs*) arg;
+    LatencyFlowCtrlBlockedReadKernelArgs* kernel_args = (LatencyFlowCtrlBlockedReadKernelArgs*) arg;
     volatile int32_t* array_shared_ptr = kernel_args->array_shared_ptr;
     volatile int32_t* ack_shared_ptr = kernel_args->ack_shared_ptr;
+    volatile int32_t* valid_shared_ptr = kernel_args->valid_shared_ptr;
     size_t length = kernel_args->length;
 
     int32_t counter = 0; //Client
@@ -88,25 +101,26 @@ void* latency_flow_ctrl_client_kernel(void* arg)
 
     while(counter < STIM_LEN)
     {
-        //Check all of the memory locations
-        if(array_shared_ptr[index] == (counter+1))
+        //Wait until the valid pointer indicates that the array is ready
+        if(*valid_shared_ptr == (counter+1))
         {
-            //The current location has incremented
-            //Check the next one
-            index++;
-
-            if(index >= length) //>= length and not >=length-1 because index is incremented unconditionally
+            //Check the array
+            for(size_t i = 0; i<length; i++)
             {
-                //Checked the last element in the array
-                
-                //Increment counter and ackowlege
-                counter+=2;
-
-                *ack_shared_ptr = counter;
-
-                //Reset index for next round
-                index = 0;
+                int32_t read_val = array_shared_ptr[i];
+                if(read_val != (counter+1))
+                {
+                    printf("Unexpected Value Read!\n");
+                    exit(1);
+                }
             }
+            
+            //Checked the last element in the array
+            
+            //Increment counter and ackowlege
+            counter+=2;
+
+            *ack_shared_ptr = counter;
         }
 
         //Poll on the memory location until the above condition is met or the counter exceeds STIM_LEN

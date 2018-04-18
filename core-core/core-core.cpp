@@ -84,6 +84,7 @@
 #include "latency_single_array_kernel.h"
 #include "latency_dual_array_kernel.h"
 #include "latency_flow_ctrl_kernel.h"
+#include "latency_flow_ctrl_blocked_read_kernel.h"
 #include "bandwidth_circular_fifo_kernel.h"
 
 #ifndef PRINT_FULL_STATS
@@ -655,6 +656,119 @@ void run_latency_flow_ctrl_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<si
     printf("        ==========================================================================================\n");
 }
 
+Results* run_latency_flow_ctrl_blocked_read_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file=NULL, std::ofstream* raw_file=NULL)
+{
+    #if PRINT_TITLE == 1
+    if(report_standalone)
+    {
+        printf("\n");
+        printf("Flow Control Blocked Read - Array\n");
+        printf("Array Length: %lu int32_t Elements\n", array_length);
+    }
+    #endif
+
+    //Initialize
+    int32_t* shared_array_loc = new int32_t[array_length];
+    int32_t* shared_ack_loc = new int32_t;
+    int32_t* shared_valid_loc = new int32_t;
+
+    //Init to 0
+    for(size_t i = 0; i < array_length; i++)
+    {
+        shared_array_loc[i] = 0;
+    }
+
+    LatencyFlowCtrlBlockedReadKernelArgs* args = new LatencyFlowCtrlBlockedReadKernelArgs();
+    args->array_shared_ptr = shared_array_loc;
+    args->ack_shared_ptr = shared_ack_loc;
+    args->valid_shared_ptr = shared_valid_loc;
+    args->length = array_length;
+
+    Results* results = execute_client_server_kernel(pcm, latency_flow_ctrl_blocked_read_server_kernel, latency_flow_ctrl_blocked_read_client_kernel, latency_flow_ctrl_blocked_read_kernel_reset, args, args, args, cpu_a, cpu_b);
+
+    #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
+        if(report_standalone)
+        {
+            #if USE_PCM == 1
+                    std::vector<int> sockets;
+                    int socket_a = pcm->getSocketId(cpu_a);
+                    int socket_b = pcm->getSocketId(cpu_b);
+
+                    sockets.push_back(socket_a);
+                    if(socket_b != socket_a)
+                    {
+                        sockets.push_back(socket_b);
+                    }
+
+                    std::vector<int> cores;
+                    cores.push_back(cpu_a);
+                    cores.push_back(cpu_b);
+            
+                    #if PRINT_FULL_STATS == 1
+                        results->print_statistics(sockets, cores, STIM_LEN);
+                    #endif
+
+                    #if PRINT_STATS == 1
+                    print_results(results, sizeof(*shared_array_loc)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                    #endif
+
+            #else
+                    #if PRINT_FULL_STATS
+                    results->print_statistics(0, cpu_a, STIM_LEN);
+                    #endif
+
+                    print_results(results, sizeof(*shared_loc)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+            #endif
+        }
+        else
+        {
+            print_results(results, sizeof(*shared_array_loc)*array_length, STIM_LEN/2, array_length, format, file, raw_file); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+        }
+    #endif
+
+    //Clean Up
+    delete[] shared_array_loc;
+    delete shared_ack_loc;
+    delete shared_valid_loc;
+    delete args;
+
+    return results;
+}
+
+void run_latency_flow_ctrl_blocked_read_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, FILE* file = NULL, std::ofstream* raw_file=NULL)
+{
+    //Print header
+    printf("Flow Control Blocked Read - Array\n");
+    printf("        ==========================================================================================\n");
+    printf("          Transfer Length  |  Round Trip Latency (ns) | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
+    printf("        (int32_t Elements) |       Avg, StdDev        |                         |                 \n");
+    printf("        ==========================================================================================\n");
+
+    #if WRITE_CSV == 1
+    fprintf(file, "\"Transfer Length (int32_t Elements)\", \"Round Trip Latency (ns) - Avg\", \"Round Trip Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
+    fflush(file);
+    *raw_file << "\"Transfer Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
+    #endif
+
+    std::string format = "        %18d | %11.6f, %11.6f | %23.6f | %15.6f \n";
+
+    for(int i = 0; i<array_lengths.size(); i++)
+    {
+        size_t array_length = array_lengths[i];
+        Results* latency_fifo_kernel_results = run_latency_flow_ctrl_blocked_read_kernel(pcm, cpu_a, cpu_b, array_length, false, format, file, raw_file);
+
+        #if WRITE_CSV == 1
+        fflush(file);
+        #endif
+
+        //Cleanup
+        latency_fifo_kernel_results->delete_results();
+        delete latency_fifo_kernel_results;
+    }
+
+    printf("        ==========================================================================================\n");
+}
+
 Results* run_bandwidth_fifo_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t array_length, int32_t max_write_per_transaction, bool report_standalone=true, std::string format = "", FILE* file=NULL, std::ofstream* raw_file=NULL)
 {
     #if PRINT_TITLE == 1
@@ -960,6 +1074,22 @@ int main(int argc, char *argv[])
 
     fclose(flow_ctrl_array_csv_file);
     flow_ctrl_array_raw_csv_file.close();
+
+    printf("\n");
+
+    FILE* flow_ctrl_blocked_read_array_csv_file = NULL;
+    std::ofstream flow_ctrl_blocked_read_array_raw_csv_file;
+    #if WRITE_CSV == 1
+    flow_ctrl_blocked_read_array_csv_file = fopen("report_flow_ctrl_blocked_read_array.csv", "w");
+    flow_ctrl_blocked_read_array_raw_csv_file.open("report_flow_ctrl_blocked_read_array_raw.csv", std::ofstream::out);
+    #endif
+
+    run_latency_flow_ctrl_blocked_read_kernel(pcm, cpu_a, cpu_b, array_sizes, flow_ctrl_blocked_read_array_csv_file, &flow_ctrl_blocked_read_array_raw_csv_file);
+
+    fclose(flow_ctrl_blocked_read_array_csv_file);
+    flow_ctrl_blocked_read_array_raw_csv_file.close();
+
+    printf("\n");
 
     std::vector<int32_t> transaction_sizes;
     for(int i = start; i < stop; i++)

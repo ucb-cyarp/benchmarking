@@ -26,7 +26,7 @@ LIB=-pthread -lrt -lpcmHelper -lPCM
 DEFINES = -DSTIM_LEN=200000 -DTRIALS=10 -DMAX_DISCARD=20000
 
 MAIN_FILE = core-core.cpp
-KERNEL_SRCS = latency_single_kernel.cpp latency_dual_kernel.cpp latency_single_array_kernel.cpp latency_dual_array_kernel.cpp latency_flow_ctrl_kernel.cpp bandwidth_circular_fifo_kernel.cpp
+KERNEL_SRCS = latency_single_kernel.cpp latency_dual_kernel.cpp latency_single_array_kernel.cpp latency_dual_array_kernel.cpp latency_flow_ctrl_kernel.cpp latency_flow_ctrl_blocked_read_kernel.cpp bandwidth_circular_fifo_kernel.cpp
 
 SRCS=$(MAIN_FILE)
 SRCS+=$(LIB_SRCS)
