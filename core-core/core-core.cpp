@@ -1285,7 +1285,7 @@ void run_bandwidth_fifo_read_limit_kernel(PCM* pcm, int cpu_a, int cpu_b, std::v
     int32_t data_col_width = 10;
 
     //Print header
-    printf("FIFO - Array\n");
+    printf("FIFO - Array - Read and Write Limited\n");
     printf("        Lengths in int32_t Elements, Data Rates in Mbps\n");
     printf("        ===========================");
     for(int i = 0; i<max_elements_per_transaction.size(); i++)
