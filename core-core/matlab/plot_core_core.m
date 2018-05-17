@@ -14,7 +14,7 @@ figure;
 yyaxis left;
 errorbar(single_array_length, single_latency_avg, single_latency_stddev);
 xlabel('Transaction Length (int32_t Elements)', 'Interpreter', 'none');
-ylabel('Transaction Latency - One Way (ns)')
+ylabel('Transaction Time to Completion - One Way (ns)')
 title('Core-Core Transactions with Single Shared Array');
 hold all;
 yyaxis right;
@@ -28,7 +28,7 @@ figure;
 yyaxis left;
 errorbar(dual_array_length, dual_latency_avg, dual_latency_stddev);
 xlabel('Transaction Length (int32_t Elements)', 'Interpreter', 'none');
-ylabel('Transaction Latency - One Way (ns)')
+ylabel('Transaction Time to Completion - One Way (ns)')
 title('Core-Core Transactions with Dual Shared Arrays');
 hold all;
 yyaxis right;
@@ -42,7 +42,7 @@ figure;
 yyaxis left;
 errorbar(fifo_array_length, fifo_latency_avg, fifo_latency_stddev);
 xlabel('Transaction Length (int32_t Elements)', 'Interpreter', 'none');
-ylabel('Transaction Latency - Round Trip (ns)')
+ylabel('Transaction Time to Completion - Round Trip (ns)')
 title('Core-Core FIFO Transactions with Ack');
 hold all;
 yyaxis right;
