@@ -1442,21 +1442,22 @@ int main(int argc, char *argv[])
         PCM* pcm = NULL;
     #endif
 
-    //=====Test 1=====
+    //=====Test 1 - Latency Single Shared Element=====
     Results* latency_single_kernel_results = run_latency_single_kernel(pcm, cpu_a, cpu_b);
     latency_single_kernel_results->delete_results();
     delete latency_single_kernel_results;
 
-    //=====Test 1.1=====
+    //=====Test 1.1 - Latency Dual Elements=====
     Results* latency_dual_kernel_results = run_latency_dual_kernel(pcm, cpu_a, cpu_b);
     latency_dual_kernel_results->delete_results();
     delete latency_dual_kernel_results;
 
-    //=====Test 2=====
+    //=====Test 2 - Latency Single Shared Array=====
     //std::vector<size_t> array_sizes = {1, 2, 4, 8, 16, 32, 64};
     std::vector<size_t> array_sizes;
     size_t start = 1;
-    size_t stop = 129;
+    size_t stop = 257;
+    // size_t stop = 129;
     // size_t stop = 65;
 
     for(int i = start; i < stop; i++)
@@ -1480,6 +1481,7 @@ int main(int argc, char *argv[])
 
     printf("\n");
 
+    //=====Test 2.1 - Latency Dual Arrays=====
     FILE* dual_array_csv_file = NULL;
     std::ofstream dual_array_raw_csv_file;
     #if WRITE_CSV == 1
@@ -1494,6 +1496,7 @@ int main(int argc, char *argv[])
 
     printf("\n");
 
+    //=====Test 2.2 - Latency Flow Control Array=====
     FILE* flow_ctrl_array_csv_file = NULL;
     std::ofstream flow_ctrl_array_raw_csv_file;
     #if WRITE_CSV == 1
@@ -1508,6 +1511,7 @@ int main(int argc, char *argv[])
 
     printf("\n");
 
+    //=====Test 2.3 - Latency Flow Control Blocked Array=====
     FILE* flow_ctrl_blocked_read_array_csv_file = NULL;
     std::ofstream flow_ctrl_blocked_read_array_raw_csv_file;
     #if WRITE_CSV == 1
@@ -1522,6 +1526,7 @@ int main(int argc, char *argv[])
 
     printf("\n");
 
+    //=====Test 3 - Bandwidth FIFO=====
     std::vector<int32_t> transaction_sizes;
     for(int i = start; i < stop; i++)
     {
@@ -1542,6 +1547,7 @@ int main(int argc, char *argv[])
 
     printf("\n");
 
+    //=====Test 3.1 - Bandwidth FIFO Blocked=====
     FILE* fifo_blocked_array_csv_file = NULL;
     std::ofstream fifo_blocked_array_raw_csv_file;
     #if WRITE_CSV == 1
@@ -1556,6 +1562,7 @@ int main(int argc, char *argv[])
 
     printf("\n");
 
+    //=====Test 3.2 - Bandwidth FIFO Read Limit=====
     FILE* fifo_read_limit_array_csv_file = NULL;
     std::ofstream fifo_read_limit_array_raw_csv_file;
     #if WRITE_CSV == 1
