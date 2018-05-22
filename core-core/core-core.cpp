@@ -111,9 +111,9 @@ int main(int argc, char *argv[])
     //http://man7.org/linux/man-pages/man3/pthread_attr_setaffinity_np.3.html,
     //http://man7.org/linux/man-pages/man3/pthread_join.3.html
 
-    if(argc < 3)
+    if(argc < 5)
     {
-        printf("core-core core-a core-b\n    core-a: Processor ID for first processor core\n    core-b: Processor ID for second processor core\n");
+        printf("core-core core-a core-b core-c core-d\n    core-a: Processor ID for first processor core\n    core-b: Processor ID for second processor core\n    core-c: Processor ID for third processor core\n    core-d: Processor ID for fourth processor core\n");
         exit(1);
     }
     std::string cpu_a_str(argv[1]);
@@ -121,6 +121,12 @@ int main(int argc, char *argv[])
 
     std::string cpu_b_str(argv[2]);
     int cpu_b = std::stoi(cpu_b_str);
+
+    std::string cpu_a_str(argv[3]);
+    int cpu_c = std::stoi(cpu_a_str);
+
+    std::string cpu_b_str(argv[4]);
+    int cpu_d = std::stoi(cpu_b_str);
 
     #if PRINT_TITLE == 1
         printf("Core-Core Communication Test: From CPU%d to CPU%d\n", cpu_a, cpu_b);
@@ -162,17 +168,7 @@ int main(int argc, char *argv[])
         PCM* pcm = NULL;
     #endif
 
-    //=====Test 1 - Latency Single Shared Element=====
-    Results* latency_single_kernel_results = run_latency_single_kernel(pcm, cpu_a, cpu_b);
-    latency_single_kernel_results->delete_results();
-    delete latency_single_kernel_results;
-
-    //=====Test 1.1 - Latency Dual Elements=====
-    Results* latency_dual_kernel_results = run_latency_dual_kernel(pcm, cpu_a, cpu_b);
-    latency_dual_kernel_results->delete_results();
-    delete latency_dual_kernel_results;
-
-    //=====Test 2 - Latency Single Shared Array=====
+    //Setup for array runs
     //std::vector<size_t> array_sizes = {1, 2, 4, 8, 16, 32, 64};
     std::vector<size_t> array_sizes;
     size_t start = 1;
@@ -184,6 +180,18 @@ int main(int argc, char *argv[])
     {
         array_sizes.push_back(i);
     }
+
+    //=====Test 1 - Latency Single Shared Element=====
+    Results* latency_single_kernel_results = run_latency_single_kernel(pcm, cpu_a, cpu_b);
+    latency_single_kernel_results->delete_results();
+    delete latency_single_kernel_results;
+
+    //=====Test 1.1 - Latency Dual Elements=====
+    Results* latency_dual_kernel_results = run_latency_dual_kernel(pcm, cpu_a, cpu_b);
+    latency_dual_kernel_results->delete_results();
+    delete latency_dual_kernel_results;
+
+    //=====Test 2 - Latency Single Shared Array=====
 
     printf("\n");
 
@@ -294,6 +302,8 @@ int main(int argc, char *argv[])
 
     fclose(fifo_read_limit_array_csv_file);
     fifo_read_limit_array_raw_csv_file.close();
+
+    //########## Parallel Runs ##########
 
     return 0;
 }

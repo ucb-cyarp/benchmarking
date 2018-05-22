@@ -301,7 +301,7 @@
         return results;
     }
 
-    SimultaniousResults* execute_kernel(PCM* pcm, void* (*kernel_fun)(void*), void* (*kernel_reset)(void*), void* arg_a, void* arg_b, void* reset_arg, int cpu_a, int cpu_b, int cpu_c, int cpu_d)
+    SimultaniousResults* execute_kernel(PCM* pcm, void* (*kernel_fun)(void*), void* (*kernel_reset)(void*), void* arg_a, void* arg_b, void* arg_c, void* arg_d, void* reset_arg_1, void* reset_arg_2, int cpu_a, int cpu_b, int cpu_c, int cpu_d)
     {
         #if USE_PCM == 1
             int sockets = pcm->getNumSockets();
@@ -321,7 +321,8 @@
         while(trial<TRIALS)
         {
             //Reset before creating threads (and before timer started)
-            kernel_reset(reset_arg);
+            kernel_reset(reset_arg_1);
+            kernel_reset(reset_arg_2);
 
             //=====Create a thread for the server and client on the specified cores=====
 
@@ -400,7 +401,6 @@
 
             //Create threads.  Create thread b and d (client) before thread a and c (server) which performs measurments
             // - Start Thread B & D
-            //   Threads B & D are identical and both use arg_b
             status = pthread_create(&thread_b, &attr_b, kernel_fun, arg_b);
             if(status != 0)
             {
@@ -410,7 +410,7 @@
                 exit(1);
             }
 
-            status = pthread_create(&thread_d, &attr_d, kernel_fun, arg_b); //both use arg_b
+            status = pthread_create(&thread_d, &attr_d, kernel_fun, arg_d); //both use arg_b
             if(status != 0)
             {
                 printf("Could not create d thread ... exiting\n");
@@ -420,7 +420,6 @@
             }
 
             // - Start Thread A & C
-            //   Threads A & C are identical and both use arg_a
             KernelServerWrapperArgs* server_args_a = new KernelServerWrapperArgs();
             server_args_a->pcm = pcm;
             server_args_a->kernel_fun = kernel_fun;
@@ -439,7 +438,7 @@
             KernelServerWrapperArgs* server_args_c = new KernelServerWrapperArgs();
             server_args_c->pcm = pcm;
             server_args_c->kernel_fun = kernel_fun;
-            server_args_c->kernel_arg = arg_a;
+            server_args_c->kernel_arg = arg_c;
             server_args_c->cpu_num = cpu_c;
 
             status = pthread_create(&thread_c, &attr_c, kernel_server_wrapper, server_args_c);
@@ -685,7 +684,7 @@
         return results;
     }
 
-    SimultaniousResults* execute_client_server_kernel(PCM* pcm, void* (*kernel_server)(void*), void* (*kernel_client)(void*), void* (*kernel_reset)(void*), void* arg_server, void* arg_client, void* reset_arg, int cpu_a, int cpu_b, int cpu_c, int cpu_d)
+    SimultaniousResults* execute_client_server_kernel(PCM* pcm, void* (*kernel_server)(void*), void* (*kernel_client)(void*), void* (*kernel_reset)(void*), void* arg_server_1, void* arg_server_2, void* arg_client_1, void* arg_client_2, void* reset_arg_1, void* reset_arg_2, int cpu_a, int cpu_b, int cpu_c, int cpu_d)
     {
         #if USE_PCM == 1
             int sockets = pcm->getNumSockets();
@@ -705,7 +704,8 @@
         while(trial<TRIALS)
         {
             //Reset before creating threads (and before timer started)
-            kernel_reset(reset_arg);
+            kernel_reset(reset_arg_1);
+            kernel_reset(reset_arg_2);
 
             //=====Create a thread for the server and client on the specified cores=====
 
@@ -784,8 +784,7 @@
 
             //Create threads.  Create thread b and d (client) before thread a and c (server) which performs measurments
             // - Start Thread B & D
-            //   Both threads share the same arguments
-            status = pthread_create(&thread_b, &attr_b, kernel_client, arg_client);
+            status = pthread_create(&thread_b, &attr_b, kernel_client, arg_client_1);
             if(status != 0)
             {
                 printf("Could not create b thread ... exiting\n");
@@ -794,7 +793,7 @@
                 exit(1);
             }
 
-            status = pthread_create(&thread_d, &attr_d, kernel_client, arg_client);
+            status = pthread_create(&thread_d, &attr_d, kernel_client, arg_client_2);
             if(status != 0)
             {
                 printf("Could not create d thread ... exiting\n");
@@ -804,11 +803,10 @@
             }
 
             // - Start Thread A & C
-            //   Both threads share server args
             KernelServerWrapperArgs* server_args_a = new KernelServerWrapperArgs();
             server_args_a->pcm = pcm;
             server_args_a->kernel_fun = kernel_server;
-            server_args_a->kernel_arg = arg_server;
+            server_args_a->kernel_arg = arg_server_1;
             server_args_a->cpu_num = cpu_a;
 
             status = pthread_create(&thread_a, &attr_a, kernel_server_wrapper, server_args_a);
@@ -823,7 +821,7 @@
             KernelServerWrapperArgs* server_args_c = new KernelServerWrapperArgs();
             server_args_c->pcm = pcm;
             server_args_c->kernel_fun = kernel_server;
-            server_args_c->kernel_arg = arg_server;
+            server_args_c->kernel_arg = arg_server_2;
             server_args_c->cpu_num = cpu_c;
 
             status = pthread_create(&thread_c, &attr_c, kernel_server_wrapper, server_args_c);
