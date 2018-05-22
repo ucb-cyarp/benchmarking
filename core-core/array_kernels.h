@@ -193,8 +193,8 @@
                         results->results_b->print_statistics(0, cpu_c, STIM_LEN);
                         #endif
 
-                        print_results(results->results_a, sizeof(*shared_loc)*array_length, STIM_LEN);
-                        print_results(results->results_b, sizeof(*shared_loc)*array_length, STIM_LEN);
+                        print_results(results->results_a, sizeof(*shared_loc_1)*array_length, STIM_LEN);
+                        print_results(results->results_b, sizeof(*shared_loc_2)*array_length, STIM_LEN);
                 #endif
             }
             else
@@ -492,9 +492,9 @@
                         #endif
 
                         printf("Thread Pair 1 (A/B)\n");
-                        print_results(results->results_a, sizeof(*shared_loc_a)*array_length, STIM_LEN);
+                        print_results(results->results_a, sizeof(*shared_loc_a_1)*array_length, STIM_LEN);
                         printf("Thread Pair 2 (C/D)\n");
-                        print_results(results->results_b, sizeof(*shared_loc_a)*array_length, STIM_LEN);
+                        print_results(results->results_b, sizeof(*shared_loc_a_2)*array_length, STIM_LEN);
                 #endif
             }
             else
@@ -997,7 +997,7 @@
                         printf("Thread Pair 1 (A/B)\n");
                         print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
                         printf("Thread Pair 2 (C/D)\n");
-                        print_results(results->results_b, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2);
+                        print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
                         #endif
 
                 #else
@@ -1009,9 +1009,9 @@
                         #endif
 
                         printf("Thread Pair 1 (A/B)\n");
-                        print_results(results->results_a, sizeof(*shared_array_loc)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                        print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
                         printf("Thread Pair 2 (C/D)\n");
-                        print_results(results->results_b, sizeof(*shared_array_loc)*array_length, STIM_LEN/2);
+                        print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
                 #endif
             }
             else
