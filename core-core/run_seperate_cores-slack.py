@@ -88,7 +88,6 @@ def slackStatusPost(message):
 
     try:
         webhook_url = os.environ["SLACK_API_URL"]
-        print(webhook_url)
 
         slack_data = {'text': message}
 

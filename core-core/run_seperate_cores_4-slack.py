@@ -6,6 +6,9 @@ import platform
 import subprocess
 import re
 import os.path
+import datetime
+import json
+import requests
 
 def printTopology(topology):
     print('CPU | Socket | Core')
@@ -76,7 +79,33 @@ def filterTopologyBySocket(topology, socket_num):
 
     return filtered_topology
 
+def slackStatusPost(message):
+    """
+    Post a status update to slack
+    """
+
+    #Based on work on https://gist.github.com/devStepsize/b1b795309a217d24566dcc0ad136f784
+
+    try:
+        webhook_url = os.environ["SLACK_API_URL"]
+
+        slack_data = {'text': message}
+
+        response = requests.post(
+            webhook_url, data=json.dumps(slack_data),
+            headers={'Content-Type': 'application/json'}
+        )
+
+        if response.status_code != 200:
+            print('Could not post slack message, code ' + str(response.status_code) + ' ... continuing')
+    except KeyError:
+        print('Could not read slack API url')
+    except requests.exceptions.ConnectionError:
+        print('Slack connection error ... continuing')
+
 def main():
+    hostname = platform.node()
+
     topology = getPlatformTopology()
     unique_topology = getUniqueCPUs(topology)
     socket0_unique_topology = filterTopologyBySocket(unique_topology, 0)
@@ -96,9 +125,17 @@ def main():
 
     cmd = './core-core {} {} {} {}'.format(cpu_a, cpu_b, cpu_c, cpu_d)
 
+    cur_time = datetime.datetime.now()
+    print("Starting: {}\n".format(str(cur_time)))
+    slackStatusPost('*Core-Core Benchmarking Starting*\nHost: ' + hostname + '\n' + 'Time: ' + str(cur_time))
+
     print('\nRunning: {}\n'.format(cmd))
 
     subprocess.call(cmd, shell=True, executable='/bin/bash')
+
+    cur_time = datetime.datetime.now()
+    print("\nFinished: {}\n".format(str(cur_time)))
+    slackStatusPost('*Core-Core Benchmarking Finishing*\nHost: ' + hostname + '\n' + 'Time: ' + str(cur_time))
 
 if __name__ == "__main__":
     main()
