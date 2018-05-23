@@ -21,44 +21,30 @@ figure;
 %subplot(3, 1, 1);
 yyaxis left;
 errorbar(single_array_length_bytes, single_latency_avg, single_latency_stddev);
+title('Core-Core Transfer Times & Bandwidth (Shared Array)');
+hold all;
+
+%% Plot Trends
+[fits, gof] = createFits(single_array_length_bytes, single_latency_avg);
+[rsqr1, rsqr2] = gof.rsquare;
+
+h1 = plot(fits{1}, '-k');
+h2 = plot(fits{2}, '--k');
+hold off;
+
+label1 = sprintf('%s\n     r^2: %f', matlab.unittest.diagnostics.ConstraintDiagnostic.getDisplayableString(fits{1}), rsqr1);
+label2 = sprintf('%s\n     r^2: %f', matlab.unittest.diagnostics.ConstraintDiagnostic.getDisplayableString(fits{2}), rsqr2);
+
 xlabel('Transaction Length (Bytes)', 'Interpreter', 'none');
 ylabel('Transaction Time to Completion - One Way (ns)')
-title('Core-Core Transactions with Single Shared Array');
-hold all;
+
+%% Plot throughput
+
 yyaxis right;
 plot(single_array_length_bytes, single_data_rate_gbps);
 ylabel('Throughput (Gbps)')
 hold off;
 grid on;
 
-%% Plot 2
+legend([h1 h2], {sprintf('Linear Fit for Points >72 Bytes\n%s\n', label1), sprintf('\nLinear Fit for All Points\n%s\n', label2)});
 
-%subplot(3, 1, 2);
-figure;
-yyaxis left;
-errorbar(dual_array_length_bytes, dual_latency_avg, dual_latency_stddev);
-xlabel('Transaction Length (Bytes)', 'Interpreter', 'none');
-ylabel('Transaction Time to Completion - One Way (ns)')
-title('Core-Core Transactions with Dual Shared Arrays');
-hold all;
-yyaxis right;
-ylabel('Throughput (Gbps)')
-plot(dual_array_length_bytes, dual_data_rate_gbps);
-hold off;
-grid on;
-
-%% Plot 3
-
-%subplot(3, 1, 3);
-figure;
-yyaxis left;
-errorbar(fifo_array_length_bytes, fifo_latency_avg, fifo_latency_stddev);
-xlabel('Transaction Length (Bytes)', 'Interpreter', 'none');
-ylabel('Transaction Time to Completion - Round Trip (ns)')
-title('Core-Core FIFO Transactions with Ack');
-hold all;
-yyaxis right;
-ylabel('Throughput (Gbps)')
-plot(fifo_array_length_bytes, fifo_data_rate_gbps);
-hold off;
-grid on;
