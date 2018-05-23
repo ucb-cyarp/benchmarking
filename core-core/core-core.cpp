@@ -111,9 +111,9 @@ int main(int argc, char *argv[])
     //http://man7.org/linux/man-pages/man3/pthread_attr_setaffinity_np.3.html,
     //http://man7.org/linux/man-pages/man3/pthread_join.3.html
 
-    if(argc < 5)
+    if(argc != 5 || argc != 3)
     {
-        printf("core-core core-a core-b core-c core-d\n    core-a: Processor ID for first processor core\n    core-b: Processor ID for second processor core\n    core-c: Processor ID for third processor core\n    core-d: Processor ID for fourth processor core\n");
+        printf("core-core core-a core-b [core-c core-d]\n    core-a: Processor ID for first processor core\n    core-b: Processor ID for second processor core\n    core-c: Processor ID for third processor core\n    core-d: Processor ID for fourth processor core\n");
         exit(1);
     }
     std::string cpu_a_str(argv[1]);
@@ -129,7 +129,14 @@ int main(int argc, char *argv[])
     int cpu_d = std::stoi(cpu_d_str);
 
     #if PRINT_TITLE == 1
-        printf("Core-Core Communication Test: From CPU%d to CPU%d\n", cpu_a, cpu_b);
+        if(argc == 5)
+        {
+            printf("Core-Core Communication Test: From CPU%d to CPU%d, CPU%d to CPU%d\n", cpu_a, cpu_b, cpu_c, cpu_d);
+        }
+        else
+        {
+            printf("Core-Core Communication Test: From CPU%d to CPU%d\n", cpu_a, cpu_b);
+        }
         printf("STIM_LEN: %d (Samples/Vector/Trial), TRIALS: %d\n", STIM_LEN, TRIALS);
     #endif
 
@@ -191,7 +198,6 @@ int main(int argc, char *argv[])
     latency_dual_kernel_results->delete_results();
     delete latency_dual_kernel_results;
 
-    #ifdef SINGLE_TESTS
     //=====Test 2 - Latency Single Shared Array=====
 
     printf("\n");
@@ -304,94 +310,95 @@ int main(int argc, char *argv[])
     fclose(fifo_read_limit_array_csv_file);
     fifo_read_limit_array_raw_csv_file.close();
 
-    #endif
-
     //########## Parallel Runs ##########
-    //=====Test 2 - Latency Single Shared Array=====
-    printf("\n");
+    if(argc == 5)
+    {
+        //=====Test 2 - Latency Single Shared Array=====
+        printf("\n");
 
-    FILE* single_array_simultanious_csv_file_a = NULL;
-    FILE* single_array_simultanious_csv_file_b = NULL;
-    std::ofstream single_array_simultanious_raw_csv_file_a;
-    std::ofstream single_array_simultanious_raw_csv_file_b;
-    #if WRITE_CSV == 1
-    single_array_simultanious_csv_file_a = fopen("report_single_array_simultanious_a.csv", "w");
-    single_array_simultanious_csv_file_b = fopen("report_single_array_simultanious_b.csv", "w");
-    single_array_simultanious_raw_csv_file_a.open("report_single_array_raw_simultanious_a.csv", std::ofstream::out);
-    single_array_simultanious_raw_csv_file_b.open("report_single_array_raw_simultanious_b.csv", std::ofstream::out);
-    #endif
+        FILE* single_array_simultanious_csv_file_a = NULL;
+        FILE* single_array_simultanious_csv_file_b = NULL;
+        std::ofstream single_array_simultanious_raw_csv_file_a;
+        std::ofstream single_array_simultanious_raw_csv_file_b;
+        #if WRITE_CSV == 1
+        single_array_simultanious_csv_file_a = fopen("report_single_array_simultanious_a.csv", "w");
+        single_array_simultanious_csv_file_b = fopen("report_single_array_simultanious_b.csv", "w");
+        single_array_simultanious_raw_csv_file_a.open("report_single_array_raw_simultanious_a.csv", std::ofstream::out);
+        single_array_simultanious_raw_csv_file_b.open("report_single_array_raw_simultanious_b.csv", std::ofstream::out);
+        #endif
 
-    run_latency_single_array_kernel(pcm, cpu_a, cpu_b, cpu_c, cpu_d, array_sizes, single_array_simultanious_csv_file_a, single_array_simultanious_csv_file_b, &single_array_simultanious_raw_csv_file_a, &single_array_simultanious_raw_csv_file_b);
-    
-    fclose(single_array_simultanious_csv_file_a);
-    fclose(single_array_simultanious_csv_file_b);
-    single_array_simultanious_raw_csv_file_a.close();
-    single_array_simultanious_raw_csv_file_b.close();
+        run_latency_single_array_kernel(pcm, cpu_a, cpu_b, cpu_c, cpu_d, array_sizes, single_array_simultanious_csv_file_a, single_array_simultanious_csv_file_b, &single_array_simultanious_raw_csv_file_a, &single_array_simultanious_raw_csv_file_b);
+        
+        fclose(single_array_simultanious_csv_file_a);
+        fclose(single_array_simultanious_csv_file_b);
+        single_array_simultanious_raw_csv_file_a.close();
+        single_array_simultanious_raw_csv_file_b.close();
 
-    printf("\n");
+        printf("\n");
 
-    //=====Test 2.1 - Latency Dual Arrays=====
-    FILE* dual_array_simultanious_csv_file_a = NULL;
-    FILE* dual_array_simultanious_csv_file_b = NULL;
-    std::ofstream dual_array_simultanious_raw_csv_file_a;
-    std::ofstream dual_array_simultanious_raw_csv_file_b;
-    #if WRITE_CSV == 1
-    dual_array_simultanious_csv_file_a = fopen("report_dual_array_simultanious_a.csv", "w");
-    dual_array_simultanious_csv_file_b = fopen("report_dual_array_simultanious_b.csv", "w");
-    dual_array_simultanious_raw_csv_file_a.open("report_dual_array_simultanious_a_raw.csv", std::ofstream::out);
-    dual_array_simultanious_raw_csv_file_b.open("report_dual_array_simultanious_b_raw.csv", std::ofstream::out);
-    #endif
+        //=====Test 2.1 - Latency Dual Arrays=====
+        FILE* dual_array_simultanious_csv_file_a = NULL;
+        FILE* dual_array_simultanious_csv_file_b = NULL;
+        std::ofstream dual_array_simultanious_raw_csv_file_a;
+        std::ofstream dual_array_simultanious_raw_csv_file_b;
+        #if WRITE_CSV == 1
+        dual_array_simultanious_csv_file_a = fopen("report_dual_array_simultanious_a.csv", "w");
+        dual_array_simultanious_csv_file_b = fopen("report_dual_array_simultanious_b.csv", "w");
+        dual_array_simultanious_raw_csv_file_a.open("report_dual_array_simultanious_a_raw.csv", std::ofstream::out);
+        dual_array_simultanious_raw_csv_file_b.open("report_dual_array_simultanious_b_raw.csv", std::ofstream::out);
+        #endif
 
-    run_latency_dual_array_kernel(pcm, cpu_a, cpu_b, cpu_c, cpu_d, array_sizes, dual_array_simultanious_csv_file_a, dual_array_simultanious_csv_file_b, &dual_array_simultanious_raw_csv_file_a, &dual_array_simultanious_raw_csv_file_b);
+        run_latency_dual_array_kernel(pcm, cpu_a, cpu_b, cpu_c, cpu_d, array_sizes, dual_array_simultanious_csv_file_a, dual_array_simultanious_csv_file_b, &dual_array_simultanious_raw_csv_file_a, &dual_array_simultanious_raw_csv_file_b);
 
-    fclose(dual_array_simultanious_csv_file_a);
-    fclose(dual_array_simultanious_csv_file_b);
-    dual_array_simultanious_raw_csv_file_a.close();
-    dual_array_simultanious_raw_csv_file_b.close();
+        fclose(dual_array_simultanious_csv_file_a);
+        fclose(dual_array_simultanious_csv_file_b);
+        dual_array_simultanious_raw_csv_file_a.close();
+        dual_array_simultanious_raw_csv_file_b.close();
 
-    printf("\n");
+        printf("\n");
 
-    //=====Test 2.2 - Latency Flow Control Array=====
-    FILE* flow_ctrl_array_simultanious_csv_file_a = NULL;
-    FILE* flow_ctrl_array_simultanious_csv_file_b = NULL;
-    std::ofstream flow_ctrl_array_simultanious_raw_csv_file_a;
-    std::ofstream flow_ctrl_array_simultanious_raw_csv_file_b;
-    #if WRITE_CSV == 1
-    flow_ctrl_array_simultanious_csv_file_a = fopen("report_flow_ctrl_array_simultanious_a.csv", "w");
-    flow_ctrl_array_simultanious_csv_file_b = fopen("report_flow_ctrl_array_simultanious_b.csv", "w");
-    flow_ctrl_array_simultanious_raw_csv_file_a.open("report_flow_ctrl_array_simultanious_raw_a.csv", std::ofstream::out);
-    flow_ctrl_array_simultanious_raw_csv_file_b.open("report_flow_ctrl_array_simultanious_raw_b.csv", std::ofstream::out);
-    #endif
+        //=====Test 2.2 - Latency Flow Control Array=====
+        FILE* flow_ctrl_array_simultanious_csv_file_a = NULL;
+        FILE* flow_ctrl_array_simultanious_csv_file_b = NULL;
+        std::ofstream flow_ctrl_array_simultanious_raw_csv_file_a;
+        std::ofstream flow_ctrl_array_simultanious_raw_csv_file_b;
+        #if WRITE_CSV == 1
+        flow_ctrl_array_simultanious_csv_file_a = fopen("report_flow_ctrl_array_simultanious_a.csv", "w");
+        flow_ctrl_array_simultanious_csv_file_b = fopen("report_flow_ctrl_array_simultanious_b.csv", "w");
+        flow_ctrl_array_simultanious_raw_csv_file_a.open("report_flow_ctrl_array_simultanious_raw_a.csv", std::ofstream::out);
+        flow_ctrl_array_simultanious_raw_csv_file_b.open("report_flow_ctrl_array_simultanious_raw_b.csv", std::ofstream::out);
+        #endif
 
-    run_latency_flow_ctrl_kernel(pcm, cpu_a, cpu_b, cpu_c, cpu_d, array_sizes, flow_ctrl_array_simultanious_csv_file_a, flow_ctrl_array_simultanious_csv_file_b, &flow_ctrl_array_simultanious_raw_csv_file_a, &flow_ctrl_array_simultanious_raw_csv_file_b);
+        run_latency_flow_ctrl_kernel(pcm, cpu_a, cpu_b, cpu_c, cpu_d, array_sizes, flow_ctrl_array_simultanious_csv_file_a, flow_ctrl_array_simultanious_csv_file_b, &flow_ctrl_array_simultanious_raw_csv_file_a, &flow_ctrl_array_simultanious_raw_csv_file_b);
 
-    fclose(flow_ctrl_array_simultanious_csv_file_a);
-    fclose(flow_ctrl_array_simultanious_csv_file_b);
-    flow_ctrl_array_simultanious_raw_csv_file_a.close();
-    flow_ctrl_array_simultanious_raw_csv_file_b.close();
+        fclose(flow_ctrl_array_simultanious_csv_file_a);
+        fclose(flow_ctrl_array_simultanious_csv_file_b);
+        flow_ctrl_array_simultanious_raw_csv_file_a.close();
+        flow_ctrl_array_simultanious_raw_csv_file_b.close();
 
-    printf("\n");
+        printf("\n");
 
-    //=====Test 2.3 - Latency Flow Control Blocked Array=====
-    FILE* flow_ctrl_blocked_read_array_simultanious_csv_file_a = NULL;
-    FILE* flow_ctrl_blocked_read_array_simultanious_csv_file_b = NULL;
-    std::ofstream flow_ctrl_blocked_read_array_simultanious_raw_csv_file_a;
-    std::ofstream flow_ctrl_blocked_read_array_simultanious_raw_csv_file_b;
-    #if WRITE_CSV == 1
-    flow_ctrl_blocked_read_array_simultanious_csv_file_a = fopen("report_flow_ctrl_blocked_read_array_simultanious_a.csv", "w");
-    flow_ctrl_blocked_read_array_simultanious_csv_file_b = fopen("report_flow_ctrl_blocked_read_array_simultanious_b.csv", "w");
-    flow_ctrl_blocked_read_array_simultanious_raw_csv_file_a.open("report_flow_ctrl_blocked_read_array_simultanious_raw_a.csv", std::ofstream::out);
-    flow_ctrl_blocked_read_array_simultanious_raw_csv_file_b.open("report_flow_ctrl_blocked_read_array_simultanious_raw_b.csv", std::ofstream::out);
-    #endif
+        //=====Test 2.3 - Latency Flow Control Blocked Array=====
+        FILE* flow_ctrl_blocked_read_array_simultanious_csv_file_a = NULL;
+        FILE* flow_ctrl_blocked_read_array_simultanious_csv_file_b = NULL;
+        std::ofstream flow_ctrl_blocked_read_array_simultanious_raw_csv_file_a;
+        std::ofstream flow_ctrl_blocked_read_array_simultanious_raw_csv_file_b;
+        #if WRITE_CSV == 1
+        flow_ctrl_blocked_read_array_simultanious_csv_file_a = fopen("report_flow_ctrl_blocked_read_array_simultanious_a.csv", "w");
+        flow_ctrl_blocked_read_array_simultanious_csv_file_b = fopen("report_flow_ctrl_blocked_read_array_simultanious_b.csv", "w");
+        flow_ctrl_blocked_read_array_simultanious_raw_csv_file_a.open("report_flow_ctrl_blocked_read_array_simultanious_raw_a.csv", std::ofstream::out);
+        flow_ctrl_blocked_read_array_simultanious_raw_csv_file_b.open("report_flow_ctrl_blocked_read_array_simultanious_raw_b.csv", std::ofstream::out);
+        #endif
 
-    run_latency_flow_ctrl_blocked_read_kernel(pcm, cpu_a, cpu_b, cpu_c, cpu_d, array_sizes, flow_ctrl_blocked_read_array_simultanious_csv_file_a, flow_ctrl_blocked_read_array_simultanious_csv_file_b, &flow_ctrl_blocked_read_array_simultanious_raw_csv_file_a, &flow_ctrl_blocked_read_array_simultanious_raw_csv_file_b);
+        run_latency_flow_ctrl_blocked_read_kernel(pcm, cpu_a, cpu_b, cpu_c, cpu_d, array_sizes, flow_ctrl_blocked_read_array_simultanious_csv_file_a, flow_ctrl_blocked_read_array_simultanious_csv_file_b, &flow_ctrl_blocked_read_array_simultanious_raw_csv_file_a, &flow_ctrl_blocked_read_array_simultanious_raw_csv_file_b);
 
-    fclose(flow_ctrl_blocked_read_array_simultanious_csv_file_a);
-    fclose(flow_ctrl_blocked_read_array_simultanious_csv_file_b);
-    flow_ctrl_blocked_read_array_simultanious_raw_csv_file_a.close();
-    flow_ctrl_blocked_read_array_simultanious_raw_csv_file_b.close();
+        fclose(flow_ctrl_blocked_read_array_simultanious_csv_file_a);
+        fclose(flow_ctrl_blocked_read_array_simultanious_csv_file_b);
+        flow_ctrl_blocked_read_array_simultanious_raw_csv_file_a.close();
+        flow_ctrl_blocked_read_array_simultanious_raw_csv_file_b.close();
 
-    printf("\n");
+        printf("\n");
+    }
 
     return 0;
 }
