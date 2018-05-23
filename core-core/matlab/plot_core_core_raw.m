@@ -7,13 +7,13 @@ bits_per_element = 32;
 
 %% Data Import
 start_row = 2;
-end_row = 25602;
+end_row = inf;
 [single_array_length, single_duration_high_res_clock, single_duration_clock, single_duration_rdtsc] = import_core_core_raw_file('report_single_array_raw.csv', start_row, end_row);
 [dual_array_length, dual_duration_high_res_clock, dual_duration_clock, dual_duration_rdtsc] = import_core_core_raw_file('report_dual_array_raw.csv', start_row, end_row);
 [fifo_array_length, fifo_duration_high_res_clock, fifo_duration_clock, fifo_duration_rdtsc] = import_core_core_raw_file('report_fifo_array_raw.csv', start_row, end_row);
 
 start_row = 2;
-end_row = 65;
+end_row = inf;
 [single_array_length_avg, single_latency_avg, single_latency_stddev, single_transaction_rate, single_data_rate_avg] = import_core_core_file('report_single_array.csv', start_row, end_row);
 [dual_array_length_avg, dual_latency_avg, dual_latency_stddev, dual_transaction_rate, dual_data_rate_avg] = import_core_core_file('report_dual_array.csv', start_row, end_row);
 [fifo_array_length_avg, fifo_latency_avg, fifo_latency_stddev, fifo_transaction_rate, fifo_data_rate_avg] = import_core_core_file('report_fifo_array.csv', start_row, end_row);

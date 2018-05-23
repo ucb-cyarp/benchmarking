@@ -3,7 +3,7 @@
 clear; clc;
 
 %% Import
-reportfifoarray = importfifofile('report_fifo_blocked_array.csv', 2, 130);
+reportfifoarray = importfifofile('report_fifo_blocked_array.csv', 2, 513, 512);
 
 %% Scale Results
 %Convert from Mbps to Gbps

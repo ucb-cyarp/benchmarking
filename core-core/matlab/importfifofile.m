@@ -1,4 +1,4 @@
-function reportfifoarray = importfifofile(filename, startRow, endRow)
+function reportfifoarray = importfifofile(filename, startRow, endRow, ncol)
 %IMPORTFILE Import numeric data from a text file as a matrix.
 %   REPORTFIFOARRAY = IMPORTFILE(FILENAME) Reads data from text file
 %   FILENAME for the default selection.
@@ -150,7 +150,15 @@ end
 %   column128: double (%f)
 %	column129: double (%f)
 % For more information, see the TEXTSCAN documentation.
-formatSpec = '%*q%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%[^\n\r]';
+
+%const format string from arg rather than statically
+formatSpec = '%*q';
+
+for i = 1:ncol
+    formatSpec = [formatSpec, '%f'];
+end
+
+formatSpec = [formatSpec, '%[^\n\r]'];
 
 %% Open the text file.
 fileID = fopen(filename,'r');
