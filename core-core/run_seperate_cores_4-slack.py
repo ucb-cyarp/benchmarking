@@ -120,8 +120,10 @@ def main():
     #Get 2 Unique Cores in Socket 0 (pick sequentially for now)
     cpu_a = (socket0_unique_topology[0])[0]
     cpu_b = (socket0_unique_topology[1])[0]
+    cpu_c = (socket0_unique_topology[2])[0]
+    cpu_d = (socket0_unique_topology[3])[0]
 
-    cmd = './core-core {} {}'.format(cpu_a, cpu_b)
+    cmd = './core-core {} {} {} {}'.format(cpu_a, cpu_b, cpu_c, cpu_d)
 
     cur_time = datetime.datetime.now()
     print("Starting: {}\n".format(str(cur_time)))
