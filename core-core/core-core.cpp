@@ -170,6 +170,19 @@ int main(int argc, char *argv[])
         int cpu_b_core = pcm->getCoreId(cpu_b);
         int cpu_b_tile = pcm->getTileId(cpu_b);
         printf("CPU B = Logical CPU#: %d, Socket #: %d, Physical Core #: %d, L2 Tile #: %d\n", cpu_b, cpu_b_socket, cpu_b_core, cpu_b_tile);
+
+        if(argc == 5)
+        {
+            int cpu_c_socket = pcm->getSocketId(cpu_c);
+            int cpu_c_core = pcm->getCoreId(cpu_c);
+            int cpu_c_tile = pcm->getTileId(cpu_c);
+            printf("CPU C = Logical CPU#: %d, Socket #: %d, Physical Core #: %d, L2 Tile #: %d\n", cpu_c, cpu_c_socket, cpu_c_core, cpu_c_tile);
+            int cpu_d_socket = pcm->getSocketId(cpu_d);
+            int cpu_d_core = pcm->getCoreId(cpu_d);
+            int cpu_d_tile = pcm->getTileId(cpu_d);
+            printf("CPU D = Logical CPU#: %d, Socket #: %d, Physical Core #: %d, L2 Tile #: %d\n", cpu_d, cpu_d_socket, cpu_d_core, cpu_d_tile);
+        }
+
         #endif
     #else
         PCM* pcm = NULL;
