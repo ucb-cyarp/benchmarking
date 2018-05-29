@@ -296,6 +296,8 @@
             //Delete temportary results
             free(res_a);
             free(res_b);
+
+            delete server_args;
         }
 
         return results;
@@ -524,6 +526,9 @@
             //Delete temportary results
             free(res_a);
             free(res_b);
+
+            delete server_args_a;
+            delete server_args_c;
         }
 
         simultanious_results->results_a = results_a;
@@ -679,6 +684,8 @@
             //Delete temportary results
             free(res_a);
             free(res_b);
+
+            delete server_args;
         }
 
         return results;
@@ -907,6 +914,9 @@
             //Delete temportary results
             free(res_a);
             free(res_b);
+
+            delete server_args_a;
+            delete server_args_c;
         }
 
         simultanious_results->results_a = results_a;

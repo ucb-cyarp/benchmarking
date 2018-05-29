@@ -198,6 +198,8 @@ int main(int argc, char *argv[])
     latency_dual_kernel_results->delete_results();
     delete latency_dual_kernel_results;
 
+    // #ifdef SINGLE_PAIR
+
     //=====Test 2 - Latency Single Shared Array=====
 
     printf("\n");
@@ -309,6 +311,8 @@ int main(int argc, char *argv[])
 
     fclose(fifo_read_limit_array_csv_file);
     fifo_read_limit_array_raw_csv_file.close();
+
+    // #endif
 
     //########## Parallel Runs ##########
     if(argc == 5)

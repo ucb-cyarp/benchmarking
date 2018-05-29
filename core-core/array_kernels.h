@@ -428,16 +428,16 @@
         arg_b->length = array_length;
 
         LatencyDualArrayKernelArgs* arg_c = new LatencyDualArrayKernelArgs();
-        arg_a->init_counter = -1; //(server)
-        arg_a->my_shared_ptr = shared_loc_a_2;
-        arg_a->other_shared_ptr = shared_loc_b_2;
-        arg_a->length = array_length;
+        arg_c->init_counter = -1; //(server)
+        arg_c->my_shared_ptr = shared_loc_a_2;
+        arg_c->other_shared_ptr = shared_loc_b_2;
+        arg_c->length = array_length;
 
         LatencyDualArrayKernelArgs* arg_d = new LatencyDualArrayKernelArgs();
-        arg_b->init_counter = 0; //(client)
-        arg_b->my_shared_ptr = shared_loc_b_2; //Swapped from server
-        arg_b->other_shared_ptr = shared_loc_a_2;
-        arg_b->length = array_length;
+        arg_d->init_counter = 0; //(client)
+        arg_d->my_shared_ptr = shared_loc_b_2; //Swapped from server
+        arg_d->other_shared_ptr = shared_loc_a_2;
+        arg_d->length = array_length;
 
         LatencyDualArrayKernelResetArgs* reset_arg_1 = new LatencyDualArrayKernelResetArgs();
         reset_arg_1->shared_ptr_a = shared_loc_a_1;
