@@ -199,8 +199,8 @@
             }
             else
             {
-                print_results(results->results_a, sizeof(*shared_loc_1)*array_length, STIM_LEN, array_length, format, file_a, raw_file_a);
-                print_results(results->results_b, sizeof(*shared_loc_2)*array_length, STIM_LEN, array_length, format, file_b, raw_file_b);
+                print_results(results->results_a, cpu_a, cpu_b, sizeof(*shared_loc_1)*array_length, STIM_LEN, array_length, format, file_a, raw_file_a);
+                print_results(results->results_b, cpu_c, cpu_d, sizeof(*shared_loc_2)*array_length, STIM_LEN, array_length, format, file_b, raw_file_b);
             }
         #endif
 
@@ -255,10 +255,10 @@
     {
         //Print header
         printf("Single Memory Location - Simultanious - Array\n");
-        printf("        ==========================================================================================\n");
-        printf("          Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
-        printf("        (int32_t Elements) |       Avg, StdDev        |                         |                 \n");
-        printf("        ==========================================================================================\n");
+        printf("        ========================================================================================================\n");
+        printf("         CPU <-> CPU |  Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
+        printf("                     |(int32_t Elements) |       Avg, StdDev        |                         |                 \n");
+        printf("        ========================================================================================================\n");
 
         #if WRITE_CSV == 1
         fprintf(file_a, "\"Transfer Length (int32_t Elements)\", \"One Way Latency (ns) - Avg\", \"One Way Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
@@ -269,7 +269,7 @@
         *raw_file_b << "\"Transfer Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
         #endif
 
-        std::string format = "        %18d | %11.6f, %11.6f | %23.6f | %15.6f \n";
+        std::string format = "         %3d <-> %3d | %18d | %11.6f, %11.6f | %23.6f | %15.6f \n";
 
         for(int i = 0; i<array_lengths.size(); i++)
         {
@@ -381,7 +381,7 @@
         delete[] shared_loc_b;
         delete arg_a;
         delete arg_b;
-        delete reset_arg;
+        delete reset_arg;std::string format = "         %3d <-> %3d | %18d | %11.6f, %11.6f | %23.6f | %15.6f \n";
 
         return results;
     }
@@ -499,8 +499,8 @@
             }
             else
             {
-                print_results(results->results_a, sizeof(*shared_loc_a_1)*array_length, STIM_LEN, array_length, format, file_a, raw_file_a);
-                print_results(results->results_b, sizeof(*shared_loc_a_2)*array_length, STIM_LEN, array_length, format, file_b, raw_file_b);
+                print_results(results->results_a, cpu_a, cpu_b, sizeof(*shared_loc_a_1)*array_length, STIM_LEN, array_length, format, file_a, raw_file_a);
+                print_results(results->results_b, cpu_c, cpu_d, sizeof(*shared_loc_a_2)*array_length, STIM_LEN, array_length, format, file_b, raw_file_b);
             }
         #endif
 
@@ -555,10 +555,10 @@
     {
         //Print header
         printf("Dual Memory Location - Simultanious - Array\n");
-        printf("        ==========================================================================================\n");
-        printf("          Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
-        printf("        (int32_t Elements) |       Avg, StdDev        |                         |                 \n");
-        printf("        ==========================================================================================\n");
+        printf("        ========================================================================================================\n");
+        printf("         CPU <-> CPU |  Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
+        printf("                     |(int32_t Elements) |       Avg, StdDev        |                         |                 \n");
+        printf("        ========================================================================================================\n");
 
         #if WRITE_CSV == 1
         fprintf(file_a, "\"Transfer Length (int32_t Elements)\", \"One Way Latency (ns) - Avg\", \"One Way Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
@@ -569,7 +569,7 @@
         *raw_file_b << "\"Transfer Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
         #endif
 
-        std::string format = "        %18d | %11.6f, %11.6f | %23.6f | %15.6f \n";
+        std::string format = "         %3d <-> %3d | %18d | %11.6f, %11.6f | %23.6f | %15.6f \n";
 
         for(int i = 0; i<array_lengths.size(); i++)
         {
@@ -756,9 +756,8 @@
             }
             else
             {
-                printf("Thread Pair 1 (A/B)\n");
-                print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2, array_length, format, file_a, raw_file_a); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
-                print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2, array_length, format, file_b, raw_file_b);
+                print_results(results->results_a, cpu_a, cpu_b, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2, array_length, format, file_a, raw_file_a); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                print_results(results->results_b, cpu_c, cpu_d, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2, array_length, format, file_b, raw_file_b);
             }
         #endif
 
@@ -811,10 +810,10 @@
     {
         //Print header
         printf("Flow Control - Simultanious - Array\n");
-        printf("        ==========================================================================================\n");
-        printf("          Transfer Length  |  Round Trip Latency (ns) | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
-        printf("        (int32_t Elements) |       Avg, StdDev        |                         |                 \n");
-        printf("        ==========================================================================================\n");
+        printf("        ========================================================================================================\n");
+        printf("         CPU <-> CPU |  Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
+        printf("                     |(int32_t Elements) |       Avg, StdDev        |                         |                 \n");
+        printf("        ========================================================================================================\n");
 
         #if WRITE_CSV == 1
         fprintf(file_a, "\"Transfer Length (int32_t Elements)\", \"Round Trip Latency (ns) - Avg\", \"Round Trip Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
@@ -825,7 +824,7 @@
         *raw_file_b << "\"Transfer Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
         #endif
 
-        std::string format = "        %18d | %11.6f, %11.6f | %23.6f | %15.6f \n";
+        std::string format = "         %3d <-> %3d | %18d | %11.6f, %11.6f | %23.6f | %15.6f \n";
 
         for(int i = 0; i<array_lengths.size(); i++)
         {

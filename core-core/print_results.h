@@ -50,6 +50,27 @@
         #endif
     }
 
+    void print_results(Results* results, int core0, int core1, int bytes_per_transfer, int stim_len, int length, std::string format, FILE* file=NULL, std::ofstream* raw_file=NULL)
+    {
+        double avg_duration_ms = results->avg_duration();
+        double stddev_duration_ms = results->stddev_duration();
+        double avg_latency_ns = avg_duration_ms*1000000/stim_len;
+        double stddev_latency_ns = stddev_duration_ms*1000000/stim_len;
+
+        double transactions_rate_msps = stim_len/(1000.0*avg_duration_ms);
+
+        double data_rate_mbps = 8.0*bytes_per_transfer*stim_len/(1000.0*avg_duration_ms);
+
+        #if PRINT_STATS == 1
+        printf(format.c_str(), core0, core1, length, avg_latency_ns, stddev_latency_ns, transactions_rate_msps, data_rate_mbps);
+        #endif
+
+        #if WRITE_CSV == 1
+        fprintf(file, "%d, %f, %f, %f, %f\n", length, avg_latency_ns, stddev_latency_ns, transactions_rate_msps, data_rate_mbps);
+        results->write_durations(*raw_file, "", length, false);
+        #endif
+    }
+
     void print_results(Results* results, int bytes_per_transfer, int stim_len, int length, int max_write_per_transaction, std::string format, FILE* file=NULL, std::ofstream* raw_file=NULL)
     {
         double avg_duration_ms = results->avg_duration();
