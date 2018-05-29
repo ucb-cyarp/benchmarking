@@ -422,6 +422,7 @@ int main(int argc, char *argv[])
         printf("\n");
 
         //######## Fan-in Tests #########
+        //=====Test 2 - Latency Single Shared Array=====
         FILE* single_array_fanin_fanout_csv_file_a = NULL;
         FILE* single_array_fanin_fanout_csv_file_b = NULL;
         std::ofstream single_array_fanin_fanout_raw_csv_file_a;
@@ -439,6 +440,27 @@ int main(int argc, char *argv[])
         fclose(single_array_fanin_fanout_csv_file_b);
         single_array_fanin_fanout_raw_csv_file_a.close();
         single_array_fanin_fanout_raw_csv_file_b.close();
+
+        printf("\n");
+
+        //=====Test 2.1 - Latency Dual Arrays=====
+        FILE* dual_array_fanin_fanout_csv_file_a = NULL;
+        FILE* dual_array_fanin_fanout_csv_file_b = NULL;
+        std::ofstream dual_array_fanin_fanout_raw_csv_file_a;
+        std::ofstream dual_array_fanin_fanout_raw_csv_file_b;
+        #if WRITE_CSV == 1
+        dual_array_fanin_fanout_csv_file_a = fopen("report_dual_array_fanin_fanout_a.csv", "w");
+        dual_array_fanin_fanout_csv_file_b = fopen("report_dual_array_fanin_fanout_b.csv", "w");
+        dual_array_fanin_fanout_raw_csv_file_a.open("report_dual_array_fanin_fanout_a_raw.csv", std::ofstream::out);
+        dual_array_fanin_fanout_raw_csv_file_b.open("report_dual_array_fanin_fanout_b_raw.csv", std::ofstream::out);
+        #endif
+
+        run_latency_dual_array_kernel(pcm, cpu_a, cpu_b, cpu_c, array_sizes, dual_array_fanin_fanout_csv_file_a, dual_array_fanin_fanout_csv_file_b, &dual_array_fanin_fanout_raw_csv_file_a, &dual_array_fanin_fanout_raw_csv_file_b);
+
+        fclose(dual_array_fanin_fanout_csv_file_a);
+        fclose(dual_array_fanin_fanout_csv_file_b);
+        dual_array_fanin_fanout_raw_csv_file_a.close();
+        dual_array_fanin_fanout_raw_csv_file_b.close();
 
         printf("\n");
 
