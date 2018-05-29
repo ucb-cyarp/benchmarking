@@ -381,7 +381,7 @@
         delete[] shared_loc_b;
         delete arg_a;
         delete arg_b;
-        delete reset_arg;std::string format = "         %3d <-> %3d | %18d | %11.6f, %11.6f | %23.6f | %15.6f \n";
+        delete reset_arg;
 
         return results;
     }
