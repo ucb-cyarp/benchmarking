@@ -217,6 +217,125 @@
         return results;
     }
 
+    /**
+     * Note: This version tests fanin & fanout.  Since the single array kernel operates by
+     * "ping pong-ing" between the client and server threads, each cycle contains a fan-out
+     * and a fan-in.  The reported result (since it is reported as 1 way) averages the effect
+     * of fanout and fanin
+     */
+    SimultaniousResults* run_latency_single_array_kernel(PCM* pcm, int cpu_a, int cpu_b, int cpu_c, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
+    {
+        //=====Test 2=====
+        #if PRINT_TITLE == 1
+        if(report_standalone)
+        {
+            printf("\n");
+            printf("Single Memory Location - Fan-in/Fan-out - Array\n");
+            printf("Array Length: %lu int32_t Elements\n", array_length);
+        }
+        #endif
+
+        //Initialize
+        int32_t* shared_loc_1 = new int32_t[array_length];
+        int32_t* shared_loc_2 = new int32_t[array_length];
+
+        //Init to 0
+        for(size_t i = 0; i < array_length; i++)
+        {
+            shared_loc_1[i] = 0;
+            shared_loc_2[i] = 0;
+        }
+
+        //Construct 2 servers and 1 client.  Servers will measure.
+        //Both fan-in and fan-out is measured 
+        LatencySingleArrayKernelArgs* arg_a = new LatencySingleArrayKernelArgs();
+        arg_a->init_counter = -1; //(server)
+        arg_a->shared_ptr = shared_loc_1;
+        arg_a->length = array_length;
+
+        LatencySingleArrayKernelArgs* arg_b = new LatencySingleArrayKernelArgs();
+        arg_b->init_counter = -1; //(server)
+        arg_b->shared_ptr = shared_loc_2;
+        arg_b->length = array_length;
+
+        LatencySingleArrayJoinKernelArgs* arg_c = new LatencySingleArrayJoinKernelArgs();
+        arg_c->init_counter_a = 0; //(client)
+        arg_c->init_counter_b = 0; //(client)
+        arg_c->shared_ptr_a = shared_loc_1;
+        arg_c->shared_ptr_b = shared_loc_2;
+        arg_c->length_a = array_length;
+        arg_c->length_b = array_length;
+
+        LatencySingleArrayJoinKernelResetArgs* reset_arg_1 = new LatencySingleArrayJoinKernelResetArgs();
+        reset_arg_1->shared_ptr_a = shared_loc_1;
+        reset_arg_1->shared_ptr_b = shared_loc_2;
+        reset_arg_1->length_a = array_length;
+        reset_arg_1->length_b = array_length;
+
+        SimultaniousResults* results = execute_kernel_fanin_server_measure(pcm, latency_single_array_kernel, latency_single_array_join_kernel, latency_single_array_join_kernel_reset, arg_a, arg_b, arg_c, reset_arg_1, cpu_a, cpu_b, cpu_c);
+
+        #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
+            if(report_standalone)
+            {
+                #if USE_PCM == 1
+                        std::vector<int> sockets;
+                        int socket_a = pcm->getSocketId(cpu_a);
+                        int socket_b = pcm->getSocketId(cpu_b);
+
+                        sockets.push_back(socket_a);
+                        if(socket_b != socket_a)
+                        {
+                            sockets.push_back(socket_b);
+                        }
+
+                        std::vector<int> cores;
+                        cores.push_back(cpu_a);
+                        cores.push_back(cpu_b);
+                
+                        #if PRINT_FULL_STATS == 1
+                            printf("Thread Pair 1 (A/C)\n");
+                            results->results_a->print_statistics(sockets, cores, STIM_LEN);
+                            printf("Thread Pair 2 (B/C)\n");
+                            results->results_b->print_statistics(sockets, cores, STIM_LEN);
+                        #endif
+
+                        #if PRINT_STATS == 1
+                        printf("Thread Pair 1 (A/C)\n");
+                        print_results(results->results_a, sizeof(*shared_loc_1)*array_length, STIM_LEN);
+                        printf("Thread Pair 2 (B/C)\n");
+                        print_results(results->results_b, sizeof(*shared_loc_2)*array_length, STIM_LEN);
+                        #endif
+
+                #else
+                        #if PRINT_FULL_STATS
+                        printf("Thread Pair 1 (A/C)\n");
+                        results->results_a->print_statistics(0, cpu_a, STIM_LEN);
+                        printf("Thread Pair 2 (B/C)\n");
+                        results->results_b->print_statistics(0, cpu_c, STIM_LEN);
+                        #endif
+
+                        print_results(results->results_a, sizeof(*shared_loc_1)*array_length, STIM_LEN);
+                        print_results(results->results_b, sizeof(*shared_loc_2)*array_length, STIM_LEN);
+                #endif
+            }
+            else
+            {
+                print_results(results->results_a, cpu_a, cpu_c, sizeof(*shared_loc_1)*array_length, STIM_LEN, array_length, format, file_a, raw_file_a);
+                print_results(results->results_b, cpu_b, cpu_c, sizeof(*shared_loc_2)*array_length, STIM_LEN, array_length, format, file_b, raw_file_b);
+            }
+        #endif
+
+        //Clean Up
+        delete[] shared_loc_1;
+        delete[] shared_loc_2;
+        delete arg_a;
+        delete arg_b;
+        delete arg_c;
+        delete reset_arg_1;
+
+        return results;
+    }
+
     void run_latency_single_array_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, FILE* file=NULL, std::ofstream* raw_file=NULL)
     {
         //Print header
@@ -275,6 +394,49 @@
         {
             size_t array_length = array_lengths[i];
             SimultaniousResults* latency_single_array_kernel_results_container = run_latency_single_array_kernel(pcm, cpu_a, cpu_b, cpu_c, cpu_d, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
+
+            #if WRITE_CSV == 1
+            fflush(file_a);
+            fflush(file_b);
+            #endif
+
+            //Cleanup
+            latency_single_array_kernel_results_container->results_a->delete_results();
+            latency_single_array_kernel_results_container->results_b->delete_results();
+
+            delete latency_single_array_kernel_results_container->results_a;
+            delete latency_single_array_kernel_results_container->results_b;
+
+            delete latency_single_array_kernel_results_container;
+        }
+
+        printf("        ==========================================================================================\n");
+    }
+
+    void run_latency_single_array_kernel(PCM* pcm, int cpu_a, int cpu_b, int cpu_c, std::vector<size_t> array_lengths, FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
+    {
+        //Print header
+        printf("Single Memory Location - Fan-in/Fan-out - Array\n");
+        printf("        ========================================================================================================\n");
+        printf("         CPU <-> CPU |  Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
+        printf("                     |(int32_t Elements) |       Avg, StdDev        |                         |                 \n");
+        printf("        ========================================================================================================\n");
+
+        #if WRITE_CSV == 1
+        fprintf(file_a, "\"Transfer Length (int32_t Elements)\", \"One Way Latency (ns) - Avg\", \"One Way Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
+        fflush(file_a);
+        fprintf(file_b, "\"Transfer Length (int32_t Elements)\", \"One Way Latency (ns) - Avg\", \"One Way Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
+        fflush(file_b);
+        *raw_file_a << "\"Transfer Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
+        *raw_file_b << "\"Transfer Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
+        #endif
+
+        std::string format = "         %3d <-> %-3d | %17d | %11.6f, %11.6f | %23.6f | %15.6f \n";
+
+        for(int i = 0; i<array_lengths.size(); i++)
+        {
+            size_t array_length = array_lengths[i];
+            SimultaniousResults* latency_single_array_kernel_results_container = run_latency_single_array_kernel(pcm, cpu_a, cpu_b, cpu_c, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
 
             #if WRITE_CSV == 1
             fflush(file_a);

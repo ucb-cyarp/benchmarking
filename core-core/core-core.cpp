@@ -330,6 +330,9 @@ int main(int argc, char *argv[])
     //########## Parallel Runs ##########
     if(argc == 5)
     {
+        // #ifdef RUN_PARALLEL
+
+        //######## Parallel Tests #########
         //=====Test 2 - Latency Single Shared Array=====
         printf("\n");
 
@@ -414,7 +417,31 @@ int main(int argc, char *argv[])
         flow_ctrl_blocked_read_array_simultanious_raw_csv_file_a.close();
         flow_ctrl_blocked_read_array_simultanious_raw_csv_file_b.close();
 
+        // #endif
+
         printf("\n");
+
+        //######## Fan-in Tests #########
+        FILE* single_array_fanin_fanout_csv_file_a = NULL;
+        FILE* single_array_fanin_fanout_csv_file_b = NULL;
+        std::ofstream single_array_fanin_fanout_raw_csv_file_a;
+        std::ofstream single_array_fanin_fanout_raw_csv_file_b;
+        #if WRITE_CSV == 1
+        single_array_fanin_fanout_csv_file_a = fopen("report_single_array_fanin_fanout_a.csv", "w");
+        single_array_fanin_fanout_csv_file_b = fopen("report_single_array_fanin_fanout_b.csv", "w");
+        single_array_fanin_fanout_raw_csv_file_a.open("report_single_array_raw_fanin_fanout_a.csv", std::ofstream::out);
+        single_array_fanin_fanout_raw_csv_file_b.open("report_single_array_raw_fanin_fanout_b.csv", std::ofstream::out);
+        #endif
+
+        run_latency_single_array_kernel(pcm, cpu_a, cpu_b, cpu_c, array_sizes, single_array_fanin_fanout_csv_file_a, single_array_fanin_fanout_csv_file_b, &single_array_fanin_fanout_raw_csv_file_a, &single_array_fanin_fanout_raw_csv_file_b);
+        
+        fclose(single_array_fanin_fanout_csv_file_a);
+        fclose(single_array_fanin_fanout_csv_file_b);
+        single_array_fanin_fanout_raw_csv_file_a.close();
+        single_array_fanin_fanout_raw_csv_file_b.close();
+
+        printf("\n");
+
     }
 
     return 0;
