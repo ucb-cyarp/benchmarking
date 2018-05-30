@@ -1275,7 +1275,7 @@
         args_c->ack_shared_ptr = shared_ack_loc_2;
         args_c->length = array_length;
 
-        SimultaniousResults* results = execute_kernel_fanout_client_measure(pcm, latency_flow_ctrl_server_kernel, latency_flow_ctrl_client_join_kernel, latency_flow_ctrl_join_kernel_reset, args_a, args_b, args_c, args_a, cpu_a, cpu_b, cpu_c); //Reset args are same as server join args
+        SimultaniousResults* results = execute_kernel_fanout_client_measure(pcm, latency_flow_ctrl_server_join_kernel, latency_flow_ctrl_client_kernel, latency_flow_ctrl_join_kernel_reset, args_a, args_b, args_c, args_a, cpu_a, cpu_b, cpu_c); //Reset args are same as server join args
 
         #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
             if(report_standalone)
