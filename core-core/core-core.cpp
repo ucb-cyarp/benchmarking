@@ -464,6 +464,49 @@ int main(int argc, char *argv[])
 
         printf("\n");
 
+        //=====Test 2.2 - Latency Flow Control Array=====
+        //+++Fan-in+++
+        FILE* flow_ctrl_array_fanin_csv_file_a = NULL;
+        FILE* flow_ctrl_array_fanin_csv_file_b = NULL;
+        std::ofstream flow_ctrl_array_fanin_raw_csv_file_a;
+        std::ofstream flow_ctrl_array_fanin_raw_csv_file_b;
+        #if WRITE_CSV == 1
+        flow_ctrl_array_fanin_csv_file_a = fopen("report_flow_ctrl_array_fanin_a.csv", "w");
+        flow_ctrl_array_fanin_csv_file_b = fopen("report_flow_ctrl_array_fanin_b.csv", "w");
+        flow_ctrl_array_fanin_raw_csv_file_a.open("report_flow_ctrl_array_fanin_raw_a.csv", std::ofstream::out);
+        flow_ctrl_array_fanin_raw_csv_file_b.open("report_flow_ctrl_array_fanin_raw_b.csv", std::ofstream::out);
+        #endif
+
+        run_latency_flow_ctrl_fanin_kernel(pcm, cpu_a, cpu_b, cpu_c, array_sizes, flow_ctrl_array_fanin_csv_file_a, flow_ctrl_array_fanin_csv_file_b, &flow_ctrl_array_fanin_raw_csv_file_a, &flow_ctrl_array_fanin_raw_csv_file_b);
+
+        fclose(flow_ctrl_array_fanin_csv_file_a);
+        fclose(flow_ctrl_array_fanin_csv_file_b);
+        flow_ctrl_array_fanin_raw_csv_file_a.close();
+        flow_ctrl_array_fanin_raw_csv_file_b.close();
+
+        printf("\n");
+
+        //+++Fan-out+++
+        FILE* flow_ctrl_array_fanout_csv_file_a = NULL;
+        FILE* flow_ctrl_array_fanout_csv_file_b = NULL;
+        std::ofstream flow_ctrl_array_fanout_raw_csv_file_a;
+        std::ofstream flow_ctrl_array_fanout_raw_csv_file_b;
+        #if WRITE_CSV == 1
+        flow_ctrl_array_fanout_csv_file_a = fopen("report_flow_ctrl_array_fanout_a.csv", "w");
+        flow_ctrl_array_fanout_csv_file_b = fopen("report_flow_ctrl_array_fanout_b.csv", "w");
+        flow_ctrl_array_fanout_raw_csv_file_a.open("report_flow_ctrl_array_fanout_raw_a.csv", std::ofstream::out);
+        flow_ctrl_array_fanout_raw_csv_file_b.open("report_flow_ctrl_array_fanout_raw_b.csv", std::ofstream::out);
+        #endif
+
+        run_latency_flow_ctrl_fanin_kernel(pcm, cpu_a, cpu_b, cpu_c, array_sizes, flow_ctrl_array_fanout_csv_file_a, flow_ctrl_array_fanout_csv_file_b, &flow_ctrl_array_fanout_raw_csv_file_a, &flow_ctrl_array_fanout_raw_csv_file_b);
+
+        fclose(flow_ctrl_array_fanout_csv_file_a);
+        fclose(flow_ctrl_array_fanout_csv_file_b);
+        flow_ctrl_array_fanout_raw_csv_file_a.close();
+        flow_ctrl_array_fanout_raw_csv_file_b.close();
+
+        printf("\n");
+
     }
 
     return 0;

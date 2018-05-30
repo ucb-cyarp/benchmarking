@@ -29,6 +29,38 @@ void* latency_flow_ctrl_kernel_reset(void* arg)
 }
 
 /*
+ * Resets shared ptr array to 0
+ */
+void* latency_flow_ctrl_join_kernel_reset(void* arg)
+{
+    LatencyFlowCtrlJoinKernelArgs* args = (LatencyFlowCtrlJoinKernelArgs*) arg;
+
+    volatile int32_t* array_shared_ptr_int_a = args->array_shared_ptr_a;
+    volatile int32_t* ack_shared_ptr_int_a = args->ack_shared_ptr_a;
+    size_t length_a = args->length_a;
+
+    volatile int32_t* array_shared_ptr_int_b = args->array_shared_ptr_b;
+    volatile int32_t* ack_shared_ptr_int_b = args->ack_shared_ptr_b;
+    size_t length_b = args->length_b;
+
+    *ack_shared_ptr_int_a = 0;
+    
+    *ack_shared_ptr_int_b = 0;
+
+    for(size_t i = 0; i<length_a; i++)
+    {
+        array_shared_ptr_int_a[i] = 0;
+    }
+
+    for(size_t i = 0; i<length_b; i++)
+    {
+        array_shared_ptr_int_b[i] = 0;
+    }
+
+    return NULL;
+}
+
+/*
  * Arg contains a pointer to the shared memory location, the length of the array, and the pointer to the ack memory location
  * 
  * returns nothing (reporting handled by server wrapper)
@@ -59,6 +91,76 @@ void* latency_flow_ctrl_server_kernel(void* arg)
             for(size_t i = 0; i<length; i++)
             {
                 array_shared_ptr[i] = counter;
+            }
+        }
+
+        //Poll on the memory location until the above condition is met or the counter exceeds STIM_LEN
+    }
+
+    return NULL;
+}
+
+/*
+ * Arg contains a pointer to the shared memory location, the length of the array, and the pointer to the ack memory location
+ * 
+ * This is a version for testing fan-in
+ * 
+ * returns nothing (reporting handled by server wrapper)
+ */
+void* latency_flow_ctrl_server_join_kernel(void* arg)
+{
+    //Get the shared pointer and the initial counter value
+    LatencyFlowCtrlJoinKernelArgs* kernel_args = (LatencyFlowCtrlJoinKernelArgs*) arg;
+    volatile int32_t* array_shared_ptr_a = kernel_args->array_shared_ptr_a;
+    volatile int32_t* ack_shared_ptr_a = kernel_args->ack_shared_ptr_a;
+    size_t length_a = kernel_args->length_a;
+
+    volatile int32_t* array_shared_ptr_b = kernel_args->array_shared_ptr_b;
+    volatile int32_t* ack_shared_ptr_b = kernel_args->ack_shared_ptr_b;
+    size_t length_b = kernel_args->length_b;
+
+    int32_t counter_a = -1; //Server
+
+    int32_t counter_b = -1; //Server
+
+    //Execute until the specified number of transactions has occured
+    size_t index_a = 0;
+
+    size_t index_b = 0;
+
+    while(counter_a < STIM_LEN || counter_b < STIM_LEN)
+    {
+        if(counter_a < STIM_LEN)
+        {
+            //Check the ack memory location
+            if(*ack_shared_ptr_a == (counter_a+1))
+            {
+                //Last transaction has been acked, increment counter
+                counter_a+=2;
+
+                //Send next batch
+                //Increment the entire array
+                for(size_t i = 0; i<length_a; i++)
+                {
+                    array_shared_ptr_a[i] = counter_a;
+                }
+            }
+        }
+
+        if(counter_b < STIM_LEN)
+        {
+            //Check the ack memory location
+            if(*ack_shared_ptr_b == (counter_b+1))
+            {
+                //Last transaction has been acked, increment counter
+                counter_b+=2;
+
+                //Send next batch
+                //Increment the entire array
+                for(size_t i = 0; i<length_b; i++)
+                {
+                    array_shared_ptr_b[i] = counter_b;
+                }
             }
         }
 
@@ -106,6 +208,90 @@ void* latency_flow_ctrl_client_kernel(void* arg)
 
                 //Reset index for next round
                 index = 0;
+            }
+        }
+
+        //Poll on the memory location until the above condition is met or the counter exceeds STIM_LEN
+    }
+
+    return NULL;
+}
+
+/*
+ * Arg contains a pointer to the shared memory location, the length of the array, and the pointer to the ack memory location
+ * 
+ * This is a version for testing fan-out
+ * 
+ * returns nothing (reporting handled by server wrapper)
+ */
+void* latency_flow_ctrl_client_join_kernel(void* arg)
+{
+    //Get the shared pointer and the initial counter value
+    LatencyFlowCtrlJoinKernelArgs* kernel_args = (LatencyFlowCtrlJoinKernelArgs*) arg;
+    volatile int32_t* array_shared_ptr_a = kernel_args->array_shared_ptr_a;
+    volatile int32_t* ack_shared_ptr_a = kernel_args->ack_shared_ptr_a;
+    size_t length_a = kernel_args->length_a;
+
+    volatile int32_t* array_shared_ptr_b = kernel_args->array_shared_ptr_b;
+    volatile int32_t* ack_shared_ptr_b = kernel_args->ack_shared_ptr_b;
+    size_t length_b = kernel_args->length_b;
+
+    int32_t counter_a = 0; //Client
+
+    int32_t counter_b = 0; //Client
+
+    //Execute until the specified number of transactions has occured
+    size_t index_a = 0;
+
+    size_t index_b = 0;
+
+    while(counter_a < STIM_LEN || counter_b < STIM_LEN)
+    {
+        if(counter_a < STIM_LEN)
+        {
+            //Check all of the memory locations
+            if(array_shared_ptr_a[index_a] == (counter_a+1))
+            {
+                //The current location has incremented
+                //Check the next one
+                index_a++;
+
+                if(index_a >= length_a) //>= length and not >=length-1 because index is incremented unconditionally
+                {
+                    //Checked the last element in the array
+                    
+                    //Increment counter and ackowlege
+                    counter_a+=2;
+
+                    *ack_shared_ptr_a = counter_a;
+
+                    //Reset index for next round
+                    index_a = 0;
+                }
+            }
+        }
+
+        if(counter_b < STIM_LEN)
+        {
+            //Check all of the memory locations
+            if(array_shared_ptr_b[index_b] == (counter_b+1))
+            {
+                //The current location has incremented
+                //Check the next one
+                index_b++;
+
+                if(index_b >= length_b) //>= length and not >=length-1 because index is incremented unconditionally
+                {
+                    //Checked the last element in the array
+                    
+                    //Increment counter and ackowlege
+                    counter_b+=2;
+
+                    *ack_shared_ptr_b = counter_b;
+
+                    //Reset index for next round
+                    index_b = 0;
+                }
             }
         }
 

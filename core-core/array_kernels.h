@@ -1106,6 +1106,242 @@
         return results;
     }
 
+    /**
+     * This version tests for fan-in when the comunication mechanism uses the flow control model.
+     * 2 servers feed to 1 client.  The servers conduct the measurment
+     */
+    SimultaniousResults* run_latency_flow_ctrl_fanin_kernel(PCM* pcm, int cpu_a, int cpu_b, int cpu_c, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
+    {
+        #if PRINT_TITLE == 1
+        if(report_standalone)
+        {
+            printf("\n");
+            printf("Flow Control - Fan-in - Array\n");
+            printf("Array Length: %lu int32_t Elements\n", array_length);
+        }
+        #endif
+
+        //Initialize
+        int32_t* shared_array_loc_1 = new int32_t[array_length];
+        int32_t* shared_ack_loc_1 = new int32_t;
+
+        int32_t* shared_array_loc_2 = new int32_t[array_length];
+        int32_t* shared_ack_loc_2 = new int32_t;
+
+        //Init to 0
+        for(size_t i = 0; i < array_length; i++)
+        {
+            shared_array_loc_1[i] = 0;
+            shared_array_loc_2[i] = 0;
+        }
+
+        //2 Servers
+        LatencyFlowCtrlKernelArgs* args_a = new LatencyFlowCtrlKernelArgs();
+        args_a->array_shared_ptr = shared_array_loc_1;
+        args_a->ack_shared_ptr = shared_ack_loc_1;
+        args_a->length = array_length;
+
+        LatencyFlowCtrlKernelArgs* args_b = new LatencyFlowCtrlKernelArgs();
+        args_b->array_shared_ptr = shared_array_loc_2;
+        args_b->ack_shared_ptr = shared_ack_loc_2;
+        args_b->length = array_length;
+
+        //1 Client
+        LatencyFlowCtrlJoinKernelArgs* args_c = new LatencyFlowCtrlJoinKernelArgs();
+        args_c->array_shared_ptr_a = shared_array_loc_1;
+        args_c->ack_shared_ptr_a = shared_ack_loc_1;
+        args_c->length_a = array_length;
+
+        args_c->array_shared_ptr_b = shared_array_loc_2;
+        args_c->ack_shared_ptr_b = shared_ack_loc_2;
+        args_c->length_b = array_length;
+
+        SimultaniousResults* results = execute_kernel_fanin_server_measure(pcm, latency_flow_ctrl_server_kernel, latency_flow_ctrl_client_join_kernel, latency_flow_ctrl_join_kernel_reset, args_a, args_b, args_c, args_c, cpu_a, cpu_b, cpu_c); //Reset args are same as client join args
+
+        #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
+            if(report_standalone)
+            {
+                #if USE_PCM == 1
+                        std::vector<int> sockets;
+                        int socket_a = pcm->getSocketId(cpu_a);
+                        int socket_b = pcm->getSocketId(cpu_b);
+
+                        sockets.push_back(socket_a);
+                        if(socket_b != socket_a)
+                        {
+                            sockets.push_back(socket_b);
+                        }
+
+                        std::vector<int> cores;
+                        cores.push_back(cpu_a);
+                        cores.push_back(cpu_b);
+                
+                        #if PRINT_FULL_STATS == 1
+                            printf("Thread Pair 1 (A/C)\n");
+                            results->results_a->print_statistics(sockets, cores, STIM_LEN);
+                            printf("Thread Pair 2 (B/C)\n");
+                            results->results_b->print_statistics(sockets, cores, STIM_LEN);
+                        #endif
+
+                        #if PRINT_STATS == 1
+                        printf("Thread Pair 1 (A/C)\n");
+                        print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                        printf("Thread Pair 2 (B/C)\n");
+                        print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
+                        #endif
+
+                #else
+                        #if PRINT_FULL_STATS
+                        printf("Thread Pair 1 (A/C)\n");
+                        results->results_a->print_statistics(0, cpu_a, STIM_LEN);
+                        printf("Thread Pair 2 (B/C)\n");
+                        results->results_b->print_statistics(0, cpu_c, STIM_LEN);
+                        #endif
+
+                        printf("Thread Pair 1 (A/C)\n");
+                        print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                        printf("Thread Pair 2 (B/C)\n");
+                        print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
+                #endif
+            }
+            else
+            {
+                print_results(results->results_a, cpu_a, cpu_c, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2, array_length, format, file_a, raw_file_a); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                print_results(results->results_b, cpu_b, cpu_c, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2, array_length, format, file_b, raw_file_b);
+            }
+        #endif
+
+        //Clean Up
+        delete[] shared_array_loc_1;
+        delete[] shared_array_loc_2;
+        delete shared_ack_loc_1;
+        delete shared_ack_loc_2;
+        delete args_a;
+        delete args_b;
+        delete args_c;
+
+        return results;
+    }
+
+    /**
+     * This version tests for fan-out when the comunication mechanism uses the flow control model.
+     * 1 server feed to 2 clients.  The clients conduct the measurment
+     * 
+     * TODO: Small inaccuracy may occur on the first transaction due to servers starting first
+     */
+    SimultaniousResults* run_latency_flow_ctrl_fanout_kernel(PCM* pcm, int cpu_a, int cpu_b, int cpu_c, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
+    {
+        #if PRINT_TITLE == 1
+        if(report_standalone)
+        {
+            printf("\n");
+            printf("Flow Control - Fan-out - Array\n");
+            printf("Array Length: %lu int32_t Elements\n", array_length);
+        }
+        #endif
+
+        //Initialize
+        int32_t* shared_array_loc_1 = new int32_t[array_length];
+        int32_t* shared_ack_loc_1 = new int32_t;
+
+        int32_t* shared_array_loc_2 = new int32_t[array_length];
+        int32_t* shared_ack_loc_2 = new int32_t;
+
+        //Init to 0
+        for(size_t i = 0; i < array_length; i++)
+        {
+            shared_array_loc_1[i] = 0;
+            shared_array_loc_2[i] = 0;
+        }
+
+        //1 Server
+        LatencyFlowCtrlJoinKernelArgs* args_a = new LatencyFlowCtrlJoinKernelArgs();
+        args_a->array_shared_ptr_a = shared_array_loc_1;
+        args_a->ack_shared_ptr_a = shared_ack_loc_1;
+        args_a->length_a = array_length;
+
+        args_a->array_shared_ptr_b = shared_array_loc_2;
+        args_a->ack_shared_ptr_b = shared_ack_loc_2;
+        args_a->length_b = array_length;
+
+        //2 Clients
+        LatencyFlowCtrlKernelArgs* args_b = new LatencyFlowCtrlKernelArgs();
+        args_b->array_shared_ptr = shared_array_loc_1;
+        args_b->ack_shared_ptr = shared_ack_loc_1;
+        args_b->length = array_length;
+
+        LatencyFlowCtrlKernelArgs* args_c = new LatencyFlowCtrlKernelArgs();
+        args_c->array_shared_ptr = shared_array_loc_2;
+        args_c->ack_shared_ptr = shared_ack_loc_2;
+        args_c->length = array_length;
+
+        SimultaniousResults* results = execute_kernel_fanout_client_measure(pcm, latency_flow_ctrl_server_kernel, latency_flow_ctrl_client_join_kernel, latency_flow_ctrl_join_kernel_reset, args_a, args_b, args_c, args_a, cpu_a, cpu_b, cpu_c); //Reset args are same as server join args
+
+        #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
+            if(report_standalone)
+            {
+                #if USE_PCM == 1
+                        std::vector<int> sockets;
+                        int socket_a = pcm->getSocketId(cpu_a);
+                        int socket_b = pcm->getSocketId(cpu_b);
+
+                        sockets.push_back(socket_a);
+                        if(socket_b != socket_a)
+                        {
+                            sockets.push_back(socket_b);
+                        }
+
+                        std::vector<int> cores;
+                        cores.push_back(cpu_a);
+                        cores.push_back(cpu_b);
+                
+                        #if PRINT_FULL_STATS == 1
+                            printf("Thread Pair 1 (A/C)\n");
+                            results->results_a->print_statistics(sockets, cores, STIM_LEN);
+                            printf("Thread Pair 2 (B/C)\n");
+                            results->results_b->print_statistics(sockets, cores, STIM_LEN);
+                        #endif
+
+                        #if PRINT_STATS == 1
+                        printf("Thread Pair 1 (A/C)\n");
+                        print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                        printf("Thread Pair 2 (B/C)\n");
+                        print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
+                        #endif
+
+                #else
+                        #if PRINT_FULL_STATS
+                        printf("Thread Pair 1 (A/C)\n");
+                        results->results_a->print_statistics(0, cpu_a, STIM_LEN);
+                        printf("Thread Pair 2 (B/C)\n");
+                        results->results_b->print_statistics(0, cpu_c, STIM_LEN);
+                        #endif
+
+                        printf("Thread Pair 1 (A/C)\n");
+                        print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                        printf("Thread Pair 2 (B/C)\n");
+                        print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
+                #endif
+            }
+            else
+            {
+                print_results(results->results_a, cpu_a, cpu_c, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2, array_length, format, file_a, raw_file_a); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                print_results(results->results_b, cpu_b, cpu_c, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2, array_length, format, file_b, raw_file_b);
+            }
+        #endif
+
+        //Clean Up
+        delete[] shared_array_loc_1;
+        delete[] shared_array_loc_2;
+        delete shared_ack_loc_1;
+        delete shared_ack_loc_2;
+        delete args_a;
+        delete args_b;
+        delete args_c;
+
+        return results;
+    }
+
     void run_latency_flow_ctrl_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, FILE* file = NULL, std::ofstream* raw_file=NULL)
     {
         //Print header
@@ -1164,6 +1400,88 @@
         {
             size_t array_length = array_lengths[i];
             SimultaniousResults* latency_fifo_kernel_results = run_latency_flow_ctrl_kernel(pcm, cpu_a, cpu_b, cpu_c, cpu_d, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
+
+            #if WRITE_CSV == 1
+            fflush(file_a);
+            fflush(file_b);
+            #endif
+
+            //Cleanup
+            latency_fifo_kernel_results->results_a->delete_results();
+            latency_fifo_kernel_results->results_b->delete_results();
+            delete latency_fifo_kernel_results->results_a;
+            delete latency_fifo_kernel_results->results_b;
+            delete latency_fifo_kernel_results;
+        }
+
+        printf("        ==========================================================================================\n");
+    }
+
+    void run_latency_flow_ctrl_fanin_kernel(PCM* pcm, int cpu_a, int cpu_b, int cpu_c, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
+    {
+        //Print header
+        printf("Flow Control - Fan-in - Array\n");
+        printf("        ========================================================================================================\n");
+        printf("         CPU <-> CPU |  Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
+        printf("                     |(int32_t Elements) |       Avg, StdDev        |                         |                 \n");
+        printf("        ========================================================================================================\n");
+
+        #if WRITE_CSV == 1
+        fprintf(file_a, "\"Transfer Length (int32_t Elements)\", \"Round Trip Latency (ns) - Avg\", \"Round Trip Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
+        fflush(file_a);
+        fprintf(file_a, "\"Transfer Length (int32_t Elements)\", \"Round Trip Latency (ns) - Avg\", \"Round Trip Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
+        fflush(file_a);
+        *raw_file_a << "\"Transfer Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
+        *raw_file_b << "\"Transfer Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
+        #endif
+
+        std::string format = "          %3d -> %-3d | %17d | %11.6f, %11.6f | %23.6f | %15.6f \n";
+
+        for(int i = 0; i<array_lengths.size(); i++)
+        {
+            size_t array_length = array_lengths[i];
+            SimultaniousResults* latency_fifo_kernel_results = run_latency_flow_ctrl_fanin_kernel(pcm, cpu_a, cpu_b, cpu_c, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
+
+            #if WRITE_CSV == 1
+            fflush(file_a);
+            fflush(file_b);
+            #endif
+
+            //Cleanup
+            latency_fifo_kernel_results->results_a->delete_results();
+            latency_fifo_kernel_results->results_b->delete_results();
+            delete latency_fifo_kernel_results->results_a;
+            delete latency_fifo_kernel_results->results_b;
+            delete latency_fifo_kernel_results;
+        }
+
+        printf("        ==========================================================================================\n");
+    }
+
+    void run_latency_flow_ctrl_fanout_kernel(PCM* pcm, int cpu_a, int cpu_b, int cpu_c, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
+    {
+        //Print header
+        printf("Flow Control - Fan-out - Array\n");
+        printf("        ========================================================================================================\n");
+        printf("         CPU <-> CPU |  Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
+        printf("                     |(int32_t Elements) |       Avg, StdDev        |                         |                 \n");
+        printf("        ========================================================================================================\n");
+
+        #if WRITE_CSV == 1
+        fprintf(file_a, "\"Transfer Length (int32_t Elements)\", \"Round Trip Latency (ns) - Avg\", \"Round Trip Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
+        fflush(file_a);
+        fprintf(file_a, "\"Transfer Length (int32_t Elements)\", \"Round Trip Latency (ns) - Avg\", \"Round Trip Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
+        fflush(file_a);
+        *raw_file_a << "\"Transfer Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
+        *raw_file_b << "\"Transfer Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
+        #endif
+
+        std::string format = "          %3d -> %-3d | %17d | %11.6f, %11.6f | %23.6f | %15.6f \n";
+
+        for(int i = 0; i<array_lengths.size(); i++)
+        {
+            size_t array_length = array_lengths[i];
+            SimultaniousResults* latency_fifo_kernel_results = run_latency_flow_ctrl_fanout_kernel(pcm, cpu_a, cpu_b, cpu_c, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
 
             #if WRITE_CSV == 1
             fflush(file_a);
