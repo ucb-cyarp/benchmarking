@@ -498,7 +498,7 @@ int main(int argc, char *argv[])
         flow_ctrl_array_fanout_raw_csv_file_b.open("report_flow_ctrl_array_fanout_raw_b.csv", std::ofstream::out);
         #endif
 
-        run_latency_flow_ctrl_fanin_kernel(pcm, cpu_a, cpu_b, cpu_c, array_sizes, flow_ctrl_array_fanout_csv_file_a, flow_ctrl_array_fanout_csv_file_b, &flow_ctrl_array_fanout_raw_csv_file_a, &flow_ctrl_array_fanout_raw_csv_file_b);
+        run_latency_flow_ctrl_fanout_kernel(pcm, cpu_a, cpu_b, cpu_c, array_sizes, flow_ctrl_array_fanout_csv_file_a, flow_ctrl_array_fanout_csv_file_b, &flow_ctrl_array_fanout_raw_csv_file_a, &flow_ctrl_array_fanout_raw_csv_file_b);
 
         fclose(flow_ctrl_array_fanout_csv_file_a);
         fclose(flow_ctrl_array_fanout_csv_file_b);
