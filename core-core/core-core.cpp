@@ -211,7 +211,7 @@ int main(int argc, char *argv[])
     latency_dual_kernel_results->delete_results();
     delete latency_dual_kernel_results;
 
-    // #ifdef SINGLE_PAIR
+    #if TEST_SINGLE == 1
 
     //=====Test 2 - Latency Single Shared Array=====
 
@@ -276,6 +276,10 @@ int main(int argc, char *argv[])
 
     printf("\n");
 
+    #endif
+    
+    #if TEST_FIFO == 1
+
     //=====Test 3 - Bandwidth FIFO=====
     std::vector<int32_t> transaction_sizes;
     for(int i = start; i < stop; i++)
@@ -325,12 +329,12 @@ int main(int argc, char *argv[])
     fclose(fifo_read_limit_array_csv_file);
     fifo_read_limit_array_raw_csv_file.close();
 
-    // #endif
+    #endif
 
     //########## Parallel Runs ##########
     if(argc == 5)
     {
-        // #ifdef RUN_PARALLEL
+        #if TEST_SIMULTANIOUS == 1
 
         //######## Parallel Tests #########
         //=====Test 2 - Latency Single Shared Array=====
@@ -417,7 +421,9 @@ int main(int argc, char *argv[])
         flow_ctrl_blocked_read_array_simultanious_raw_csv_file_a.close();
         flow_ctrl_blocked_read_array_simultanious_raw_csv_file_b.close();
 
-        // #endif
+        #endif
+
+        #if TEST_FANIN_FANOUT == 1
 
         printf("\n");
 
@@ -545,6 +551,8 @@ int main(int argc, char *argv[])
         fclose(flow_ctrl_blocked_read_array_fanout_csv_file_b);
         flow_ctrl_blocked_read_array_fanout_raw_csv_file_a.close();
         flow_ctrl_blocked_read_array_fanout_raw_csv_file_b.close();
+
+        #endif
     }
 
     return 0;
