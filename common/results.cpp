@@ -5,6 +5,7 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <set>
 
 double average(double* arr, size_t len)
 {
@@ -420,6 +421,47 @@ void Results::print_statistics(std::vector<int> sockets, std::vector<int> cores,
         printf("             DRAM Skt [%d] Energy Mean (J): %f, Sample Std Dev: %f\n", sockets[i], avg_dram_energy_dbl, stddev_dram_energy_dbl);
         printf("             CPU Skt  [%d] Energy Mean - Normalized to Sample (nJ): %f, Sample Std Dev: %f\n", sockets[i], avg_cpu_energy_dbl*1000000000/stim_len, stddev_cpu_energy_dbl*1000000000/stim_len);
         printf("             DRAM Skt [%d] Energy Mean - Normalized to Sample (nJ): %f, Sample Std Dev: %f\n", sockets[i], avg_dram_energy_dbl*1000000000/stim_len, stddev_dram_energy_dbl*1000000000/stim_len);
+    }
+}
+
+void Results::print_statistics(std::set<int> sockets, std::set<int> cores, int stim_len)
+{
+    double avg_duration_dbl = this->avg_duration();
+    double stddev_duration_dbl = this->stddev_duration();
+
+    double avg_duration_clock_dbl = this->avg_duration_clock();
+    double stddev_duration_clock_dbl = this->stddev_duration_clock();
+
+    printf("         ##### CPU Frequency #####\n");
+    for(std::set<int>::iterator it = cores.begin(); it != cores.end(); it++){
+        double avg_cpu_per_dbl = this->avg_CPUPer(*it);
+        double stddev_cpu_per_dbl = this->stddev_CPUPer(*it);
+        printf("             CPU [%d] Period Mean (ns): %f, Sample Std Dev: %f\n", *it, avg_cpu_per_dbl*1000000000, stddev_cpu_per_dbl*1000000000);
+        printf("             CPU [%d] Freq (MHz): %f\n", *it, 1/avg_cpu_per_dbl/1000000);
+    }
+
+    // printf("High Res Clock - Sample Mean (ms): %f, Sample Std Dev: %f\n", avg_duration, std_dev_duration);
+
+    printf("         ##### High Resolution Clock - Clock With Smallest Tick on System #####\n");
+    printf("             High Resolution Timer - Sample Mean (ms): %f, Sample Std Dev: %f\n", avg_duration_dbl, stddev_duration_dbl);
+    printf("             High Resolution Timer Normalized to Sample - Sample Mean (ns): %f, Sample Std Dev: %f\n", avg_duration_dbl*1000000/stim_len, stddev_duration_dbl*1000000/stim_len);
+    printf("             High Resolution Timer - Sample Mean (MS/s): %f\n", stim_len*1.0/(1000.0*avg_duration_dbl));
+
+    printf("         ##### clock() Duration - Process CPU Time (May be Different from Wall Clock Time - Cumulative Time For All Threads) #####\n");
+    printf("             Clock - Sample Mean (ms): %f, Sample Std Dev: %f\n", avg_duration_clock_dbl, stddev_duration_clock_dbl);
+    printf("             *Clock Normalized to Sample - Sample Mean (ns): %f, Sample Std Dev: %f\n", avg_duration_clock_dbl*1000000/stim_len, stddev_duration_clock_dbl*1000000/stim_len);
+    printf("             *Clock - Sample Mean (MS/s): %f\n", stim_len*1.0/(1000.0*avg_duration_clock_dbl));
+
+    printf("         ##### System Energy Use #####\n");
+    for(std::set<int>::iterator it = sockets.begin(); it != sockets.end(); it++){
+        double avg_cpu_energy_dbl = this->avg_EnergyCPUUsed(*it);
+        double stddev_cpu_energy_dbl = this->stddev_EnergyCPUUsed(*it);
+        double avg_dram_energy_dbl = this->avg_EnergyDRAMUsed(*it);
+        double stddev_dram_energy_dbl = this->stddev_EnergyDRAMUsed(*it);
+        printf("             CPU Skt  [%d] Energy Mean (J): %f, Sample Std Dev: %f\n", *it, avg_cpu_energy_dbl, stddev_cpu_energy_dbl);
+        printf("             DRAM Skt [%d] Energy Mean (J): %f, Sample Std Dev: %f\n", *it, avg_dram_energy_dbl, stddev_dram_energy_dbl);
+        printf("             CPU Skt  [%d] Energy Mean - Normalized to Sample (nJ): %f, Sample Std Dev: %f\n", *it, avg_cpu_energy_dbl*1000000000/stim_len, stddev_cpu_energy_dbl*1000000000/stim_len);
+        printf("             DRAM Skt [%d] Energy Mean - Normalized to Sample (nJ): %f, Sample Std Dev: %f\n", *it, avg_dram_energy_dbl*1000000000/stim_len, stddev_dram_energy_dbl*1000000000/stim_len);
     }
 }
 

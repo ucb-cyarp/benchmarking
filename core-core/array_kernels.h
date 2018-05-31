@@ -157,19 +157,22 @@
             if(report_standalone)
             {
                 #if USE_PCM == 1
-                        std::vector<int> sockets;
+                        std::set<int> sockets;
                         int socket_a = pcm->getSocketId(cpu_a);
                         int socket_b = pcm->getSocketId(cpu_b);
+                        int socket_c = pcm->getSocketId(cpu_c);
+                        int socket_d = pcm->getSocketId(cpu_d);
 
-                        sockets.push_back(socket_a);
-                        if(socket_b != socket_a)
-                        {
-                            sockets.push_back(socket_b);
-                        }
+                        sockets.insert(socket_a);
+                        sockets.insert(socket_b);
+                        sockets.insert(socket_c);
+                        sockets.insert(socket_d);
 
-                        std::vector<int> cores;
-                        cores.push_back(cpu_a);
-                        cores.push_back(cpu_b);
+                        std::set<int> cores;
+                        cores.insert(cpu_a);
+                        cores.insert(cpu_b);
+                        cores.insert(cpu_c);
+                        cores.insert(cpu_d);
                 
                         #if PRINT_FULL_STATS == 1
                             printf("Thread Pair 1 (A/B)\n");
@@ -278,19 +281,19 @@
             if(report_standalone)
             {
                 #if USE_PCM == 1
-                        std::vector<int> sockets;
+                        std::set<int> sockets;
                         int socket_a = pcm->getSocketId(cpu_a);
                         int socket_b = pcm->getSocketId(cpu_b);
+                        int socket_c = pcm->getSocketId(cpu_c);
 
-                        sockets.push_back(socket_a);
-                        if(socket_b != socket_a)
-                        {
-                            sockets.push_back(socket_b);
-                        }
+                        sockets.insert(socket_a);
+                        sockets.insert(socket_b);
+                        sockets.insert(socket_c);
 
-                        std::vector<int> cores;
-                        cores.push_back(cpu_a);
-                        cores.push_back(cpu_b);
+                        std::set<int> cores;
+                        cores.insert(cpu_a);
+                        cores.insert(cpu_b);
+                        cores.insert(cpu_c);
                 
                         #if PRINT_FULL_STATS == 1
                             printf("Thread Pair 1 (A/C)\n");
@@ -617,19 +620,22 @@
             if(report_standalone)
             {
                 #if USE_PCM == 1
-                        std::vector<int> sockets;
+                        std::set<int> sockets;
                         int socket_a = pcm->getSocketId(cpu_a);
                         int socket_b = pcm->getSocketId(cpu_b);
+                        int socket_c = pcm->getSocketId(cpu_c);
+                        int socket_d = pcm->getSocketId(cpu_d);
 
-                        sockets.push_back(socket_a);
-                        if(socket_b != socket_a)
-                        {
-                            sockets.push_back(socket_b);
-                        }
+                        sockets.insert(socket_a);
+                        sockets.insert(socket_b);
+                        sockets.insert(socket_c);
+                        sockets.insert(socket_d);
 
-                        std::vector<int> cores;
-                        cores.push_back(cpu_a);
-                        cores.push_back(cpu_b);
+                        std::set<int> cores;
+                        cores.insert(cpu_a);
+                        cores.insert(cpu_b);
+                        cores.insert(cpu_c);
+                        cores.insert(cpu_d);
                 
                         #if PRINT_FULL_STATS == 1
                             printf("Thread Pair 1 (A/B)\n");
@@ -747,19 +753,19 @@
             if(report_standalone)
             {
                 #if USE_PCM == 1
-                        std::vector<int> sockets;
+                        std::set<int> sockets;
                         int socket_a = pcm->getSocketId(cpu_a);
                         int socket_b = pcm->getSocketId(cpu_b);
+                        int socket_c = pcm->getSocketId(cpu_c);
 
-                        sockets.push_back(socket_a);
-                        if(socket_b != socket_a)
-                        {
-                            sockets.push_back(socket_b);
-                        }
+                        sockets.insert(socket_a);
+                        sockets.insert(socket_b);
+                        sockets.insert(socket_c);
 
-                        std::vector<int> cores;
-                        cores.push_back(cpu_a);
-                        cores.push_back(cpu_b);
+                        std::set<int> cores;
+                        cores.insert(cpu_a);
+                        cores.insert(cpu_b);
+                        cores.insert(cpu_c);
                 
                         #if PRINT_FULL_STATS == 1
                             printf("Thread Pair 1 (A/C)\n");
@@ -1046,19 +1052,22 @@
             if(report_standalone)
             {
                 #if USE_PCM == 1
-                        std::vector<int> sockets;
+                        std::set<int> sockets;
                         int socket_a = pcm->getSocketId(cpu_a);
                         int socket_b = pcm->getSocketId(cpu_b);
+                        int socket_c = pcm->getSocketId(cpu_c);
+                        int socket_d = pcm->getSocketId(cpu_d);
 
-                        sockets.push_back(socket_a);
-                        if(socket_b != socket_a)
-                        {
-                            sockets.push_back(socket_b);
-                        }
+                        sockets.insert(socket_a);
+                        sockets.insert(socket_b);
+                        sockets.insert(socket_c);
+                        sockets.insert(socket_d);
 
-                        std::vector<int> cores;
-                        cores.push_back(cpu_a);
-                        cores.push_back(cpu_b);
+                        std::set<int> cores;
+                        cores.insert(cpu_a);
+                        cores.insert(cpu_b);
+                        cores.insert(cpu_c);
+                        cores.insert(cpu_d);
                 
                         #if PRINT_FULL_STATS == 1
                             printf("Thread Pair 1 (A/B)\n");
@@ -1162,19 +1171,19 @@
             if(report_standalone)
             {
                 #if USE_PCM == 1
-                        std::vector<int> sockets;
+                        std::set<int> sockets;
                         int socket_a = pcm->getSocketId(cpu_a);
                         int socket_b = pcm->getSocketId(cpu_b);
+                        int socket_c = pcm->getSocketId(cpu_c);
 
-                        sockets.push_back(socket_a);
-                        if(socket_b != socket_a)
-                        {
-                            sockets.push_back(socket_b);
-                        }
+                        sockets.insert(socket_a);
+                        sockets.insert(socket_b);
+                        sockets.insert(socket_c);
 
-                        std::vector<int> cores;
-                        cores.push_back(cpu_a);
-                        cores.push_back(cpu_b);
+                        std::set<int> cores;
+                        cores.insert(cpu_a);
+                        cores.insert(cpu_b);
+                        cores.insert(cpu_c);
                 
                         #if PRINT_FULL_STATS == 1
                             printf("Thread Pair 1 (A/C)\n");
@@ -1281,19 +1290,19 @@
             if(report_standalone)
             {
                 #if USE_PCM == 1
-                        std::vector<int> sockets;
+                        std::set<int> sockets;
                         int socket_a = pcm->getSocketId(cpu_a);
                         int socket_b = pcm->getSocketId(cpu_b);
+                        int socket_c = pcm->getSocketId(cpu_c);
 
-                        sockets.push_back(socket_a);
-                        if(socket_b != socket_a)
-                        {
-                            sockets.push_back(socket_b);
-                        }
+                        sockets.insert(socket_a);
+                        sockets.insert(socket_b);
+                        sockets.insert(socket_c);
 
-                        std::vector<int> cores;
-                        cores.push_back(cpu_a);
-                        cores.push_back(cpu_b);
+                        std::set<int> cores;
+                        cores.insert(cpu_a);
+                        cores.insert(cpu_b);
+                        cores.insert(cpu_c);
                 
                         #if PRINT_FULL_STATS == 1
                             printf("Thread Pair 1 (A/B)\n");
@@ -1636,6 +1645,8 @@
                         std::vector<int> cores;
                         cores.push_back(cpu_a);
                         cores.push_back(cpu_b);
+                        cores.push_back(cpu_c);
+                        cores.push_back(cpu_d);
                 
                         #if PRINT_FULL_STATS == 1
                             printf("Thread Pair 1 (A/B)\n");
@@ -1681,6 +1692,243 @@
         delete shared_valid_loc_2;
         delete args_1;
         delete args_2;
+
+        return results;
+    }
+
+    SimultaniousResults* run_latency_flow_ctrl_blocked_read_fanin_kernel(PCM* pcm, int cpu_a, int cpu_b, int cpu_c, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
+    {
+        #if PRINT_TITLE == 1
+        if(report_standalone)
+        {
+            printf("\n");
+            printf("Flow Control Blocked Read - Fan-in - Array\n");
+            printf("Array Length: %lu int32_t Elements\n", array_length);
+        }
+        #endif
+
+        //Initialize
+        int32_t* shared_array_loc_1 = new int32_t[array_length];
+        int32_t* shared_array_loc_2 = new int32_t[array_length];
+        int32_t* shared_ack_loc_1 = new int32_t;
+        int32_t* shared_ack_loc_2 = new int32_t;
+        int32_t* shared_valid_loc_1 = new int32_t;
+        int32_t* shared_valid_loc_2 = new int32_t;
+
+        //Init to 0
+        for(size_t i = 0; i < array_length; i++)
+        {
+            shared_array_loc_1[i] = 0;
+            shared_array_loc_2[i] = 0;
+        }
+
+        //Server Args
+        LatencyFlowCtrlBlockedReadKernelArgs* srv_args_1 = new LatencyFlowCtrlBlockedReadKernelArgs();
+        srv_args_1->array_shared_ptr = shared_array_loc_1;
+        srv_args_1->ack_shared_ptr = shared_ack_loc_1;
+        srv_args_1->valid_shared_ptr = shared_valid_loc_1;
+        srv_args_1->length = array_length;
+
+        LatencyFlowCtrlBlockedReadKernelArgs* srv_args_2 = new LatencyFlowCtrlBlockedReadKernelArgs();
+        srv_args_2->array_shared_ptr = shared_array_loc_2;
+        srv_args_2->ack_shared_ptr = shared_ack_loc_2;
+        srv_args_2->valid_shared_ptr = shared_valid_loc_2;
+        srv_args_2->length = array_length;
+
+        //Client Arg
+        LatencyFlowCtrlBlockedReadJoinKernelArgs* cli_args_1 = new LatencyFlowCtrlBlockedReadJoinKernelArgs();
+        cli_args_1->array_shared_ptr_a = shared_array_loc_1;
+        cli_args_1->ack_shared_ptr_a = shared_ack_loc_1;
+        cli_args_1->valid_shared_ptr_a = shared_valid_loc_1;
+        cli_args_1->length_a = array_length;
+        cli_args_1->array_shared_ptr_b = shared_array_loc_2;
+        cli_args_1->ack_shared_ptr_b = shared_ack_loc_2;
+        cli_args_1->valid_shared_ptr_b = shared_valid_loc_2;
+        cli_args_1->length_b = array_length;
+
+
+        SimultaniousResults* results = execute_kernel_fanin_server_measure(pcm, latency_flow_ctrl_blocked_read_server_kernel, latency_flow_ctrl_blocked_read_client_join_kernel, latency_flow_ctrl_blocked_read_join_kernel_reset, srv_args_1, srv_args_2, cli_args_1, cli_args_1, cpu_a, cpu_b, cpu_c); //Reset arg is cli args
+
+        #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
+            if(report_standalone)
+            {
+                #if USE_PCM == 1
+                        std::set<int> sockets;
+                        int socket_a = pcm->getSocketId(cpu_a);
+                        int socket_b = pcm->getSocketId(cpu_b);
+                        int socket_c = pcm->getSocketId(cpu_b);
+
+                        sockets.insert(socket_a);
+                        sockets.insert(socket_b);
+
+                        std::set<int> cores;
+                        cores.insert(cpu_a);
+                        cores.insert(cpu_b);
+                        cores.insert(cpu_c);
+                
+                        #if PRINT_FULL_STATS == 1
+                            printf("Thread Pair 1 (A/C)\n");
+                            results->results_a->print_statistics(sockets, cores, STIM_LEN);
+                            printf("Thread Pair 2 (B/C)\n");
+                            results->results_b->print_statistics(sockets, cores, STIM_LEN);
+                        #endif
+
+                        #if PRINT_STATS == 1
+                        printf("Thread Pair 1 (A/C)\n");
+                        print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                        printf("Thread Pair 2 (B/C)\n");
+                        print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
+                        #endif
+
+                #else
+                        #if PRINT_FULL_STATS
+                        printf("Thread Pair 1 (A/C)\n");
+                        results->results_a->print_statistics(0, cpu_a, STIM_LEN);
+                        printf("Thread Pair 2 (B/C)\n");
+                        results->results_b->print_statistics(0, cpu_b, STIM_LEN);
+                        #endif
+
+                        printf("Thread Pair 1 (A/C)\n");
+                        print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                        printf("Thread Pair 2 (B/C)\n");
+                        print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
+                #endif
+            }
+            else
+            {
+                print_results(results->results_a, cpu_a, cpu_c, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2, array_length, format, file_a, raw_file_a); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                print_results(results->results_b, cpu_b, cpu_c, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2, array_length, format, file_b, raw_file_b);
+            }
+        #endif
+
+        //Clean Up
+        delete[] shared_array_loc_1;
+        delete[] shared_array_loc_2;
+        delete shared_ack_loc_1;
+        delete shared_ack_loc_2;
+        delete shared_valid_loc_1;
+        delete shared_valid_loc_2;
+        delete srv_args_1;
+        delete srv_args_2;
+        delete cli_args_1;
+
+        return results;
+    }
+
+    SimultaniousResults* run_latency_flow_ctrl_blocked_read_fanout_kernel(PCM* pcm, int cpu_a, int cpu_b, int cpu_c, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
+    {
+        #if PRINT_TITLE == 1
+        if(report_standalone)
+        {
+            printf("\n");
+            printf("Flow Control Blocked Read - Fan-in - Array\n");
+            printf("Array Length: %lu int32_t Elements\n", array_length);
+        }
+        #endif
+
+        //Initialize
+        int32_t* shared_array_loc_1 = new int32_t[array_length];
+        int32_t* shared_array_loc_2 = new int32_t[array_length];
+        int32_t* shared_ack_loc_1 = new int32_t;
+        int32_t* shared_ack_loc_2 = new int32_t;
+        int32_t* shared_valid_loc_1 = new int32_t;
+        int32_t* shared_valid_loc_2 = new int32_t;
+
+        //Init to 0
+        for(size_t i = 0; i < array_length; i++)
+        {
+            shared_array_loc_1[i] = 0;
+            shared_array_loc_2[i] = 0;
+        }
+
+        //Server Arg
+        LatencyFlowCtrlBlockedReadJoinKernelArgs* srv_args_1 = new LatencyFlowCtrlBlockedReadJoinKernelArgs();
+        srv_args_1->array_shared_ptr_a = shared_array_loc_1;
+        srv_args_1->ack_shared_ptr_a = shared_ack_loc_1;
+        srv_args_1->valid_shared_ptr_a = shared_valid_loc_1;
+        srv_args_1->length_a = array_length;
+        srv_args_1->array_shared_ptr_b = shared_array_loc_2;
+        srv_args_1->ack_shared_ptr_b = shared_ack_loc_2;
+        srv_args_1->valid_shared_ptr_b = shared_valid_loc_2;
+        srv_args_1->length_b = array_length;
+
+        //Client Args
+        LatencyFlowCtrlBlockedReadKernelArgs* cli_args_1 = new LatencyFlowCtrlBlockedReadKernelArgs();
+        cli_args_1->array_shared_ptr = shared_array_loc_1;
+        cli_args_1->ack_shared_ptr = shared_ack_loc_1;
+        cli_args_1->valid_shared_ptr = shared_valid_loc_1;
+        cli_args_1->length = array_length;
+
+        LatencyFlowCtrlBlockedReadKernelArgs* cli_args_2 = new LatencyFlowCtrlBlockedReadKernelArgs();
+        cli_args_2->array_shared_ptr = shared_array_loc_2;
+        cli_args_2->ack_shared_ptr = shared_ack_loc_2;
+        cli_args_2->valid_shared_ptr = shared_valid_loc_2;
+        cli_args_2->length = array_length;
+
+        SimultaniousResults* results = execute_kernel_fanout_client_measure(pcm, latency_flow_ctrl_blocked_read_server_join_kernel, latency_flow_ctrl_blocked_read_client_kernel, latency_flow_ctrl_blocked_read_join_kernel_reset, srv_args_1, cli_args_1, cli_args_2, srv_args_1, cpu_a, cpu_b, cpu_c); //Reset arg is srv args
+
+        #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
+            if(report_standalone)
+            {
+                #if USE_PCM == 1
+                        std::set<int> sockets;
+                        int socket_a = pcm->getSocketId(cpu_a);
+                        int socket_b = pcm->getSocketId(cpu_b);
+                        int socket_c = pcm->getSocketId(cpu_b);
+
+                        sockets.insert(socket_a);
+                        sockets.insert(socket_b);
+
+                        std::set<int> cores;
+                        cores.insert(cpu_a);
+                        cores.insert(cpu_b);
+                        cores.insert(cpu_c);
+                
+                        #if PRINT_FULL_STATS == 1
+                            printf("Thread Pair 1 (A/B)\n");
+                            results->results_a->print_statistics(sockets, cores, STIM_LEN);
+                            printf("Thread Pair 2 (A/C)\n");
+                            results->results_b->print_statistics(sockets, cores, STIM_LEN);
+                        #endif
+
+                        #if PRINT_STATS == 1
+                        printf("Thread Pair 1 (A/B)\n");
+                        print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                        printf("Thread Pair 2 (A/C)\n");
+                        print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
+                        #endif
+
+                #else
+                        #if PRINT_FULL_STATS
+                        printf("Thread Pair 1 (A/B)\n");
+                        results->results_a->print_statistics(0, cpu_a, STIM_LEN);
+                        printf("Thread Pair 2 (A/C)\n");
+                        results->results_b->print_statistics(0, cpu_b, STIM_LEN);
+                        #endif
+
+                        printf("Thread Pair 1 (A/B)\n");
+                        print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                        printf("Thread Pair 2 (A/C)\n");
+                        print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
+                #endif
+            }
+            else
+            {
+                print_results(results->results_a, cpu_a, cpu_b, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2, array_length, format, file_a, raw_file_a); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                print_results(results->results_b, cpu_a, cpu_c, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2, array_length, format, file_b, raw_file_b);
+            }
+        #endif
+
+        //Clean Up
+        delete[] shared_array_loc_1;
+        delete[] shared_array_loc_2;
+        delete shared_ack_loc_1;
+        delete shared_ack_loc_2;
+        delete shared_valid_loc_1;
+        delete shared_valid_loc_2;
+        delete srv_args_1;
+        delete cli_args_1;
+        delete cli_args_2;
 
         return results;
     }
@@ -1743,6 +1991,88 @@
         {
             size_t array_length = array_lengths[i];
             SimultaniousResults* latency_fifo_kernel_results = run_latency_flow_ctrl_blocked_read_kernel(pcm, cpu_a, cpu_b, cpu_c, cpu_d, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
+
+            #if WRITE_CSV == 1
+            fflush(file_a);
+            fflush(file_b);
+            #endif
+
+            //Cleanup
+            latency_fifo_kernel_results->results_a->delete_results();
+            latency_fifo_kernel_results->results_b->delete_results();
+            delete latency_fifo_kernel_results->results_a;
+            delete latency_fifo_kernel_results->results_b;
+            delete latency_fifo_kernel_results;
+        }
+
+        printf("        ==========================================================================================\n");
+    }
+
+    void run_latency_flow_ctrl_blocked_read_fanin_kernel(PCM* pcm, int cpu_a, int cpu_b, int cpu_c, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
+    {
+        //Print header
+        printf("Flow Control Blocked Read - Fan-in - Array\n");
+        printf("        ========================================================================================================\n");
+        printf("         CPU <-> CPU |  Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
+        printf("                     |(int32_t Elements) |       Avg, StdDev        |                         |                 \n");
+        printf("        ========================================================================================================\n");
+
+        #if WRITE_CSV == 1
+        fprintf(file_a, "\"Transfer Length (int32_t Elements)\", \"Round Trip Latency (ns) - Avg\", \"Round Trip Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
+        fflush(file_a);
+        fprintf(file_b, "\"Transfer Length (int32_t Elements)\", \"Round Trip Latency (ns) - Avg\", \"Round Trip Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
+        fflush(file_b);
+        *raw_file_a << "\"Transfer Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
+        *raw_file_b << "\"Transfer Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
+        #endif
+
+        std::string format = "          %3d -> %-3d | %17d | %11.6f, %11.6f | %23.6f | %15.6f \n";
+
+        for(int i = 0; i<array_lengths.size(); i++)
+        {
+            size_t array_length = array_lengths[i];
+            SimultaniousResults* latency_fifo_kernel_results = run_latency_flow_ctrl_blocked_read_fanin_kernel(pcm, cpu_a, cpu_b, cpu_c, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
+
+            #if WRITE_CSV == 1
+            fflush(file_a);
+            fflush(file_b);
+            #endif
+
+            //Cleanup
+            latency_fifo_kernel_results->results_a->delete_results();
+            latency_fifo_kernel_results->results_b->delete_results();
+            delete latency_fifo_kernel_results->results_a;
+            delete latency_fifo_kernel_results->results_b;
+            delete latency_fifo_kernel_results;
+        }
+
+        printf("        ==========================================================================================\n");
+    }
+
+    void run_latency_flow_ctrl_blocked_read_fanout_kernel(PCM* pcm, int cpu_a, int cpu_b, int cpu_c, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
+    {
+        //Print header
+        printf("Flow Control Blocked Read - Fan-out - Array\n");
+        printf("        ========================================================================================================\n");
+        printf("         CPU <-> CPU |  Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
+        printf("                     |(int32_t Elements) |       Avg, StdDev        |                         |                 \n");
+        printf("        ========================================================================================================\n");
+
+        #if WRITE_CSV == 1
+        fprintf(file_a, "\"Transfer Length (int32_t Elements)\", \"Round Trip Latency (ns) - Avg\", \"Round Trip Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
+        fflush(file_a);
+        fprintf(file_b, "\"Transfer Length (int32_t Elements)\", \"Round Trip Latency (ns) - Avg\", \"Round Trip Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
+        fflush(file_b);
+        *raw_file_a << "\"Transfer Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
+        *raw_file_b << "\"Transfer Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
+        #endif
+
+        std::string format = "          %3d -> %-3d | %17d | %11.6f, %11.6f | %23.6f | %15.6f \n";
+
+        for(int i = 0; i<array_lengths.size(); i++)
+        {
+            size_t array_length = array_lengths[i];
+            SimultaniousResults* latency_fifo_kernel_results = run_latency_flow_ctrl_blocked_read_fanout_kernel(pcm, cpu_a, cpu_b, cpu_c, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
 
             #if WRITE_CSV == 1
             fflush(file_a);
