@@ -937,7 +937,7 @@
             free(res_cli_c);
 
             delete measure_args_b;
-            delete measure_args_b;
+            delete measure_args_c;
         }
 
         simultanious_results->results_a = results_b;
