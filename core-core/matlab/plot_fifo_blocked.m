@@ -24,7 +24,7 @@ colormap('jet')
 xlabel('Block Length (Bytes)')
 ylabel('Array Length (Bytes)')
 zlabel('Data Rate (Gbps)')
-title('FIFO Data Transfer Rate')
+title('FIFO (Blocked) Data Transfer Rate')
 colorbar;
 
 figure;
@@ -33,5 +33,5 @@ imagesc(x_scale_bytes, y_scale_bytes, reportfifoarray)
 set(gca,'YDir','normal')
 xlabel('Block Length (Bytes)')
 ylabel('Array Length (Bytes)')
-title('FIFO Data Transfer Rate (Gbps)')
+title('FIFO (Blocked) Data Transfer Rate (Gbps)')
 colorbar;
