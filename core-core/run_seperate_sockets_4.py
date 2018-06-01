@@ -93,8 +93,8 @@ def main():
 
     #Get 2 Unique Cores in Socket 0 (pick sequentially for now)
     cpu_a = (socket0_unique_topology[0])[0]
-    cpu_b = (socket1_unique_topology[1])[0]
-    cpu_c = (socket0_unique_topology[0])[0]
+    cpu_b = (socket1_unique_topology[0])[0]
+    cpu_c = (socket0_unique_topology[1])[0]
     cpu_d = (socket1_unique_topology[1])[0]
 
     cmd = './core-core {} {} {} {}'.format(cpu_a, cpu_b, cpu_c, cpu_d)
