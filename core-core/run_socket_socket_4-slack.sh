@@ -1,3 +1,3 @@
 #!/bin/bash
 source ./secretkey.sh
-./run_core_core-slack.py
+./run_seperate_sockets_4.py
