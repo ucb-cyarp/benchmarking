@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
 
     if(argc != 5 && argc != 3)
     {
-        printf("core-core core-a core-b [core-c core-d]\n    core-a: Processor ID for first processor core\n    core-b: Processor ID for second processor core\n    core-c: Processor ID for third processor core\n    core-d: Processor ID for fourth processor core\n");
+        printf("core-core core-a core-b [core-c core-d]\n    core-a: Processor ID for first processor core\n    core-b: Processor ID for second processor core\n    core-c: Processor ID for third processor core\n    core-d: Processor ID for fourth processor core\n    If testing multisocket, recommend that A & B reside on Socket 1 and C & D reside on Socket 2\n");
         exit(1);
     }
     std::string cpu_a_str(argv[1]);
@@ -440,7 +440,12 @@ int main(int argc, char *argv[])
         single_array_fanin_fanout_raw_csv_file_b.open("report_single_array_raw_fanin_fanout_b.csv", std::ofstream::out);
         #endif
 
-        run_latency_single_array_kernel(pcm, cpu_a, cpu_b, cpu_c, array_sizes, single_array_fanin_fanout_csv_file_a, single_array_fanin_fanout_csv_file_b, &single_array_fanin_fanout_raw_csv_file_a, &single_array_fanin_fanout_raw_csv_file_b);
+        //Serv, Serv, Cli
+        //The 4 Core version goes A<->B, C<->D.
+        //For multisocket, A and B will be on Different Sockets
+        //To make The Servers reside on 1 socket and the Client to reside on the other,
+        //the servers will be A & C while the Client will be B
+        run_latency_single_array_kernel(pcm, cpu_a, cpu_c, cpu_b, array_sizes, single_array_fanin_fanout_csv_file_a, single_array_fanin_fanout_csv_file_b, &single_array_fanin_fanout_raw_csv_file_a, &single_array_fanin_fanout_raw_csv_file_b);
         
         fclose(single_array_fanin_fanout_csv_file_a);
         fclose(single_array_fanin_fanout_csv_file_b);
@@ -461,7 +466,12 @@ int main(int argc, char *argv[])
         dual_array_fanin_fanout_raw_csv_file_b.open("report_dual_array_fanin_fanout_b_raw.csv", std::ofstream::out);
         #endif
 
-        run_latency_dual_array_kernel(pcm, cpu_a, cpu_b, cpu_c, array_sizes, dual_array_fanin_fanout_csv_file_a, dual_array_fanin_fanout_csv_file_b, &dual_array_fanin_fanout_raw_csv_file_a, &dual_array_fanin_fanout_raw_csv_file_b);
+        //Serv, Serv, Cli
+        //The 4 Core version goes A<->B, C<->D.
+        //For multisocket, A and B will be on Different Sockets
+        //To make The Servers reside on 1 socket and the Client to reside on the other,
+        //the servers will be A & C while the Client will be B
+        run_latency_dual_array_kernel(pcm, cpu_a, cpu_c, cpu_b, array_sizes, dual_array_fanin_fanout_csv_file_a, dual_array_fanin_fanout_csv_file_b, &dual_array_fanin_fanout_raw_csv_file_a, &dual_array_fanin_fanout_raw_csv_file_b);
 
         fclose(dual_array_fanin_fanout_csv_file_a);
         fclose(dual_array_fanin_fanout_csv_file_b);
@@ -483,7 +493,12 @@ int main(int argc, char *argv[])
         flow_ctrl_array_fanin_raw_csv_file_b.open("report_flow_ctrl_array_fanin_raw_b.csv", std::ofstream::out);
         #endif
 
-        run_latency_flow_ctrl_fanin_kernel(pcm, cpu_a, cpu_b, cpu_c, array_sizes, flow_ctrl_array_fanin_csv_file_a, flow_ctrl_array_fanin_csv_file_b, &flow_ctrl_array_fanin_raw_csv_file_a, &flow_ctrl_array_fanin_raw_csv_file_b);
+        //Serv, Serv, Cli
+        //The 4 Core version goes A<->B, C<->D.
+        //For multisocket, A and B will be on Different Sockets
+        //To make The Servers reside on 1 socket and the Client to reside on the other,
+        //the servers will be A & C while the Client will be B
+        run_latency_flow_ctrl_fanin_kernel(pcm, cpu_a, cpu_c, cpu_b, array_sizes, flow_ctrl_array_fanin_csv_file_a, flow_ctrl_array_fanin_csv_file_b, &flow_ctrl_array_fanin_raw_csv_file_a, &flow_ctrl_array_fanin_raw_csv_file_b);
 
         fclose(flow_ctrl_array_fanin_csv_file_a);
         fclose(flow_ctrl_array_fanin_csv_file_b);
@@ -504,7 +519,12 @@ int main(int argc, char *argv[])
         flow_ctrl_array_fanout_raw_csv_file_b.open("report_flow_ctrl_array_fanout_raw_b.csv", std::ofstream::out);
         #endif
 
-        run_latency_flow_ctrl_fanout_kernel(pcm, cpu_a, cpu_b, cpu_c, array_sizes, flow_ctrl_array_fanout_csv_file_a, flow_ctrl_array_fanout_csv_file_b, &flow_ctrl_array_fanout_raw_csv_file_a, &flow_ctrl_array_fanout_raw_csv_file_b);
+        //Serv, Cli, Cli
+        //The 4 Core version goes A<->B, C<->D.
+        //For multisocket, A and B will be on Different Sockets
+        //To make The Server reside on 1 socket and the Clients to reside on the other,
+        //the servers will be A while the Client will be B & D
+        run_latency_flow_ctrl_fanout_kernel(pcm, cpu_a, cpu_b, cpu_d, array_sizes, flow_ctrl_array_fanout_csv_file_a, flow_ctrl_array_fanout_csv_file_b, &flow_ctrl_array_fanout_raw_csv_file_a, &flow_ctrl_array_fanout_raw_csv_file_b);
 
         fclose(flow_ctrl_array_fanout_csv_file_a);
         fclose(flow_ctrl_array_fanout_csv_file_b);
@@ -526,7 +546,12 @@ int main(int argc, char *argv[])
         flow_ctrl_blocked_read_array_fanin_raw_csv_file_b.open("report_flow_ctrl_blocked_read_array_fanin_raw_b.csv", std::ofstream::out);
         #endif
 
-        run_latency_flow_ctrl_blocked_read_fanin_kernel(pcm, cpu_a, cpu_b, cpu_c, array_sizes, flow_ctrl_blocked_read_array_fanin_csv_file_a, flow_ctrl_blocked_read_array_fanin_csv_file_b, &flow_ctrl_blocked_read_array_fanin_raw_csv_file_a, &flow_ctrl_blocked_read_array_fanin_raw_csv_file_b);
+        //Serv, Serv, Cli
+        //The 4 Core version goes A<->B, C<->D.
+        //For multisocket, A and B will be on Different Sockets
+        //To make The Servers reside on 1 socket and the Client to reside on the other,
+        //the servers will be A & C while the Client will be B
+        run_latency_flow_ctrl_blocked_read_fanin_kernel(pcm, cpu_a, cpu_c, cpu_b, array_sizes, flow_ctrl_blocked_read_array_fanin_csv_file_a, flow_ctrl_blocked_read_array_fanin_csv_file_b, &flow_ctrl_blocked_read_array_fanin_raw_csv_file_a, &flow_ctrl_blocked_read_array_fanin_raw_csv_file_b);
 
         fclose(flow_ctrl_blocked_read_array_fanin_csv_file_a);
         fclose(flow_ctrl_blocked_read_array_fanin_csv_file_b);
@@ -545,7 +570,12 @@ int main(int argc, char *argv[])
         flow_ctrl_blocked_read_array_fanout_raw_csv_file_b.open("report_flow_ctrl_blocked_read_array_fanout_raw_b.csv", std::ofstream::out);
         #endif
 
-        run_latency_flow_ctrl_blocked_read_fanout_kernel(pcm, cpu_a, cpu_b, cpu_c, array_sizes, flow_ctrl_blocked_read_array_fanout_csv_file_a, flow_ctrl_blocked_read_array_fanout_csv_file_b, &flow_ctrl_blocked_read_array_fanout_raw_csv_file_a, &flow_ctrl_blocked_read_array_fanout_raw_csv_file_b);
+        //Serv, Cli, Cli
+        //The 4 Core version goes A<->B, C<->D.
+        //For multisocket, A and B will be on Different Sockets
+        //To make The Server reside on 1 socket and the Clients to reside on the other,
+        //the servers will be A while the Client will be B & D
+        run_latency_flow_ctrl_blocked_read_fanout_kernel(pcm, cpu_a, cpu_b, cpu_d, array_sizes, flow_ctrl_blocked_read_array_fanout_csv_file_a, flow_ctrl_blocked_read_array_fanout_csv_file_b, &flow_ctrl_blocked_read_array_fanout_raw_csv_file_a, &flow_ctrl_blocked_read_array_fanout_raw_csv_file_b);
 
         fclose(flow_ctrl_blocked_read_array_fanout_csv_file_a);
         fclose(flow_ctrl_blocked_read_array_fanout_csv_file_b);
