@@ -21,9 +21,12 @@
 #include <map>
 #include <unistd.h>
 
+#include <chrono>
+#include <ctime>
+
 #include "intrin_bench_default_defines.h"
 
-#include "depends/pcm/cpucounters.h"
+#include "cpucounters.h"
 
 #include "kernel_runner.h"
 #include "results.h"
@@ -256,52 +259,6 @@ void test_fma(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type_resul
     #endif
 }
 
-//Initialize PCM
-//Based off opcm/pcm example pcm-power.cpp
-PCM* init_PCM()
-{
-    set_signal_handlers();
-
-    PCM * m = PCM::getInstance();
-    //m->allowMultipleInstances();
-    m->disableJKTWorkaround();
-
-    //Configure PCM
-    const int cpu_model = m->getCPUModel();
-    if (!(m->hasPCICFGUncore()))
-    {
-        std::cerr << "Unsupported processor model (" << cpu_model << ")." << std::endl;
-        exit(1);
-    }
-
-    printf("**************************************************\n");
-    printf("Resetting PMU\n");
-    m->resetPMU();
-
-    int default_freq_band[3] = { 12, 20, 40 };
-    
-    int imc_profile = -1; //Do not gather DRAM statistics (for now)
-    int pcu_profile = 5; //Get frequency Change statistics
-    int* freq_band = default_freq_band;
-
-    //Configure PCM PCU Monitoring
-    if (PCM::Success != m->programServerUncorePowerMetrics(imc_profile, pcu_profile, freq_band))
-    {
-        #ifdef _MSC_VER
-        std::cerr << "You must have signed msr.sys driver in your current directory and have administrator rights to run this program" << std::endl;
-        #elif defined(__linux__)
-        std::cerr << "You need to be root and loaded 'msr' Linux kernel module to execute the program. You may load the 'msr' module with 'modprobe msr'. \n";
-        #endif
-        exit(EXIT_FAILURE);
-    }
-
-    if (m->program() != PCM::Success) exit(EXIT_FAILURE);
-
-    m->setBlocked(true);
-
-    return m;
-}
-
 void* run_benchmarks(void* cpu_num)
 {
     #if PRINT_TITLE == 1
@@ -309,19 +266,40 @@ void* run_benchmarks(void* cpu_num)
     printf("STIM_LEN: %d (Samples/Vector/Trial), TRIALS: %d\n", STIM_LEN, TRIALS);
     #endif
 
+#if USE_PCM == 1
+
+    bool print_topology = false;
+    #if PRINT_TITLE == 1
+    print_topology = true;
+    #endif
+
+    #if PRINT_TITLE == 1
     printf("\n");
     printf("****** Platform Information Provided by PCM ******\n");
-    PCM* pcm = init_PCM();
+    #endif
 
+    PCM* pcm = init_PCM(print_topology);
+
+    #if PRINT_TITLE == 1
     printf("**************************************************\n");
     printf("CPU Brand String: %s\n", pcm->getCPUBrandString().c_str());
     printf("**************************************************\n");
+    #endif
 
     int* cpu_num_int = (int*) cpu_num;
     int socket = pcm->getSocketId(*cpu_num_int);
+
+    #if PRINT_TITLE == 1
     printf("Executing on Core: %3d (Socket: %2d)\n", *cpu_num_int, socket);
     printf("**************************************************\n");
     printf("\n");
+    #endif
+
+#else
+    PCM* pcm = NULL;
+    int* cpu_num_int = (int*) cpu_num;
+    int socket = 0;
+#endif
 
     std::map<std::string, std::map<std::string, Results*>*> kernel_results;
 
@@ -395,14 +373,28 @@ void* run_benchmarks(void* cpu_num)
     kernels.push_back("Mult");
     kernels.push_back("Div");
     kernels.push_back("FMA");
+    kernels.push_back("Load/Store");
+    kernels.push_back("Load/Add/Store");
+    kernels.push_back("Load/Mult/Store");
+    kernels.push_back("Load/Div/Store");
+    kernels.push_back("Load/FMA/Store");
+    kernels.push_back("Load/Add/Store No Intrin");
+    kernels.push_back("Load/Add/Store Unroll2");
 
     std::vector<std::string> vec_ext;
     vec_ext.push_back("AVX");
     vec_ext.push_back("AVX");
     vec_ext.push_back("AVX (Float) / AVX2 (Int)");
     vec_ext.push_back("AVX (Float) / AVX2 (Int)");
-    vec_ext.push_back("AVX (Float) / AVX2 (Int)");
+    vec_ext.push_back("AVX");
     vec_ext.push_back("FMA");
+    vec_ext.push_back("AVX");
+    vec_ext.push_back("AVX (Float) / AVX2 (Int)");
+    vec_ext.push_back("AVX (Float) / AVX2 (Int)");
+    vec_ext.push_back("AVX");
+    vec_ext.push_back("FMA");
+    vec_ext.push_back("N/A");
+    vec_ext.push_back("AVX (Float) / AVX2 (Int)");
 
     //Open CSV File to write
     FILE * csv_file;
@@ -434,7 +426,11 @@ void* run_benchmarks(void* cpu_num)
         sprintf(hostname, "Unavailable");
     }
 
-    fprintf(csv_file, "\"Host: %s\",", hostname);
+    //Getting time: Example from http://en.cppreference.com/w/cpp/chrono
+    auto wall_clock = std::chrono::system_clock::now();
+    std::time_t report_gen_time = std::chrono::system_clock::to_time_t(wall_clock);
+
+    fprintf(csv_file, "\"Host: %s, Stimulus Length: %d, Trials: %d, Report Generated: %s\",", hostname, STIM_LEN, TRIALS, ctime(&report_gen_time));
     for(size_t i = 0; i<kernels.size(); i++)
     {
         fprintf(csv_file, ",\"Mean\",\"Std Dev\"");
@@ -701,7 +697,9 @@ void* run_benchmarks(void* cpu_num)
         delete it->second;
     }
 
+    #if PRINT_TITLE == 1
     printf("****** PCM Ceanup ******\n");
+    #endif
     //Output from PCM appears when distructor runs
 
     return NULL;

@@ -2,68 +2,8 @@
     #define _H_KERNEL_RUNNER
 
     #include "results.h"
-    #include "depends/pcm/cpucounters.h"
-
-    /**
-     * Check for frequency changed events.  Assumes PMU counter 1 was set to track frequency change events.
-     */
-    bool check_any_freq_changes(PCM* pcm, ServerUncorePowerState* startStates, ServerUncorePowerState* endStates, std::vector<int> sockets_of_interest, const char* print_prefix = "Warning: ")
-    {
-        bool freq_changed = false;
-
-        for(int i = 0; i < sockets_of_interest.size(); i++)
-        {
-            int freq_change_events = getPCUCounter(1, startStates[sockets_of_interest[i]], endStates[sockets_of_interest[i]]);
-            if(freq_change_events > 0)
-            {
-                freq_changed = true;
-                #if PRINT_FREQ_CHANGE_EVENT == 1
-                    printf("%sSocket %d experienced %d clock frequency change events!\n", print_prefix, i, freq_change_events);
-                #else
-                    break; //No need to check other sockets, frequency changed
-                #endif
-            }
-        }
-
-        return freq_changed;
-    }
-
-    /**
-     * Calculate durations (for different clocks) for a given trial
-     * 
-     */
-    void calculate_durations(double& durations,
-    double& durations_clock,
-    double& durations_rdtsc,
-    std::chrono::high_resolution_clock::time_point start,
-    std::chrono::high_resolution_clock::time_point stop,
-    clock_t start_clock,
-    clock_t stop_clock,
-    uint64_t start_rdtsc,
-    uint64_t stop_rdtsc)
-    {
-        durations = (std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(stop-start)).count();
-        durations_clock = 1000.0 * (stop_clock - start_clock) / CLOCKS_PER_SEC;
-        durations_rdtsc =  (stop_rdtsc - start_rdtsc);
-    }
-
-    void calc_freq_and_power(PCM* pcm, double* avgCPUFreq, double* avgActiveCPUFreq, double* energyCPUUsed, double* energyDRAMUsed,
-    std::vector<CoreCounterState>& startCstates, std::vector<CoreCounterState>& endCstates, ServerUncorePowerState* startPowerState, ServerUncorePowerState* endPowerState)
-    {
-        int cores = pcm->getNumCores();
-        int sockets = pcm->getNumSockets();
-
-        for(int i = 0; i<cores; i++)
-        {  
-            avgCPUFreq[i] = getAverageFrequency(startCstates[i], endCstates[i]);
-            avgActiveCPUFreq[i] = getActiveAverageFrequency(startCstates[i], endCstates[i]);
-        }
-        for(int i = 0; i<sockets; i++)
-        {
-            energyCPUUsed[i] = getConsumedJoules(startPowerState[i], endPowerState[i]);
-            energyDRAMUsed[i] = getDRAMConsumedJoules(startPowerState[i], endPowerState[i]);
-        }
-    }
+    #include "cpucounters.h"
+    #include "pcm_helper.h"
 
     Results* zero_arg_kernel(PCM* pcm, void (*kernel_fun)(), int cpu_num, const char* title)
     {
@@ -71,29 +11,38 @@
             printf("%s\n", title);
         #endif
 
+#if USE_PCM == 1
         int sockets = pcm->getNumSockets();
         int cores = pcm->getNumCores();
+#else
+        int sockets = 1;
+        int cores = 1;
+#endif
 
         Results* results = new Results(sockets, cores);
 
         //Allocate measurement arrays
         std::chrono::duration<double, std::ratio<1, 1000>> durations[TRIALS];
 
+#if USE_PCM == 1
         //Allocate counter states
         ServerUncorePowerState* startPowerState = new ServerUncorePowerState[sockets];
         ServerUncorePowerState* endPowerState = new ServerUncorePowerState[sockets];
         std::vector<CoreCounterState> startCstates, endCstates;
         std::vector<SocketCounterState> startSktstate, endSktstate;
         SystemCounterState startSstate, endSstate;
+#endif
 
         int trial = 0;
         int discard_count = 0;
         while(trial<TRIALS)
         {
+#if USE_PCM == 1
             //Get CPU Core/Socket/Power States
             for (int i = 0; i < sockets; i++)
                 startPowerState[i] = pcm->getServerUncorePowerState(i);
             pcm->getAllCounterStates(startSstate, startSktstate, startCstates);
+#endif
 
             //Start Timer
             std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
@@ -108,24 +57,42 @@
             clock_t stop_clock = clock();
             std::chrono::high_resolution_clock::time_point stop = std::chrono::high_resolution_clock::now();
 
+#if USE_PCM == 1
             //Get CPU Core/Socket/Power States
             pcm->getAllCounterStates(endSstate, endSktstate, endCstates);
             for (int i = 0; i < sockets; i++)
                 endPowerState[i] = pcm->getServerUncorePowerState(i);
+#endif
             
             TrialResult* trial_result = new TrialResult(sockets, cores, trial);
 
             //Report Time
             calculate_durations(trial_result->duration, trial_result->duration_clock, trial_result->duration_rdtsc, start, stop, start_clock, stop_clock, start_rdtsc, stop_rdtsc);
             
+#if USE_PCM == 1
             //Report Freq, Power
             calc_freq_and_power(pcm, trial_result->avgCPUFreq, trial_result->avgActiveCPUFreq, trial_result->energyCPUUsed, trial_result->energyDRAMUsed,
             startCstates, endCstates, startPowerState, endPowerState);
+#else
+            trial_result->avgCPUFreq[0] = 0;
+            trial_result->avgActiveCPUFreq[0] = 0;
+            trial_result->energyCPUUsed[0] = 0;
+            trial_result->energyDRAMUsed[0] = 0;
+#endif
+
+#if USE_PCM == 1
+            //Report Temp
+            calc_temp(pcm, trial_result->startPackageThermalHeadroom, trial_result->endPackageThermalHeadroom, startPowerState, startPowerState);
+#else
+            trial_result->startPackageThermalHeadroom[0] = -1;
+            trial_result->endPackageThermalHeadroom[0] = -1;
+#endif
 
             #if PRINT_TRIALS == 1
                 trial_result->print_trial();
             #endif 
 
+#if USE_PCM == 1
             //Limit check to socket of interest (single socket for now)
             std::vector<int> sockets_of_interest;
             sockets_of_interest.push_back(pcm->getSocketId(cpu_num));
@@ -138,7 +105,6 @@
                 results->add_trial(trial_result);
                 discard_count=0;
             }
-            
             else
             {
                 discard_count++;
@@ -154,13 +120,28 @@
                     exit(1);
                 }
             }
+#else
+            //Not checking for freq change event.  Increment
+            trial++;
+            results->add_trial(trial_result);
+            discard_count=0;
+#endif
             
         }
 
         #if PRINT_STATS == 1
-            results->print_statistics(pcm->getSocketId(cpu_num), cpu_num);
+#if USE_PCM == 1
+            results->print_statistics(pcm->getSocketId(cpu_num), cpu_num, STIM_LEN);
+#else
+            results->print_statistics(0, cpu_num, STIM_LEN);
+#endif
         #endif
 
+#if USE_PCM == 1
+        delete[] startPowerState;
+        delete[] endPowerState;
+#endif
+        
         return results;
     }
 
@@ -171,20 +152,27 @@
             printf("%s\n", title);
         #endif
 
+#if USE_PCM == 1
         int sockets = pcm->getNumSockets();
         int cores = pcm->getNumCores();
+#else
+        int sockets = 1;
+        int cores = 1;
+#endif
 
         Results* results = new Results(sockets, cores);
 
         //Allocate measurement arrays
         std::chrono::duration<double, std::ratio<1, 1000>> durations[TRIALS];
 
+#if USE_PCM == 1
         //Allocate counter states
         ServerUncorePowerState* startPowerState = new ServerUncorePowerState[sockets];
         ServerUncorePowerState* endPowerState = new ServerUncorePowerState[sockets];
         std::vector<CoreCounterState> startCstates, endCstates;
         std::vector<SocketCounterState> startSktstate, endSktstate;
         SystemCounterState startSstate, endSstate;
+#endif
 
         int trial = 0;
         int discard_count = 0;
@@ -196,10 +184,12 @@
 
             VecType* a_vec = (VecType * ) a;
 
+#if USE_PCM == 1
             //Get CPU Core/Socket/Power States
             for (int i = 0; i < sockets; i++)
                 startPowerState[i] = pcm->getServerUncorePowerState(i);
             pcm->getAllCounterStates(startSstate, startSktstate, startCstates);
+#endif
 
             //Start Timer
             std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
@@ -214,19 +204,36 @@
             clock_t stop_clock = clock();
             std::chrono::high_resolution_clock::time_point stop = std::chrono::high_resolution_clock::now();
 
+#if USE_PCM == 1
             //Get CPU Core/Socket/Power States
             pcm->getAllCounterStates(endSstate, endSktstate, endCstates);
             for (int i = 0; i < sockets; i++)
                 endPowerState[i] = pcm->getServerUncorePowerState(i);
+#endif
             
             TrialResult* trial_result = new TrialResult(sockets, cores, trial);
 
             //Report Time
             calculate_durations(trial_result->duration, trial_result->duration_clock, trial_result->duration_rdtsc, start, stop, start_clock, stop_clock, start_rdtsc, stop_rdtsc);
             
+#if USE_PCM == 1
             //Report Freq, Power
             calc_freq_and_power(pcm, trial_result->avgCPUFreq, trial_result->avgActiveCPUFreq, trial_result->energyCPUUsed, trial_result->energyDRAMUsed,
             startCstates, endCstates, startPowerState, endPowerState);
+#else
+            trial_result->avgCPUFreq[0] = 0;
+            trial_result->avgActiveCPUFreq[0] = 0;
+            trial_result->energyCPUUsed[0] = 0;
+            trial_result->energyDRAMUsed[0] = 0;
+#endif
+
+#if USE_PCM == 1
+            //Report Temp
+            calc_temp(pcm, trial_result->startPackageThermalHeadroom, trial_result->endPackageThermalHeadroom, startPowerState, startPowerState);
+#else
+            trial_result->startPackageThermalHeadroom[0] = -1;
+            trial_result->endPackageThermalHeadroom[0] = -1;
+#endif
 
             #if PRINT_TRIALS == 1
                 trial_result->print_trial();
@@ -235,6 +242,7 @@
             //Clean up
             _mm_free(a);
 
+#if USE_PCM == 1
             //Limit check to socket of interest (single socket for now)
             std::vector<int> sockets_of_interest;
             sockets_of_interest.push_back(pcm->getSocketId(cpu_num));
@@ -263,13 +271,28 @@
                     exit(1);
                 }
             }
-            
+#else
+            //Not checking for freq change event.  Increment
+            trial++;
+            results->add_trial(trial_result);
+            discard_count=0;
+#endif
+
         }
 
         #if PRINT_STATS == 1
-            results->print_statistics(pcm->getSocketId(cpu_num), cpu_num);
+#if USE_PCM == 1
+            results->print_statistics(pcm->getSocketId(cpu_num), cpu_num, STIM_LEN);
+#else
+            results->print_statistics(0, cpu_num, STIM_LEN);
+#endif
         #endif
 
+#if USE_PCM == 1
+        delete[] startPowerState;
+        delete[] endPowerState;
+#endif
+        
         return results;
     }
 
@@ -280,20 +303,27 @@
             printf("%s\n", title);
         #endif
 
+#if USE_PCM == 1
         int sockets = pcm->getNumSockets();
         int cores = pcm->getNumCores();
+#else
+        int sockets = 1;
+        int cores = 1;
+#endif
 
         Results* results = new Results(sockets, cores);
 
         //Allocate measurement arrays
         std::chrono::duration<double, std::ratio<1, 1000>> durations[TRIALS];
 
+#if USE_PCM == 1
         //Allocate counter states
         ServerUncorePowerState* startPowerState = new ServerUncorePowerState[sockets];
         ServerUncorePowerState* endPowerState = new ServerUncorePowerState[sockets];
         std::vector<CoreCounterState> startCstates, endCstates;
         std::vector<SocketCounterState> startSktstate, endSktstate;
         SystemCounterState startSstate, endSstate;
+#endif
 
         int trial = 0;
         int discard_count = 0;
@@ -307,10 +337,12 @@
             VecType* a_vec = (VecType * ) a;
             VecType* b_vec = (VecType * ) b;
 
+#if USE_PCM == 1
             //Get CPU Core/Socket/Power States
             for (int i = 0; i < sockets; i++)
                 startPowerState[i] = pcm->getServerUncorePowerState(i);
             pcm->getAllCounterStates(startSstate, startSktstate, startCstates);
+#endif
 
             //Start Timer
             std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
@@ -325,19 +357,36 @@
             clock_t stop_clock = clock();
             std::chrono::high_resolution_clock::time_point stop = std::chrono::high_resolution_clock::now();
 
+#if USE_PCM == 1
             //Get CPU Core/Socket/Power States
             pcm->getAllCounterStates(endSstate, endSktstate, endCstates);
             for (int i = 0; i < sockets; i++)
                 endPowerState[i] = pcm->getServerUncorePowerState(i);
+#endif
             
             TrialResult* trial_result = new TrialResult(sockets, cores, trial);
 
             //Report Time
             calculate_durations(trial_result->duration, trial_result->duration_clock, trial_result->duration_rdtsc, start, stop, start_clock, stop_clock, start_rdtsc, stop_rdtsc);
             
+#if USE_PCM == 1
             //Report Freq, Power
             calc_freq_and_power(pcm, trial_result->avgCPUFreq, trial_result->avgActiveCPUFreq, trial_result->energyCPUUsed, trial_result->energyDRAMUsed,
             startCstates, endCstates, startPowerState, endPowerState);
+#else
+            trial_result->avgCPUFreq[0] = 0;
+            trial_result->avgActiveCPUFreq[0] = 0;
+            trial_result->energyCPUUsed[0] = 0;
+            trial_result->energyDRAMUsed[0] = 0;
+#endif
+
+#if USE_PCM == 1
+            //Report Temp
+            calc_temp(pcm, trial_result->startPackageThermalHeadroom, trial_result->endPackageThermalHeadroom, startPowerState, startPowerState);
+#else
+            trial_result->startPackageThermalHeadroom[0] = -1;
+            trial_result->endPackageThermalHeadroom[0] = -1;
+#endif
 
             #if PRINT_TRIALS == 1
                 trial_result->print_trial();
@@ -347,6 +396,7 @@
             _mm_free(a);
             _mm_free(b);
 
+#if USE_PCM == 1
             //Limit check to socket of interest (single socket for now)
             std::vector<int> sockets_of_interest;
             sockets_of_interest.push_back(pcm->getSocketId(cpu_num));
@@ -375,13 +425,28 @@
                     exit(1);
                 }
             }
-            
+#else
+            //Not checking for freq change event.  Increment
+            trial++;
+            results->add_trial(trial_result);
+            discard_count=0;
+#endif
+
         }
 
         #if PRINT_STATS == 1
-            results->print_statistics(pcm->getSocketId(cpu_num), cpu_num);
+#if USE_PCM == 1
+            results->print_statistics(pcm->getSocketId(cpu_num), cpu_num, STIM_LEN);
+#else
+            results->print_statistics(0, cpu_num, STIM_LEN);
+#endif
         #endif
 
+#if USE_PCM == 1
+        delete[] startPowerState;
+        delete[] endPowerState;
+#endif
+        
         return results;
     }
 
@@ -392,20 +457,27 @@
             printf("%s\n", title);
         #endif
 
+#if USE_PCM == 1
         int sockets = pcm->getNumSockets();
         int cores = pcm->getNumCores();
+#else
+        int sockets = 1;
+        int cores = 1;
+#endif
 
         Results* results = new Results(sockets, cores);
 
         //Allocate measurement arrays
         std::chrono::duration<double, std::ratio<1, 1000>> durations[TRIALS];
 
+#if USE_PCM == 1
         //Allocate counter states
         ServerUncorePowerState* startPowerState = new ServerUncorePowerState[sockets];
         ServerUncorePowerState* endPowerState = new ServerUncorePowerState[sockets];
         std::vector<CoreCounterState> startCstates, endCstates;
         std::vector<SocketCounterState> startSktstate, endSktstate;
         SystemCounterState startSstate, endSstate;
+#endif
 
         int trial = 0;
         int discard_count = 0;
@@ -421,10 +493,12 @@
             VecType* b_vec = (VecType * ) b;
             VecType* c_vec = (VecType * ) c;
 
+#if USE_PCM == 1
             //Get CPU Core/Socket/Power States
             for (int i = 0; i < sockets; i++)
                 startPowerState[i] = pcm->getServerUncorePowerState(i);
             pcm->getAllCounterStates(startSstate, startSktstate, startCstates);
+#endif
 
             //Start Timer
             std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
@@ -439,19 +513,36 @@
             clock_t stop_clock = clock();
             std::chrono::high_resolution_clock::time_point stop = std::chrono::high_resolution_clock::now();
 
+#if USE_PCM == 1
             //Get CPU Core/Socket/Power States
             pcm->getAllCounterStates(endSstate, endSktstate, endCstates);
             for (int i = 0; i < sockets; i++)
                 endPowerState[i] = pcm->getServerUncorePowerState(i);
+#endif
             
             TrialResult* trial_result = new TrialResult(sockets, cores, trial);
 
             //Report Time
             calculate_durations(trial_result->duration, trial_result->duration_clock, trial_result->duration_rdtsc, start, stop, start_clock, stop_clock, start_rdtsc, stop_rdtsc);
             
+#if USE_PCM == 1
             //Report Freq, Power
             calc_freq_and_power(pcm, trial_result->avgCPUFreq, trial_result->avgActiveCPUFreq, trial_result->energyCPUUsed, trial_result->energyDRAMUsed,
             startCstates, endCstates, startPowerState, endPowerState);
+#else
+            trial_result->avgCPUFreq[0] = 0;
+            trial_result->avgActiveCPUFreq[0] = 0;
+            trial_result->energyCPUUsed[0] = 0;
+            trial_result->energyDRAMUsed[0] = 0;
+#endif
+
+#if USE_PCM == 1
+            //Report Temp
+            calc_temp(pcm, trial_result->startPackageThermalHeadroom, trial_result->endPackageThermalHeadroom, startPowerState, startPowerState);
+#else
+            trial_result->startPackageThermalHeadroom[0] = -1;
+            trial_result->endPackageThermalHeadroom[0] = -1;
+#endif
 
             #if PRINT_TRIALS == 1
                 trial_result->print_trial();
@@ -462,6 +553,7 @@
             _mm_free(b);
             _mm_free(c);
 
+#if USE_PCM == 1
             //Limit check to socket of interest (single socket for now)
             std::vector<int> sockets_of_interest;
             sockets_of_interest.push_back(pcm->getSocketId(cpu_num));
@@ -490,13 +582,28 @@
                     exit(1);
                 }
             }
-            
+#else
+            //Not checking for freq change event.  Increment
+            trial++;
+            results->add_trial(trial_result);
+            discard_count=0;
+#endif
+
         }
 
         #if PRINT_STATS == 1
-            results->print_statistics(pcm->getSocketId(cpu_num), cpu_num);
+#if USE_PCM == 1
+            results->print_statistics(pcm->getSocketId(cpu_num), cpu_num, STIM_LEN);
+#else
+            results->print_statistics(0, cpu_num, STIM_LEN);
+#endif
         #endif
 
+#if USE_PCM == 1
+        delete[] startPowerState;
+        delete[] endPowerState;
+#endif
+        
         return results;
     }
 
@@ -507,20 +614,27 @@
             printf("%s\n", title);
         #endif
 
+#if USE_PCM == 1
         int sockets = pcm->getNumSockets();
         int cores = pcm->getNumCores();
+#else
+        int sockets = 1;
+        int cores = 1;
+#endif
 
         Results* results = new Results(sockets, cores);
 
         //Allocate measurement arrays
         std::chrono::duration<double, std::ratio<1, 1000>> durations[TRIALS];
 
+#if USE_PCM == 1
         //Allocate counter states
         ServerUncorePowerState* startPowerState = new ServerUncorePowerState[sockets];
         ServerUncorePowerState* endPowerState = new ServerUncorePowerState[sockets];
         std::vector<CoreCounterState> startCstates, endCstates;
         std::vector<SocketCounterState> startSktstate, endSktstate;
         SystemCounterState startSstate, endSstate;
+#endif
 
         int trial = 0;
         int discard_count = 0;
@@ -538,10 +652,12 @@
             VecType* c_vec = (VecType * ) c;
             VecType* d_vec = (VecType * ) d;
 
+#if USE_PCM == 1
             //Get CPU Core/Socket/Power States
             for (int i = 0; i < sockets; i++)
                 startPowerState[i] = pcm->getServerUncorePowerState(i);
             pcm->getAllCounterStates(startSstate, startSktstate, startCstates);
+#endif
 
             //Start Timer
             std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
@@ -556,19 +672,36 @@
             clock_t stop_clock = clock();
             std::chrono::high_resolution_clock::time_point stop = std::chrono::high_resolution_clock::now();
 
+#if USE_PCM == 1
             //Get CPU Core/Socket/Power States
             pcm->getAllCounterStates(endSstate, endSktstate, endCstates);
             for (int i = 0; i < sockets; i++)
                 endPowerState[i] = pcm->getServerUncorePowerState(i);
+#endif
             
             TrialResult* trial_result = new TrialResult(sockets, cores, trial);
 
             //Report Time
             calculate_durations(trial_result->duration, trial_result->duration_clock, trial_result->duration_rdtsc, start, stop, start_clock, stop_clock, start_rdtsc, stop_rdtsc);
             
+#if USE_PCM == 1
             //Report Freq, Power
             calc_freq_and_power(pcm, trial_result->avgCPUFreq, trial_result->avgActiveCPUFreq, trial_result->energyCPUUsed, trial_result->energyDRAMUsed,
             startCstates, endCstates, startPowerState, endPowerState);
+#else
+            trial_result->avgCPUFreq[0] = 0;
+            trial_result->avgActiveCPUFreq[0] = 0;
+            trial_result->energyCPUUsed[0] = 0;
+            trial_result->energyDRAMUsed[0] = 0;
+#endif
+
+#if USE_PCM == 1
+            //Report Temp
+            calc_temp(pcm, trial_result->startPackageThermalHeadroom, trial_result->endPackageThermalHeadroom, startPowerState, startPowerState);
+#else
+            trial_result->startPackageThermalHeadroom[0] = -1;
+            trial_result->endPackageThermalHeadroom[0] = -1;
+#endif
 
             #if PRINT_TRIALS == 1
                 trial_result->print_trial();
@@ -580,6 +713,7 @@
             _mm_free(c);
             _mm_free(d);
 
+#if USE_PCM == 1
             //Limit check to socket of interest (single socket for now)
             std::vector<int> sockets_of_interest;
             sockets_of_interest.push_back(pcm->getSocketId(cpu_num));
@@ -608,13 +742,28 @@
                     exit(1);
                 }
             }
-            
+#else
+            //Not checking for freq change event.  Increment
+            trial++;
+            results->add_trial(trial_result);
+            discard_count=0;
+#endif
+
         }
 
         #if PRINT_STATS == 1
-            results->print_statistics(pcm->getSocketId(cpu_num), cpu_num);
+#if USE_PCM == 1
+            results->print_statistics(pcm->getSocketId(cpu_num), cpu_num, STIM_LEN);
+#else
+            results->print_statistics(0, cpu_num, STIM_LEN);
+#endif
         #endif
 
+#if USE_PCM == 1
+        delete[] startPowerState;
+        delete[] endPowerState;
+#endif
+        
         return results;
     }
 
@@ -625,20 +774,27 @@
             printf("%s\n", title);
         #endif
 
+#if USE_PCM == 1
         int sockets = pcm->getNumSockets();
         int cores = pcm->getNumCores();
+#else
+        int sockets = 1;
+        int cores = 1;
+#endif
 
         Results* results = new Results(sockets, cores);
 
         //Allocate measurement arrays
         std::chrono::duration<double, std::ratio<1, 1000>> durations[TRIALS];
 
+#if USE_PCM == 1
         //Allocate counter states
         ServerUncorePowerState* startPowerState = new ServerUncorePowerState[sockets];
         ServerUncorePowerState* endPowerState = new ServerUncorePowerState[sockets];
         std::vector<CoreCounterState> startCstates, endCstates;
         std::vector<SocketCounterState> startSktstate, endSktstate;
         SystemCounterState startSstate, endSstate;
+#endif
 
         int trial = 0;
         int discard_count = 0;
@@ -654,10 +810,12 @@
             KernelType* b_vec = (KernelType * ) b;
             KernelType* c_vec = (KernelType * ) c;
 
+#if USE_PCM == 1
             //Get CPU Core/Socket/Power States
             for (int i = 0; i < sockets; i++)
                 startPowerState[i] = pcm->getServerUncorePowerState(i);
             pcm->getAllCounterStates(startSstate, startSktstate, startCstates);
+#endif
 
             //Start Timer
             std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
@@ -672,19 +830,36 @@
             clock_t stop_clock = clock();
             std::chrono::high_resolution_clock::time_point stop = std::chrono::high_resolution_clock::now();
 
+#if USE_PCM == 1
             //Get CPU Core/Socket/Power States
             pcm->getAllCounterStates(endSstate, endSktstate, endCstates);
             for (int i = 0; i < sockets; i++)
                 endPowerState[i] = pcm->getServerUncorePowerState(i);
+#endif
             
             TrialResult* trial_result = new TrialResult(sockets, cores, trial);
 
             //Report Time
             calculate_durations(trial_result->duration, trial_result->duration_clock, trial_result->duration_rdtsc, start, stop, start_clock, stop_clock, start_rdtsc, stop_rdtsc);
             
+#if USE_PCM == 1
             //Report Freq, Power
             calc_freq_and_power(pcm, trial_result->avgCPUFreq, trial_result->avgActiveCPUFreq, trial_result->energyCPUUsed, trial_result->energyDRAMUsed,
             startCstates, endCstates, startPowerState, endPowerState);
+#else
+            trial_result->avgCPUFreq[0] = 0;
+            trial_result->avgActiveCPUFreq[0] = 0;
+            trial_result->energyCPUUsed[0] = 0;
+            trial_result->energyDRAMUsed[0] = 0;
+#endif
+
+#if USE_PCM == 1
+            //Report Temp
+            calc_temp(pcm, trial_result->startPackageThermalHeadroom, trial_result->endPackageThermalHeadroom, startPowerState, startPowerState);
+#else
+            trial_result->startPackageThermalHeadroom[0] = -1;
+            trial_result->endPackageThermalHeadroom[0] = -1;
+#endif
 
             #if PRINT_TRIALS == 1
                 trial_result->print_trial();
@@ -695,6 +870,7 @@
             free(b);
             free(c);
 
+#if USE_PCM == 1
             //Limit check to socket of interest (single socket for now)
             std::vector<int> sockets_of_interest;
             sockets_of_interest.push_back(pcm->getSocketId(cpu_num));
@@ -723,13 +899,28 @@
                     exit(1);
                 }
             }
+#else
+            //Not checking for freq change event.  Increment
+            trial++;
+            results->add_trial(trial_result);
+            discard_count=0;
+#endif
             
         }
 
         #if PRINT_STATS == 1
-            results->print_statistics(pcm->getSocketId(cpu_num), cpu_num);
+#if USE_PCM == 1
+            results->print_statistics(pcm->getSocketId(cpu_num), cpu_num, STIM_LEN);
+#else
+            results->print_statistics(0, cpu_num, STIM_LEN);
+#endif
         #endif
 
+#if USE_PCM == 1
+        delete[] startPowerState;
+        delete[] endPowerState;
+#endif
+        
         return results;
     }
 

@@ -27,7 +27,7 @@
     #endif
 
     #ifndef MAX_DISCARD
-        #define MAX_DISCARD 20
+        #define MAX_DISCARD 40
     #endif
 
     #ifndef PRINT_TITLE
@@ -48,5 +48,9 @@
 
     #ifndef PRINT_FREQ_CHANGE_EVENT
         #define PRINT_FREQ_CHANGE_EVENT 0
+    #endif
+
+    #ifndef USE_PCM
+        #define USE_PCM 1
     #endif
 #endif

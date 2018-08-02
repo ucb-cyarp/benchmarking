@@ -17,30 +17,32 @@ KERNEL_NO_OPT_CFLAGS = -O0 -c -g -std=c++11 -march=native -masm=att
 INC=-I $(DEPENDS_DIR)/pcm -I $(COMMON_DIR)
 LIB_DIRS=-L $(DEPENDS_DIR)/pcm -L $(COMMON_DIR)
 LIB=-pthread -lrt -lpcmHelper -lPCM
-DEFINES = #-DL1D_CACHE_SIZE=${L1D_CACHE_SIZE} -DL2_CACHE_SIZE=${L2_CACHE_SIZE} -DL3_CACHE_SIZE=${L3_CACHE_SIZE}
-#DEFINES = -DPRINT_TRIALS=1
 
-MAIN_FILE = intrin_throughput_test.cpp 
-LIB_SRCS = 
-KERNEL_SRCS = store_kernel.cpp load_store_kernel.cpp load_add_store_kernel.cpp load_mult_store_kernel.cpp load_div_store_kernel.cpp load_fma_store_kernel.cpp load_add_store_unroll2_kernel.cpp load_add_store_nointrin_kernel.cpp add_kernel_asm.cpp div_kernel_asm.cpp fma_kernel_asm.cpp mult_kernel_asm.cpp load_kernel_asm.cpp store_kernel_asm.cpp
-#KERNEL_NO_OPT_SRCS = load_kernel.cpp add_kernel.cpp mult_kernel.cpp div_kernel.cpp fma_kernel.cpp
-KERNEL_NO_OPT_SRCS = 
+TEST_CLASSES = -DTEST_SINGLE=1 -DTEST_FIFO=1 -DTEST_SIMULTANIOUS=1 -DTEST_FANIN_FANOUT=1
+
+#DEFINES = #-DL1D_CACHE_SIZE=${L1D_CACHE_SIZE} -DL2_CACHE_SIZE=${L2_CACHE_SIZE} -DL3_CACHE_SIZE=${L3_CACHE_SIZE}
+#DEFINES = $(TEST_CLASSES) -DPRINT_TRIALS=1
+#DEFINES = $(TEST_CLASSES) -DPRINT_FREQ_CHANGE_EVENT=1
+#DEFINES = $(TEST_CLASSES) -DPRINT_FREQ_CHANGE_EVENT=1 -DPRINT_TRIALS=1 -DSTIM_LEN=2000000 -DTRIALS=20
+#DEFINES = $(TEST_CLASSES) -DSTIM_LEN=16000000 -DTRIALS=20
+#DEFINES = $(TEST_CLASSES) -DSTIM_LEN=10000000 -DTRIALS=10 -DMAX_DISCARD=4000
+DEFINES = $(TEST_CLASSES) -DSTIM_LEN=1000000 -DTRIALS=10 -DMAX_DISCARD=4000
+#DEFINES = $(TEST_CLASSES) -DSTIM_LEN=200000 -DTRIALS=10 -DMAX_DISCARD=20000
+
+MAIN_FILE = core-core.cpp
+KERNEL_SRCS = latency_single_kernel.cpp latency_dual_kernel.cpp latency_single_array_kernel.cpp latency_dual_array_kernel.cpp latency_flow_ctrl_kernel.cpp latency_flow_ctrl_blocked_read_kernel.cpp bandwidth_circular_fifo_kernel.cpp bandwidth_circular_fifo_blocked_kernel.cpp bandwidth_circular_fifo_read_limit_kernel.cpp
 
 SRCS=$(MAIN_FILE)
 SRCS+=$(LIB_SRCS)
 OBJS=$(patsubst %.cpp,$(BUILD_DIR)/%.o,$(SRCS))
 KERNEL_OBJS=$(patsubst %.cpp,$(BUILD_DIR)/%.o,$(KERNEL_SRCS))
-KERNEL_NO_OPT_OBJS=$(patsubst %.cpp,$(BUILD_DIR)/%.o,$(KERNEL_NO_OPT_SRCS))
 
 #Production
-all: intrin_throughput_test
-#all: ray_tracer ray_tracer_mpi pb2obj_txt obj2boost $(PB_REDUCE_FILE) $(CLUSTER_GRAPH_FILE) $(GRAPH_GEN_FILE) $(CLUSTER_AN_FILE)
+all: core-core
+#all: 
 
-intrin_throughput_test: $(OBJS) $(KERNEL_OBJS) $(KERNEL_NO_OPT_OBJS) $(COMMON_DIR)/libpcmHelper.a $(DEPENDS_DIR)/pcm/libPCM.a 
-	$(CXX) $(INC) $(LIB_DIRS) -o intrin_throughput_test $(OBJS) $(KERNEL_OBJS) $(KERNEL_NO_OPT_OBJS) $(LIB)
-
-$(KERNEL_NO_OPT_OBJS): $(BUILD_DIR)/%.o : $(SRC_DIR)/%.cpp | $(BUILD_DIR)/ $(DEPENDS_DIR)/pcm/Makefile
-	$(CXX) $(KERNEL_NO_OPT_CFLAGS) $(INC) $(DEFINES) -o $@ $<
+core-core: $(OBJS) $(KERNEL_OBJS) $(KERNEL_NO_OPT_OBJS) $(COMMON_DIR)/libpcmHelper.a $(DEPENDS_DIR)/pcm/libPCM.a 
+	$(CXX) $(INC) $(LIB_DIRS) -o core-core $(OBJS) $(KERNEL_OBJS) $(KERNEL_NO_OPT_OBJS) $(LIB)
 
 $(KERNEL_OBJS): $(BUILD_DIR)/%.o : $(SRC_DIR)/%.cpp | $(BUILD_DIR)/ $(DEPENDS_DIR)/pcm/Makefile
 	$(CXX) $(KERNEL_CFLAGS) $(INC) $(DEFINES) -o $@ $<
@@ -61,7 +63,7 @@ $(COMMON_DIR)/libpcmHelper.a: $(DEPENDS_DIR)/pcm/Makefile $(DEPENDS_DIR)/pcm/lib
 	cd $(COMMON_DIR); make
 	
 clean:
-	rm -f intrin_throughput_test
+	rm -f core-core
 	rm -rf build/*
 
 # print_cfg:

@@ -1063,6 +1063,8 @@ def autoPopulateMachineInfo(sqlCursor, machineFriendlyName=None, interconnect=No
         hypervisor = regexp.search(lscpu)
         if hypervisor is not None:
             hypervisorStr = hypervisor.group(1).strip()
+        else:
+            hypervisorStr = "None"
 
         #Find Core and Socket Info
         regexp = re.compile('Socket[(]s[)].*:(.*)')
@@ -1287,7 +1289,8 @@ def compileInstance(compiler, kernelInstance, compilerFlags, kernelInstanceCompi
         
         #Get the filename without extension
         #TODO: Check for complex paths (ex. ../filename.cpp)
-        outputFileName = kernelFile.split('.')[0] + '-' + suffix + '.o'
+        split_segments = len(kernelFile.split('.'))
+        outputFileName = kernelFile.split('.')[split_segments-1] + '-' + suffix + '.o'
         kernelCompiledFilenames.append(outputFileName)
 
         cmd += compiler.command() + ' ' + compilerFlagString + ' ' + kernelInstanceCompilerFlagString + ' ' + str.format(compiler.compileFormat(), '') + ' ' + str.format(compiler.outputFormat(), outputFileName) + ' ../' + kernelFile +'; '
@@ -1345,7 +1348,7 @@ def runInstanceAndParseOutput(sqlCursor, kernelInstance, kernelInstanceID, machi
         if runEnvSetup is not None:
             cmd += runEnvSetup + '; '
 
-        cmd += 'cd ./build; '
+        cmd += 'cd ./build; rm -f ' + rptFilename + '; '
 
         #TODO: Refactor for report file not first argument
         cmd += './' + linkedFilename + ' ' + rptFilename + ' ' + kernelInstanceRuntimeFlagString + ';'
@@ -1521,7 +1524,6 @@ def slackStatusPost(message):
         print('Slack connection error ... continuing')
 
 def main():
-
     #*****Setup*****
     buildThreads = 4
     reportFrequency = 2500
@@ -1536,12 +1538,13 @@ def main():
     #Create Naive FIR Kernel Instance
 
     firTrials = 10
-    firStimLen = 100000
+    firStimLen = 32000
 
     #+++++++FIR Naive++++++++++++++++
 
     firNaiveCompileOptions = OptionList()
     naiveRangeIterator = itertools.chain(range(1, 2, 1), range(2, 31, 2))
+    #naiveRangeIterator = range(1, 3, 1)
 
     naiveRangeArray = []
     for naiveRangeVal in naiveRangeIterator:
@@ -1552,6 +1555,7 @@ def main():
     firNaiveOrderRange = naiveRangeArray
     firNaiveBlockRange = naiveRangeArray
     #Static Options
+    firNaiveCompileOptions.addOption(AlwaysOption('-I ../../../common -I ../../../depends/pcm'))
     firNaiveCompileOptions.addOption(EnumOption('PRINT_TITLE', [0], '-D{}={}', True))
     firNaiveCompileOptions.addOption(EnumOption('PRINT_TRIALS', [0], '-D{}={}', True))
     firNaiveCompileOptions.addOption(EnumOption('PRINT_STATS', [0], '-D{}={}', True))
@@ -1568,31 +1572,37 @@ def main():
     firRunOptions = OptionList()
 
     firSingleKernelNaive = KernelInstance(firSingleKernel, 'Naive implementation with blocked input and output, shift register state, no explicit vectorization or unrolling.', ['fir1_1_tester1.cpp'], firNaiveCompileOptions, firRunOptions)
+    firSingleKernelNaive.libraryLinkStr("-L ../../../depends/pcm -L ../../../common -pthread -lrt -lpcmHelper -lPCM")
     firSingleKernel.addInstance(firSingleKernelNaive)
 
     #+++++++FIR Circular Buffer++++++++++++++++
     firCircularCompileOptions = firNaiveCompileOptions
     firSingleKernelCircular = KernelInstance(firSingleKernel, 'Circular buffer implementation with blocked input and output, circular buffer state, no explicit vectorization or unrolling.', ['fir1_2_tester1.cpp'], firCircularCompileOptions, firRunOptions)
+    firSingleKernelCircular.libraryLinkStr("-L ../../../depends/pcm -L ../../../common -pthread -lrt -lpcmHelper -lPCM")
     firSingleKernel.addInstance(firSingleKernelCircular)
 
     #+++++++FIR Circular Buffer (No Mod)++++++++++++++++
     firCircularNoModCompileOptions = firNaiveCompileOptions
     firSingleKernelCircularNoMod = KernelInstance(firSingleKernel, 'Circular buffer implementation with no modulus, blocked input and output, circular buffer state, no explicit vectorization or unrolling.', ['fir1_2_2_tester1.cpp'], firCircularNoModCompileOptions, firRunOptions)
+    firSingleKernelCircularNoMod.libraryLinkStr("-L ../../../depends/pcm -L ../../../common -pthread -lrt -lpcmHelper -lPCM")
     firSingleKernel.addInstance(firSingleKernelCircularNoMod)
 
     #+++++++FIR Circular Buffer - Reversed ++++++++++++++++
     firCircularRevCompileOptions = firNaiveCompileOptions
     firSingleKernelCircularRev = KernelInstance(firSingleKernel, 'Circular buffer implementation with blocked input and output, circular buffer state, no explicit vectorization or unrolling. - Reverse Direction', ['fir1_2b_tester1.cpp'], firCircularRevCompileOptions, firRunOptions)
+    firSingleKernelCircularRev.libraryLinkStr("-L ../../../depends/pcm -L ../../../common -pthread -lrt -lpcmHelper -lPCM")
     firSingleKernel.addInstance(firSingleKernelCircularRev)
 
     #+++++++FIR Circular Buffer (No Mod) - Reversed ++++++++++++++++
     firCircularNoModRevCompileOptions = firNaiveCompileOptions
     firSingleKernelCircularNoModRev = KernelInstance(firSingleKernel, 'Circular buffer implementation with no modulus, blocked input and output, circular buffer state, no explicit vectorization or unrolling. - Reverse Direction', ['fir1_2_2b_tester1.cpp'], firCircularNoModRevCompileOptions, firRunOptions)
+    firSingleKernelCircularNoModRev.libraryLinkStr("-L ../../../depends/pcm -L ../../../common -pthread -lrt -lpcmHelper -lPCM")
     firSingleKernel.addInstance(firSingleKernelCircularNoModRev)
 
     #+++++++FIR Naive Unroll 2++++++++++++++++
     firUnroll2CompileOptions = OptionList()
     unroll2RangeIterator = range(2, 31, 2)
+    #unroll2RangeIterator = range(2, 7, 2)
 
     unroll2RangeArray = []
     for unroll2RangeVal in unroll2RangeIterator:
@@ -1603,6 +1613,7 @@ def main():
     firUnroll2OrderRange = unroll2RangeArray
     firUnroll2BlockRange = unroll2RangeArray
     #Static Options
+    firUnroll2CompileOptions.addOption(AlwaysOption('-I ../../../common -I ../../../depends/pcm'))
     firUnroll2CompileOptions.addOption(EnumOption('PRINT_TITLE', [0], '-D{}={}', True))
     firUnroll2CompileOptions.addOption(EnumOption('PRINT_TRIALS', [0], '-D{}={}', True))
     firUnroll2CompileOptions.addOption(EnumOption('PRINT_STATS', [0], '-D{}={}', True))
@@ -1617,11 +1628,13 @@ def main():
     firUnroll2CompileOptions.addOption(EnumOption('IO_LEN', firUnroll2BlockRange, '-D{}={}', True))
 
     firSingleKernelUnroll2 = KernelInstance(firSingleKernel, 'Naive implementation with blocked input and output, shift register state, manually unrolled by 2.', ['fir1_3_tester1.cpp'], firUnroll2CompileOptions, firRunOptions)
+    firSingleKernelUnroll2.libraryLinkStr("-L ../../../depends/pcm -L ../../../common -pthread -lrt -lpcmHelper -lPCM")
     firSingleKernel.addInstance(firSingleKernelUnroll2)
 
     #+++++++FIR Naive Unroll 4++++++++++++++++
     firUnroll4CompileOptions = OptionList()
     unroll4RangeIterator = range(4, 31, 4)
+    #unroll4RangeIterator = range(4, 13, 4)
 
     unroll4RangeArray = []
     for unroll4RangeVal in unroll4RangeIterator:
@@ -1632,6 +1645,7 @@ def main():
     firUnroll4OrderRange = unroll4RangeArray
     firUnroll4BlockRange = unroll4RangeArray
     #Static Options
+    firUnroll4CompileOptions.addOption(AlwaysOption('-I ../../../common -I ../../../depends/pcm'))
     firUnroll4CompileOptions.addOption(EnumOption('PRINT_TITLE', [0], '-D{}={}', True))
     firUnroll4CompileOptions.addOption(EnumOption('PRINT_TRIALS', [0], '-D{}={}', True))
     firUnroll4CompileOptions.addOption(EnumOption('PRINT_STATS', [0], '-D{}={}', True))
@@ -1647,6 +1661,7 @@ def main():
     firUnroll4CompileOptions.addOption(EnumOption('IO_LEN', firUnroll4BlockRange, '-D{}={}', True))
 
     firSingleKernelUnroll4 = KernelInstance(firSingleKernel, 'Naive implementation with blocked input and output, shift register state, manually unrolled by 4.', ['fir1_3_4_tester1.cpp'], firUnroll4CompileOptions, firRunOptions)
+    firSingleKernelUnroll4.libraryLinkStr("-L ../../../depends/pcm -L ../../../common -pthread -lrt -lpcmHelper -lpcmHelper -lPCM")
     firSingleKernel.addInstance(firSingleKernelUnroll4)
 
     #+++++++FIR Intel IPP++++++++++++++++
@@ -1662,6 +1677,7 @@ def main():
     firIppOrderRange = ippRangeArray
     firIppBlockRange = ippRangeArray
     #Static Options
+    firIppCompileOptions.addOption(AlwaysOption('-I ../../../common -I ../../../depends/pcm'))
     firIppCompileOptions.addOption(EnumOption('PRINT_TITLE', [0], '-D{}={}', True))
     firIppCompileOptions.addOption(EnumOption('PRINT_TRIALS', [0], '-D{}={}', True))
     firIppCompileOptions.addOption(EnumOption('PRINT_STATS', [0], '-D{}={}', True))
@@ -1677,7 +1693,7 @@ def main():
 
     firRunOptions = OptionList()
 
-    firSingleKernelIpp = KernelInstance(firSingleKernel, 'FIR Intel IPP', ['fir1_ipp_tester1.cpp'], firIppCompileOptions, firRunOptions, '{}', 'eval `/usr/bin/modulecmd bash load ipp`', '-lippcore -lipps', 'eval `/usr/bin/modulecmd bash load ipp`')
+    firSingleKernelIpp = KernelInstance(firSingleKernel, 'FIR Intel IPP', ['fir1_ipp_tester1.cpp'], firIppCompileOptions, firRunOptions, '{}', 'eval `/usr/bin/modulecmd bash load ipp`', '-L ../../../depends/pcm -L ../../../common -pthread -lrt -lpcmHelper -lPCM -lippcore -lipps', 'eval `/usr/bin/modulecmd bash load ipp`')
     firSingleKernel.addInstance(firSingleKernelIpp)
 
     #------------END FIR-----------------------
@@ -1686,14 +1702,15 @@ def main():
     #TODO: Cleanup output file format str in KernelInstance
 
     #Select Tests to Run
-    compilers = [gcc(), icc()]
+    #compilers = [gcc(), icc()]
+    compilers = [gcc()]
     #compilers = [icc()]
     suites = [firSuite]
 
     #*****GO*****
     #TODO: Make these arguments
     sqlFilePath = './results.db'
-    machineDescription = 'Chris Workstation VM'
+    machineDescription = 'bwrcdpt3600-13 - 3.6 GHz Userspace CPU Gov'
 
     if os.path.isfile(sqlFilePath):
         print('Report file already exists - Aborting')
