@@ -8,6 +8,8 @@ SRC_DIR=.
 # L2_CACHE_SIZE = $(shell ./get_l2_cache_size.py)
 # L3_CACHE_SIZE = $(shell ./get_l3_cache_size.py)
 
+UNAME:=$(shell uname)
+
 #Compiler Parameters
 CXX=g++
 #CXX = $(MPICXX)
@@ -16,9 +18,20 @@ KERNEL_CFLAGS = -O3 -c -g -std=c++11 -march=native -masm=att
 KERNEL_NO_OPT_CFLAGS = -O0 -c -g -std=c++11 -march=native -masm=att
 INC=-I $(DEPENDS_DIR)/pcm -I $(COMMON_DIR)
 LIB_DIRS=-L $(DEPENDS_DIR)/pcm -L $(COMMON_DIR)
+ifeq ($(UNAME), Darwin)
+LIB=-pthread -lpcmHelper -lPCM  -lPcmMsr
+LIB_DIRS+= -L $(DEPENDS_DIR)/pcm/MacMSRDriver
+else
 LIB=-pthread -lrt -lpcmHelper -lPCM
+endif
 DEFINES = #-DL1D_CACHE_SIZE=${L1D_CACHE_SIZE} -DL2_CACHE_SIZE=${L2_CACHE_SIZE} -DL3_CACHE_SIZE=${L3_CACHE_SIZE}
 #DEFINES = -DPRINT_TRIALS=1
+
+#Need an additional include directory if on MacOS.
+#Using the technique in pcm makefile to detect MacOS
+ifeq ($(UNAME), Darwin)
+INC+= -I $(DEPENDS_DIR)/pcm/MacMSRDriver
+endif
 
 MAIN_FILE = intrin_throughput_test.cpp 
 LIB_SRCS = 

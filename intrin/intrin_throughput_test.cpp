@@ -714,7 +714,10 @@ int main(int argc, char *argv[])
     //http://man7.org/linux/man-pages/man3/pthread_attr_setaffinity_np.3.html,
     //http://man7.org/linux/man-pages/man3/pthread_join.3.html
 
+#if __APPLE__
+#else
     cpu_set_t cpuset;
+#endif
     pthread_t thread;
     pthread_attr_t attr;
     void *res;
@@ -731,6 +734,9 @@ int main(int argc, char *argv[])
 
     int cpu_number = 0;
 
+#if __APPLE__
+    printf("Warning: Running on MacOS - Thread Affinity Not Set.  Disregard Core Number");
+#else
     CPU_ZERO(&cpuset);
     CPU_SET(cpu_number, &cpuset);
 
@@ -741,6 +747,7 @@ int main(int argc, char *argv[])
         printf("Could not set thread core affinity ... exiting\n");
         exit(1);
     }
+#endif
 
     status = pthread_create(&thread, &attr, &run_benchmarks, &cpu_number);
     if(status != 0)
