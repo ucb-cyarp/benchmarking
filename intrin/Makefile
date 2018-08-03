@@ -19,8 +19,8 @@ KERNEL_NO_OPT_CFLAGS = -O0 -c -g -std=c++11 -march=native -masm=att
 INC=-I $(DEPENDS_DIR)/pcm -I $(COMMON_DIR)
 LIB_DIRS=-L $(DEPENDS_DIR)/pcm -L $(COMMON_DIR)
 ifeq ($(UNAME), Darwin)
-LIB=-pthread -lpcmHelper -lPCM  -lPcmMsr
-LIB_DIRS+= -L $(DEPENDS_DIR)/pcm/MacMSRDriver
+LIB=-pthread -lpcmHelper -lPCM -lPcmMsr
+LIB_DIRS+= -L $(DEPENDS_DIR)/pcm/MacMSRDriver/build/Release
 else
 LIB=-pthread -lrt -lpcmHelper -lPCM
 endif

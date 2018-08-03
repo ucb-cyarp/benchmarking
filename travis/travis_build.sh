@@ -5,6 +5,27 @@ if [ "$(uname)" == "Darwin" ]; then
     cd ../intrin
     make -f Makefile-noPCM
 
+    make
+    if [ $? -eq 0 ]
+    then
+        echo "****Successfully made intrinsic benchmark with PCM ****"
+        exit 0
+    else
+        echo "****Unable to make intrinsic benchmark with PCM ****" >&2
+        exit 1
+    fi
+
+    make clean
+        if [ $? -eq 0 ]
+    then
+        echo "****Successfully cleaned intrinsic benchmark ****"
+        exit 0
+    else
+        echo "****Unable to clean intrinsic benchmark ****" >&2
+        exit 1
+    fi
+
+    make -f Makefile-noPCM
     if [ $? -eq 0 ]
     then
         echo "****Successfully made intrinsic benchmark with no PCM ****"
