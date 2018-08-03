@@ -57,7 +57,7 @@ addons:
 
 script:
   - echo $CXX; echo $CC
-  - cd intrinsic
+  - cd intrin
   - make -f Makefile-noPCM
 
 notifications:
