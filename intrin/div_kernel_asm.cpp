@@ -9,6 +9,8 @@
             asm volatile(
                 "vdivps  %%ymm2, %%ymm0, %%ymm1\n\t"
                 :
+                :
+                : "ymm2", "ymm1", "ymm0"
             );
         }
     }
@@ -21,6 +23,8 @@
             asm volatile(
                 "vdivpd  %%ymm2, %%ymm0, %%ymm1\n\t"
                 :
+                :
+                : "ymm2", "ymm1", "ymm0"
             );
         }
     }

@@ -10,6 +10,8 @@
             asm volatile(
                 "vfmadd132ps  %%ymm2, %%ymm0, %%ymm1\n\t"
                 :
+                :
+                : "ymm2", "ymm1", "ymm0"
             );
         }
     }
@@ -23,6 +25,8 @@
             asm volatile(
                 "vfmadd132pd  %%ymm2, %%ymm0, %%ymm1\n\t"
                 :
+                :
+                : "ymm2", "ymm1", "ymm0"
             );
         }
     }

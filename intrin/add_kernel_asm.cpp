@@ -12,6 +12,8 @@
                 // "vpaddb  %%ymm8, %%ymm6, %%ymm7\n\t"
                 // "vpaddb %%ymm11, %%ymm9, %%ymm10\n\t"
                 :
+                :
+                : "ymm2", "ymm1", "ymm0"
             );
         }
     }
@@ -24,6 +26,8 @@
             asm volatile(
                 "vpaddw  %%ymm2, %%ymm0, %%ymm1\n\t"
                 :
+                :
+                : "ymm2", "ymm1", "ymm0"
             );
         }
     }
@@ -36,6 +40,8 @@
             asm volatile(
                 "vpaddd  %%ymm2, %%ymm0, %%ymm1\n\t"
                 :
+                :
+                : "ymm2", "ymm1", "ymm0"
             );
         }
     }
@@ -50,6 +56,8 @@
             asm volatile(
                 "vaddps  %%ymm2, %%ymm0, %%ymm1\n\t"
                 :
+                :
+                : "ymm2", "ymm1", "ymm0"
             );
         }
     }
@@ -62,6 +70,8 @@
             asm volatile(
                 "vaddpd  %%ymm2, %%ymm0, %%ymm1\n\t"
                 :
+                :
+                : "ymm2", "ymm1", "ymm0"
             );
         }
     }

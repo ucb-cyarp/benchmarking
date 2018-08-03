@@ -9,6 +9,8 @@
             asm volatile(
                 "vpmullw  %%ymm2, %%ymm0, %%ymm1\n\t"
                 :
+                :
+                : "ymm2", "ymm1", "ymm0"
             );
         }
     }
@@ -21,6 +23,8 @@
             asm volatile(
                 "vpmulld  %%ymm2, %%ymm0, %%ymm1\n\t"
                 :
+                :
+                : "ymm2", "ymm1", "ymm0"
             );
         }
     }
@@ -35,6 +39,8 @@
             asm volatile(
                 "vmulps  %%ymm2, %%ymm0, %%ymm1\n\t"
                 :
+                :
+                : "ymm2", "ymm1", "ymm0"
             );
         }
     }
@@ -47,6 +53,8 @@
             asm volatile(
                 "vmulpd  %%ymm2, %%ymm0, %%ymm1\n\t"
                 :
+                :
+                : "ymm2", "ymm1", "ymm0"
             );
         }
     }
