@@ -6,6 +6,8 @@ if [ "$(uname)" == "Darwin" ]; then
 else
     cd ../intrin
     make
+    make clean
+    make -f Makefile-noPCM
     cd ../core-core
     make
 fi
