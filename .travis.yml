@@ -57,8 +57,8 @@ addons:
 
 script:
   - echo $CXX; echo $CC
-  - cd intrin
-  - make -f Makefile-noPCM
+  - cd travis
+  - ./travis_build.sh
 
 notifications:
   slack:
