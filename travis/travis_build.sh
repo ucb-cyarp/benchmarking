@@ -9,7 +9,6 @@ if [ "$(uname)" == "Darwin" ]; then
     if [ $? -eq 0 ]
     then
         echo "****Successfully made intrinsic benchmark with PCM ****"
-        exit 0
     else
         echo "****Unable to make intrinsic benchmark with PCM ****" >&2
         exit 1
@@ -19,7 +18,6 @@ if [ "$(uname)" == "Darwin" ]; then
         if [ $? -eq 0 ]
     then
         echo "****Successfully cleaned intrinsic benchmark ****"
-        exit 0
     else
         echo "****Unable to clean intrinsic benchmark ****" >&2
         exit 1
@@ -29,7 +27,6 @@ if [ "$(uname)" == "Darwin" ]; then
     if [ $? -eq 0 ]
     then
         echo "****Successfully made intrinsic benchmark with no PCM ****"
-        exit 0
     else
         echo "****Unable to make intrinsic benchmark with no PCM ****" >&2
         exit 1
@@ -40,7 +37,6 @@ else
     if [ $? -eq 0 ]
     then
         echo "****Successfully made intrinsic benchmark with PCM ****"
-        exit 0
     else
         echo "****Unable to make intrinsic benchmark with PCM ****" >&2
         exit 1
@@ -50,7 +46,6 @@ else
         if [ $? -eq 0 ]
     then
         echo "****Successfully cleaned intrinsic benchmark ****"
-        exit 0
     else
         echo "****Unable to clean intrinsic benchmark ****" >&2
         exit 1
@@ -60,7 +55,6 @@ else
     if [ $? -eq 0 ]
     then
         echo "****Successfully made intrinsic benchmark with no PCM ****"
-        exit 0
     else
         echo "****Unable to make intrinsic benchmark with no PCM ****" >&2
         exit 1
@@ -71,7 +65,6 @@ else
     if [ $? -eq 0 ]
     then
         echo "****Successfully made core-core benchmark****"
-        exit 0
     else
         echo "****Unable to make core-core benchmark****" >&2
         exit 1
