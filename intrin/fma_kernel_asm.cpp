@@ -11,7 +11,7 @@
                 "vfmadd132ps  %%ymm2, %%ymm0, %%ymm1\n\t"
                 :
                 :
-                : "ymm2", "ymm1", "ymm0"
+                : MMREG(2), MMREG(1), MMREG(0)
             );
         }
     }
@@ -26,7 +26,7 @@
                 "vfmadd132pd  %%ymm2, %%ymm0, %%ymm1\n\t"
                 :
                 :
-                : "ymm2", "ymm1", "ymm0"
+                : MMREG(2), MMREG(1), MMREG(0)
             );
         }
     }

@@ -10,7 +10,7 @@
                 "vpmullw  %%ymm2, %%ymm0, %%ymm1\n\t"
                 :
                 :
-                : "ymm2", "ymm1", "ymm0"
+                : MMREG(2), MMREG(1), MMREG(0)
             );
         }
     }
@@ -24,7 +24,7 @@
                 "vpmulld  %%ymm2, %%ymm0, %%ymm1\n\t"
                 :
                 :
-                : "ymm2", "ymm1", "ymm0"
+                : MMREG(2), MMREG(1), MMREG(0)
             );
         }
     }
@@ -40,7 +40,7 @@
                 "vmulps  %%ymm2, %%ymm0, %%ymm1\n\t"
                 :
                 :
-                : "ymm2", "ymm1", "ymm0"
+                : MMREG(2), MMREG(1), MMREG(0)
             );
         }
     }
@@ -54,7 +54,7 @@
                 "vmulpd  %%ymm2, %%ymm0, %%ymm1\n\t"
                 :
                 :
-                : "ymm2", "ymm1", "ymm0"
+                : MMREG(2), MMREG(1), MMREG(0)
             );
         }
     }

@@ -12,7 +12,7 @@
                 "vmovdqa  %0, %%ymm0\n\t"
                 :
                 : "m" (*b)
-                : "ymm0"
+                : MMREG(0)
             );
         }
     }
@@ -28,7 +28,7 @@
                 "vmovdqa  %0, %%ymm0\n\t"
                 :
                 : "m" (*b)
-                : "ymm0"
+                : MMREG(0)
             );
         }
     }
@@ -44,7 +44,7 @@
                 "vmovdqa  %0, %%ymm0\n\t"
                 :
                 : "m" (*b)
-                : "ymm0"
+                : MMREG(0)
             );
         }
     }
@@ -62,7 +62,7 @@
                 "vmovaps  %0, %%ymm0\n\t"
                 :
                 : "m" (*b)
-                : "ymm0"
+                : MMREG(0)
             );
         }
     }
@@ -80,7 +80,7 @@
                 "vmovapd   %0, %%ymm0\n\t"
                 :
                 : "m" (*b)
-                : "ymm0"
+                : MMREG(0)
             );
         }
     }

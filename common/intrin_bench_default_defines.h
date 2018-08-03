@@ -17,6 +17,16 @@
     // #include <emmintrin.h>
     // #include <xmmintrin.h>
 
+    //There is a bug with older GCC versions not knowing about the ymm registers and thus erroring out
+    //when ymm registers appear in the clobber list
+    //This is a workaround described by https://stackoverflow.com/questions/14034048/xcode-linker-error-file-too-small-for-architecture-x86-64/29952569
+    //which specifies xmm (lower half of ymm) for older versions of gcc
+    #if (__GNUC__ == 4 && __GNUC_MINOR__ < 9) || (__GNUC__ < 4)
+    #define MMREG(n) "xmm"#n
+    #else
+    #define MMREG(n) "ymm"#n
+    #endif
+
     //Set default options
     #ifndef STIM_LEN
         #define STIM_LEN 32000000

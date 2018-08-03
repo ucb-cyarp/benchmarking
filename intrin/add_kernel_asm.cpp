@@ -13,7 +13,7 @@
                 // "vpaddb %%ymm11, %%ymm9, %%ymm10\n\t"
                 :
                 :
-                : "ymm2", "ymm1", "ymm0"
+                : MMREG(2), MMREG(1), MMREG(0)
             );
         }
     }
@@ -27,7 +27,7 @@
                 "vpaddw  %%ymm2, %%ymm0, %%ymm1\n\t"
                 :
                 :
-                : "ymm2", "ymm1", "ymm0"
+                : MMREG(2), MMREG(1), MMREG(0)
             );
         }
     }
@@ -41,7 +41,7 @@
                 "vpaddd  %%ymm2, %%ymm0, %%ymm1\n\t"
                 :
                 :
-                : "ymm2", "ymm1", "ymm0"
+                : MMREG(2), MMREG(1), MMREG(0)
             );
         }
     }
@@ -57,7 +57,7 @@
                 "vaddps  %%ymm2, %%ymm0, %%ymm1\n\t"
                 :
                 :
-                : "ymm2", "ymm1", "ymm0"
+                : MMREG(2), MMREG(1), MMREG(0)
             );
         }
     }
@@ -71,7 +71,7 @@
                 "vaddpd  %%ymm2, %%ymm0, %%ymm1\n\t"
                 :
                 :
-                : "ymm2", "ymm1", "ymm0"
+                : MMREG(2), MMREG(1), MMREG(0)
             );
         }
     }
