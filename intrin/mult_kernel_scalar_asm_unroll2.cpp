@@ -5,76 +5,81 @@
 //http://flint.cs.yale.edu/cs421/papers/x86-asm/asm.html
 
 //==========8 bit mult==========
-void kernel_only_asm_mult_i8()
+void kernel_only_asm_mult_i8_unroll2()
 {
-    for(int i = 0; i<STIM_LEN; i++)
+    for(int i = 0; i<STIM_LEN/2; i++)
     {
         //Doing 2 adds to hopefully avoid an issue with dependence.  Intel ASM is reg1=reg1+reg2.  It is not a three register instruction like it is with the vector unit
         //TODO: Verify
 
         //The byte multiply does not have a 2 arg version
         //One arg is the al register and it writes back into the ax register
+        //NOTE: tests showed that this had half the throughput of the other integer multiplies.  Suggests dependence stopped multiple dispatch.
         asm volatile(
             "imulb  %%bl\n\t"
+            "imulb  %%cl\n\t"
             :
             :
-            : "ax", "bl"
+            : "ax", "bl", "cl"
         );
     }
 }
 
 //==========16 bit mult==========
-void kernel_only_asm_mult_i16()
+void kernel_only_asm_mult_i16_unroll2()
 {
-    for(int i = 0; i<STIM_LEN; i++)
+    for(int i = 0; i<STIM_LEN/2; i++)
     {
         //Doing 2 adds to hopefully avoid an issue with dependence.  Intel ASM is reg1=reg1+reg2.  It is not a three register instruction like it is with the vector unit
         //TODO: Verify
         asm volatile(
             "imulw  %%ax, %%bx\n\t"
+            "imulw  %%cx, %%dx\n\t"
             :
             :
-            : "ax", "bx"
+            : "ax", "bx", "cx", "dx"
         );
     }
 }
 
 //==========32 bit mult==========
-void kernel_only_asm_mult_i32()
+void kernel_only_asm_mult_i32_unroll2()
 { 
-    for(int i = 0; i<STIM_LEN; i++)
+    for(int i = 0; i<STIM_LEN/2; i++)
     {
         //Doing 2 adds to hopefully avoid an issue with dependence.  Intel ASM is reg1=reg1+reg2.  It is not a three register instruction like it is with the vector unit
         //TODO: Verify
         asm volatile(
             "imull  %%eax, %%ebx\n\t"
+            "imull  %%ecx, %%edx\n\t"
             :
             :
-            : "eax", "ebx"
+            : "eax", "ebx", "ecx", "edx"
         );
     }
 }
 
 //==========64 bit mult==========
-void kernel_only_asm_mult_i64()
+void kernel_only_asm_mult_i64_unroll2()
 {
-    for(int i = 0; i<STIM_LEN; i++)
+    for(int i = 0; i<STIM_LEN/2; i++)
     {
         //Doing 2 adds to hopefully avoid an issue with dependence.  Intel ASM is reg1=reg1+reg2.  It is not a three register instruction like it is with the vector unit
         //TODO: Verify
         asm volatile(
             "imulq  %%rax, %%rbx\n\t"
+            "imulq  %%rcx, %%rdx\n\t"
             :
             :
-            : "rax", "rbx"
+            : "rax", "rbx", "rcx", "rdx"
         );
     }
 }
 
 //==========mult floating point==========
-void kernel_only_asm_mult_fp()
+void kernel_only_asm_mult_fp_unroll2()
 {
-    for(int i = 0; i<STIM_LEN; i++)
+    for(int i = 0; i<STIM_LEN/2; i++)
     {
         //Need to load onto stack, compute, and pop
         //Probably should be optomized further
@@ -98,19 +103,23 @@ void kernel_only_asm_mult_fp()
         asm volatile(
             "fld1 \n\t"
             "fld1 \n\t"
+            "fld1 \n\t"
+            "fld1 \n\t"
+            "fmulp %%st(1), %%st \n\t"
+            "fstp %%st(0) \n\t"
             "fmulp %%st(1), %%st \n\t"
             "fstp %%st(0) \n\t"
             :
             :
-            :"st(1)", "st"
+            :"st(3)", "st(2)", "st(1)", "st"
         );
     }
 }
 
 //==========mult single with SSE==========
-void kernel_only_asm_mult_sp()
+void kernel_only_asm_mult_sp_unroll2()
 {
-    for(int i = 0; i<STIM_LEN; i++)
+    for(int i = 0; i<STIM_LEN/2; i++)
     {
         //This is using the SSE vector unit to multiply a single number (avoiding x87).
         //It was suggested in the GCC manual that the SSE instructions are used instead of x07
@@ -121,17 +130,21 @@ void kernel_only_asm_mult_sp()
             "movd %%ebx, %%xmm1 \n\t"
             "mulss %%xmm1, %%xmm0 \n\t"
             "movd %%xmm0, %%ecx \n\t"
+            "movd %%edx, %%xmm2 \n\t"
+            "movd %%esi, %%xmm3 \n\t"
+            "mulss %%xmm3, %%xmm2 \n\t"
+            "movd %%xmm2, %%edi \n\t"
             :
             :
-            :"eax", "ebx", "ecx", "xmm0", "xmm1"
+            :"eax", "ebx", "ecx", "edx", "esi", "edi", "xmm0", "xmm1", "xmm2", "xmm3"
         );
     }
 }
 
 //==========mult double with SSE==========
-void kernel_only_asm_mult_dp()
+void kernel_only_asm_mult_dp_unroll2()
 {
-    for(int i = 0; i<STIM_LEN; i++)
+    for(int i = 0; i<STIM_LEN/2; i++)
     {
         //This is using the SSE vector unit to multiply a single number (avoiding x87).
         //It was suggested in the GCC manual that the SSE instructions are used instead of x07
@@ -142,9 +155,13 @@ void kernel_only_asm_mult_dp()
             "movq %%rbx, %%xmm1 \n\t"
             "mulsd %%xmm1, %%xmm0 \n\t"
             "movq %%xmm0, %%rcx \n\t"
+            "movd %%rdx, %%xmm2 \n\t"
+            "movd %%rsi, %%xmm3 \n\t"
+            "mulsd %%xmm3, %%xmm2 \n\t"
+            "movd %%xmm2, %%rdi \n\t"
             :
             :
-            :"rax", "rbx", "rcx", "xmm0", "xmm1"
+            :"rax", "rbx", "rcx", "rdx", "rsi", "rdi", "xmm0", "xmm1", "xmm2", "xmm3"
         );
     }
 }

@@ -35,7 +35,7 @@ endif
 
 MAIN_FILE = intrin_throughput_test.cpp 
 LIB_SRCS = 
-KERNEL_SRCS = store_kernel.cpp load_store_kernel.cpp load_add_store_kernel.cpp load_mult_store_kernel.cpp load_div_store_kernel.cpp load_fma_store_kernel.cpp load_add_store_unroll2_kernel.cpp load_add_store_nointrin_kernel.cpp add_kernel_asm.cpp div_kernel_asm.cpp fma_kernel_asm.cpp mult_kernel_asm.cpp load_kernel_asm.cpp store_kernel_asm.cpp add_kernel_scalar_asm.cpp mult_kernel_scalar_asm.cpp
+KERNEL_SRCS = store_kernel.cpp load_store_kernel.cpp load_add_store_kernel.cpp load_mult_store_kernel.cpp load_div_store_kernel.cpp load_fma_store_kernel.cpp load_add_store_unroll2_kernel.cpp load_add_store_nointrin_kernel.cpp add_kernel_asm.cpp div_kernel_asm.cpp fma_kernel_asm.cpp mult_kernel_asm.cpp load_kernel_asm.cpp store_kernel_asm.cpp add_kernel_scalar_asm.cpp mult_kernel_scalar_asm.cpp mult_kernel_scalar_asm_unroll2.cpp
 #KERNEL_NO_OPT_SRCS = load_kernel.cpp add_kernel.cpp mult_kernel.cpp div_kernel.cpp fma_kernel.cpp
 KERNEL_NO_OPT_SRCS = 
 
