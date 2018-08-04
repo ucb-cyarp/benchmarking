@@ -44,6 +44,7 @@
 
 //Kernels Op Only
 #include "add_kernel_scalar_asm.h"
+#include "add_kernel_scalar_asm_unroll2.h"
 #include "add_kernel_asm.h"
 #include "mult_kernel_scalar_asm.h"
 #include "mult_kernel_scalar_asm_unroll2.h"
@@ -124,6 +125,27 @@ void test_only_add_scalar(PCM* pcm, int cpu_num, std::map<std::string, Results*>
     type_result["double"] = res_double_scalar;
 
     Results* res_x87_scalar = zero_arg_kernel(pcm, &kernel_only_asm_add_fp, cpu_num, "[x87] ===== Add Floating Point (via x87) =====");
+    type_result["x87 Floating Point"] = res_x87_scalar;
+}
+
+void test_only_add_scalar_unroll2(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type_result)
+{
+    printf("########## Scalar Add Benchmarks (Unroll 2) ##########\n");
+    Results* res_int8_t_scalar =  zero_arg_kernel(pcm, &kernel_only_asm_add_i8_unroll2,  cpu_num, "[x86] ===== Add 8 bit Signed Integers =====");
+    type_result["int8_t"] = res_int8_t_scalar;
+    Results* res_int16_t_scalar = zero_arg_kernel(pcm, &kernel_only_asm_add_i16_unroll2, cpu_num, "[x86] ===== Add 16 bit Signed Integers =====");
+    type_result["int16_t"] = res_int16_t_scalar;
+    Results* res_int32_t_scalar = zero_arg_kernel(pcm, &kernel_only_asm_add_i32_unroll2, cpu_num, "[x86] ===== Add 32 bit Signed Integers =====");
+    type_result["int32_t"] = res_int32_t_scalar;
+    Results* res_int64_t_scalar = zero_arg_kernel(pcm, &kernel_only_asm_add_i64_unroll2, cpu_num, "[x86_64] ===== Add 64 bit Signed Integers =====");
+    type_result["int64_t"] = res_int64_t_scalar;
+
+    Results* res_single_scalar = zero_arg_kernel(pcm, &kernel_only_asm_add_sp_unroll2, cpu_num, "[SSE2] ===== Add Float Point (single via SSE2) =====");
+    type_result["float"] = res_single_scalar;
+    Results* res_double_scalar = zero_arg_kernel(pcm, &kernel_only_asm_add_dp_unroll2, cpu_num, "[SSE2] ===== Add Floating Point (double via SSE2) =====");
+    type_result["double"] = res_double_scalar;
+
+    Results* res_x87_scalar = zero_arg_kernel(pcm, &kernel_only_asm_add_fp_unroll2, cpu_num, "[x87] ===== Add Floating Point (via x87) =====");
     type_result["x87 Floating Point"] = res_x87_scalar;
 }
 
@@ -387,6 +409,11 @@ void* run_benchmarks(void* cpu_num)
     kernel_results["Add (Scalar)"] = only_add_results_scalar;
     printf("\n");
 
+    std::map<std::string, Results*>* only_add_results_scalar_unroll2 = new std::map<std::string, Results*>;
+    test_only_add_scalar_unroll2(pcm, *cpu_num_int, *only_add_results_scalar_unroll2);
+    kernel_results["Add (Scalar, Unroll 2)"] = only_add_results_scalar_unroll2;
+    printf("\n");
+
     std::map<std::string, Results*>* only_add_results = new std::map<std::string, Results*>;
     test_only_add(pcm, *cpu_num_int, *only_add_results);
     kernel_results["Add"] = only_add_results;
@@ -453,6 +480,7 @@ void* run_benchmarks(void* cpu_num)
     kernels.push_back("Load");
     kernels.push_back("Store");
     kernels.push_back("Add (Scalar)");
+    kernels.push_back("Add (Scalar, Unroll 2)");
     kernels.push_back("Add");
     kernels.push_back("Mult (Scalar)");
     kernels.push_back("Mult (Scalar, Unroll 2)");
@@ -470,6 +498,7 @@ void* run_benchmarks(void* cpu_num)
     std::vector<std::string> vec_ext;
     vec_ext.push_back("AVX");
     vec_ext.push_back("AVX");
+    vec_ext.push_back("x86 / x86_64 / x87 / SSE2");
     vec_ext.push_back("x86 / x86_64 / x87 / SSE2");
     vec_ext.push_back("AVX (Float) / AVX2 (Int)");
     vec_ext.push_back("x86 / x86_64 / x87 / SSE2");
