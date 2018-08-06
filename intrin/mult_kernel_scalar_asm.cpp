@@ -29,7 +29,7 @@ void kernel_only_asm_mult_i8_regRename()
 {
     for(int i = 0; i<STIM_LEN; i++)
     {
-        //This version attempts to rename registers to avoid conflicts on dual dispatch
+        //This version attempts to rename registers to avoid conflicts on dual dispatch.  Dependence is both WAW and RAW.  Need to move result into different reg to resolve WAW.  Need to move operand into AL to resolve RAW.
         asm volatile(
             "movb %%cl, %%al\n\t"
             "imulb %%bl\n\t"
