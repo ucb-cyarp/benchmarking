@@ -4,9 +4,9 @@
     //==========_mm256_load_si256 int8==========
     void kernel_asm_mm256_load_si256_int8_unroll2( __m256i* a)
     {
-        for(int i = 0; i<STIM_LEN/64; i++)
+        for(int i = 0; i<STIM_LEN/32; i+=2)
         {
-            __m256i* b = a+i*2;
+            __m256i* b = a+i;
             __m256i* c = b+1;
 
             asm volatile(
@@ -22,9 +22,9 @@
     //==========_mm256_load_si256 int16==========
     void kernel_asm_mm256_load_si256_int16_unroll2( __m256i* a)
     {
-        for(int i = 0; i<STIM_LEN/32; i++)
+        for(int i = 0; i<STIM_LEN/16; i+=2)
         {
-            __m256i* b = a+i*2;
+            __m256i* b = a+i;
             __m256i* c = b+1;
 
             asm volatile(
@@ -40,9 +40,9 @@
     //==========_mm256_load_si256 int32==========
     void kernel_asm_mm256_load_si256_int32_unroll2( __m256i* a)
     {
-        for(int i = 0; i<STIM_LEN/16; i++)
+        for(int i = 0; i<STIM_LEN/8; i+=2)
         {
-            __m256i* b = a+i*2;
+            __m256i* b = a+i;
             __m256i* c = b+1;
 
             asm volatile(
