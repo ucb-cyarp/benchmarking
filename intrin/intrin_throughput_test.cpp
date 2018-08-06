@@ -33,6 +33,7 @@
 
 //Kernels Load/Store
 #include "load_kernel_asm.h"
+#include "load_kernel_asm_unroll2.h"
 #include "store_kernel_asm.h"
 #include "load_store_kernel.h"
 
@@ -69,6 +70,23 @@ void test_load(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type_resu
         Results* res_float =   load_store_one_arg_kernel<__m256,  float>   (pcm, &kernel_asm_mm256_load_ps,          cpu_num, "[AVX] ===== Load 8 Packed 32 bit Signed Floating Point Numbers (_mm256_load_ps) =====");
         type_result["float"] = res_float;
         Results* res_double =  load_store_one_arg_kernel<__m256d, double>  (pcm, &kernel_asm_mm256_load_pd,          cpu_num, "[AVX] ===== Load 4 Packed 64 bit Signed Floating Point Numbers (_mm256_load_pd) =====");
+        type_result["double"] = res_double;
+    #endif
+}
+
+void test_load_unroll2(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type_result)
+{
+    printf("########## Load Benchmarks (Unroll 2) ##########\n");
+    #ifdef __AVX__
+        Results* res_int8_t =  load_store_one_arg_kernel<__m256i, int8_t>  (pcm, &kernel_asm_mm256_load_si256_int8_unroll2,  cpu_num, "[AVX] ===== Load 32 Signed Bytes (_mm256_load_si256) =====");
+        type_result["int8_t"] = res_int8_t;
+        Results* res_int16_t = load_store_one_arg_kernel<__m256i, int16_t> (pcm, &kernel_asm_mm256_load_si256_int16_unroll2, cpu_num, "[AVX] ===== Load 16 Signed 16 Bit Integers(_mm256_load_si256) =====");
+        type_result["int16_t"] = res_int16_t;
+        Results* res_int32_t = load_store_one_arg_kernel<__m256i, int32_t> (pcm, &kernel_asm_mm256_load_si256_int32_unroll2, cpu_num, "[AVX] ===== Load 8 Signed 32 Bit Integers (_mm256_load_si256) =====");
+        type_result["int32_t"] = res_int32_t;
+        Results* res_float =   load_store_one_arg_kernel<__m256,  float>   (pcm, &kernel_asm_mm256_load_ps_unroll2,          cpu_num, "[AVX] ===== Load 8 Packed 32 bit Signed Floating Point Numbers (_mm256_load_ps) =====");
+        type_result["float"] = res_float;
+        Results* res_double =  load_store_one_arg_kernel<__m256d, double>  (pcm, &kernel_asm_mm256_load_pd_unroll2,          cpu_num, "[AVX] ===== Load 4 Packed 64 bit Signed Floating Point Numbers (_mm256_load_pd) =====");
         type_result["double"] = res_double;
     #endif
 }
@@ -409,6 +427,12 @@ void* run_benchmarks(void* cpu_num)
     test_load(pcm, *cpu_num_int, *load_results);
     kernel_results["Load"] = load_results;
     printf("\n");
+
+    std::map<std::string, Results*>* load_results_unroll2 = new std::map<std::string, Results*>;
+    test_load_unroll2(pcm, *cpu_num_int, *load_results_unroll2);
+    kernel_results["Load (Unroll 2)"] = load_results_unroll2;
+    printf("\n");
+
     std::map<std::string, Results*>* store_results = new std::map<std::string, Results*>;
     test_store(pcm, *cpu_num_int, *store_results);
     kernel_results["Store"] = store_results;
@@ -500,46 +524,28 @@ void* run_benchmarks(void* cpu_num)
     types.push_back("x87 Floating Point");
 
     std::vector<std::string> kernels;
-    kernels.push_back("Load");
-    kernels.push_back("Store");
-    kernels.push_back("Add (Scalar)");
-    kernels.push_back("Add (Scalar, Unroll 2)");
-    kernels.push_back("Add");
-    kernels.push_back("Mult (Scalar)");
-    kernels.push_back("Mult (Scalar, Unroll 2)");
-    kernels.push_back("Mult (Scalar, Reg Rename)");
-    kernels.push_back("Mult (Scalar, Reg Rename, Unroll 2)");
-    kernels.push_back("Mult");
-    kernels.push_back("Div");
-    kernels.push_back("FMA");
-    kernels.push_back("Load/Store");
-    kernels.push_back("Load/Add/Store");
-    kernels.push_back("Load/Mult/Store");
-    kernels.push_back("Load/Div/Store");
-    kernels.push_back("Load/FMA/Store");
-    kernels.push_back("Load/Add/Store No Intrin");
-    kernels.push_back("Load/Add/Store Unroll2");
-
     std::vector<std::string> vec_ext;
-    vec_ext.push_back("AVX");
-    vec_ext.push_back("AVX");
-    vec_ext.push_back("x86 / x86_64 / x87 / SSE2");
-    vec_ext.push_back("x86 / x86_64 / x87 / SSE2");
-    vec_ext.push_back("AVX (Float) / AVX2 (Int)");
-    vec_ext.push_back("x86 / x86_64 / x87 / SSE2");
-    vec_ext.push_back("x86 / x86_64 / x87 / SSE2");
-    vec_ext.push_back("x86");
-    vec_ext.push_back("x86");
-    vec_ext.push_back("AVX (Float) / AVX2 (Int)");
-    vec_ext.push_back("AVX");
-    vec_ext.push_back("FMA");
-    vec_ext.push_back("AVX");
-    vec_ext.push_back("AVX (Float) / AVX2 (Int)");
-    vec_ext.push_back("AVX (Float) / AVX2 (Int)");
-    vec_ext.push_back("AVX");
-    vec_ext.push_back("FMA");
-    vec_ext.push_back("N/A");
-    vec_ext.push_back("AVX (Float) / AVX2 (Int)");
+
+    kernels.push_back("Load");                                  vec_ext.push_back("AVX");
+    kernels.push_back("Load (Unroll 2)");                       vec_ext.push_back("AVX");
+    kernels.push_back("Store");                                 vec_ext.push_back("AVX");
+    kernels.push_back("Add (Scalar)");                          vec_ext.push_back("x86 / x86_64 / x87 / SSE2");
+    kernels.push_back("Add (Scalar, Unroll 2)");                vec_ext.push_back("x86 / x86_64 / x87 / SSE2");
+    kernels.push_back("Add");                                   vec_ext.push_back("AVX (Float) / AVX2 (Int)");
+    kernels.push_back("Mult (Scalar)");                         vec_ext.push_back("x86 / x86_64 / x87 / SSE2");
+    kernels.push_back("Mult (Scalar, Unroll 2)");               vec_ext.push_back("x86 / x86_64 / x87 / SSE2");
+    kernels.push_back("Mult (Scalar, Reg Rename)");             vec_ext.push_back("x86");
+    kernels.push_back("Mult (Scalar, Reg Rename, Unroll 2)");   vec_ext.push_back("x86");
+    kernels.push_back("Mult");                                  vec_ext.push_back("AVX (Float) / AVX2 (Int)");
+    kernels.push_back("Div");                                   vec_ext.push_back("AVX");
+    kernels.push_back("FMA");                                   vec_ext.push_back("FMA");
+    kernels.push_back("Load/Store");                            vec_ext.push_back("AVX");
+    kernels.push_back("Load/Add/Store");                        vec_ext.push_back("AVX (Float) / AVX2 (Int)");
+    kernels.push_back("Load/Mult/Store");                       vec_ext.push_back("AVX (Float) / AVX2 (Int)");
+    kernels.push_back("Load/Div/Store");                        vec_ext.push_back("AVX");
+    kernels.push_back("Load/FMA/Store");                        vec_ext.push_back("FMA");
+    kernels.push_back("Load/Add/Store No Intrin");              vec_ext.push_back("N/A");
+    kernels.push_back("Load/Add/Store Unroll2");                vec_ext.push_back("AVX (Float) / AVX2 (Int)");
 
     //Open CSV File to write
     FILE * csv_file;
