@@ -190,6 +190,13 @@ void test_only_mult_scalar(PCM* pcm, int cpu_num, std::map<std::string, Results*
     type_result["x87 Floating Point"] = res_x87_scalar;
 }
 
+void test_only_mult_scalar_regRename(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type_result)
+{
+    printf("########## Scalar Mult Benchmarks (Reg Rename) ##########\n");
+    Results* res_int8_t_scalar =  zero_arg_kernel(pcm, &kernel_only_asm_mult_i8_regRename,  cpu_num, "[x86] ===== Mult 8 bit Signed Integers =====");
+    type_result["int8_t"] = res_int8_t_scalar;
+}
+
 void test_only_mult_scalar_unroll2(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type_result)
 {
     printf("########## Scalar Mult Benchmarks (Unroll 2) ##########\n");
@@ -209,6 +216,13 @@ void test_only_mult_scalar_unroll2(PCM* pcm, int cpu_num, std::map<std::string, 
 
     Results* res_x87_scalar = zero_arg_kernel(pcm, &kernel_only_asm_mult_fp_unroll2, cpu_num, "[x87] ===== Mult Floating Point (via x87) =====");
     type_result["x87 Floating Point"] = res_x87_scalar;
+}
+
+void test_only_mult_scalar_unroll2_regRename(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type_result)
+{
+    printf("########## Scalar Mult Benchmarks (Unroll 2, Reg Rename) ##########\n");
+    Results* res_int8_t_scalar =  zero_arg_kernel(pcm, &kernel_only_asm_mult_i8_unroll2_regRename,  cpu_num, "[x86] ===== Mult 8 bit Signed Integers =====");
+    type_result["int8_t"] = res_int8_t_scalar;
 }
 
 void test_only_mult(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type_result)
@@ -428,6 +442,15 @@ void* run_benchmarks(void* cpu_num)
     kernel_results["Mult (Scalar, Unroll 2)"] = only_mult_results_scalar_unroll2;
     printf("\n");
 
+    std::map<std::string, Results*>* only_mult_results_scalar_regRename = new std::map<std::string, Results*>;
+    test_only_mult_scalar_regRename(pcm, *cpu_num_int, *only_mult_results_scalar_regRename);
+    kernel_results["Mult (Scalar, Reg Rename)"] = only_mult_results_scalar_regRename;
+    printf("\n");
+    std::map<std::string, Results*>* only_mult_results_scalar_unroll2_regRename = new std::map<std::string, Results*>;
+    test_only_mult_scalar_unroll2_regRename(pcm, *cpu_num_int, *only_mult_results_scalar_unroll2_regRename);
+    kernel_results["Mult (Scalar, Reg Rename, Unroll 2)"] = only_mult_results_scalar_unroll2_regRename;
+    printf("\n");
+
     std::map<std::string, Results*>* only_mult_results = new std::map<std::string, Results*>;
     test_only_mult(pcm, *cpu_num_int, *only_mult_results);
     kernel_results["Mult"] = only_mult_results;
@@ -484,6 +507,8 @@ void* run_benchmarks(void* cpu_num)
     kernels.push_back("Add");
     kernels.push_back("Mult (Scalar)");
     kernels.push_back("Mult (Scalar, Unroll 2)");
+    kernels.push_back("Mult (Scalar, Reg Rename)");
+    kernels.push_back("Mult (Scalar, Reg Rename, Unroll 2)");
     kernels.push_back("Mult");
     kernels.push_back("Div");
     kernels.push_back("FMA");
@@ -503,6 +528,8 @@ void* run_benchmarks(void* cpu_num)
     vec_ext.push_back("AVX (Float) / AVX2 (Int)");
     vec_ext.push_back("x86 / x86_64 / x87 / SSE2");
     vec_ext.push_back("x86 / x86_64 / x87 / SSE2");
+    vec_ext.push_back("x86");
+    vec_ext.push_back("x86");
     vec_ext.push_back("AVX (Float) / AVX2 (Int)");
     vec_ext.push_back("AVX");
     vec_ext.push_back("FMA");

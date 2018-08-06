@@ -5,6 +5,7 @@
 
         //==========mult 8 bit==========
         void kernel_only_asm_mult_i8_unroll2();
+        void kernel_only_asm_mult_i8_unroll2_regRename();
         //==========mult 16 bit==========
         void kernel_only_asm_mult_i16_unroll2();
         //==========mult 32 bit==========

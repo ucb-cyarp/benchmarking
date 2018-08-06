@@ -9,18 +9,36 @@ void kernel_only_asm_mult_i8_unroll2()
 {
     for(int i = 0; i<STIM_LEN/2; i++)
     {
-        //Doing 2 adds to hopefully avoid an issue with dependence.  Intel ASM is reg1=reg1+reg2.  It is not a three register instruction like it is with the vector unit
         //TODO: Verify
 
         //The byte multiply does not have a 2 arg version
-        //One arg is the al register and it writes back into the ax register
+        //One arg is the al register and it writes back into the ax register: ax <- ar * reg8
         //NOTE: tests showed that this had half the throughput of the other integer multiplies.  Suggests dependence stopped multiple dispatch.
         asm volatile(
             "imulb  %%bl\n\t"
-            "imulb  %%cl\n\t"
+            "imulb  %%dl\n\t"
             :
             :
-            : "ax", "bl", "cl"
+            : "ax", "bl", /*"cl",*/ "dl"/*, "si", "di"*/
+        );
+    }
+}
+
+void kernel_only_asm_mult_i8_unroll2_regRename()
+{
+    for(int i = 0; i<STIM_LEN/2; i++)
+    {
+        //This version attempts to rename registers to avoid conflicts on dual dispatch.  Dependence is both WAW and RAW.  Need to move result into different reg to resolve WAW.  Need to move operand into AL to resolve RAW.
+        asm volatile(
+            "movb %%cl, %%al\n\t"
+            "imulb  %%bl\n\t"
+            "movw %%ax, %%si\n\t"
+            "movb %%cl, %%al\n\t"
+            "imulb  %%dl\n\t"
+            "movw %%ax, %%di\n\t"
+            :
+            :
+            : "ax", "bl", "cl", "dl", "si", "di"
         );
     }
 }

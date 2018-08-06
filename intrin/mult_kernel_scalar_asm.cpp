@@ -15,10 +15,28 @@ void kernel_only_asm_mult_i8()
         //The byte multiply does not have a 2 arg version
         //One arg is the al register and it writes back into the ax register
         asm volatile(
-            "imulb  %%bl\n\t"
+            // "movb %%cl, %%al\n\t"
+            "imulb %%bl\n\t"
+            // "mov %%ax, %%di\n\t"
             :
             :
-            : "ax", "bl"
+            : "ax", "bl"/*, "cl", "di"*/
+        );
+    }
+}
+
+void kernel_only_asm_mult_i8_regRename()
+{
+    for(int i = 0; i<STIM_LEN; i++)
+    {
+        //This version attempts to rename registers to avoid conflicts on dual dispatch
+        asm volatile(
+            "movb %%cl, %%al\n\t"
+            "imulb %%bl\n\t"
+            "mov %%ax, %%di\n\t"
+            :
+            :
+            : "ax", "bl", "cl", "di"
         );
     }
 }
