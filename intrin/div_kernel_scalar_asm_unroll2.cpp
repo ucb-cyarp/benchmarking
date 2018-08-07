@@ -78,11 +78,11 @@ void kernel_only_asm_div_i16_unroll2_regRename()
             "movw %%cx, %%ax\n\t"
             "movw %%cx, %%dx\n\t"
             "idivw  %%cx\n\t"
-            "movw %%ax, %%r8w\n\t"
-            "movw %%dx, %%r9w\n\t"
+            "movq %%rax, %%r8\n\t"
+            "movq %%rdx, %%r9\n\t"
             :
             :
-            : "ax", "bx", "cx", "dx", "si", "di", "r8w", "r9w"
+            : "rax", "bx", "cx", "rdx", "si", "di", "r8", "r9"
         );
     }
 }
@@ -121,11 +121,11 @@ void kernel_only_asm_div_i32_unroll2_regRename()
             "movl %%ecx, %%eax\n\t"
             "movl %%ecx, %%edx\n\t"
             "idivl  %%ecx\n\t"
-            "movl %%eax, %%r8d\n\t"
-            "movl %%edx, %%r9d\n\t"
+            "movq %%rax, %%r8\n\t"
+            "movq %%rdx, %%r9\n\t"
             :
             :
-            : "eax", "ebx", "ecx", "edx", "esi", "edi", "r8d", "r9d"
+            : "rax", "ebx", "ecx", "rdx", "esi", "edi", "r8", "r9"
         );
     }
 }
