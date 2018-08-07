@@ -52,6 +52,8 @@
 #include "mult_kernel_scalar_asm_unroll2.h"
 #include "mult_kernel_asm.h"
 #include "div_kernel_asm.h"
+#include "div_kernel_scalar_asm.h"
+#include "div_kernel_scalar_asm_unroll2.h"
 #include "fma_kernel_asm.h"
 
 //Kernels Special Case
@@ -259,6 +261,74 @@ void test_only_mult_scalar_unroll2_regRename(PCM* pcm, int cpu_num, std::map<std
     printf("########## Scalar Mult Benchmarks (Unroll 2, Reg Rename) ##########\n");
     Results* res_int8_t_scalar =  zero_arg_kernel(pcm, &kernel_only_asm_mult_i8_unroll2_regRename,  cpu_num, "[x86] ===== Mult 8 bit Signed Integers =====");
     type_result["int8_t"] = res_int8_t_scalar;
+}
+
+void test_only_div_scalar(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type_result)
+{
+    printf("########## Scalar Div Benchmarks ##########\n");
+    Results* res_int8_t_scalar =  zero_arg_kernel(pcm, &kernel_only_asm_div_i8,  cpu_num, "[x86] ===== Div 8 bit Signed Integers =====");
+    type_result["int8_t"] = res_int8_t_scalar;
+    Results* res_int16_t_scalar = zero_arg_kernel(pcm, &kernel_only_asm_div_i16, cpu_num, "[x86] ===== Div 16 bit Signed Integers =====");
+    type_result["int16_t"] = res_int16_t_scalar;
+    Results* res_int32_t_scalar = zero_arg_kernel(pcm, &kernel_only_asm_div_i32, cpu_num, "[x86] ===== Div 32 bit Signed Integers =====");
+    type_result["int32_t"] = res_int32_t_scalar;
+    Results* res_int64_t_scalar = zero_arg_kernel(pcm, &kernel_only_asm_div_i64, cpu_num, "[x86_64] ===== Div 64 bit Signed Integers =====");
+    type_result["int64_t"] = res_int64_t_scalar;
+
+    Results* res_single_scalar = zero_arg_kernel(pcm, &kernel_only_asm_div_sp, cpu_num, "[SSE2] ===== Div Float Point (single via SSE2) =====");
+    type_result["float"] = res_single_scalar;
+    Results* res_double_scalar = zero_arg_kernel(pcm, &kernel_only_asm_div_dp, cpu_num, "[SSE2] ===== Div Floating Point (double via SSE2) =====");
+    type_result["double"] = res_double_scalar;
+
+    Results* res_x87_scalar = zero_arg_kernel(pcm, &kernel_only_asm_div_fp, cpu_num, "[x87] ===== Div Floating Point (via x87) =====");
+    type_result["x87 Floating Point"] = res_x87_scalar;
+}
+
+void test_only_div_scalar_regRename(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type_result)
+{
+    printf("########## Scalar Div Benchmarks (Reg Rename) ##########\n");
+    Results* res_int8_t_scalar =  zero_arg_kernel(pcm, &kernel_only_asm_div_i8_regRename,  cpu_num, "[x86] ===== Mult 8 bit Signed Integers =====");
+    type_result["int8_t"] = res_int8_t_scalar;
+    Results* res_int16_t_scalar = zero_arg_kernel(pcm, &kernel_only_asm_div_i16_regRename, cpu_num, "[x86] ===== Div 16 bit Signed Integers =====");
+    type_result["int16_t"] = res_int16_t_scalar;
+    Results* res_int32_t_scalar = zero_arg_kernel(pcm, &kernel_only_asm_div_i32_regRename, cpu_num, "[x86] ===== Div 32 bit Signed Integers =====");
+    type_result["int32_t"] = res_int32_t_scalar;
+    Results* res_int64_t_scalar = zero_arg_kernel(pcm, &kernel_only_asm_div_i64_regRename, cpu_num, "[x86_64] ===== Div 64 bit Signed Integers =====");
+    type_result["int64_t"] = res_int64_t_scalar;
+}
+
+void test_only_div_scalar_unroll2(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type_result)
+{
+    printf("########## Scalar Div Benchmarks (Unroll 2) ##########\n");
+    Results* res_int8_t_scalar =  zero_arg_kernel(pcm, &kernel_only_asm_div_i8_unroll2,  cpu_num, "[x86] ===== Div 8 bit Signed Integers =====");
+    type_result["int8_t"] = res_int8_t_scalar;
+    Results* res_int16_t_scalar = zero_arg_kernel(pcm, &kernel_only_asm_div_i16_unroll2, cpu_num, "[x86] ===== Div 16 bit Signed Integers =====");
+    type_result["int16_t"] = res_int16_t_scalar;
+    Results* res_int32_t_scalar = zero_arg_kernel(pcm, &kernel_only_asm_div_i32_unroll2, cpu_num, "[x86] ===== Div 32 bit Signed Integers =====");
+    type_result["int32_t"] = res_int32_t_scalar;
+    Results* res_int64_t_scalar = zero_arg_kernel(pcm, &kernel_only_asm_div_i64_unroll2, cpu_num, "[x86_64] ===== Div 64 bit Signed Integers =====");
+    type_result["int64_t"] = res_int64_t_scalar;
+
+    Results* res_single_scalar = zero_arg_kernel(pcm, &kernel_only_asm_div_sp_unroll2, cpu_num, "[SSE2] ===== Div Float Point (single via SSE2) =====");
+    type_result["float"] = res_single_scalar;
+    Results* res_double_scalar = zero_arg_kernel(pcm, &kernel_only_asm_div_dp_unroll2, cpu_num, "[SSE2] ===== Div Floating Point (double via SSE2) =====");
+    type_result["double"] = res_double_scalar;
+
+    Results* res_x87_scalar = zero_arg_kernel(pcm, &kernel_only_asm_div_fp_unroll2, cpu_num, "[x87] ===== Div Floating Point (via x87) =====");
+    type_result["x87 Floating Point"] = res_x87_scalar;
+}
+
+void test_only_div_scalar_unroll2_regRename(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type_result)
+{
+    printf("########## Scalar Div Benchmarks (Unroll 2, Reg Rename) ##########\n");
+    Results* res_int8_t_scalar =  zero_arg_kernel(pcm, &kernel_only_asm_div_i8_unroll2_regRename,  cpu_num, "[x86] ===== Mult 8 bit Signed Integers =====");
+    type_result["int8_t"] = res_int8_t_scalar;
+    Results* res_int16_t_scalar = zero_arg_kernel(pcm, &kernel_only_asm_div_i16_unroll2_regRename, cpu_num, "[x86] ===== Div 16 bit Signed Integers =====");
+    type_result["int16_t"] = res_int16_t_scalar;
+    Results* res_int32_t_scalar = zero_arg_kernel(pcm, &kernel_only_asm_div_i32_unroll2_regRename, cpu_num, "[x86] ===== Div 32 bit Signed Integers =====");
+    type_result["int32_t"] = res_int32_t_scalar;
+    Results* res_int64_t_scalar = zero_arg_kernel(pcm, &kernel_only_asm_div_i64_unroll2_regRename, cpu_num, "[x86_64] ===== Div 64 bit Signed Integers =====");
+    type_result["int64_t"] = res_int64_t_scalar;
 }
 
 void test_only_mult(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type_result)
@@ -489,7 +559,6 @@ void* run_benchmarks(void* cpu_num)
     test_only_mult_scalar_unroll2(pcm, *cpu_num_int, *only_mult_results_scalar_unroll2);
     kernel_results["Mult (Scalar, Unroll 2)"] = only_mult_results_scalar_unroll2;
     printf("\n");
-
     std::map<std::string, Results*>* only_mult_results_scalar_regRename = new std::map<std::string, Results*>;
     test_only_mult_scalar_regRename(pcm, *cpu_num_int, *only_mult_results_scalar_regRename);
     kernel_results["Mult (Scalar, Reg Rename)"] = only_mult_results_scalar_regRename;
@@ -507,6 +576,24 @@ void* run_benchmarks(void* cpu_num)
     test_only_div(pcm, *cpu_num_int, *only_div_results);
     kernel_results["Div"] = only_div_results;
     printf("\n");
+
+    std::map<std::string, Results*>* only_div_results_scalar = new std::map<std::string, Results*>;
+    test_only_div_scalar(pcm, *cpu_num_int, *only_div_results_scalar);
+    kernel_results["Div (Scalar)"] = only_div_results_scalar;
+    printf("\n");
+    std::map<std::string, Results*>* only_div_results_scalar_unroll2 = new std::map<std::string, Results*>;
+    test_only_div_scalar_unroll2(pcm, *cpu_num_int, *only_div_results_scalar_unroll2);
+    kernel_results["Div (Scalar, Unroll 2)"] = only_div_results_scalar_unroll2;
+    printf("\n");
+    std::map<std::string, Results*>* only_div_results_scalar_regRename = new std::map<std::string, Results*>;
+    test_only_div_scalar_regRename(pcm, *cpu_num_int, *only_div_results_scalar_regRename);
+    kernel_results["Div (Scalar, Reg Rename)"] = only_div_results_scalar_regRename;
+    printf("\n");
+    std::map<std::string, Results*>* only_div_results_scalar_unroll2_regRename = new std::map<std::string, Results*>;
+    test_only_div_scalar_unroll2_regRename(pcm, *cpu_num_int, *only_div_results_scalar_unroll2_regRename);
+    kernel_results["Div (Scalar, Reg Rename, Unroll 2)"] = only_div_results_scalar_unroll2_regRename;
+    printf("\n");
+
     std::map<std::string, Results*>* only_fma_results = new std::map<std::string, Results*>;
     test_only_fma(pcm, *cpu_num_int, *only_fma_results);
     kernel_results["FMA"] = only_fma_results;
@@ -563,6 +650,10 @@ void* run_benchmarks(void* cpu_num)
     kernels.push_back("Mult (Scalar, Reg Rename, Unroll 2)");   vec_ext.push_back("x86");
     kernels.push_back("Mult");                                  vec_ext.push_back("AVX (Float) / AVX2 (Int)");
     kernels.push_back("Div");                                   vec_ext.push_back("AVX");
+    kernels.push_back("Div (Scalar)");                          vec_ext.push_back("x86 / x86_64 / x87 / SSE2");
+    kernels.push_back("Div (Scalar, Unroll 2)");                vec_ext.push_back("x86 / x86_64 / x87 / SSE2");
+    kernels.push_back("Div (Scalar, Reg Rename)");              vec_ext.push_back("x86");
+    kernels.push_back("Div (Scalar, Reg Rename, Unroll 2)");    vec_ext.push_back("x86");
     kernels.push_back("FMA");                                   vec_ext.push_back("FMA");
     kernels.push_back("Load/Store");                            vec_ext.push_back("AVX");
     kernels.push_back("Load/Add/Store");                        vec_ext.push_back("AVX (Float) / AVX2 (Int)");

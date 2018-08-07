@@ -19,7 +19,7 @@ void kernel_only_asm_mult_i8_unroll2()
             "imulb  %%dl\n\t"
             :
             :
-            : "ax", "bl", /*"cl",*/ "dl"/*, "si", "di"*/
+            : "ax", "bl", "dl"
         );
     }
 }
