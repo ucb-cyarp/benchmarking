@@ -7,23 +7,37 @@
 //==========8 bit div==========
 void kernel_only_asm_div_i8_unroll2()
 {
-    for(int i = 0; i<STIM_LEN/2; i++)
+    int8_t divBy = 1;    //Avoid div by 0 which causes div exception
+    int8_t divBy2 = 1;    //Avoid div by 0 which causes div exception
+    register int16_t initVal asm ("ax") = 1; //Even though we are doing an 8 bit divide 
+                                             //The numerand is 16 bits
+                                             //https://gcc.gnu.org/onlinedocs/gcc/Local-Register-Variables.html#Local-Register-Variables
+    register int16_t clobberResult asm ("ax"); //Need to specify an output since inputs cannot occur in clobber list
+
+    for(int i = 0; i<STIM_LEN; i++)
     {
         //The divide does not have a 2 arg version
         //(al <- quotient, ah <- remainder) <- ax/reg8
 
-        asm volatile(
-            "idivb  %%bl\n\t"
-            "idivb  %%dl\n\t"
-            :
-            :
-            : "ax", "bl", "dl" //al and ah are part of ax
+        asm volatile( 
+            // "movw %[aInit], %%ax\n\t" //Need to reset since ah (remainder is set by div)
+            "idivb  %[aDivBy]\n\t" //This case should cause no remainder and should in fact be the orig (div by 1)
+            "idivb  %[bDivBy]\n\t" //This case should cause no remainder and should in fact be the orig (div by 1)
+            : "=r" (clobberResult)
+            : [aInit] "r" (initVal), [aDivBy] "r" (divBy), [bDivBy] "r" (divBy2)
+            : //al and ah are part of ax (cannot list in clibber since is an input - instead list as output)
         );
     }
 }
 
 void kernel_only_asm_div_i8_unroll2_regRename()
 {
+    int16_t initVal1 = 4;
+    int16_t initVal2 = 6;
+
+    int8_t divBy1 = 2;
+    int8_t divBy2 = 3;
+
     for(int i = 0; i<STIM_LEN/2; i++)
     {
         //The divide does not have a 2 arg version
@@ -31,15 +45,15 @@ void kernel_only_asm_div_i8_unroll2_regRename()
 
         //This version attempts to rename registers to avoid conflicts on dual dispatch.  Dependence is both WAW and RAW.  Need to move result into different reg to resolve WAW.  Need to move operand to resolve RAW.
         asm volatile(
-            "movb %%cl, %%al\n\t"
-            "idivb  %%bl\n\t"
+            "movw %[aInit], %%ax\n\t"
+            "idivb  %[aDivBy]\n\t"
             "movw %%ax, %%si\n\t"
-            "movb %%cl, %%al\n\t"
-            "idivb  %%dl\n\t"
+            "movw %[bInit], %%ax\n\t"
+            "idivb  %[bDivBy]\n\t"
             "movw %%ax, %%di\n\t"
             :
-            :
-            : "ax", "bl", "cl", "dl", "si", "di"
+            : [aInit] "r" (initVal1), [aDivBy] "r" (divBy1), [bInit] "r" (initVal2), [bDivBy] "r" (divBy2)
+            : "ax", "si", "di"
         );
     }
 }
@@ -47,22 +61,39 @@ void kernel_only_asm_div_i8_unroll2_regRename()
 //==========16 bit div==========
 void kernel_only_asm_div_i16_unroll2()
 {
-    for(int i = 0; i<STIM_LEN/2; i++)
+    int16_t divBy = 1;    //Avoid div by 0 which causes div exception
+    int16_t divBy2 = 1;    //Avoid div by 0 which causes div exception
+    register int16_t initVal0 asm ("ax") = 1; //https://gcc.gnu.org/onlinedocs/gcc/Local-Register-Variables.html#Local-Register-Variables
+    register int16_t initVal1 asm ("dx") = 0; 
+                                              
+    register int16_t clobberResult0 asm ("ax"); //Need to specify an output since inputs cannot occur in clobber list
+    register int16_t clobberResult1 asm ("dx");
+
+    for(int i = 0; i<STIM_LEN; i++)
     {
         //(ax <- quotient, dx <- remainder) <- dx:ax/reg16 (the 1st arg is formed by treating dx as the upper sig bits and ax as the lower)
 
         asm volatile(
-            "idivw  %%bx\n\t"
-            "idivw  %%cx\n\t"
-            :
-            :
-            : "ax", "bx", "cx", "dx"
+            "idivw  %[aDivBy]\n\t"
+            "idivw  %[bDivBy]\n\t"
+            : "=r" (clobberResult0), "=r" (clobberResult1)
+            : [aInit0] "r" (initVal0), [aInit1] "r" (initVal1), [aDivBy] "r" (divBy), [bDivBy] "r" (divBy2)
+            : 
         );
     }
 }
 
 void kernel_only_asm_div_i16_unroll2_regRename()
 {
+    int16_t initVal1 = 4;
+    int16_t initVal2 = 6;
+
+    int16_t initVal1_1 = 0;
+    int16_t initVal2_1 = 0;
+
+    int16_t divBy1 = 2;
+    int16_t divBy2 = 3;
+
     for(int i = 0; i<STIM_LEN/2; i++)
     {
         //(ax <- quotient, dx <- remainder) <- dx:ax/reg16 (the 1st arg is formed by treating dx as the upper sig bits and ax as the lower)
@@ -70,19 +101,19 @@ void kernel_only_asm_div_i16_unroll2_regRename()
         //This version attempts to rename registers to avoid conflicts on dual dispatch.  Dependence is both WAW and RAW.  Need to move result into different reg to resolve WAW.  Need to move operand to resolve RAW.
 
         asm volatile(
-            "movw %%cx, %%ax\n\t"
-            "movw %%cx, %%dx\n\t"
-            "idivw  %%bx\n\t"
+            "movw %[aInit1], %%ax\n\t"
+            "movw %[aInit2], %%dx\n\t"
+            "idivw  %[aDivBy]\n\t"
             "movw %%ax, %%si\n\t"
             "movw %%dx, %%di\n\t"
-            "movw %%cx, %%ax\n\t"
-            "movw %%cx, %%dx\n\t"
-            "idivw  %%cx\n\t"
+            "movw %[bInit1], %%ax\n\t"
+            "movw %[bInit2], %%dx\n\t"
+            "idivw  %[bDivBy]\n\t"
             "movq %%rax, %%r8\n\t"
             "movq %%rdx, %%r9\n\t"
             :
-            :
-            : "rax", "bx", "cx", "rdx", "si", "di", "r8", "r9"
+            : [aInit1] "r" (initVal1), [aInit2] "r" (initVal1_1), [aDivBy] "r" (divBy1), [bInit1] "r" (initVal2), [bInit2] "r" (initVal2_1), [bDivBy] "r" (divBy2)
+            : "rax", "rdx", "si", "di", "r8", "r9"
         );
     }
 }
@@ -90,42 +121,59 @@ void kernel_only_asm_div_i16_unroll2_regRename()
 //==========32 bit div==========
 void kernel_only_asm_div_i32_unroll2()
 { 
-    for(int i = 0; i<STIM_LEN/2; i++)
+    int32_t divBy = 1;    //Avoid div by 0 which causes div exception
+    int32_t divBy2 = 1;    //Avoid div by 0 which causes div exception
+    register int32_t initVal0 asm ("eax") = 1; //https://gcc.gnu.org/onlinedocs/gcc/Local-Register-Variables.html#Local-Register-Variables
+    register int32_t initVal1 asm ("edx") = 0; 
+                                              
+    register int32_t clobberResult0 asm ("eax"); //Need to specify an output since inputs cannot occur in clobber list
+    register int32_t clobberResult1 asm ("edx");
+
+    for(int i = 0; i<STIM_LEN; i++)
     {
         //(eax <- quotient, edx <- remainder) <- edx:eax/reg16 (the 1st arg is formed by treating edx as the upper sig bits and eax as the lower)
 
         //Doing 2 div to hopefully avoid an issue with dependence.
         asm volatile(
-            "idivl  %%ebx\n\t"
-            "idivl  %%ecx\n\t"
-            :
-            :
-            : "eax", "ebx", "ecx", "edx"
+            "idivl  %[aDivBy]\n\t"
+            "idivl  %[bDivBy]\n\t"
+            : "=r" (clobberResult0), "=r" (clobberResult1)
+            : [aInit0] "r" (initVal0), [aInit1] "r" (initVal1), [aDivBy] "r" (divBy), [bDivBy] "r" (divBy2)
+            : 
         );
     }
 }
 
 void kernel_only_asm_div_i32_unroll2_regRename()
 { 
+    int32_t initVal1 = 4;
+    int32_t initVal2 = 6;
+
+    int32_t initVal1_1 = 0;
+    int32_t initVal2_1 = 0;
+
+    int32_t divBy1 = 2;
+    int32_t divBy2 = 3;
+
     for(int i = 0; i<STIM_LEN/2; i++)
     {
         //(eax <- quotient, edx <- remainder) <- edx:eax/reg16 (the 1st arg is formed by treating edx as the upper sig bits and eax as the lower)
 
         //This version attempts to rename registers to avoid conflicts on dual dispatch.  Dependence is both WAW and RAW.  Need to move result into different reg to resolve WAW.  Need to move operand to resolve RAW.
         asm volatile(
-            "movl %%ecx, %%eax\n\t"
-            "movl %%ecx, %%edx\n\t"
-            "idivl  %%ebx\n\t"
+            "movl %[aInit1], %%eax\n\t"
+            "movl %[aInit2], %%edx\n\t"
+            "idivl  %[aDivBy]\n\t"
             "movl %%eax, %%esi\n\t"
             "movl %%edx, %%edi\n\t"
-            "movl %%ecx, %%eax\n\t"
-            "movl %%ecx, %%edx\n\t"
-            "idivl  %%ecx\n\t"
+            "movl %[bInit1], %%eax\n\t"
+            "movl %[bInit2], %%edx\n\t"
+            "idivl %[bDivBy]\n\t"
             "movq %%rax, %%r8\n\t"
             "movq %%rdx, %%r9\n\t"
             :
-            :
-            : "rax", "ebx", "ecx", "rdx", "esi", "edi", "r8", "r9"
+            : [aInit1] "r" (initVal1), [aInit2] "r" (initVal1_1), [aDivBy] "r" (divBy1), [bInit1] "r" (initVal2), [bInit2] "r" (initVal2_1), [bDivBy] "r" (divBy2)
+            : "rax", "rdx", "esi", "edi", "r8", "r9"
         );
     }
 }
@@ -133,41 +181,58 @@ void kernel_only_asm_div_i32_unroll2_regRename()
 //==========64 bit div==========
 void kernel_only_asm_div_i64_unroll2()
 {
-    for(int i = 0; i<STIM_LEN/2; i++)
+    int64_t divBy = 1;    //Avoid div by 0 which causes div exception
+    int64_t divBy2 = 1;    //Avoid div by 0 which causes div exception
+    register int64_t initVal0 asm ("rax") = 1; //https://gcc.gnu.org/onlinedocs/gcc/Local-Register-Variables.html#Local-Register-Variables
+    register int64_t initVal1 asm ("rdx") = 0; 
+                                              
+    register int64_t clobberResult0 asm ("rax"); //Need to specify an output since inputs cannot occur in clobber list
+    register int64_t clobberResult1 asm ("rdx");
+
+    for(int i = 0; i<STIM_LEN; i++)
     {
         //Doing 2 adds to hopefully avoid an issue with dependence.  Intel ASM is reg1=reg1+reg2.  It is not a three register instruction like it is with the vector unit
         //TODO: Verify
         asm volatile(
-            "idivq  %%rbx\n\t"
-            "idivq  %%rcx\n\t"
-            :
-            :
-            : "rax", "rbx", "rcx", "rdx"
+            "idivq  %[aDivBy]\n\t"
+            "idivq  %[bDivBy]\n\t"
+            : "=r" (clobberResult0), "=r" (clobberResult1)
+            : [aInit0] "r" (initVal0), [aInit1] "r" (initVal1), [aDivBy] "r" (divBy), [bDivBy] "r" (divBy2)
+            : 
         );
     }
 }
 
 void kernel_only_asm_div_i64_unroll2_regRename()
 {
+    int64_t initVal1 = 4;
+    int64_t initVal2 = 6;
+
+    int64_t initVal1_1 = 0;
+    int64_t initVal2_1 = 0;
+
+    int64_t divBy1 = 2;
+    int64_t divBy2 = 3;
+
     for(int i = 0; i<STIM_LEN/2; i++)
     {
         //(rax <- quotient, rdx <- remainder) <- rdx:rax/reg16 (the 1st arg is formed by treating edx as the upper sig bits and eax as the lower)
 
         //This version attempts to rename registers to avoid conflicts on dual dispatch.  Dependence is both WAW and RAW.  Need to move result into different reg to resolve WAW.  Need to move operand to resolve RAW.
         asm volatile(
-            "movq %%rcx, %%rax\n\t"
-            "movq %%rcx, %%rdx\n\t"
-            "idivq  %%rbx\n\t"
+            "movq %[aInit1], %%rax\n\t"
+            "movq %[aInit2], %%rdx\n\t"
+            "idivq  %[aDivBy]\n\t"
             "movq %%rax, %%rsi\n\t"
             "movq %%rdx, %%rdi\n\t"
-            "movq %%rcx, %%rax\n\t"
-            "movq %%rcx, %%rdx\n\t"
-            "idivq  %%rcx\n\t"
+            "movq %[bInit1], %%rax\n\t"
+            "movq %[bInit2], %%rdx\n\t"
+            "idivq  %[bDivBy]\n\t"
             "movq %%rax, %%r8\n\t"
             "movq %%rdx, %%r9\n\t"
             :
-            :
-            : "rax", "rbx", "rcx", "rdx", "rsi", "rdi", "r8", "r9"
+            : [aInit1] "r" (initVal1), [aInit2] "r" (initVal1_1), [aDivBy] "r" (divBy1), [bInit1] "r" (initVal2), [bInit2] "r" (initVal2_1), [bDivBy] "r" (divBy2)
+            : "rax", "rdx", "rsi", "rdi", "r8", "r9"
         );
     }
 }
@@ -215,6 +280,12 @@ void kernel_only_asm_div_fp_unroll2()
 //==========div single with SSE==========
 void kernel_only_asm_div_sp_unroll2()
 {
+    float divBy1 = 1.0;    //Avoid div by 0 which causes div exception
+    float initVal1 = 3.0;
+
+    float divBy2 = 2.0;    //Avoid div by 0 which causes div exception
+    float initVal2 = 4.0;
+
     for(int i = 0; i<STIM_LEN/2; i++)
     {
         //This is using the SSE vector unit to multiply a single number (avoiding x87).
@@ -222,17 +293,17 @@ void kernel_only_asm_div_sp_unroll2()
         
         //TODO: Verify
         asm volatile(
-            "movd %%eax, %%xmm0 \n\t"
-            "movd %%ebx, %%xmm1 \n\t"
+            "movd %[aInit], %%xmm0 \n\t"
+            "movd %[aDivBy], %%xmm1 \n\t"
             "divss %%xmm1, %%xmm0 \n\t"
             "movd %%xmm0, %%ecx \n\t"
-            "movd %%edx, %%xmm2 \n\t"
-            "movd %%esi, %%xmm3 \n\t"
+            "movd %[bInit], %%xmm2 \n\t"
+            "movd %[bDivBy], %%xmm3 \n\t"
             "divss %%xmm3, %%xmm2 \n\t"
             "movd %%xmm2, %%edi \n\t"
             :
-            :
-            :"eax", "ebx", "ecx", "edx", "esi", "edi", "xmm0", "xmm1", "xmm2", "xmm3"
+            : [aInit] "r" (initVal1), [aDivBy] "r" (divBy1), [bInit] "r" (initVal2), [bDivBy] "r" (divBy2)
+            : "ecx", "edi", "xmm0", "xmm1", "xmm2", "xmm3"
         );
     }
 }
@@ -240,6 +311,12 @@ void kernel_only_asm_div_sp_unroll2()
 //==========div double with SSE==========
 void kernel_only_asm_div_dp_unroll2()
 {
+    double divBy1 = 1.0;    //Avoid div by 0 which causes div exception
+    double initVal1 = 3.0;
+
+    double divBy2 = 2.0;    //Avoid div by 0 which causes div exception
+    double initVal2 = 4.0;
+
     for(int i = 0; i<STIM_LEN/2; i++)
     {
         //This is using the SSE vector unit to multiply a single number (avoiding x87).
@@ -247,17 +324,17 @@ void kernel_only_asm_div_dp_unroll2()
         
         //TODO: Verify
         asm volatile(
-            "movq %%rax, %%xmm0 \n\t"
-            "movq %%rbx, %%xmm1 \n\t"
+            "movq %[aInit], %%xmm0 \n\t"
+            "movq %[aDivBy], %%xmm1 \n\t"
             "divsd %%xmm1, %%xmm0 \n\t"
             "movq %%xmm0, %%rcx \n\t"
-            "movd %%rdx, %%xmm2 \n\t"
-            "movd %%rsi, %%xmm3 \n\t"
+            "movd %[bInit], %%xmm2 \n\t"
+            "movd %[bDivBy], %%xmm3 \n\t"
             "divsd %%xmm3, %%xmm2 \n\t"
             "movd %%xmm2, %%rdi \n\t"
             :
-            :
-            :"rax", "rbx", "rcx", "rdx", "rsi", "rdi", "xmm0", "xmm1", "xmm2", "xmm3"
+            : [aInit] "r" (initVal1), [aDivBy] "r" (divBy1), [bInit] "r" (initVal2), [bDivBy] "r" (divBy2)
+            : "rcx", "rdi", "xmm0", "xmm1", "xmm2", "xmm3"
         );
     }
 }
