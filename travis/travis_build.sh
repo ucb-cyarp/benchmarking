@@ -2,8 +2,16 @@
 
 #Using tecnique from http://bencane.com/2014/09/02/understanding-exit-codes-and-how-to-use-them-in-bash-scripts/
 if [ "$(uname)" == "Darwin" ]; then
+    
+    echo "****Compilers****"
+    echo $CXX
+    echo $CX
+    echo "****g++ Verson****"
+    g++ --version
+
+    echo "****Building****"
+
     cd ../intrin
-    make -f Makefile-noPCM
 
     make
     if [ $? -eq 0 ]
