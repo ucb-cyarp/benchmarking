@@ -433,7 +433,7 @@ int main(int argc, char *argv[])
     int cpu_number = 0;
 
 #if __APPLE__
-    fprintf(stderr, "Warning: Running on MacOS - Thread Affinity Not Set.  Disregard Core Number");
+    fprintf(stderr, "Warning: Running on MacOS - Thread Affinity Not Set.  Disregard Core Number\n");
     //It looks like the best we could do would be to request that sets of threads be placed on the same L2 if possible.
     //https://forums.developer.apple.com/thread/44002
 #else
