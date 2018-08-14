@@ -27,10 +27,20 @@
 #include "load_add_store_nointrin_kernel.h"
 #include "load_add_store_unroll2_kernel.h"
 
+//Kerneks Function Call
+#include "fctn_call_kernel.h"
+
 #include "benchmark_throughput_test.h"
 #include "kernel_runner.h"
 
 //#### Micro Benchmark Suite ####
+
+void test_fctn_call(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type_result)
+{
+    printf("########## Function Call Benchmarks ##########\n");
+    Results* res_zero_arg = zero_arg_kernel(pcm, &kernel_zero_arg_fctn, cpu_num, "[x86_64] ===== Zero Arg Function Call =====");
+    type_result["Zero Arg"] = res_zero_arg;
+}
 
 void test_load(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type_result)
 {
@@ -454,6 +464,7 @@ std::string getReportUnitsName(){
 }
 
 void getBenchmarksToReport(std::vector<std::string> &kernels, std::vector<std::string> &vec_ext){
+    kernels.push_back("Function Call");                         vec_ext.push_back("N/A");
     kernels.push_back("Load");                                  vec_ext.push_back("AVX");
     kernels.push_back("Load (Unroll 2)");                       vec_ext.push_back("AVX");
     kernels.push_back("Store");                                 vec_ext.push_back("AVX");
@@ -490,12 +501,18 @@ std::vector<std::string> getVarientsToReport(){
     types.push_back("float");
     types.push_back("double");
     types.push_back("x87 Floating Point");
+    types.push_back("Zero Arg");
 
     return types;
 }
 
 std::map<std::string, std::map<std::string, Results*>*> runBenchSuite(PCM* pcm, int* cpu_num_int){
     std::map<std::string, std::map<std::string, Results*>*> kernel_results;
+
+    std::map<std::string, Results*>* fctn_call_results = new std::map<std::string, Results*>;
+    test_fctn_call(pcm, *cpu_num_int, *fctn_call_results);
+    kernel_results["Function Call"] = fctn_call_results;
+    printf("\n");
 
     std::map<std::string, Results*>* load_results = new std::map<std::string, Results*>;
     test_load(pcm, *cpu_num_int, *load_results);
