@@ -13,8 +13,11 @@ UNAME:=$(shell uname)
 #Compiler Parameters
 CXX=g++
 #CXX = $(MPICXX)
+#Main Benchmark file is not optomized to avoid timing code being re-organized
 CFLAGS = -O0 -c -g -std=c++11 -march=native -masm=att
+#Most kernels are allowed to be optomized.  Most assembly kernels use asm 'volitile' to force execution
 KERNEL_CFLAGS = -O3 -c -g -std=c++11 -march=native -masm=att
+#For kernels that should not be optimized, the following is used
 KERNEL_NO_OPT_CFLAGS = -O0 -c -g -std=c++11 -march=native -masm=att
 INC=-I $(DEPENDS_DIR)/pcm -I $(COMMON_DIR)
 LIB_DIRS=-L $(DEPENDS_DIR)/pcm -L $(COMMON_DIR)
@@ -33,8 +36,8 @@ ifeq ($(UNAME), Darwin)
 INC+= -I $(DEPENDS_DIR)/pcm/MacMSRDriver
 endif
 
-MAIN_FILE = intrin_throughput_test.cpp 
-LIB_SRCS = 
+MAIN_FILE = benchmark_throughput_test.cpp
+LIB_SRCS = micro_bench.cpp
 KERNEL_SRCS = store_kernel.cpp load_store_kernel.cpp load_add_store_kernel.cpp load_mult_store_kernel.cpp load_div_store_kernel.cpp load_fma_store_kernel.cpp load_add_store_unroll2_kernel.cpp load_add_store_nointrin_kernel.cpp add_kernel_asm.cpp div_kernel_asm.cpp fma_kernel_asm.cpp mult_kernel_asm.cpp load_kernel_asm.cpp store_kernel_asm.cpp add_kernel_scalar_asm.cpp mult_kernel_scalar_asm.cpp mult_kernel_scalar_asm_unroll2.cpp add_kernel_scalar_asm_unroll2.cpp load_kernel_asm_unroll2.cpp store_kernel_asm_unroll2.cpp div_kernel_scalar_asm.cpp div_kernel_scalar_asm_unroll2.cpp
 #KERNEL_NO_OPT_SRCS = load_kernel.cpp add_kernel.cpp mult_kernel.cpp div_kernel.cpp fma_kernel.cpp
 KERNEL_NO_OPT_SRCS = 
@@ -46,11 +49,11 @@ KERNEL_OBJS=$(patsubst %.cpp,$(BUILD_DIR)/%.o,$(KERNEL_SRCS))
 KERNEL_NO_OPT_OBJS=$(patsubst %.cpp,$(BUILD_DIR)/%.o,$(KERNEL_NO_OPT_SRCS))
 
 #Production
-all: intrin_throughput_test
+all: micro_bench_throughput_test
 #all: ray_tracer ray_tracer_mpi pb2obj_txt obj2boost $(PB_REDUCE_FILE) $(CLUSTER_GRAPH_FILE) $(GRAPH_GEN_FILE) $(CLUSTER_AN_FILE)
 
-intrin_throughput_test: $(OBJS) $(KERNEL_OBJS) $(KERNEL_NO_OPT_OBJS) $(COMMON_DIR)/libpcmHelper.a $(DEPENDS_DIR)/pcm/libPCM.a 
-	$(CXX) $(INC) $(LIB_DIRS) -o intrin_throughput_test $(OBJS) $(KERNEL_OBJS) $(KERNEL_NO_OPT_OBJS) $(LIB)
+micro_bench_throughput_test: $(OBJS) $(KERNEL_OBJS) $(KERNEL_NO_OPT_OBJS) $(COMMON_DIR)/libpcmHelper.a $(DEPENDS_DIR)/pcm/libPCM.a 
+	$(CXX) $(INC) $(LIB_DIRS) -o micro_bench_throughput_test $(OBJS) $(KERNEL_OBJS) $(KERNEL_NO_OPT_OBJS) $(LIB)
 
 $(KERNEL_NO_OPT_OBJS): $(BUILD_DIR)/%.o : $(SRC_DIR)/%.cpp | $(BUILD_DIR)/ $(DEPENDS_DIR)/pcm/Makefile
 	$(CXX) $(KERNEL_NO_OPT_CFLAGS) $(INC) $(DEFINES) -o $@ $<
@@ -74,7 +77,7 @@ $(COMMON_DIR)/libpcmHelper.a: $(DEPENDS_DIR)/pcm/Makefile $(DEPENDS_DIR)/pcm/lib
 	cd $(COMMON_DIR); make
 	
 clean:
-	rm -f intrin_throughput_test
+	rm -f micro_bench_throughput_test
 	rm -rf build/*
 
 # print_cfg:
