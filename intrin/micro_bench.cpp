@@ -463,6 +463,9 @@ std::string getReportUnitsName(){
     return "STIM_LEN: " + std::to_string(STIM_LEN) + " (Samples/Vector/Trial), TRIALS: " + std::to_string(TRIALS);
 }
 
+//The init input function is not used for the micro-benchmark test
+void initInput(void* ptr, unsigned long index){}
+
 void getBenchmarksToReport(std::vector<std::string> &kernels, std::vector<std::string> &vec_ext){
     kernels.push_back("Function Call");                         vec_ext.push_back("N/A");
     kernels.push_back("Load");                                  vec_ext.push_back("AVX");

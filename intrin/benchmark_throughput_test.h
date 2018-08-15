@@ -46,4 +46,11 @@ void getBenchmarksToReport(std::vector<std::string> &kernels, std::vector<std::s
  */
 std::vector<std::string> getVarientsToReport();
 
+/**
+ * This function initializes a given memory location which will be used as an input to the benchmark
+ * 
+ * This function is called repeatedly on the input data before the benchmark is run
+ */
+void initInput(void* ptr, unsigned long index);
+
 #endif

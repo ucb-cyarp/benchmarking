@@ -36,13 +36,13 @@ INC+= -I $(DEPENDS_DIR)/pcm/MacMSRDriver
 endif
 
 MAIN_FILE = benchmark_throughput_test.cpp
-LIB_SRCS = micro_bench.cpp
+LIB_SRCS = micro_bench.cpp #This file is not optomized because it calls the kernel runner (which starts the timers).  Re-ordering code is not desired
 KERNEL_SRCS = store_kernel.cpp load_store_kernel.cpp load_add_store_kernel.cpp load_mult_store_kernel.cpp load_div_store_kernel.cpp load_fma_store_kernel.cpp load_add_store_unroll2_kernel.cpp load_add_store_nointrin_kernel.cpp add_kernel_asm.cpp div_kernel_asm.cpp fma_kernel_asm.cpp mult_kernel_asm.cpp load_kernel_asm.cpp store_kernel_asm.cpp add_kernel_scalar_asm.cpp mult_kernel_scalar_asm.cpp mult_kernel_scalar_asm_unroll2.cpp add_kernel_scalar_asm_unroll2.cpp load_kernel_asm_unroll2.cpp store_kernel_asm_unroll2.cpp div_kernel_scalar_asm.cpp div_kernel_scalar_asm_unroll2.cpp fctn_call_kernel.cpp zero_arg_fctn.cpp
 #KERNEL_NO_OPT_SRCS = load_kernel.cpp add_kernel.cpp mult_kernel.cpp div_kernel.cpp fma_kernel.cpp
 KERNEL_NO_OPT_SRCS = 
 
 SRCS=$(MAIN_FILE)
-SRCS+=$(LIB_SRCS)
+SRCS+=$(LIB_SRCS) #This file is not optomized because it calls the kernel runner (which starts the timers).  Re-ordering code is not desired
 OBJS=$(patsubst %.cpp,$(BUILD_DIR)/%.o,$(SRCS))
 KERNEL_OBJS=$(patsubst %.cpp,$(BUILD_DIR)/%.o,$(KERNEL_SRCS))
 KERNEL_NO_OPT_OBJS=$(patsubst %.cpp,$(BUILD_DIR)/%.o,$(KERNEL_NO_OPT_SRCS))
