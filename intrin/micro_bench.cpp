@@ -5,6 +5,9 @@
 #include "store_kernel_asm_unroll2.h"
 #include "load_store_kernel.h"
 
+#include "load_kernel_scalar_asm.h"
+#include "store_kernel_scalar_asm.h"
+
 //Kernels Load-op-Store
 #include "load_add_store_kernel.h"
 #include "load_mult_store_kernel.h"
@@ -76,6 +79,25 @@ void test_load_unroll2(PCM* pcm, int cpu_num, std::map<std::string, Results*>& t
     #endif
 }
 
+void test_load_scalar(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type_result)
+{
+    printf("########## Load Benchmarks (Scalar) ##########\n");
+    Results* res_int8_t =  load_store_one_arg_kernel<__m256i, int8_t>  (pcm, &kernel_asm_load_int8,  cpu_num, "[x86] ===== Load Bytes (movb) =====");
+    type_result["int8_t"] = res_int8_t;
+    Results* res_int16_t = load_store_one_arg_kernel<__m256i, int16_t> (pcm, &kernel_asm_load_int16, cpu_num, "[x86] ===== Load 16 Bit Integers (movw) =====");
+    type_result["int16_t"] = res_int16_t;
+    Results* res_int32_t = load_store_one_arg_kernel<__m256i, int32_t> (pcm, &kernel_asm_load_int32, cpu_num, "[x86] ===== Load 32 Bit Integers (movl) =====");
+    type_result["int32_t"] = res_int32_t;
+    Results* res_int64_t = load_store_one_arg_kernel<__m256i, int64_t> (pcm, &kernel_asm_load_int64, cpu_num, "[x86_64] ===== Load 64 Bit Integers (movq) =====");
+    type_result["int64_t"] = res_int64_t;
+    #ifdef __SSE2__
+        Results* res_float =   load_store_one_arg_kernel<__m256,  float>   (pcm, &kernel_asm_load_ss,  cpu_num, "[SSE2] ===== Load 32 bit Signed Floating Point Numbers (vmovss) =====");
+        type_result["float"] = res_float;
+        Results* res_double =  load_store_one_arg_kernel<__m256d, double>  (pcm, &kernel_asm_load_sd, cpu_num, "[SSE2] ===== Load 64 bit Signed Floating Point Numbers (vmovsd) =====");
+        type_result["double"] = res_double;
+    #endif
+}
+
 void test_store(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type_result)
 {
     printf("########## Store Benchmarks ##########\n");
@@ -106,6 +128,25 @@ void test_store_unroll2(PCM* pcm, int cpu_num, std::map<std::string, Results*>& 
         Results* res_float = load_store_one_arg_kernel<__m256, float>     (pcm, &kernel_asm_mm256_store_ps_unroll2,          cpu_num, "[AVX] ===== Store 8 Packed 32 bit Signed Floating Point Numbers (_mm256_store_ps) =====");
         type_result["float"] = res_float;
         Results* res_double = load_store_one_arg_kernel<__m256d, double>   (pcm, &kernel_asm_mm256_store_pd_unroll2,          cpu_num, "[AVX] ===== Store 4 Packed 64 bit Signed Floating Point Numbers (_mm256_store_pd) =====");
+        type_result["double"] = res_double;
+    #endif
+}
+
+void test_store_scalar(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type_result)
+{
+    printf("########## Store Benchmarks (Scalar) ##########\n");
+    Results* res_int8_t =  load_store_one_arg_kernel<__m256i, int8_t>  (pcm, &kernel_asm_store_int8,  cpu_num, "[x86] ===== Store Bytes (movb) =====");
+    type_result["int8_t"] = res_int8_t;
+    Results* res_int16_t = load_store_one_arg_kernel<__m256i, int16_t> (pcm, &kernel_asm_store_int16, cpu_num, "[x86] ===== Store 16 Bit Integers (movw) =====");
+    type_result["int16_t"] = res_int16_t;
+    Results* res_int32_t = load_store_one_arg_kernel<__m256i, int32_t> (pcm, &kernel_asm_store_int32, cpu_num, "[x86] ===== Store 32 Bit Integers (movl) =====");
+    type_result["int32_t"] = res_int32_t;
+    Results* res_int64_t = load_store_one_arg_kernel<__m256i, int64_t> (pcm, &kernel_asm_store_int64, cpu_num, "[x86_64] ===== Store 64 Bit Integers (movq) =====");
+    type_result["int64_t"] = res_int64_t;
+    #ifdef __SSE2__
+        Results* res_float =   load_store_one_arg_kernel<__m256,  float>   (pcm, &kernel_asm_store_ss,  cpu_num, "[SSE2] ===== Store 32 bit Signed Floating Point Numbers (vmovss) =====");
+        type_result["float"] = res_float;
+        Results* res_double =  load_store_one_arg_kernel<__m256d, double>  (pcm, &kernel_asm_store_sd, cpu_num, "[SSE2] ===== Store 64 bit Signed Floating Point Numbers (vmovsd) =====");
         type_result["double"] = res_double;
     #endif
 }
@@ -468,8 +509,10 @@ void initInput(void* ptr, unsigned long index){}
 
 void getBenchmarksToReport(std::vector<std::string> &kernels, std::vector<std::string> &vec_ext){
     kernels.push_back("Function Call");                         vec_ext.push_back("N/A");
+    kernels.push_back("Load (Scalar)");                         vec_ext.push_back("x86 / x86_64 / SSE2");
     kernels.push_back("Load");                                  vec_ext.push_back("AVX");
     kernels.push_back("Load (Unroll 2)");                       vec_ext.push_back("AVX");
+    kernels.push_back("Store (Scalar)");                        vec_ext.push_back("x86 / x86_64 / SSE2");
     kernels.push_back("Store");                                 vec_ext.push_back("AVX");
     kernels.push_back("Store (Unroll 2)");                      vec_ext.push_back("AVX");
     kernels.push_back("Add (Scalar)");                          vec_ext.push_back("x86 / x86_64 / x87 / SSE2");
@@ -517,6 +560,11 @@ std::map<std::string, std::map<std::string, Results*>*> runBenchSuite(PCM* pcm, 
     kernel_results["Function Call"] = fctn_call_results;
     printf("\n");
 
+    std::map<std::string, Results*>* load_results_scalar = new std::map<std::string, Results*>;
+    test_load_scalar(pcm, *cpu_num_int, *load_results_scalar);
+    kernel_results["Load (Scalar)"] = load_results_scalar;
+    printf("\n");
+
     std::map<std::string, Results*>* load_results = new std::map<std::string, Results*>;
     test_load(pcm, *cpu_num_int, *load_results);
     kernel_results["Load"] = load_results;
@@ -525,6 +573,11 @@ std::map<std::string, std::map<std::string, Results*>*> runBenchSuite(PCM* pcm, 
     std::map<std::string, Results*>* load_results_unroll2 = new std::map<std::string, Results*>;
     test_load_unroll2(pcm, *cpu_num_int, *load_results_unroll2);
     kernel_results["Load (Unroll 2)"] = load_results_unroll2;
+    printf("\n");
+
+    std::map<std::string, Results*>* store_results_scalar = new std::map<std::string, Results*>;
+    test_store_scalar(pcm, *cpu_num_int, *store_results_scalar);
+    kernel_results["Store (Scalar)"] = store_results_scalar;
     printf("\n");
 
     std::map<std::string, Results*>* store_results = new std::map<std::string, Results*>;
