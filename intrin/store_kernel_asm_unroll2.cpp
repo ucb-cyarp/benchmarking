@@ -59,6 +59,26 @@
         }
     }
 
+    //==========_mm256_store_si256 int64==========
+    void kernel_asm_mm256_store_si256_int64_unroll2( __m256i* a)
+    {
+        // __m256i a_val = _mm256_set_epi32(0, 1, 2, 3);
+
+        for(int i = 0; i<STIM_LEN/4; i+=2)
+        {
+            __m256i* b = a+i;
+            __m256i* c = b+1;
+
+            asm volatile(
+                "vmovdqa  %%ymm0, %0\n\t"
+                "vmovdqa  %%ymm1, %1\n\t"
+                :
+                : "m" (*b), "m" (*c)
+                : MMREG(0), MMREG(1)
+            );
+        }
+    }
+
     //==========_mm256_store_ps==========
     void kernel_asm_mm256_store_ps_unroll2( __m256* a)
     {

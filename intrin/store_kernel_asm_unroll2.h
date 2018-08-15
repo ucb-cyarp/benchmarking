@@ -9,6 +9,8 @@
         void kernel_asm_mm256_store_si256_int16_unroll2( __m256i* a);
         //==========_mm256_store_si256 int32==========
         void kernel_asm_mm256_store_si256_int32_unroll2( __m256i* a);
+        //==========_mm256_store_si256 int64==========
+        void kernel_asm_mm256_store_si256_int64_unroll2( __m256i* a);
         //==========_mm256_store_ps==========
         void kernel_asm_mm256_store_ps_unroll2( __m256* a);
         //==========_mm256_store_pd==========

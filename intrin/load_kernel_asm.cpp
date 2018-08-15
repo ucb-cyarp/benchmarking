@@ -49,6 +49,22 @@
         }
     }
 
+    //==========_mm256_load_si256 int64==========
+    void kernel_asm_mm256_load_si256_int64( __m256i* a)
+    {
+        for(int i = 0; i<STIM_LEN/4; i++)
+        {
+            __m256i* b = a+i;
+
+            asm volatile(
+                "vmovdqa  %0, %%ymm0\n\t"
+                :
+                : "m" (*b)
+                : MMREG(0)
+            );
+        }
+    }
+
     //==========_mm256_load_ps==========
     void kernel_asm_mm256_load_ps( __m256* a)
     {

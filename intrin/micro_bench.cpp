@@ -55,6 +55,8 @@ void test_load(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type_resu
         type_result["int16_t"] = res_int16_t;
         Results* res_int32_t = load_store_one_arg_kernel<__m256i, int32_t> (pcm, &kernel_asm_mm256_load_si256_int32, cpu_num, "[AVX] ===== Load 8 Signed 32 Bit Integers (_mm256_load_si256) =====");
         type_result["int32_t"] = res_int32_t;
+        Results* res_int64_t = load_store_one_arg_kernel<__m256i, int64_t> (pcm, &kernel_asm_mm256_load_si256_int64, cpu_num, "[AVX] ===== Load 4 Signed 64 Bit Integers (_mm256_load_si256) =====");
+        type_result["int64_t"] = res_int64_t;
         Results* res_float =   load_store_one_arg_kernel<__m256,  float>   (pcm, &kernel_asm_mm256_load_ps,          cpu_num, "[AVX] ===== Load 8 Packed 32 bit Signed Floating Point Numbers (_mm256_load_ps) =====");
         type_result["float"] = res_float;
         Results* res_double =  load_store_one_arg_kernel<__m256d, double>  (pcm, &kernel_asm_mm256_load_pd,          cpu_num, "[AVX] ===== Load 4 Packed 64 bit Signed Floating Point Numbers (_mm256_load_pd) =====");
@@ -72,6 +74,8 @@ void test_load_unroll2(PCM* pcm, int cpu_num, std::map<std::string, Results*>& t
         type_result["int16_t"] = res_int16_t;
         Results* res_int32_t = load_store_one_arg_kernel<__m256i, int32_t> (pcm, &kernel_asm_mm256_load_si256_int32_unroll2, cpu_num, "[AVX] ===== Load 8 Signed 32 Bit Integers (_mm256_load_si256) =====");
         type_result["int32_t"] = res_int32_t;
+        Results* res_int64_t = load_store_one_arg_kernel<__m256i, int64_t> (pcm, &kernel_asm_mm256_load_si256_int64_unroll2, cpu_num, "[AVX] ===== Load 4 Signed 64 Bit Integers (_mm256_load_si256) =====");
+        type_result["int64_t"] = res_int64_t;
         Results* res_float =   load_store_one_arg_kernel<__m256,  float>   (pcm, &kernel_asm_mm256_load_ps_unroll2,          cpu_num, "[AVX] ===== Load 8 Packed 32 bit Signed Floating Point Numbers (_mm256_load_ps) =====");
         type_result["float"] = res_float;
         Results* res_double =  load_store_one_arg_kernel<__m256d, double>  (pcm, &kernel_asm_mm256_load_pd_unroll2,          cpu_num, "[AVX] ===== Load 4 Packed 64 bit Signed Floating Point Numbers (_mm256_load_pd) =====");
@@ -108,6 +112,8 @@ void test_store(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type_res
         type_result["int16_t"] = res_int16_t;
         Results* res_int32_t = load_store_one_arg_kernel<__m256i, int32_t>  (pcm, &kernel_asm_mm256_store_si256_int32, cpu_num, "[AVX] ===== Store 8 Packed Signed 32 Bit Integers (_mm256_store_si256) =====");
         type_result["int32_t"] = res_int32_t;
+        Results* res_int64_t = load_store_one_arg_kernel<__m256i, int64_t>  (pcm, &kernel_asm_mm256_store_si256_int64, cpu_num, "[AVX] ===== Store 4 Packed Signed 64 Bit Integers (_mm256_store_si256) =====");
+        type_result["int64_t"] = res_int64_t;
         Results* res_float = load_store_one_arg_kernel<__m256, float>     (pcm, &kernel_asm_mm256_store_ps,          cpu_num, "[AVX] ===== Store 8 Packed 32 bit Signed Floating Point Numbers (_mm256_store_ps) =====");
         type_result["float"] = res_float;
         Results* res_double = load_store_one_arg_kernel<__m256d, double>   (pcm, &kernel_asm_mm256_store_pd,          cpu_num, "[AVX] ===== Store 4 Packed 64 bit Signed Floating Point Numbers (_mm256_store_pd) =====");
@@ -125,6 +131,8 @@ void test_store_unroll2(PCM* pcm, int cpu_num, std::map<std::string, Results*>& 
         type_result["int16_t"] = res_int16_t;
         Results* res_int32_t = load_store_one_arg_kernel<__m256i, int32_t>  (pcm, &kernel_asm_mm256_store_si256_int32_unroll2, cpu_num, "[AVX] ===== Store 8 Packed Signed 32 Bit Integers (_mm256_store_si256) =====");
         type_result["int32_t"] = res_int32_t;
+        Results* res_int64_t = load_store_one_arg_kernel<__m256i, int64_t>  (pcm, &kernel_asm_mm256_store_si256_int64_unroll2, cpu_num, "[AVX] ===== Store 4 Packed Signed 64 Bit Integers (_mm256_store_si256) =====");
+        type_result["int64_t"] = res_int64_t;
         Results* res_float = load_store_one_arg_kernel<__m256, float>     (pcm, &kernel_asm_mm256_store_ps_unroll2,          cpu_num, "[AVX] ===== Store 8 Packed 32 bit Signed Floating Point Numbers (_mm256_store_ps) =====");
         type_result["float"] = res_float;
         Results* res_double = load_store_one_arg_kernel<__m256d, double>   (pcm, &kernel_asm_mm256_store_pd_unroll2,          cpu_num, "[AVX] ===== Store 4 Packed 64 bit Signed Floating Point Numbers (_mm256_store_pd) =====");
@@ -161,6 +169,8 @@ void test_load_store(PCM* pcm, int cpu_num, std::map<std::string, Results*>& typ
         type_result["int16_t"] = res_int16_t;
         Results* res_int32_t = load_store_two_arg_kernel<__m256i, int32_t> (pcm, &kernel_mm256_load_si256__mm256_store_si256_int32, cpu_num, "[AVX] ===== Load/Store (Copy) 8 Packed Signed 32 Bit Integers (_mm256_load_si256 | _mm256_store_si256) =====");
         type_result["int32_t"] = res_int32_t;
+        Results* res_int64_t = load_store_two_arg_kernel<__m256i, int64_t> (pcm, &kernel_mm256_load_si256__mm256_store_si256_int64, cpu_num, "[AVX] ===== Load/Store (Copy) 4 Packed Signed 64 Bit Integers (_mm256_load_si256 | _mm256_store_si256) =====");
+        type_result["int64_t"] = res_int64_t;
         Results* res_float =   load_store_two_arg_kernel<__m256,  float>   (pcm, &kernel_mm256_load_ps__mm256_store_ps,             cpu_num, "[AVX] ===== Load/Store (Copy) 8 Packed 32 bit Signed Floating Point Numbers (_mm256_load_ps | _mm256_store_ps) =====");
         type_result["float"] = res_float;
         Results* res_double =  load_store_two_arg_kernel<__m256d, double>  (pcm, &kernel_mm256_load_pd__mm256_store_pd,             cpu_num, "[AVX] ===== Load/Store (Copy) 4 Packed 64 bit Signed Floating Point Numbers (_mm256_load_pd | _mm256_store_pd) =====");
@@ -220,6 +230,8 @@ void test_only_add(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type_
         type_result["int16_t"] = res_int16_t;
         Results* res_int32_t = zero_arg_kernel(pcm, &kernel_only_asm_mm256_add_epi32, cpu_num, "[AVX2] ===== Add 8 Packed 32 bit Signed Integers (_mm256_add_epi32) =====");
         type_result["int32_t"] = res_int32_t;
+        Results* res_int64_t = zero_arg_kernel(pcm, &kernel_only_asm_mm256_add_epi64, cpu_num, "[AVX2] ===== Add 4 Packed 64 bit Signed Integers (_mm256_add_epi64) =====");
+        type_result["int64_t"] = res_int64_t;
     #endif
 
     #ifdef __AVX__
@@ -404,6 +416,8 @@ void test_add(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type_resul
         type_result["int16_t"] = res_int16_t;
         Results* res_int32_t = load_store_three_arg_kernel<__m256i, int32_t> (pcm, &kernel_mm256_add_epi32, cpu_num, "[AVX2] ===== Load/Add/Store 8 Packed 32 bit Signed Integers (_mm256_add_epi32) =====");
         type_result["int32_t"] = res_int32_t;
+        Results* res_int64_t = load_store_three_arg_kernel<__m256i, int64_t> (pcm, &kernel_mm256_add_epi32, cpu_num, "[AVX2] ===== Load/Add/Store 4 Packed 64 bit Signed Integers (_mm256_add_epi64) =====");
+        type_result["int64_t"] = res_int64_t;
     #endif
 
     #ifdef __AVX__
@@ -423,6 +437,8 @@ void test_nointrin_add(PCM* pcm, int cpu_num, std::map<std::string, Results*>& t
     type_result["int16_t"] = res_int16_t;
     Results* res_int32_t = no_vec_three_arg_kernel<int32_t> (pcm, &kernel_nointrin_mm256_add_epi32, cpu_num, "[No Intrin] ===== Load/Add/Store 8 Packed 32 bit Signed Integers (_mm256_add_epi32) =====");
     type_result["int32_t"] = res_int32_t;
+    Results* res_int64_t = no_vec_three_arg_kernel<int64_t> (pcm, &kernel_nointrin_mm256_add_epi64, cpu_num, "[No Intrin] ===== Load/Add/Store 4 Packed 64 bit Signed Integers (_mm256_add_epi64) =====");
+    type_result["int64_t"] = res_int64_t;
 
     Results* res_float =   no_vec_three_arg_kernel<float>   (pcm, &kernel_nointrin_mm256_add_ps,    cpu_num, "[No Intrin] ===== Load/Add/Store 8 Packed 32 bit Signed Floating Point Numbers (_mm256_add_ps) =====");
     type_result["float"] = res_float;
@@ -440,6 +456,8 @@ void test_unroll2_add(PCM* pcm, int cpu_num, std::map<std::string, Results*>& ty
         type_result["int16_t"] = res_int16_t;
         Results* res_int32_t = load_store_three_arg_kernel<__m256i, int32_t> (pcm, &kernel_u2_mm256_add_epi32, cpu_num, "[AVX2] ===== (Unroll 2) Load/Add/Store 8 Packed 32 bit Signed Integers (_mm256_add_epi32) =====");
         type_result["int32_t"] = res_int32_t;
+        Results* res_int64_t = load_store_three_arg_kernel<__m256i, int64_t> (pcm, &kernel_u2_mm256_add_epi64, cpu_num, "[AVX2] ===== (Unroll 2) Load/Add/Store 4 Packed 64 bit Signed Integers (_mm256_add_epi64) =====");
+        type_result["int64_t"] = res_int64_t;
     #endif
 
     #ifdef __AVX__
@@ -523,11 +541,11 @@ void getBenchmarksToReport(std::vector<std::string> &kernels, std::vector<std::s
     kernels.push_back("Mult (Scalar, Reg Rename)");             vec_ext.push_back("x86");
     kernels.push_back("Mult (Scalar, Reg Rename, Unroll 2)");   vec_ext.push_back("x86");
     kernels.push_back("Mult");                                  vec_ext.push_back("AVX (Float) / AVX2 (Int)");
-    kernels.push_back("Div");                                   vec_ext.push_back("AVX");
     kernels.push_back("Div (Scalar)");                          vec_ext.push_back("x86 / x86_64 / x87 / SSE2");
     kernels.push_back("Div (Scalar, Unroll 2)");                vec_ext.push_back("x86 / x86_64 / x87 / SSE2");
     kernels.push_back("Div (Scalar, Reg Rename)");              vec_ext.push_back("x86");
     kernels.push_back("Div (Scalar, Reg Rename, Unroll 2)");    vec_ext.push_back("x86");
+    kernels.push_back("Div");                                   vec_ext.push_back("AVX");
     kernels.push_back("FMA");                                   vec_ext.push_back("FMA");
     kernels.push_back("Load/Store");                            vec_ext.push_back("AVX");
     kernels.push_back("Load/Add/Store");                        vec_ext.push_back("AVX (Float) / AVX2 (Int)");
@@ -631,10 +649,6 @@ std::map<std::string, std::map<std::string, Results*>*> runBenchSuite(PCM* pcm, 
     test_only_mult(pcm, *cpu_num_int, *only_mult_results);
     kernel_results["Mult"] = only_mult_results;
     printf("\n");
-    std::map<std::string, Results*>* only_div_results = new std::map<std::string, Results*>;
-    test_only_div(pcm, *cpu_num_int, *only_div_results);
-    kernel_results["Div"] = only_div_results;
-    printf("\n");
 
     std::map<std::string, Results*>* only_div_results_scalar = new std::map<std::string, Results*>;
     test_only_div_scalar(pcm, *cpu_num_int, *only_div_results_scalar);
@@ -651,6 +665,11 @@ std::map<std::string, std::map<std::string, Results*>*> runBenchSuite(PCM* pcm, 
     std::map<std::string, Results*>* only_div_results_scalar_unroll2_regRename = new std::map<std::string, Results*>;
     test_only_div_scalar_unroll2_regRename(pcm, *cpu_num_int, *only_div_results_scalar_unroll2_regRename);
     kernel_results["Div (Scalar, Reg Rename, Unroll 2)"] = only_div_results_scalar_unroll2_regRename;
+    printf("\n");
+
+    std::map<std::string, Results*>* only_div_results = new std::map<std::string, Results*>;
+    test_only_div(pcm, *cpu_num_int, *only_div_results);
+    kernel_results["Div"] = only_div_results;
     printf("\n");
 
     std::map<std::string, Results*>* only_fma_results = new std::map<std::string, Results*>;

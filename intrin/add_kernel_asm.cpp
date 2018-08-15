@@ -45,6 +45,20 @@
             );
         }
     }
+
+    //==========_mm256_add_epi64==========
+    void kernel_only_asm_mm256_add_epi64()
+    { 
+        for(int i = 0; i<STIM_LEN/4; i++)
+        {
+            asm volatile(
+                "vpaddq  %%ymm2, %%ymm0, %%ymm1\n\t"
+                :
+                :
+                : MMREG(2), MMREG(1), MMREG(0)
+            );
+        }
+    }
 #endif
 
 #ifdef __AVX__

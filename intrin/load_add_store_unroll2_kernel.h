@@ -9,6 +9,8 @@
         void kernel_u2_mm256_add_epi16( __m256i* a, __m256i* b, __m256i* c);
         //==========_mm256_add_epi32==========
         void kernel_u2_mm256_add_epi32( __m256i* a, __m256i* b, __m256i* c);
+        //==========_mm256_add_epi64==========
+        void kernel_u2_mm256_add_epi64( __m256i* a, __m256i* b, __m256i* c);
     #endif
 
     #ifdef __AVX__

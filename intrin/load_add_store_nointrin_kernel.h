@@ -9,6 +9,8 @@
     void kernel_nointrin_mm256_add_epi16( int16_t* a, int16_t* b, int16_t* c);
     //==========_mm256_add_epi32==========
     void kernel_nointrin_mm256_add_epi32( int32_t* a, int32_t* b, int32_t* c);
+    //==========_mm256_add_epi64==========
+    void kernel_nointrin_mm256_add_epi64( int64_t* a, int64_t* b, int64_t* c);
     
     //==========_mm256_add_ps==========
     void kernel_nointrin_mm256_add_ps( float* a, float* b, float* c);

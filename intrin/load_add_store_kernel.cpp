@@ -36,6 +36,18 @@
             _mm256_store_si256(c+i, c_val);
         }
     }
+
+    //==========_mm256_add_epi64==========
+    void kernel_mm256_add_epi64( __m256i* a, __m256i* b, __m256i* c)
+    {
+        for(int i = 0; i<STIM_LEN/4; i++)
+        {
+            __m256i a_val = _mm256_load_si256(a+i);
+            __m256i b_val = _mm256_load_si256(b+i);
+            __m256i c_val = _mm256_add_epi64(a_val, b_val);
+            _mm256_store_si256(c+i, c_val);
+        }
+    }
 #endif
 
 #ifdef __AVX__
