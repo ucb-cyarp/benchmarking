@@ -252,10 +252,10 @@ void test_store_scalar(PCM* pcm, int cpu_num, std::map<std::string, Results*>& t
     type_result["int32_t"] = res_int32_t;
     Results* res_int64_t = load_store_one_arg_kernel<__m256i, int64_t> (pcm, &kernel_asm_store_int64, cpu_num, "[x86_64] ===== Store 64 Bit Integers (movq) =====");
     type_result["int64_t"] = res_int64_t;
-    #ifdef __SSE2__
-        Results* res_float =   load_store_one_arg_kernel<__m256,  float>   (pcm, &kernel_asm_store_ss,  cpu_num, "[SSE2] ===== Store 32 bit Signed Floating Point Numbers (vmovss) =====");
+    #ifdef __AVX__
+        Results* res_float =   load_store_one_arg_kernel<__m256,  float>   (pcm, &kernel_asm_store_ss,  cpu_num, "[AVX] ===== Store 32 bit Signed Floating Point Numbers (vmovss) =====");
         type_result["float"] = res_float;
-        Results* res_double =  load_store_one_arg_kernel<__m256d, double>  (pcm, &kernel_asm_store_sd, cpu_num, "[SSE2] ===== Store 64 bit Signed Floating Point Numbers (vmovsd) =====");
+        Results* res_double =  load_store_one_arg_kernel<__m256d, double>  (pcm, &kernel_asm_store_sd, cpu_num, "[AVX] ===== Store 64 bit Signed Floating Point Numbers (vmovsd) =====");
         type_result["double"] = res_double;
     #endif
 }
@@ -271,10 +271,10 @@ void test_store_scalar_local(PCM* pcm, int cpu_num, std::map<std::string, Result
     type_result["int32_t"] = res_int32_t;
     Results* res_int64_t = load_store_one_arg_kernel<__m256i, int64_t> (pcm, &kernel_asm_store_int64_local, cpu_num, "[x86_64] ===== Store 64 Bit Integers (movq) =====");
     type_result["int64_t"] = res_int64_t;
-    #ifdef __SSE2__
-        Results* res_float =   load_store_one_arg_kernel<__m256,  float>   (pcm, &kernel_asm_store_ss_local,  cpu_num, "[SSE2] ===== Store 32 bit Signed Floating Point Numbers (vmovss) =====");
+    #ifdef __AVX__
+        Results* res_float =   load_store_one_arg_kernel<__m256,  float>   (pcm, &kernel_asm_store_ss_local,  cpu_num, "[AVX] ===== Store 32 bit Signed Floating Point Numbers (vmovss) =====");
         type_result["float"] = res_float;
-        Results* res_double =  load_store_one_arg_kernel<__m256d, double>  (pcm, &kernel_asm_store_sd_local, cpu_num, "[SSE2] ===== Store 64 bit Signed Floating Point Numbers (vmovsd) =====");
+        Results* res_double =  load_store_one_arg_kernel<__m256d, double>  (pcm, &kernel_asm_store_sd_local, cpu_num, "[AVX] ===== Store 64 bit Signed Floating Point Numbers (vmovsd) =====");
         type_result["double"] = res_double;
     #endif
 }
@@ -310,10 +310,12 @@ void test_only_add_scalar(PCM* pcm, int cpu_num, std::map<std::string, Results*>
     Results* res_int64_t_scalar = zero_arg_kernel(pcm, &kernel_only_asm_add_i64, cpu_num, "[x86_64] ===== Add 64 bit Signed Integers =====");
     type_result["int64_t"] = res_int64_t_scalar;
 
-    Results* res_single_scalar = zero_arg_kernel(pcm, &kernel_only_asm_add_sp, cpu_num, "[SSE2] ===== Add Float Point (single via SSE2) =====");
+    #ifdef __AVX__
+    Results* res_single_scalar = zero_arg_kernel(pcm, &kernel_only_asm_add_sp, cpu_num, "[AVX] ===== Add Float Point (single via AVX) =====");
     type_result["float"] = res_single_scalar;
-    Results* res_double_scalar = zero_arg_kernel(pcm, &kernel_only_asm_add_dp, cpu_num, "[SSE2] ===== Add Floating Point (double via SSE2) =====");
+    Results* res_double_scalar = zero_arg_kernel(pcm, &kernel_only_asm_add_dp, cpu_num, "[AVX] ===== Add Floating Point (double via AVX) =====");
     type_result["double"] = res_double_scalar;
+    #endif
 
     Results* res_x87_scalar = zero_arg_kernel(pcm, &kernel_only_asm_add_fp, cpu_num, "[x87] ===== Add Floating Point (via x87) =====");
     type_result["x87 Floating Point"] = res_x87_scalar;
@@ -331,10 +333,12 @@ void test_only_add_scalar_unroll2(PCM* pcm, int cpu_num, std::map<std::string, R
     Results* res_int64_t_scalar = zero_arg_kernel(pcm, &kernel_only_asm_add_i64_unroll2, cpu_num, "[x86_64] ===== Add 64 bit Signed Integers =====");
     type_result["int64_t"] = res_int64_t_scalar;
 
-    Results* res_single_scalar = zero_arg_kernel(pcm, &kernel_only_asm_add_sp_unroll2, cpu_num, "[SSE2] ===== Add Float Point (single via SSE2) =====");
+    #ifdef __AVX__
+    Results* res_single_scalar = zero_arg_kernel(pcm, &kernel_only_asm_add_sp_unroll2, cpu_num, "[AVX] ===== Add Float Point (single via AVX) =====");
     type_result["float"] = res_single_scalar;
-    Results* res_double_scalar = zero_arg_kernel(pcm, &kernel_only_asm_add_dp_unroll2, cpu_num, "[SSE2] ===== Add Floating Point (double via SSE2) =====");
+    Results* res_double_scalar = zero_arg_kernel(pcm, &kernel_only_asm_add_dp_unroll2, cpu_num, "[AVX] ===== Add Floating Point (double via AVX) =====");
     type_result["double"] = res_double_scalar;
+    #endif
 
     Results* res_x87_scalar = zero_arg_kernel(pcm, &kernel_only_asm_add_fp_unroll2, cpu_num, "[x87] ===== Add Floating Point (via x87) =====");
     type_result["x87 Floating Point"] = res_x87_scalar;
@@ -374,10 +378,12 @@ void test_only_mult_scalar(PCM* pcm, int cpu_num, std::map<std::string, Results*
     Results* res_int64_t_scalar = zero_arg_kernel(pcm, &kernel_only_asm_mult_i64, cpu_num, "[x86_64] ===== Mult 64 bit Signed Integers =====");
     type_result["int64_t"] = res_int64_t_scalar;
 
-    Results* res_single_scalar = zero_arg_kernel(pcm, &kernel_only_asm_mult_sp, cpu_num, "[SSE2] ===== Mult Float Point (single via SSE2) =====");
+    #ifdef __AVX__
+    Results* res_single_scalar = zero_arg_kernel(pcm, &kernel_only_asm_mult_sp, cpu_num, "[AVX] ===== Mult Float Point (single via AVX) =====");
     type_result["float"] = res_single_scalar;
-    Results* res_double_scalar = zero_arg_kernel(pcm, &kernel_only_asm_mult_dp, cpu_num, "[SSE2] ===== Mult Floating Point (double via SSE2) =====");
+    Results* res_double_scalar = zero_arg_kernel(pcm, &kernel_only_asm_mult_dp, cpu_num, "[AVX] ===== Mult Floating Point (double via AVX) =====");
     type_result["double"] = res_double_scalar;
+    #endif
 
     Results* res_x87_scalar = zero_arg_kernel(pcm, &kernel_only_asm_mult_fp, cpu_num, "[x87] ===== Mult Floating Point (via x87) =====");
     type_result["x87 Floating Point"] = res_x87_scalar;
@@ -402,10 +408,12 @@ void test_only_mult_scalar_unroll2(PCM* pcm, int cpu_num, std::map<std::string, 
     Results* res_int64_t_scalar = zero_arg_kernel(pcm, &kernel_only_asm_mult_i64_unroll2, cpu_num, "[x86_64] ===== Mult 64 bit Signed Integers =====");
     type_result["int64_t"] = res_int64_t_scalar;
 
-    Results* res_single_scalar = zero_arg_kernel(pcm, &kernel_only_asm_mult_sp_unroll2, cpu_num, "[SSE2] ===== Mult Float Point (single via SSE2) =====");
+    #ifdef __AVX__
+    Results* res_single_scalar = zero_arg_kernel(pcm, &kernel_only_asm_mult_sp_unroll2, cpu_num, "[AVX] ===== Mult Float Point (single via AVX) =====");
     type_result["float"] = res_single_scalar;
-    Results* res_double_scalar = zero_arg_kernel(pcm, &kernel_only_asm_mult_dp_unroll2, cpu_num, "[SSE2] ===== Mult Floating Point (double via SSE2) =====");
+    Results* res_double_scalar = zero_arg_kernel(pcm, &kernel_only_asm_mult_dp_unroll2, cpu_num, "[AVX] ===== Mult Floating Point (double via AVX) =====");
     type_result["double"] = res_double_scalar;
+    #endif
 
     Results* res_x87_scalar = zero_arg_kernel(pcm, &kernel_only_asm_mult_fp_unroll2, cpu_num, "[x87] ===== Mult Floating Point (via x87) =====");
     type_result["x87 Floating Point"] = res_x87_scalar;
@@ -430,10 +438,12 @@ void test_only_div_scalar(PCM* pcm, int cpu_num, std::map<std::string, Results*>
     Results* res_int64_t_scalar = zero_arg_kernel(pcm, &kernel_only_asm_div_i64, cpu_num, "[x86_64] ===== Div 64 bit Signed Integers =====");
     type_result["int64_t"] = res_int64_t_scalar;
 
-    Results* res_single_scalar = zero_arg_kernel(pcm, &kernel_only_asm_div_sp, cpu_num, "[SSE2] ===== Div Float Point (single via SSE2) =====");
+    #ifdef __AVX__
+    Results* res_single_scalar = zero_arg_kernel(pcm, &kernel_only_asm_div_sp, cpu_num, "[AVX] ===== Div Float Point (single via AVX) =====");
     type_result["float"] = res_single_scalar;
-    Results* res_double_scalar = zero_arg_kernel(pcm, &kernel_only_asm_div_dp, cpu_num, "[SSE2] ===== Div Floating Point (double via SSE2) =====");
+    Results* res_double_scalar = zero_arg_kernel(pcm, &kernel_only_asm_div_dp, cpu_num, "[AVX] ===== Div Floating Point (double via AVX) =====");
     type_result["double"] = res_double_scalar;
+    #endif
 
     Results* res_x87_scalar = zero_arg_kernel(pcm, &kernel_only_asm_div_fp, cpu_num, "[x87] ===== Div Floating Point (via x87) =====");
     type_result["x87 Floating Point"] = res_x87_scalar;
@@ -464,10 +474,12 @@ void test_only_div_scalar_unroll2(PCM* pcm, int cpu_num, std::map<std::string, R
     Results* res_int64_t_scalar = zero_arg_kernel(pcm, &kernel_only_asm_div_i64_unroll2, cpu_num, "[x86_64] ===== Div 64 bit Signed Integers =====");
     type_result["int64_t"] = res_int64_t_scalar;
 
-    Results* res_single_scalar = zero_arg_kernel(pcm, &kernel_only_asm_div_sp_unroll2, cpu_num, "[SSE2] ===== Div Float Point (single via SSE2) =====");
+    #ifdef __AVX__
+    Results* res_single_scalar = zero_arg_kernel(pcm, &kernel_only_asm_div_sp_unroll2, cpu_num, "[AVX] ===== Div Float Point (single via AVX) =====");
     type_result["float"] = res_single_scalar;
-    Results* res_double_scalar = zero_arg_kernel(pcm, &kernel_only_asm_div_dp_unroll2, cpu_num, "[SSE2] ===== Div Floating Point (double via SSE2) =====");
+    Results* res_double_scalar = zero_arg_kernel(pcm, &kernel_only_asm_div_dp_unroll2, cpu_num, "[AVX] ===== Div Floating Point (double via AVX) =====");
     type_result["double"] = res_double_scalar;
+    #endif
 
     Results* res_x87_scalar = zero_arg_kernel(pcm, &kernel_only_asm_div_fp_unroll2, cpu_num, "[x87] ===== Div Floating Point (via x87) =====");
     type_result["x87 Floating Point"] = res_x87_scalar;
@@ -659,16 +671,16 @@ void getBenchmarksToReport(std::vector<std::string> &kernels, std::vector<std::s
     kernels.push_back("Store (Unroll 2)");                      vec_ext.push_back("AVX");
     kernels.push_back("Store (Local)");                         vec_ext.push_back("AVX");
     kernels.push_back("Store (Local, Unroll 2)");               vec_ext.push_back("AVX");
-    kernels.push_back("Add (Scalar)");                          vec_ext.push_back("x86 / x86_64 / x87 / SSE2");
-    kernels.push_back("Add (Scalar, Unroll 2)");                vec_ext.push_back("x86 / x86_64 / x87 / SSE2");
+    kernels.push_back("Add (Scalar)");                          vec_ext.push_back("x86 / x86_64 / x87 / AVX");
+    kernels.push_back("Add (Scalar, Unroll 2)");                vec_ext.push_back("x86 / x86_64 / x87 / AVX");
     kernels.push_back("Add");                                   vec_ext.push_back("AVX (Float) / AVX2 (Int)");
-    kernels.push_back("Mult (Scalar)");                         vec_ext.push_back("x86 / x86_64 / x87 / SSE2");
-    kernels.push_back("Mult (Scalar, Unroll 2)");               vec_ext.push_back("x86 / x86_64 / x87 / SSE2");
+    kernels.push_back("Mult (Scalar)");                         vec_ext.push_back("x86 / x86_64 / x87 / AVX");
+    kernels.push_back("Mult (Scalar, Unroll 2)");               vec_ext.push_back("x86 / x86_64 / x87 / AVX");
     kernels.push_back("Mult (Scalar, Reg Rename)");             vec_ext.push_back("x86");
     kernels.push_back("Mult (Scalar, Reg Rename, Unroll 2)");   vec_ext.push_back("x86");
     kernels.push_back("Mult");                                  vec_ext.push_back("AVX (Float) / AVX2 (Int)");
-    kernels.push_back("Div (Scalar)");                          vec_ext.push_back("x86 / x86_64 / x87 / SSE2");
-    kernels.push_back("Div (Scalar, Unroll 2)");                vec_ext.push_back("x86 / x86_64 / x87 / SSE2");
+    kernels.push_back("Div (Scalar)");                          vec_ext.push_back("x86 / x86_64 / x87 / AVX");
+    kernels.push_back("Div (Scalar, Unroll 2)");                vec_ext.push_back("x86 / x86_64 / x87 / AVX");
     kernels.push_back("Div (Scalar, Reg Rename)");              vec_ext.push_back("x86");
     kernels.push_back("Div (Scalar, Reg Rename, Unroll 2)");    vec_ext.push_back("x86");
     kernels.push_back("Div");                                   vec_ext.push_back("AVX");

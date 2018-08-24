@@ -286,6 +286,9 @@ void kernel_only_asm_div_sp_unroll2()
     float divBy2 = 2.0;    //Avoid div by 0 which causes div exception
     float initVal2 = 4.0;
 
+    float result1;
+    float result2;
+
     for(int i = 0; i<STIM_LEN/2; i++)
     {
         //This is using the SSE vector unit to multiply a single number (avoiding x87).
@@ -293,17 +296,11 @@ void kernel_only_asm_div_sp_unroll2()
         
         //TODO: Verify
         asm volatile(
-            "movd %[aInit], %%xmm0 \n\t"
-            "movd %[aDivBy], %%xmm1 \n\t"
-            "divss %%xmm1, %%xmm0 \n\t"
-            "movd %%xmm0, %%ecx \n\t"
-            "movd %[bInit], %%xmm2 \n\t"
-            "movd %[bDivBy], %%xmm3 \n\t"
-            "divss %%xmm3, %%xmm2 \n\t"
-            "movd %%xmm2, %%edi \n\t"
-            :
-            : [aInit] "r" (initVal1), [aDivBy] "r" (divBy1), [bInit] "r" (initVal2), [bDivBy] "r" (divBy2)
-            : "ecx", "edi", "xmm0", "xmm1", "xmm2", "xmm3"
+            "vdivss %[aInit], %[aDivBy], %[aResult] \n\t"
+            "vdivss %[bInit], %[bDivBy], %[bResult] \n\t"
+            : [aResult] "=x" (result1), [bResult] "=x" (result2)
+            : [aInit] "x" (initVal1), [aDivBy] "x" (divBy1), [bInit] "x" (initVal2), [bDivBy] "x" (divBy2)
+            : 
         );
     }
 }
@@ -317,6 +314,9 @@ void kernel_only_asm_div_dp_unroll2()
     double divBy2 = 2.0;    //Avoid div by 0 which causes div exception
     double initVal2 = 4.0;
 
+    double result1;
+    double result2;
+
     for(int i = 0; i<STIM_LEN/2; i++)
     {
         //This is using the SSE vector unit to multiply a single number (avoiding x87).
@@ -324,17 +324,11 @@ void kernel_only_asm_div_dp_unroll2()
         
         //TODO: Verify
         asm volatile(
-            "movq %[aInit], %%xmm0 \n\t"
-            "movq %[aDivBy], %%xmm1 \n\t"
-            "divsd %%xmm1, %%xmm0 \n\t"
-            "movq %%xmm0, %%rcx \n\t"
-            "movd %[bInit], %%xmm2 \n\t"
-            "movd %[bDivBy], %%xmm3 \n\t"
-            "divsd %%xmm3, %%xmm2 \n\t"
-            "movd %%xmm2, %%rdi \n\t"
-            :
-            : [aInit] "r" (initVal1), [aDivBy] "r" (divBy1), [bInit] "r" (initVal2), [bDivBy] "r" (divBy2)
-            : "rcx", "rdi", "xmm0", "xmm1", "xmm2", "xmm3"
+            "vdivsd %[aInit], %[aDivBy], %[aResult] \n\t"
+            "vdivsd %[bInit], %[bDivBy], %[bResult] \n\t"
+            : [aResult] "=x" (result1), [bResult] "=x" (result2)
+            : [aInit] "x" (initVal1), [aDivBy] "x" (divBy1), [bInit] "x" (initVal2), [bDivBy] "x" (divBy2)
+            : 
         );
     }
 }
