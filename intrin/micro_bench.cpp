@@ -26,7 +26,9 @@
 #include "add_kernel_asm.h"
 #include "mult_kernel_scalar_asm.h"
 #include "mult_kernel_scalar_asm_unroll2.h"
+#include "mult_kernel_scalar_asm_unroll4.h"
 #include "mult_kernel_asm.h"
+#include "mult_kernel_asm_unroll2.h"
 #include "div_kernel_asm.h"
 #include "div_kernel_scalar_asm.h"
 #include "div_kernel_scalar_asm_unroll2.h"
@@ -426,6 +428,29 @@ void test_only_mult_scalar_unroll2_regRename(PCM* pcm, int cpu_num, std::map<std
     type_result["int8_t"] = res_int8_t_scalar;
 }
 
+void test_only_mult_scalar_unroll4(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type_result)
+{
+    printf("########## Scalar Mult Benchmarks (Unroll 4) ##########\n");
+    Results* res_int8_t_scalar =  zero_arg_kernel(pcm, &kernel_only_asm_mult_i8_unroll4,  cpu_num, "[x86] ===== Mult 8 bit Signed Integers =====");
+    type_result["int8_t"] = res_int8_t_scalar;
+    Results* res_int16_t_scalar = zero_arg_kernel(pcm, &kernel_only_asm_mult_i16_unroll4, cpu_num, "[x86] ===== Mult 16 bit Signed Integers =====");
+    type_result["int16_t"] = res_int16_t_scalar;
+    Results* res_int32_t_scalar = zero_arg_kernel(pcm, &kernel_only_asm_mult_i32_unroll4, cpu_num, "[x86] ===== Mult 32 bit Signed Integers =====");
+    type_result["int32_t"] = res_int32_t_scalar;
+    Results* res_int64_t_scalar = zero_arg_kernel(pcm, &kernel_only_asm_mult_i64_unroll4, cpu_num, "[x86_64] ===== Mult 64 bit Signed Integers =====");
+    type_result["int64_t"] = res_int64_t_scalar;
+
+    #ifdef __AVX__
+    Results* res_single_scalar = zero_arg_kernel(pcm, &kernel_only_asm_mult_sp_unroll4, cpu_num, "[AVX] ===== Mult Float Point (single via AVX) =====");
+    type_result["float"] = res_single_scalar;
+    Results* res_double_scalar = zero_arg_kernel(pcm, &kernel_only_asm_mult_dp_unroll4, cpu_num, "[AVX] ===== Mult Floating Point (double via AVX) =====");
+    type_result["double"] = res_double_scalar;
+    #endif
+
+    Results* res_x87_scalar = zero_arg_kernel(pcm, &kernel_only_asm_mult_fp_unroll4, cpu_num, "[x87] ===== Mult Floating Point (via x87) =====");
+    type_result["x87 Floating Point"] = res_x87_scalar;
+}
+
 void test_only_div_scalar(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type_result)
 {
     printf("########## Scalar Div Benchmarks ##########\n");
@@ -512,6 +537,24 @@ void test_only_mult(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type
         Results* res_float   = zero_arg_kernel(pcm, &kernel_only_asm_mm256_mul_ps, cpu_num, "[AVX] ===== Multiply 8 Packed 32 bit Signed Floating Point Numbers (_mm256_mul_ps) =====");
         type_result["float"] = res_float;
         Results* res_double  = zero_arg_kernel(pcm, &kernel_only_asm_mm256_mul_pd, cpu_num, "[AVX] ===== Multiply 4 Packed 64 bit Signed Floating Point Numbers (_mm256_mul_pd) =====");
+        type_result["double"] = res_double;
+    #endif
+}
+
+void test_only_mult_unroll2(PCM* pcm, int cpu_num, std::map<std::string, Results*>& type_result)
+{
+    printf("########## Multiply Benchmarks (Unroll 2) ##########\n");
+    #ifdef __AVX2__
+        Results* res_int16_t = zero_arg_kernel(pcm, &kernel_only_asm_mm256_mullo_epi16_unroll2, cpu_num, "[AVX2] ===== Multiply 16 Packed 16 bit Signed Integers -> Produce 32 Bit Intermediates (_mm256_mullo_epi16) =====");
+        type_result["int16_t"] = res_int16_t;
+        Results* res_int32_t = zero_arg_kernel(pcm, &kernel_only_asm_mm256_mullo_epi32_unroll2, cpu_num, "[AVX2] ===== Multiply 8 Packed 32 bit Signed Integers -> Produce 64 Bit Intermediates  (_mm256_mullo_epi32) =====");
+        type_result["int32_t"] = res_int32_t;
+    #endif
+
+    #ifdef __AVX__
+        Results* res_float   = zero_arg_kernel(pcm, &kernel_only_asm_mm256_mul_ps_unroll2, cpu_num, "[AVX] ===== Multiply 8 Packed 32 bit Signed Floating Point Numbers (_mm256_mul_ps) =====");
+        type_result["float"] = res_float;
+        Results* res_double  = zero_arg_kernel(pcm, &kernel_only_asm_mm256_mul_pd_unroll2, cpu_num, "[AVX] ===== Multiply 4 Packed 64 bit Signed Floating Point Numbers (_mm256_mul_pd) =====");
         type_result["double"] = res_double;
     #endif
 }
@@ -676,9 +719,11 @@ void getBenchmarksToReport(std::vector<std::string> &kernels, std::vector<std::s
     kernels.push_back("Add");                                   vec_ext.push_back("AVX (Float) / AVX2 (Int)");
     kernels.push_back("Mult (Scalar)");                         vec_ext.push_back("x86 / x86_64 / x87 / AVX");
     kernels.push_back("Mult (Scalar, Unroll 2)");               vec_ext.push_back("x86 / x86_64 / x87 / AVX");
+    kernels.push_back("Mult (Scalar, Unroll 4)");               vec_ext.push_back("x86 / x86_64 / x87 / AVX");
     kernels.push_back("Mult (Scalar, Reg Rename)");             vec_ext.push_back("x86");
     kernels.push_back("Mult (Scalar, Reg Rename, Unroll 2)");   vec_ext.push_back("x86");
     kernels.push_back("Mult");                                  vec_ext.push_back("AVX (Float) / AVX2 (Int)");
+    kernels.push_back("Mult (Unroll 2)");                                  vec_ext.push_back("AVX (Float) / AVX2 (Int)");
     kernels.push_back("Div (Scalar)");                          vec_ext.push_back("x86 / x86_64 / x87 / AVX");
     kernels.push_back("Div (Scalar, Unroll 2)");                vec_ext.push_back("x86 / x86_64 / x87 / AVX");
     kernels.push_back("Div (Scalar, Reg Rename)");              vec_ext.push_back("x86");
@@ -812,10 +857,19 @@ std::map<std::string, std::map<std::string, Results*>*> runBenchSuite(PCM* pcm, 
     test_only_mult_scalar_unroll2_regRename(pcm, *cpu_num_int, *only_mult_results_scalar_unroll2_regRename);
     kernel_results["Mult (Scalar, Reg Rename, Unroll 2)"] = only_mult_results_scalar_unroll2_regRename;
     printf("\n");
+    std::map<std::string, Results*>* only_mult_results_scalar_unroll4 = new std::map<std::string, Results*>;
+    test_only_mult_scalar_unroll4(pcm, *cpu_num_int, *only_mult_results_scalar_unroll4);
+    kernel_results["Mult (Scalar, Unroll 4)"] = only_mult_results_scalar_unroll4;
+    printf("\n");
 
     std::map<std::string, Results*>* only_mult_results = new std::map<std::string, Results*>;
     test_only_mult(pcm, *cpu_num_int, *only_mult_results);
     kernel_results["Mult"] = only_mult_results;
+    printf("\n");
+
+    std::map<std::string, Results*>* only_mult_results_unroll2 = new std::map<std::string, Results*>;
+    test_only_mult_unroll2(pcm, *cpu_num_int, *only_mult_results_unroll2);
+    kernel_results["Mult (Unroll 2)"] = only_mult_results_unroll2;
     printf("\n");
 
     std::map<std::string, Results*>* only_div_results_scalar = new std::map<std::string, Results*>;
