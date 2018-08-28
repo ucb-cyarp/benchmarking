@@ -40,7 +40,7 @@ void kernel_only_asm_mult_i16_unroll4()
             "imulw  %%r8w, %%r9w\n\t"
             :
             :
-            : "ax", "bx", "cx", "dx", "si", "di", "r8w", "r9w"
+            : "ax", "bx", "cx", "dx", "si", "di", "r8", "r9"
         );
     }
 }
@@ -59,7 +59,7 @@ void kernel_only_asm_mult_i32_unroll4()
             "imull  %%r8d, %%r9d\n\t"
             :
             :
-            : "eax", "ebx", "ecx", "edx", "esi", "edi", "r8d", "r9d"
+            : "eax", "ebx", "ecx", "edx", "esi", "edi", "r8", "r9"
         );
     }
 }
