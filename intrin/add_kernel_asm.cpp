@@ -65,7 +65,7 @@
     //==========_mm256_add_ps==========
     void kernel_only_asm_mm256_add_ps()
     {
-        for(int i = 0; i<STIM_LEN; i+=8)
+        for(int i = 0; i<STIM_LEN/8; i++)
         {
             asm volatile(
                 "vaddps  %%ymm2, %%ymm0, %%ymm1\n\t"
@@ -79,7 +79,7 @@
     //==========_mm256_add_pd==========
     void kernel_only_asm_mm256_add_pd()
     {
-        for(int i = 0; i<STIM_LEN; i+=4)
+        for(int i = 0; i<STIM_LEN/4; i++)
         {
             asm volatile(
                 "vaddpd  %%ymm2, %%ymm0, %%ymm1\n\t"
