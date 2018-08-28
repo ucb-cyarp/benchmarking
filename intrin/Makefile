@@ -11,7 +11,7 @@ SRC_DIR=.
 UNAME:=$(shell uname)
 
 #Compiler Parameters
-CXX=g++
+#CXX=g++
 #Main Benchmark file is not optomized to avoid timing code being re-organized
 CFLAGS = -O0 -c -g -std=c++11 -march=native -masm=att
 #Most kernels are allowed to be optomized.  Most assembly kernels use asm 'volitile' to force execution
