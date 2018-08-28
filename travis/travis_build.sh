@@ -4,7 +4,11 @@ echo "****Compilers****"
 echo $CXX
 echo $CX
 echo "****g++ Verson****"
-g++ --version
+if [ -z "$CXX" ]; then
+    g++ --version
+else
+    $CXX --version
+fi
 
 echo "****Building****"
 
