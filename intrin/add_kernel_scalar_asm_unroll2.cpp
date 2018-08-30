@@ -130,10 +130,10 @@ void kernel_only_asm_add_sp_unroll2()
         
         //TODO: Verify
         asm volatile(
-            "vaddss %2, %3, %0 \n\t"
-            "vaddss %4, %5, %1 \n\t"
-            :"=x"(c), "=x"(f)
-            :"x"(a), "x"(b), "x"(d), "x"(e)
+            "vaddss %[a], %[b], %[c] \n\t"
+            "vaddss %[d], %[e], %[f] \n\t"
+            :[c]"=x"(c), [f]"=x"(f)
+            :[a]"x"(a), [b]"x"(b), [d]"x"(d), [e]"x"(e)
             :
         );
     }
@@ -157,10 +157,10 @@ void kernel_only_asm_add_dp_unroll2()
         
         //TODO: Verify
         asm volatile(
-            "vaddsd %2, %3, %0 \n\t"
-            "vaddsd %4, %5, %1 \n\t"
-            :"=x"(c), "=x"(f)
-            :"x"(a), "x"(b), "x"(d), "x"(e)
+            "vaddsd %[a], %[b], %[c] \n\t"
+            "vaddsd %[d], %[e], %[f] \n\t"
+            :[c]"=x"(c), [f]"=x"(f)
+            :[a]"x"(a), [b]"x"(b), [d]"x"(d), [e]"x"(e)
             :
         );
     }

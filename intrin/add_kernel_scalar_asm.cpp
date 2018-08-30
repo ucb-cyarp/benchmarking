@@ -121,9 +121,9 @@ void kernel_only_asm_add_sp()
         
         //TODO: Verify
         asm volatile(
-            "vaddss %1, %2, %0 \n\t"
-            :"=x"(c)
-            :"x"(a), "x"(b)
+            "vaddss %[a], %[b], %[c] \n\t"
+            :[c]"=x"(c)
+            :[a]"x"(a), [b]"x"(b)
             :
         );
     }
@@ -146,9 +146,9 @@ void kernel_only_asm_add_dp()
         
         //TODO: Verify
         asm volatile(
-            "vaddsd %1, %2, %0 \n\t"
-            :"=x"(c)
-            :"x"(a), "x"(b)
+            "vaddsd %[a], %[b], %[c] \n\t"
+            :[c]"=x"(c)
+            :[a]"x"(a), [b]"x"(b)
             :
         );
     }
