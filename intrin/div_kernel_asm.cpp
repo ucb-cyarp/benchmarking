@@ -7,10 +7,10 @@
         for(int i = 0; i<STIM_LEN; i+=8)
         {
             asm volatile(
-                "vdivps  %%ymm2, %%ymm0, %%ymm1\n\t"
+                "vdivps  %%ymm0, %%ymm1, %%ymm0\n\t"
                 :
                 :
-                : MMREG(2), MMREG(1), MMREG(0)
+                : MMREG(1), MMREG(0)
             );
         }
     }
@@ -21,10 +21,10 @@
         for(int i = 0; i<STIM_LEN; i+=4)
         {
             asm volatile(
-                "vdivpd  %%ymm2, %%ymm0, %%ymm1\n\t"
+                "vdivpd  %%ymm0, %%ymm1, %%ymm0\n\t"
                 :
                 :
-                : MMREG(2), MMREG(1), MMREG(0)
+                : MMREG(1), MMREG(0)
             );
         }
     }

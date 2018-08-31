@@ -7,13 +7,13 @@
         for(int i = 0; i<STIM_LEN/32; i++)
         {
             asm volatile(
-                "vpaddb  %%ymm2, %%ymm0, %%ymm1\n\t"
+                "vpaddb  %%ymm0, %%ymm1, %%ymm0\n\t"
                 // "vpaddb  %%ymm5, %%ymm3, %%ymm4\n\t"
                 // "vpaddb  %%ymm8, %%ymm6, %%ymm7\n\t"
                 // "vpaddb %%ymm11, %%ymm9, %%ymm10\n\t"
                 :
                 :
-                : MMREG(2), MMREG(1), MMREG(0)
+                : MMREG(1), MMREG(0)
             );
         }
     }
@@ -24,10 +24,10 @@
         for(int i = 0; i<STIM_LEN/16; i++)
         {
             asm volatile(
-                "vpaddw  %%ymm2, %%ymm0, %%ymm1\n\t"
+                "vpaddw  %%ymm0, %%ymm1, %%ymm0\n\t"
                 :
                 :
-                : MMREG(2), MMREG(1), MMREG(0)
+                : MMREG(1), MMREG(0)
             );
         }
     }
@@ -38,10 +38,10 @@
         for(int i = 0; i<STIM_LEN/8; i++)
         {
             asm volatile(
-                "vpaddd  %%ymm2, %%ymm0, %%ymm1\n\t"
+                "vpaddd  %%ymm0, %%ymm1, %%ymm0\n\t"
                 :
                 :
-                : MMREG(2), MMREG(1), MMREG(0)
+                : MMREG(1), MMREG(0)
             );
         }
     }
@@ -52,10 +52,10 @@
         for(int i = 0; i<STIM_LEN/4; i++)
         {
             asm volatile(
-                "vpaddq  %%ymm2, %%ymm0, %%ymm1\n\t"
+                "vpaddq  %%ymm0, %%ymm1, %%ymm0\n\t"
                 :
                 :
-                : MMREG(2), MMREG(1), MMREG(0)
+                : MMREG(1), MMREG(0)
             );
         }
     }
@@ -68,10 +68,10 @@
         for(int i = 0; i<STIM_LEN/8; i++)
         {
             asm volatile(
-                "vaddps  %%ymm2, %%ymm0, %%ymm1\n\t"
+                "vaddps  %%ymm0, %%ymm1, %%ymm0\n\t"
                 :
                 :
-                : MMREG(2), MMREG(1), MMREG(0)
+                : MMREG(1), MMREG(0)
             );
         }
     }
@@ -82,10 +82,10 @@
         for(int i = 0; i<STIM_LEN/4; i++)
         {
             asm volatile(
-                "vaddpd  %%ymm2, %%ymm0, %%ymm1\n\t"
+                "vaddpd  %%ymm0, %%ymm1, %%ymm0\n\t"
                 :
                 :
-                : MMREG(2), MMREG(1), MMREG(0)
+                : MMREG(1), MMREG(0)
             );
         }
     }
