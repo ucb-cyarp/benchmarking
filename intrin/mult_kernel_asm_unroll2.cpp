@@ -7,11 +7,11 @@
         for(int i = 0; i<STIM_LEN/32; i++)
         {
             asm volatile(
-                "vpmullw  %%ymm2, %%ymm0, %%ymm1\n\t"
-                "vpmullw  %%ymm5, %%ymm3, %%ymm4\n\t"
+                "vpmullw  %%ymm0, %%ymm1, %%ymm0\n\t"
+                "vpmullw  %%ymm2, %%ymm3, %%ymm2\n\t"
                 :
                 :
-                : MMREG(5), MMREG(4), MMREG(3), MMREG(2), MMREG(1), MMREG(0)
+                : MMREG(3), MMREG(2), MMREG(1), MMREG(0)
             );
         }
     }
@@ -22,11 +22,11 @@
         for(int i = 0; i<STIM_LEN/16; i++)
         {
             asm volatile(
-                "vpmulld  %%ymm2, %%ymm0, %%ymm1\n\t"
-                "vpmulld  %%ymm5, %%ymm3, %%ymm4\n\t"
+                "vpmulld  %%ymm0, %%ymm1, %%ymm0\n\t"
+                "vpmulld  %%ymm2, %%ymm3, %%ymm2\n\t"
                 :
                 :
-                : MMREG(5), MMREG(4), MMREG(3), MMREG(2), MMREG(1), MMREG(0)
+                : MMREG(3), MMREG(2), MMREG(1), MMREG(0)
             );
         }
     }
@@ -39,11 +39,11 @@
         for(int i = 0; i<STIM_LEN/16; i++)
         {
             asm volatile(
-                "vmulps  %%ymm2, %%ymm0, %%ymm1\n\t"
-                "vmulps  %%ymm5, %%ymm3, %%ymm4\n\t"
+                "vmulps  %%ymm0, %%ymm1, %%ymm0\n\t"
+                "vmulps  %%ymm2, %%ymm3, %%ymm2\n\t"
                 :
                 :
-                : MMREG(5), MMREG(4), MMREG(3), MMREG(2), MMREG(1), MMREG(0)
+                : MMREG(3), MMREG(2), MMREG(1), MMREG(0)
             );
         }
     }
@@ -54,11 +54,11 @@
         for(int i = 0; i<STIM_LEN/8; i++)
         {
             asm volatile(
-                "vmulpd  %%ymm2, %%ymm0, %%ymm1\n\t"
-                "vmulpd  %%ymm5, %%ymm3, %%ymm4\n\t"
+                "vmulpd  %%ymm0, %%ymm1, %%ymm0\n\t"
+                "vmulpd  %%ymm2, %%ymm3, %%ymm2\n\t"
                 :
                 :
-                : MMREG(5), MMREG(4), MMREG(3), MMREG(2), MMREG(1), MMREG(0)
+                : MMREG(3), MMREG(2), MMREG(1), MMREG(0)
             );
         }
     }
