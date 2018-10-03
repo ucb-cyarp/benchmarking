@@ -36,6 +36,18 @@ void kernel_nointrin_mm256_add_epi32( int32_t* a, int32_t* b, int32_t* c)
     }
 }
 
+//==========_mm256_add_epi64==========
+void kernel_nointrin_mm256_add_epi64( int64_t* a, int64_t* b, int64_t* c)
+{
+    for(int i = 0; i<STIM_LEN; i++)
+    {
+        int64_t a_val = a[i];
+        int64_t b_val = b[i];
+        int64_t c_val = a_val + b_val;
+        c[i] = c_val;
+    }
+}
+
 //==========_mm256_add_ps==========
 void kernel_nointrin_mm256_add_ps( float* a, float* b, float* c)
 {

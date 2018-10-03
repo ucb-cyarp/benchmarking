@@ -235,6 +235,7 @@ void kernel_only_asm_div_sp()
 {
     float divBy = 1.0;    //Avoid div by 0 which causes div exception
     float initVal = 1.0;
+    float result;
 
     for(int i = 0; i<STIM_LEN; i++)
     {
@@ -243,13 +244,10 @@ void kernel_only_asm_div_sp()
         
         //TODO: Verify
         asm volatile(
-            "movd %[aInit], %%xmm0 \n\t"
-            "movd %[aDivBy], %%xmm1 \n\t"
-            "divss %%xmm1, %%xmm0 \n\t"
-            "movd %%xmm0, %%ecx \n\t"
-            :
-            : [aInit] "r" (initVal), [aDivBy] "r" (divBy)
-            : "ecx", "xmm0", "xmm1"
+            "vdivss %[aInit], %[aDivBy], %[aResult] \n\t"
+            : [aResult] "=x" (result)
+            : [aInit] "x" (initVal), [aDivBy] "x" (divBy)
+            : 
         );
     }
 }
@@ -259,6 +257,7 @@ void kernel_only_asm_div_dp()
 {
     double divBy = 1.0;    //Avoid div by 0 which causes div exception
     double initVal = 1.0;
+    double result;
 
     for(int i = 0; i<STIM_LEN; i++)
     {
@@ -267,13 +266,10 @@ void kernel_only_asm_div_dp()
         
         //TODO: Verify
         asm volatile(
-            "movq %[aInit], %%xmm0 \n\t"
-            "movq %[aDivBy], %%xmm1 \n\t"
-            "divsd %%xmm1, %%xmm0 \n\t"
-            "movq %%xmm0, %%rcx \n\t"
-            :
-            : [aInit] "r" (initVal), [aDivBy] "r" (divBy)
-            : "rcx", "xmm0", "xmm1"
+            "vdivsd %[aInit], %[aDivBy], %[aResult] \n\t"
+            : [aResult] "=x" (result)
+            : [aInit] "x" (initVal), [aDivBy] "x" (divBy)
+            : 
         );
     }
 }

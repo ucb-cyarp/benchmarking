@@ -1,2 +1,3 @@
 build/*
-intrin_throughput_test
+micro_bench_throughput_test
+micro_bench_report.csv

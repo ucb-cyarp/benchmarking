@@ -31,6 +31,16 @@
         }
     }
 
+    //==========_mm256_load_si256 | _mm256_store_si256 int64==========
+    void kernel_mm256_load_si256__mm256_store_si256_int64( __m256i* a, __m256i* b)
+    {
+        for(int i = 0; i<STIM_LEN/4; i++)
+        {
+            __m256i a_val = _mm256_load_si256(a+i);
+            _mm256_store_si256(b+i, a_val);
+        }
+    }
+
     //==========kernel_mm256_load_ps | _mm256_store_ps==========
     void kernel_mm256_load_ps__mm256_store_ps( __m256* a, __m256* b)
     {

@@ -10,6 +10,8 @@
         void kernel_only_asm_mm256_add_epi16();
         //==========_mm256_add_epi32==========
         void kernel_only_asm_mm256_add_epi32();
+        //==========_mm256_add_epi64==========
+        void kernel_only_asm_mm256_add_epi64();
     #endif
 
     #ifdef __AVX__

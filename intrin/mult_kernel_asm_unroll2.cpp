@@ -1,0 +1,65 @@
+#include "intrin_bench_default_defines.h"
+
+#ifdef __AVX2__
+    //==========_mm256_mullo_epi16==========
+    void kernel_only_asm_mm256_mullo_epi16_unroll2()
+    {
+        for(int i = 0; i<STIM_LEN/32; i++)
+        {
+            asm volatile(
+                "vpmullw  %%ymm0, %%ymm1, %%ymm0\n\t"
+                "vpmullw  %%ymm2, %%ymm3, %%ymm2\n\t"
+                :
+                :
+                : MMREG(3), MMREG(2), MMREG(1), MMREG(0)
+            );
+        }
+    }
+
+    //==========_mm256_mullo_epi32==========
+    void kernel_only_asm_mm256_mullo_epi32_unroll2()
+    {
+        for(int i = 0; i<STIM_LEN/16; i++)
+        {
+            asm volatile(
+                "vpmulld  %%ymm0, %%ymm1, %%ymm0\n\t"
+                "vpmulld  %%ymm2, %%ymm3, %%ymm2\n\t"
+                :
+                :
+                : MMREG(3), MMREG(2), MMREG(1), MMREG(0)
+            );
+        }
+    }
+#endif
+
+#ifdef __AVX__
+    //==========_mm256_mul_ps==========
+    void kernel_only_asm_mm256_mul_ps_unroll2()
+    {
+        for(int i = 0; i<STIM_LEN/16; i++)
+        {
+            asm volatile(
+                "vmulps  %%ymm0, %%ymm1, %%ymm0\n\t"
+                "vmulps  %%ymm2, %%ymm3, %%ymm2\n\t"
+                :
+                :
+                : MMREG(3), MMREG(2), MMREG(1), MMREG(0)
+            );
+        }
+    }
+
+    //==========_mm256_mul_pd==========
+    void kernel_only_asm_mm256_mul_pd_unroll2()
+    {
+        for(int i = 0; i<STIM_LEN/8; i++)
+        {
+            asm volatile(
+                "vmulpd  %%ymm0, %%ymm1, %%ymm0\n\t"
+                "vmulpd  %%ymm2, %%ymm3, %%ymm2\n\t"
+                :
+                :
+                : MMREG(3), MMREG(2), MMREG(1), MMREG(0)
+            );
+        }
+    }
+#endif

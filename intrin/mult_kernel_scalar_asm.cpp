@@ -128,20 +128,24 @@ void kernel_only_asm_mult_fp()
 //==========mult single with SSE==========
 void kernel_only_asm_mult_sp()
 {
+    float a = 0.5;
+    float b = 0.25;
+    float c;
+
     for(int i = 0; i<STIM_LEN; i++)
     {
         //This is using the SSE vector unit to multiply a single number (avoiding x87).
         //It was suggested in the GCC manual that the SSE instructions are used instead of x07
-        
+
+        //I have discovered that GCC will use the vmulss varient if AVX is present (which is the case in all modern machines)
+        //One advanatage of using the AVX version over SSE2 is that it introduces the 3 operand instruction.
+
         //TODO: Verify
         asm volatile(
-            "movd %%eax, %%xmm0 \n\t"
-            "movd %%ebx, %%xmm1 \n\t"
-            "mulss %%xmm1, %%xmm0 \n\t"
-            "movd %%xmm0, %%ecx \n\t"
+            "vmulss %1, %2, %0 \n\t"
+            :"=x"(c)
+            :"x"(a), "x"(b)
             :
-            :
-            :"eax", "ebx", "ecx", "xmm0", "xmm1"
         );
     }
 }
@@ -149,20 +153,24 @@ void kernel_only_asm_mult_sp()
 //==========mult double with SSE==========
 void kernel_only_asm_mult_dp()
 {
+    double a = 0.5;
+    double b = 0.25;
+    double c;
+
     for(int i = 0; i<STIM_LEN; i++)
     {
         //This is using the SSE vector unit to multiply a single number (avoiding x87).
         //It was suggested in the GCC manual that the SSE instructions are used instead of x07
+
+        //I have discovered that GCC will use the vmulss varient if AVX is present (which is the case in all modern machines)
+        //One advanatage of using the AVX version over SSE2 is that it introduces the 3 operand instruction.
         
         //TODO: Verify
         asm volatile(
-            "movq %%rax, %%xmm0 \n\t"
-            "movq %%rbx, %%xmm1 \n\t"
-            "mulsd %%xmm1, %%xmm0 \n\t"
-            "movq %%xmm0, %%rcx \n\t"
+            "vmulsd %1, %2, %0 \n\t"
+            :"=x"(c)
+            :"x"(a), "x"(b)
             :
-            :
-            :"rax", "rbx", "rcx", "xmm0", "xmm1"
         );
     }
 }

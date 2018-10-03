@@ -7,10 +7,10 @@
         for(int i = 0; i<STIM_LEN/16; i++)
         {
             asm volatile(
-                "vpmullw  %%ymm2, %%ymm0, %%ymm1\n\t"
+                "vpmullw  %%ymm0, %%ymm1, %%ymm0\n\t"
                 :
                 :
-                : MMREG(2), MMREG(1), MMREG(0)
+                : MMREG(1), MMREG(0)
             );
         }
     }
@@ -21,10 +21,10 @@
         for(int i = 0; i<STIM_LEN/8; i++)
         {
             asm volatile(
-                "vpmulld  %%ymm2, %%ymm0, %%ymm1\n\t"
+                "vpmulld  %%ymm0, %%ymm1, %%ymm0\n\t"
                 :
                 :
-                : MMREG(2), MMREG(1), MMREG(0)
+                : MMREG(1), MMREG(0)
             );
         }
     }
@@ -34,13 +34,13 @@
     //==========_mm256_mul_ps==========
     void kernel_only_asm_mm256_mul_ps()
     {
-        for(int i = 0; i<STIM_LEN; i+=8)
+        for(int i = 0; i<STIM_LEN/8; i++)
         {
             asm volatile(
-                "vmulps  %%ymm2, %%ymm0, %%ymm1\n\t"
+                "vmulps  %%ymm0, %%ymm1, %%ymm0\n\t"
                 :
                 :
-                : MMREG(2), MMREG(1), MMREG(0)
+                : MMREG(1), MMREG(0)
             );
         }
     }
@@ -48,13 +48,13 @@
     //==========_mm256_mul_pd==========
     void kernel_only_asm_mm256_mul_pd()
     {
-        for(int i = 0; i<STIM_LEN; i+=4)
+        for(int i = 0; i<STIM_LEN/4; i++)
         {
             asm volatile(
-                "vmulpd  %%ymm2, %%ymm0, %%ymm1\n\t"
+                "vmulpd  %%ymm0, %%ymm1, %%ymm0\n\t"
                 :
                 :
-                : MMREG(2), MMREG(1), MMREG(0)
+                : MMREG(1), MMREG(0)
             );
         }
     }

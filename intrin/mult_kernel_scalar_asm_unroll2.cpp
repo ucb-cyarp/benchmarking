@@ -137,6 +137,14 @@ void kernel_only_asm_mult_fp_unroll2()
 //==========mult single with SSE==========
 void kernel_only_asm_mult_sp_unroll2()
 {
+    float a = 0.5;
+    float b = 0.25;
+    float c;
+
+    float d = 0.5;
+    float e = 0.25;
+    float f;
+
     for(int i = 0; i<STIM_LEN/2; i++)
     {
         //This is using the SSE vector unit to multiply a single number (avoiding x87).
@@ -144,17 +152,11 @@ void kernel_only_asm_mult_sp_unroll2()
         
         //TODO: Verify
         asm volatile(
-            "movd %%eax, %%xmm0 \n\t"
-            "movd %%ebx, %%xmm1 \n\t"
-            "mulss %%xmm1, %%xmm0 \n\t"
-            "movd %%xmm0, %%ecx \n\t"
-            "movd %%edx, %%xmm2 \n\t"
-            "movd %%esi, %%xmm3 \n\t"
-            "mulss %%xmm3, %%xmm2 \n\t"
-            "movd %%xmm2, %%edi \n\t"
+            "vmulss %2, %3, %0 \n\t"
+            "vmulss %4, %5, %1 \n\t"
+            :"=x"(c), "=x"(f)
+            :"x"(a), "x"(b), "x"(d), "x"(e)
             :
-            :
-            :"eax", "ebx", "ecx", "edx", "esi", "edi", "xmm0", "xmm1", "xmm2", "xmm3"
         );
     }
 }
@@ -162,6 +164,14 @@ void kernel_only_asm_mult_sp_unroll2()
 //==========mult double with SSE==========
 void kernel_only_asm_mult_dp_unroll2()
 {
+    double a = 0.5;
+    double b = 0.25;
+    double c;
+
+    double d = 0.5;
+    double e = 0.25;
+    double f;
+
     for(int i = 0; i<STIM_LEN/2; i++)
     {
         //This is using the SSE vector unit to multiply a single number (avoiding x87).
@@ -169,17 +179,11 @@ void kernel_only_asm_mult_dp_unroll2()
         
         //TODO: Verify
         asm volatile(
-            "movq %%rax, %%xmm0 \n\t"
-            "movq %%rbx, %%xmm1 \n\t"
-            "mulsd %%xmm1, %%xmm0 \n\t"
-            "movq %%xmm0, %%rcx \n\t"
-            "movd %%rdx, %%xmm2 \n\t"
-            "movd %%rsi, %%xmm3 \n\t"
-            "mulsd %%xmm3, %%xmm2 \n\t"
-            "movd %%xmm2, %%rdi \n\t"
+            "vmulsd %2, %3, %0 \n\t"
+            "vmulsd %4, %5, %1 \n\t"
+            :"=x"(c), "=x"(f)
+            :"x"(a), "x"(b), "x"(d), "x"(e)
             :
-            :
-            :"rax", "rbx", "rcx", "rdx", "rsi", "rdi", "xmm0", "xmm1", "xmm2", "xmm3"
         );
     }
 }

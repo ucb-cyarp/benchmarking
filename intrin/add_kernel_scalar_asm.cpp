@@ -107,20 +107,24 @@ void kernel_only_asm_add_fp()
 //==========add single with SSE==========
 void kernel_only_asm_add_sp()
 {
+    float a = 0.5;
+    float b = 0.25;
+    float c;
+
     for(int i = 0; i<STIM_LEN; i++)
     {
         //This is using the SSE vector unit to multiply a single number (avoiding x87).
         //It was suggested in the GCC manual that the SSE instructions are used instead of x07
+
+        //I have discovered that GCC will use the vmulss varient if AVX is present (which is the case in all modern machines)
+        //One advanatage of using the AVX version over SSE2 is that it introduces the 3 operand instruction.
         
         //TODO: Verify
         asm volatile(
-            "movd %%eax, %%xmm0 \n\t"
-            "movd %%ebx, %%xmm1 \n\t"
-            "addss %%xmm1, %%xmm0 \n\t"
-            "movd %%xmm0, %%ecx \n\t"
+            "vaddss %[a], %[b], %[c] \n\t"
+            :[c]"=x"(c)
+            :[a]"x"(a), [b]"x"(b)
             :
-            :
-            :"eax", "ebx", "ecx", "xmm0", "xmm1"
         );
     }
 }
@@ -128,20 +132,24 @@ void kernel_only_asm_add_sp()
 //==========add double with SSE==========
 void kernel_only_asm_add_dp()
 {
+    double a = 0.5;
+    double b = 0.25;
+    double c;
+
     for(int i = 0; i<STIM_LEN; i++)
     {
         //This is using the SSE vector unit to multiply a single number (avoiding x87).
         //It was suggested in the GCC manual that the SSE instructions are used instead of x07
         
+        //I have discovered that GCC will use the vmulss varient if AVX is present (which is the case in all modern machines)
+        //One advanatage of using the AVX version over SSE2 is that it introduces the 3 operand instruction.
+        
         //TODO: Verify
         asm volatile(
-            "movq %%rax, %%xmm0 \n\t"
-            "movq %%rbx, %%xmm1 \n\t"
-            "addsd %%xmm1, %%xmm0 \n\t"
-            "movq %%xmm0, %%rcx \n\t"
+            "vaddsd %[a], %[b], %[c] \n\t"
+            :[c]"=x"(c)
+            :[a]"x"(a), [b]"x"(b)
             :
-            :
-            :"rax", "rbx", "rcx", "xmm0", "xmm1"
         );
     }
 }
