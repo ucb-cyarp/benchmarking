@@ -9,16 +9,15 @@
     #include <iostream>
     #include <set>
 
+    #include "measurement.h"
+    #include "profiler.h"
+
     double avg(double* arr, size_t len);
     double std_dev(double* arr, size_t len);
 
     class TrialResult
     {
         public:
-            int sockets;
-            int cores;
-            int trial;
-
             double duration;
             double duration_clock;
             double duration_rdtsc;
@@ -29,8 +28,8 @@
             double* energyCPUUsed;
             double* energyDRAMUsed;
 
-            int32_t* startPackageThermalHeadroom;
-            int32_t* endPackageThermalHeadroom;
+            bool sampled;
+            std::map<MeasurmentType, std::map<HW_Granularity, std::vector<Measurment>>> measurments;
 
             TrialResult(int _sockets, int _cores, int _trial);
             ~TrialResult();
@@ -44,12 +43,12 @@
             int sockets;
             int cores;
 
-            std::vector<TrialResult*> trial_results;
+            std::vector<TrialResult> trial_results;
 
             Results(int _sockets, int _cores);
             ~Results();
 
-            void add_trial(TrialResult* trial);
+            void add_trial(TrialResult &trial);
 
             double avg_duration();
             double avg_duration_clock();
@@ -58,20 +57,10 @@
             double stddev_duration_clock();
             double stddev_duration_rdtsc();
 
-            double avg_CPUFreq(int core);
-            double avg_ActiveCPUFreq(int core);
-            double stddev_CPUFreq(int core);
-            double stddev_ActiveCPUFreq(int core);
+            //Use Measurement Capabilities to find these
 
-            double avg_CPUPer(int core);
-            double avg_ActiveCPUPer(int core);
-            double stddev_CPUPer(int core);
-            double stddev_ActiveCPUPer(int core);
-
-            double avg_EnergyCPUUsed(int socket);
-            double avg_EnergyDRAMUsed(int socket);
-            double stddev_EnergyCPUUsed(int socket);
-            double stddev_EnergyDRAMUsed(int socket);
+            double measurmentAvg(MeasurmentType measurmentType, HW_Granularity granularity, int32_t index, bool treatTrialSamplesAsLumped);
+            double measurmentStdDev(MeasurmentType measurmentType, HW_Granularity granularity, int32_t index, bool treatTrialSamplesAsLumped);
 
             void print_statistics(int socket, int core, int stim_len);
             void print_statistics(std::vector<int> socket, std::vector<int> cores, int stim_len);
