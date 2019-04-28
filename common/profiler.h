@@ -5,6 +5,7 @@
     #include <vector>
     #include "results.h"
     #include "measurement.h"
+    #include <chrono>
 
     // //Only include PCM headers if PCM is used
     // #if USE_PCM == 1
@@ -50,6 +51,8 @@
             UNKNOWN
         };
 
+        Results results;
+
         static CPUVendor findCPUVendor(); ///< Find CPU vendor using CPUID
         static std::string findCPUModelStr(); ///<Find CPU vendor string
         static OS findOS(); ///<Find the OS currently being used
@@ -75,9 +78,12 @@
         virtual void endTrial(); ///<End the trial (record counter values)
         virtual void startTrialPowerProfile() = 0; ///<Start a trial (record counter values)
         virtual void endTrialPowerProfile() = 0; ///<End the trial (record counter values)
-        virtual TrialResult computeTrialReult() = 0;///<Compute the trial result
         virtual void interTrialReset() = 0; ///<Reset between trials (if required)
-        virtual TrialResult computeTrialResult() = 0; ///<Compute the trial result for the last trial
+        virtual TrialResult computeTrialResult(); ///<Compute the trial result for the last trial
+        virtual TrialResult* computeTrialResultAndAddToResults();///<Compute the trial result and add to the results.  Returns trialResult if added, null otherwise
+
+        virtual bool detectsFreqChange() = 0; ///<Returns true if the profiler can detect a frequency change event
+        virtual bool checkFreqChanged() = 0; ///<Returs true if the profiler detected a frequency change event in the last trial
     };
 
 #endif

@@ -20,34 +20,38 @@ std::string MeasurementHelper::HW_Granularity_toString(HW_Granularity granularit
     }
 }
 
-std::string MeasurementHelper::MeasurmentType_toString(MeasurmentType measurmentType){
-    switch (measurmentType)
+std::string MeasurementHelper::MeasurementType_toString(MeasurementType measurementType){
+    switch (measurementType)
     {
-        case MeasurmentType::DETECT_FREQ_CHANGE:
+        case MeasurementType::DETECT_FREQ_CHANGE:
             return "DetectFreqChange";
-        case MeasurmentType::AVG_FREQ:
+        case MeasurementType::AVG_FREQ:
             return "AvgFreq";
-        case MeasurmentType::AVG_ACTIVE_FREQ:
+        case MeasurementType::AVG_ACTIVE_FREQ:
             return "AvgActiveFreq";
-        case MeasurmentType::ENERGY_USED_CPU:
+        case MeasurementType::ENERGY_USED_CPU:
             return "EnergyUsedCPU";
-        case MeasurmentType::ENERGY_USED_DRAM:
+        case MeasurementType::ENERGY_USED_DRAM:
             return "EnergyUsedDRAM";
-        case MeasurmentType::AVG_PWR_CPU:
+        case MeasurementType::AVG_PWR_CPU:
             return "AvgPwrCPU";
-        case MeasurmentType::AVG_PWR_DRAM:
+        case MeasurementType::AVG_PWR_DRAM:
             return "AvgPwrDRAM";
-        case MeasurmentType::VOLTAGE_CPU:
+        case MeasurementType::VOLTAGE_CPU:
             return "VoltageCPU";
-        case MeasurmentType::VOLTAGE_IO:
+        case MeasurementType::VOLTAGE_IO:
             return "VoltageIO";
-        case MeasurmentType::TEMPERATURE_CPU:
-            return "TemperatureCPU";
-        case MeasurmentType::TEMPERATURE_DRAM:
-            return "TemperatureDRAM";
-        case MeasurmentType::THERMAL_HEADROOM_START:
+        case MeasurementType::TEMPERATURE_CPU_START:
+            return "TemperatureCPUStart";
+        case MeasurementType::TEMPERATURE_CPU_STOP:
+            return "TemperatureCPUStop";
+        case MeasurementType::TEMPERATURE_DRAM_START:
+            return "TemperatureDRAMStart";
+        case MeasurementType::TEMPERATURE_DRAM_STOP:
+            return "TemperatureDRAMStop";
+        case MeasurementType::THERMAL_HEADROOM_START:
             return "ThermalHeadroomStart";
-        case MeasurmentType::THERMAL_HEADROOM_STOP:
+        case MeasurementType::THERMAL_HEADROOM_STOP:
             return "ThermalHeadroomStop";
         default:
             throw std::runtime_error("Unknown MeasurmentType");
@@ -70,6 +74,8 @@ std::string MeasurementHelper::BaseUnit_toString(BaseUnit baseUnit){
             return "DegCelsius";
         case BaseUnit::VOLT:
             return "Volt";
+        case BaseUnit::UNITLESS:
+            return "Unitless";
         default:
             throw std::runtime_error("Unknown BaseUnit");
             return "Unknown";
@@ -91,6 +97,8 @@ std::string MeasurementHelper::BaseUnit_abrev(BaseUnit baseUnit){
             return "DegC";
         case BaseUnit::VOLT:
             return "V";
+        case BaseUnit::UNITLESS:
+            return "";
         default:
             throw std::runtime_error("Unknown BaseUnit");
             return "Unknown";
@@ -125,3 +133,14 @@ std::string MeasurementHelper::exponentAbrev(int32_t exponent){
             return "e"+std::to_string(exponent);
     }
 }
+
+Unit::Unit() : baseUnit(BaseUnit::SECOND), exponent(0) {}
+Unit::Unit(BaseUnit baseUnit, int32_t exponent) : baseUnit(baseUnit), exponent(exponent) {}
+bool Unit::operator==(const Unit &rhs) const {
+    return baseUnit == rhs.baseUnit &&
+           exponent == rhs.exponent;
+}
+
+Measurment::Measurment():index(-1) {}
+Measurment::Measurment(int32_t index, Unit unit, double measurment) : index(index), unit(unit), measurement({measurement}){}
+Measurment::Measurment(int32_t index, Unit unit, const std::vector<double> &measurment, const std::vector<double> &deltaT) : index(index), unit(unit), measurement(measurement), deltaT(deltaT) {}

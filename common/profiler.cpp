@@ -103,3 +103,20 @@ void Profiler::endTrial(){
     endTrialPowerProfile();
     endTrialTimer();
 }
+
+TrialResult Profiler::computeTrialResult(){
+    TrialResult result;
+
+    //At the superclass level, only the time for the trial is computed and stored.
+    result.duration = (std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(stop_hrc-start_hrc)).count();
+    result.duration_clock = 1000.0 * (stop_clock - start_clock) / CLOCKS_PER_SEC;
+    result.duration_rdtsc =  (stop_rdtsc - start_rdtsc);
+
+    return result;
+}
+
+TrialResult* Profiler::computeTrialResultAndAddToResults(){
+    TrialResult result = computeTrialResult();
+    result.trial = results.trial_results.size();
+    return results.add_trial(result);
+}

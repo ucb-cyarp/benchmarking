@@ -25,7 +25,10 @@
             void startTrialPowerProfile() override;
             void endTrialPowerProfile() override;
             void interTrialReset() override;
-            TrialResult computeTrialReult() override;
+            TrialResult computeTrialResult() override;
+
+            bool detectsFreqChange() override; ///<Returns true if the profiler can detect a frequency change event
+            bool checkFreqChanged() override; ///<Returs true if the profiler detected a frequency change event in the last trial
     }
 
 #endif

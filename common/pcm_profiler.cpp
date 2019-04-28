@@ -119,6 +119,63 @@ void PCM_Profiler::interTrialReset() {
     //Nothing special required between trials
 };
 
-TrialResult PCM_Profiler::computeTrialReult(){
+TrialResult PCM_Profiler::computeTrialResult(){
+    //At the superclass level, we compute the durations
+    TrialResult result = Profiler.computeTrialResult();
 
+    //Compute the trial result for the measurments
+    int cores = pcm->getNumCores();
+    int sockets = pcm->getNumSockets();
+
+    std::vector<Measurment> avgCPUFreq;
+    std::vector<Measurment> avgActiveCPUFreq;
+
+    for(int i = 0; i<cores; i++)
+    {  
+        avgCPUFreq.push_back(Measurment(i, Unit(BaseUnit::HERTZ, 0), getAverageFrequency(startCstates[i], endCstates[i]));
+        avgActiveCPUFreq.push_back(Measurment(i, Unit(BaseUnit::HERTZ, 0), getActiveAverageFrequency(startCstates[i], endCstates[i])_;
+    }
+
+    result.measurments[MeasurmentType::AVG_FREQ][HW_Granularity::CORE] = avgCPUFreq;
+    result.measurments[MeasurmentType::AVG_ACTIVE_FREQ][HW_Granularity::CORE] = avgActiveCPUFreq;
+
+    std::vector<Measurment> energyCPUUsed;
+    std::vector<Measurment> energyDRAMUsed;
+    std::vector<Measurment> startPackageThermalHeadroom;
+    std::vector<Measurment> endPackageThermalHeadroom;
+    for(int i = 0; i<sockets; i++)
+    {
+        energyCPUUsed.push_back(i, Unit(BaseUnit::JOULE, 0), getConsumedJoules(startPowerState[i], endPowerState[i]));
+        energyDRAMUsed.push_back(i, Unit(BaseUnit::JOULE, 0), getDRAMConsumedJoules(startPowerState[i], endPowerState[i]);
+        startPackageThermalHeadroom[i] = startPowerState[i].getPackageThermalHeadroom();
+        endPackageThermalHeadroom[i] = endPowerState[i].getPackageThermalHeadroom();
+    }
+
+    return result;
 };
+
+bool PCM_Profiler::detectsFreqChange(){
+    return true;
+}
+
+bool PCM_Profiler::checkFreqChanged()
+{
+    int sockets = pcm->getNumSockets();
+
+    bool freq_changed = false;
+    for(int i = 0; i < sockets; i++)
+    {
+        int freq_change_events = getPCUCounter(1, startStates[i], endStates[i]);
+        if(freq_change_events > 0)
+        {
+            freq_changed = true;
+            #if PRINT_FREQ_CHANGE_EVENT == 1
+                printf("Socket %d experienced %d clock frequency change events!\n", i, freq_change_events);
+            #else
+                break; //No need to check other sockets, frequency changed
+            #endif
+        }
+    }
+
+    return freq_changed;
+}
