@@ -4,15 +4,6 @@
     #include <vector>
     #include <map>
 
-    class MeasurementHelper{
-    public:
-        static std::string HW_Granularity_toString(HW_Granularity granularity);
-        static std::string MeasurementType_toString(MeasurementType measurementType);
-        static std::string BaseUnit_toString(BaseUnit baseUnit);
-        static std::string BaseUnit_abrev(BaseUnit baseUnit);
-        static std::string exponentAbrev(int32_t exponent);
-    };
-
     enum class HW_Granularity{
         SYSTEM, ///<Can measure at the global system level
         SOCKET, ///<Can measure at the socket level
@@ -40,6 +31,25 @@
         THERMAL_HEADROOM_STOP
     };
 
+    enum class BaseUnit{
+        SECOND,
+        JOULE,
+        WATT,
+        HERTZ,
+        DEG_CELSIUS,
+        VOLT,
+        UNITLESS
+    };
+
+    class MeasurementHelper{
+    public:
+        static std::string HW_Granularity_toString(HW_Granularity granularity);
+        static std::string MeasurementType_toString(MeasurementType measurementType);
+        static std::string BaseUnit_toString(BaseUnit baseUnit);
+        static std::string BaseUnit_abrev(BaseUnit baseUnit);
+        static std::string exponentAbrev(int32_t exponent);
+    };
+
     const std::vector<MeasurementType> DEFAULT_REPORT_TYPE_LIST = {MeasurementType::AVG_FREQ, 
                                                                   MeasurementType::AVG_ACTIVE_FREQ, 
                                                                   MeasurementType::ENERGY_USED_CPU,
@@ -61,16 +71,6 @@
                                                                   HW_Granularity::CORE, 
                                                                   HW_Granularity::THREAD}; 
     
-    enum class BaseUnit{
-        SECOND,
-        JOULE,
-        WATT,
-        HERTZ,
-        DEG_CELSIUS,
-        VOLT,
-        UNITLESS
-    };
-
     class Unit{
         public:
         BaseUnit baseUnit; ///The unit (second, joule, ...)

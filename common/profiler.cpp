@@ -1,6 +1,13 @@
 #include "profiler.h"
 #include <cpuid.h>
 #include "ia32intrin.h"
+#include <cstdio>
+#include <regex>
+
+#include "pcm_profiler.h"
+
+CPUInfo::CPUInfo(int cpu, int core, int die, int socket) : cpu(cpu), core(core), die(die), socket(socket){
+}
 
 Profiler::Profiler(){
 
@@ -70,6 +77,71 @@ Profiler::OS Profiler::findOS(){
     return Profiler::OS::WINDOWS;
     #endif
 
+}
+
+std::map<int, CPUInfo> Profiler::getCPUTopology(){
+    //Right now, this depends on lscpu being installed
+
+    //Uses the same technique as in common/cpuTopology.py
+
+    FILE* lscpu = popen("lscpu -p=CPU,SOCKET,NUMA,CORE", "r");
+    if(lscpu != NULL){
+        char* buffer = new char[2048];
+        std::map<int, CPUInfo> topo;
+
+        while(fgets(buffer, 2047, lscpu) != NULL){
+            std::string lscpu_str = std::string(buffer);
+
+            std::smatch matches;
+            std::regex fixRegexExpr("(\\d*),(\\d*),(\\d*),(\\d*)");
+            bool fixMatched = std::regex_match(lscpu_str, matches, fixRegexExpr);
+
+            if(fixMatched && matches.size()==5){
+                //Header will not parse but following lines should
+                //Parse Matches
+                //Match0 is the full match
+
+                int cpu = std::stoi(matches[1].str());
+                int socket = std::stoi(matches[2].str());
+                int numa = std::stoi(matches[3].str());
+                int core = std::stoi(matches[4].str());
+
+                CPUInfo cpuInfo(cpu, core, numa, socket);
+                topo[cpu] = cpuInfo;
+            }
+        }
+
+        pclose(lscpu);
+        delete[] buffer;
+        return topo;
+    }else{
+        std::cerr << "Warning: Could not get CPU topology.  Make sure lscpu is installed and in the path" << std::endl;
+    }
+    
+    return std::map<int, CPUInfo>();
+}
+
+Profiler* Profiler::ProfilerFactory(bool usePerformanceCounters){
+    Profiler* profiler;
+
+    if(usePerformanceCounters){
+        CPUVendor cpuVendor = Profiler::findCPUVendor();
+
+        if(cpuVendor == CPUVendor::INTEL){
+            profiler = new PCM_Profiler();
+        }else if(cpuVendor == CPUVendor::AMD){
+            //TODO implement
+            std::cerr << "Performance Counter Support is not yet Implemented for AMD" << std::endl;
+            profiler = new Profiler();
+        }else{
+            std::cerr << "Performance Counter Support is not Implemented for this Vendor" << std::endl;
+            profiler = new Profiler();
+        }
+    }else{
+        profiler = new Profiler();
+    }
+
+    return profiler;
 }
 
 bool Profiler::isSampling(){

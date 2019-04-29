@@ -14,6 +14,7 @@ def main():
     topology = getPlatformTopology()
     unique_topology = getUniqueCPUs(topology)
     numa0_unique_topology = filterTopologyByNuma(unique_topology, 0)
+    numa1_unique_topology = filterTopologyByNuma(unique_topology, 1)
 
     print('CPU Topology:')
     printTopology(topology)
@@ -21,12 +22,14 @@ def main():
     printTopology(unique_topology)
     print('\nNUMA 0 Unique Cores:')
     printTopology(numa0_unique_topology)
+    print('\nNUMA 1 Unique Cores:')
+    printTopology(numa1_unique_topology)
 
     #Get 2 Unique Cores in Socket 0 (pick sequentially for now)
     cpu_a = (numa0_unique_topology[0])[0]
-    cpu_b = (numa0_unique_topology[1])[0]
-    cpu_c = (numa0_unique_topology[2])[0]
-    cpu_d = (numa0_unique_topology[3])[0]
+    cpu_b = (numa1_unique_topology[0])[0]
+    cpu_c = (numa0_unique_topology[1])[0]
+    cpu_d = (numa1_unique_topology[1])[0]
 
     cmd = './core-core {} {} {} {}'.format(cpu_a, cpu_b, cpu_c, cpu_d)
 

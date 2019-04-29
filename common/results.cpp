@@ -76,11 +76,11 @@ void TrialResult::print_trial(const std::vector<HW_Granularity> granularityToPri
                     if(!foundMeasurement){
                         //Found the first measurement at this granularity, print the section header
                         printf("\n");
-                        printf("         ##### %s Statistics #####\n", MeasurementHelper::MeasurementType_toString(measurementTypeToPrint[i]));
+                        printf("         ##### %s Statistics #####\n", MeasurementHelper::MeasurementType_toString(measurementTypeToPrint[i]).c_str());
                         foundMeasurement = true;
                     }
-
-                    printf("             %s %s[%2d] Mean (%s): %f\n", MeasurementHelper::MeasurementType_toString(measurementTypeToPrint[j]), MeasurementHelper::HW_Granularity_toString(granularityToPrint[i]), k, MeasurementHelper::exponentAbrev(measurments[measurementTypeToPrint[i]][granularityToPrint[j]][k].unit.exponent)+MeasurementHelper::BaseUnit_abrev(measurments[measurementTypeToPrint[i]][granularityToPrint[j]][k].unit.baseUnit), average(measurments[measurementTypeToPrint[i]][granularityToPrint[j]][k].measurement));
+                    std::string unitStr = MeasurementHelper::exponentAbrev(measurments[measurementTypeToPrint[i]][granularityToPrint[j]][k].unit.exponent)+MeasurementHelper::BaseUnit_abrev(measurments[measurementTypeToPrint[i]][granularityToPrint[j]][k].unit.baseUnit);
+                    printf("             %s %s[%2lu] Mean (%s): %f\n", MeasurementHelper::MeasurementType_toString(measurementTypeToPrint[j]).c_str(), MeasurementHelper::HW_Granularity_toString(granularityToPrint[i]).c_str(), k, unitStr.c_str(), average(measurments[measurementTypeToPrint[i]][granularityToPrint[j]][k].measurement));
                 }
             }
         }
@@ -316,11 +316,12 @@ void Results::print_statistics(std::vector<int> sockets, std::vector<int> dies, 
                 if(!foundMeasurement && stats.valid){
                     //Found the first measurement at this granularity, print the section header
                     printf("\n");
-                    printf("         ##### %s Statistics #####\n", MeasurementHelper::MeasurementType_toString(measurementTypeToPrint[i]));
+                    printf("         ##### %s Statistics #####\n", MeasurementHelper::MeasurementType_toString(measurementTypeToPrint[i]).c_str());
                     foundMeasurement = true;
                 }
                 if(stats.valid){
-                    printf("             %s %s[%2d] Mean (%s): %f, Sample Std Dev: %f\n", MeasurementHelper::MeasurementType_toString(measurementTypeToPrint[j]), MeasurementHelper::HW_Granularity_toString(granularityToPrint[i]), ind_to_search[k], MeasurementHelper::exponentAbrev(stats.unit.exponent)+MeasurementHelper::BaseUnit_abrev(stats.unit.baseUnit), stats.avg, stats.stdDev);
+                    std::string unitStr = MeasurementHelper::exponentAbrev(stats.unit.exponent)+MeasurementHelper::BaseUnit_abrev(stats.unit.baseUnit);
+                    printf("             %s %s[%2d] Mean (%s): %f, Sample Std Dev: %f\n", MeasurementHelper::MeasurementType_toString(measurementTypeToPrint[j]).c_str(), MeasurementHelper::HW_Granularity_toString(granularityToPrint[i]).c_str(), ind_to_search[k], unitStr.c_str(), stats.avg, stats.stdDev);
                 }
             }
         }
@@ -359,11 +360,12 @@ void Results::print_statistics(int stim_len, const std::vector<HW_Granularity> g
                 if(!foundMeasurement && stats.valid){
                     //Found the first measurement at this granularity, print the section header
                     printf("\n");
-                    printf("         ##### %s Statistics #####\n", MeasurementHelper::MeasurementType_toString(measurementTypeToPrint[i]));
+                    printf("         ##### %s Statistics #####\n", MeasurementHelper::MeasurementType_toString(measurementTypeToPrint[i]).c_str());
                     foundMeasurement = true;
                 }
                 if(stats.valid){
-                    printf("             %s %s[%2d] Mean (%s): %f, Sample Std Dev: %f\n", MeasurementHelper::MeasurementType_toString(measurementTypeToPrint[j]), MeasurementHelper::HW_Granularity_toString(granularityToPrint[i]), k, MeasurementHelper::exponentAbrev(stats.unit.exponent)+MeasurementHelper::BaseUnit_abrev(stats.unit.baseUnit), stats.avg, stats.stdDev);
+                    std::string unitStr = MeasurementHelper::exponentAbrev(stats.unit.exponent)+MeasurementHelper::BaseUnit_abrev(stats.unit.baseUnit);
+                    printf("             %s %s[%2lu] Mean (%s): %f, Sample Std Dev: %f\n", MeasurementHelper::MeasurementType_toString(measurementTypeToPrint[j]).c_str(), MeasurementHelper::HW_Granularity_toString(granularityToPrint[i]).c_str(), k, unitStr.c_str(), stats.avg, stats.stdDev);
                 }
             }
         }
@@ -390,7 +392,7 @@ void Results::print_statistics(std::set<int> sockets, std::set<int> dies, std::s
     print_statistics(socket_vec, dies_vec, core_vec, stim_len, granularityToPrint, measurementTypeToPrint);
 }
 
-void Results::write_csv(std::ofstream &csv_file, int socket, int core, const std::vector<HW_Granularity> granularityToPrint = DEFAULT_GRANULARITY_LIST, const std::vector<MeasurementType> measurementTypeToPrint = DEFAULT_REPORT_TYPE_LIST)
+void Results::write_csv(std::ofstream &csv_file, int socket, int core, const std::vector<HW_Granularity> granularityToPrint, const std::vector<MeasurementType> measurementTypeToPrint)
 {
     write_csv(csv_file, socket, core, "", 0, granularityToPrint, measurementTypeToPrint);
 }

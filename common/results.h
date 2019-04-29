@@ -1,5 +1,5 @@
-#ifndef _H_STATISTICS
-    #define _H_STATISTICS
+#ifndef _H_RESULTS
+    #define _H_RESULTS
     //#include "intrin_bench_default_defines.h"
 
     #include <chrono>
@@ -11,7 +11,6 @@
     #include <utility>
 
     #include "measurement.h"
-    #include "profiler.h"
 
     double avg(double* arr, size_t len);
     double avg(const std::vector<double> arr);

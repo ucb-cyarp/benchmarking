@@ -3,9 +3,13 @@
     
     #include <string>
     #include <vector>
+    #include <chrono>
+
     #include "results.h"
     #include "measurement.h"
-    #include <chrono>
+
+    //Forward declaration of derived classes (used in factory)
+    class PCM_Profiler;
 
     // //Only include PCM headers if PCM is used
     // #if USE_PCM == 1
@@ -16,10 +20,16 @@
     //     #include "AMDTPowerProfileApi.h"
     // #endif
 
+    struct CPUInfo{
+        int cpu; //Also "thread"
+        int core;
+        int die; //Also "numa"
+        int socket;
+
+        CPUInfo(int cpu, int core, int die, int socket);
+    };
+
     //This class describes a generic profiler which replaces calls to specific profiler libraries (such as PCM or AMDuProf)
-
-    
-
     class Profiler{
         private:
         std::chrono::high_resolution_clock::time_point start_hrc;
@@ -56,10 +66,13 @@
         static CPUVendor findCPUVendor(); ///< Find CPU vendor using CPUID
         static std::string findCPUModelStr(); ///<Find CPU vendor string
         static OS findOS(); ///<Find the OS currently being used
+        static std::map<int, CPUInfo> getCPUTopology(); //Get the CPU topology.  Returns a map of CPUs to CPUInfo
 
         static std::string CPUVendor_toString();
         static std::string EnergyProfiler_toString();
         static std::string OS_toString();
+
+        static Profiler* ProfilerFactory(bool usePerformanceCounters); //Construct Profiler for machine
 
         Profiler();
         ~Profiler();
