@@ -1,21 +1,13 @@
-#ifndef _H_PCM_PROFILER
-    #define _H_PCM_PROFILER
+#ifndef _H_GENERIC_PROFILER
+    #define _H_GENERIC_PROFILER
 
     #include "profiler.h"
     #include "cpucounters.h"
 
-    class PCM_Profiler : public Profiler{
-        PCM* pcm;
-
-        ServerUncorePowerState* startPowerState;
-        ServerUncorePowerState* endPowerState;
-        std::vector<CoreCounterState> startCstates, endCstates;
-        std::vector<SocketCounterState> startSktstate, endSktstate;
-        SystemCounterState startSstate, endSstate;
-
+    class GenericProfiler : public Profiler{
         public:
-            PCM_Profiler();
-            ~PCM_Profiler();
+            GenericProfiler();
+            ~GenericProfiler();
 
             std::string profilerName() override;
 

@@ -70,8 +70,8 @@ void TrialResult::print_trial(const std::vector<HW_Granularity> granularityToPri
         for(unsigned long j = 0; j<granularityToPrint.size(); j++){
             bool searching = true;
             for(unsigned long k = 0; searching; k++){
-                if(measurments.find(measurementTypeToPrint[i]) != measurments.end() && 
-                    measurments[measurementTypeToPrint[i]].find(granularityToPrint[j]) != measurments[measurementTypeToPrint[i]].end()){
+                if(measurements.find(measurementTypeToPrint[i]) != measurements.end() && 
+                    measurements[measurementTypeToPrint[i]].find(granularityToPrint[j]) != measurements[measurementTypeToPrint[i]].end()){
 
                     if(!foundMeasurement){
                         //Found the first measurement at this granularity, print the section header
@@ -79,8 +79,8 @@ void TrialResult::print_trial(const std::vector<HW_Granularity> granularityToPri
                         printf("         ##### %s Statistics #####\n", MeasurementHelper::MeasurementType_toString(measurementTypeToPrint[i]).c_str());
                         foundMeasurement = true;
                     }
-                    std::string unitStr = MeasurementHelper::exponentAbrev(measurments[measurementTypeToPrint[i]][granularityToPrint[j]][k].unit.exponent)+MeasurementHelper::BaseUnit_abrev(measurments[measurementTypeToPrint[i]][granularityToPrint[j]][k].unit.baseUnit);
-                    printf("             %s %s[%2lu] Mean (%s): %f\n", MeasurementHelper::MeasurementType_toString(measurementTypeToPrint[j]).c_str(), MeasurementHelper::HW_Granularity_toString(granularityToPrint[i]).c_str(), k, unitStr.c_str(), average(measurments[measurementTypeToPrint[i]][granularityToPrint[j]][k].measurement));
+                    std::string unitStr = MeasurementHelper::exponentAbrev(measurements[measurementTypeToPrint[i]][granularityToPrint[j]][k].unit.exponent)+MeasurementHelper::BaseUnit_abrev(measurements[measurementTypeToPrint[i]][granularityToPrint[j]][k].unit.baseUnit);
+                    printf("             %s %s[%2lu] Mean (%s): %f\n", MeasurementHelper::MeasurementType_toString(measurementTypeToPrint[j]).c_str(), MeasurementHelper::HW_Granularity_toString(granularityToPrint[i]).c_str(), k, unitStr.c_str(), average(measurements[measurementTypeToPrint[i]][granularityToPrint[j]][k].measurement));
                 }
             }
         }
@@ -93,31 +93,31 @@ Results::Results()
 
 Statistics Results::measurementStats(MeasurementType measurmentType, HW_Granularity granularity, int32_t index, bool treatTrialSamplesAsLumped){
     //Itterate through the measurements to find the ones that apply
-    std::vector<Measurment> lumpedMeasurements;
-    std::vector<Measurment*> filteredMeasurements;
+    std::vector<Measurement> lumpedMeasurements;
+    std::vector<Measurement*> filteredMeasurements;
     for(unsigned long i = 0; i<trial_results.size(); i++){
         //Itterate through the measurements for this trial at the specified meaurment type and granularity level
-        if(trial_results[i].measurments.find(measurmentType) != trial_results[i].measurments.end() && 
-        trial_results[i].measurments[measurmentType].find(granularity) != trial_results[i].measurments[measurmentType].end()){
-            for(unsigned long j = 0; j<trial_results[i].measurments[measurmentType][granularity].size(); j++){
-                if(trial_results[i].measurments[measurmentType][granularity][j].index == index){
-                    if(treatTrialSamplesAsLumped && trial_results[i].measurments[measurmentType][granularity][j].measurement.size()>1){
+        if(trial_results[i].measurements.find(measurmentType) != trial_results[i].measurements.end() && 
+        trial_results[i].measurements[measurmentType].find(granularity) != trial_results[i].measurements[measurmentType].end()){
+            for(unsigned long j = 0; j<trial_results[i].measurements[measurmentType][granularity].size(); j++){
+                if(trial_results[i].measurements[measurmentType][granularity][j].index == index){
+                    if(treatTrialSamplesAsLumped && trial_results[i].measurements[measurmentType][granularity][j].measurement.size()>1){
                         //Average the measurements
                         double sum = 0;
-                        for(unsigned long k = 0; k<trial_results[i].measurments[measurmentType][granularity][j].measurement.size(); k++){
-                            sum += trial_results[i].measurments[measurmentType][granularity][j].measurement[k];
+                        for(unsigned long k = 0; k<trial_results[i].measurements[measurmentType][granularity][j].measurement.size(); k++){
+                            sum += trial_results[i].measurements[measurmentType][granularity][j].measurement[k];
                         }
 
-                        double avg = sum/trial_results[i].measurments[measurmentType][granularity][j].measurement.size();
+                        double avg = sum/trial_results[i].measurements[measurmentType][granularity][j].measurement.size();
 
-                        Measurment lumpedMeasurement;
-                        lumpedMeasurement.index = trial_results[i].measurments[measurmentType][granularity][j].index;
-                        lumpedMeasurement.unit = trial_results[i].measurments[measurmentType][granularity][j].unit;
+                        Measurement lumpedMeasurement;
+                        lumpedMeasurement.index = trial_results[i].measurements[measurmentType][granularity][j].index;
+                        lumpedMeasurement.unit = trial_results[i].measurements[measurmentType][granularity][j].unit;
                         lumpedMeasurement.measurement.push_back(avg);
                         lumpedMeasurements.push_back(lumpedMeasurement);
                         filteredMeasurements.push_back(&lumpedMeasurements[lumpedMeasurements.size()-1]);
                     }else{
-                        filteredMeasurements.push_back(&trial_results[i].measurments[measurmentType][granularity][j]);
+                        filteredMeasurements.push_back(&trial_results[i].measurements[measurmentType][granularity][j]);
                     }
                 }
             }
@@ -399,7 +399,7 @@ void Results::write_csv(std::ofstream &csv_file, int socket, int core, const std
 
 void Results::write_csv(std::ofstream &csv_file, int socket, int core, std::string col0_name, int col0_val, const std::vector<HW_Granularity> granularityToPrint, const std::vector<MeasurementType> measurementTypeToPrint)
 {
-    std::map<MeasurementType, std::map<HW_Granularity, std::map<int, Unit>>> avail = measurmentsAvailUnion(granularityToPrint, measurementTypeToPrint); 
+    std::map<MeasurementType, std::map<HW_Granularity, std::map<int, Unit>>> avail = measurementsAvailUnion(granularityToPrint, measurementTypeToPrint); 
 
     //Print Header
     csv_file << std::string(col0_name.empty() ? "" : "\"" + col0_name + "\",") << "\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"";
@@ -439,9 +439,9 @@ void Results::write_csv(std::ofstream &csv_file, int socket, int core, std::stri
                     if(avail[measurementTypeToPrint[i]].find(granularityToPrint[j]) != avail[measurementTypeToPrint[i]].end()){
                         int indexes = avail[measurementTypeToPrint[i]][granularityToPrint[j]].size();
                         for(unsigned long k = 0; k<indexes; k++){
-                            if(trial_results[trial].measurments.find(measurementTypeToPrint[i]) != trial_results[trial].measurments.end() && 
-                            trial_results[trial].measurments[measurementTypeToPrint[i]].find(granularityToPrint[j]) != trial_results[trial].measurments[measurementTypeToPrint[i]].end()){
-                                csv_file << "," << average(trial_results[trial].measurments[measurementTypeToPrint[i]][granularityToPrint[j]][k].measurement);
+                            if(trial_results[trial].measurements.find(measurementTypeToPrint[i]) != trial_results[trial].measurements.end() && 
+                            trial_results[trial].measurements[measurementTypeToPrint[i]].find(granularityToPrint[j]) != trial_results[trial].measurements[measurementTypeToPrint[i]].end()){
+                                csv_file << "," << average(trial_results[trial].measurements[measurementTypeToPrint[i]][granularityToPrint[j]][k].measurement);
                             }else{
                                 csv_file << ",";
                             }
@@ -454,23 +454,23 @@ void Results::write_csv(std::ofstream &csv_file, int socket, int core, std::stri
     }
 }
 
-std::map<MeasurementType, std::map<HW_Granularity, std::map<int, Unit>>> Results::measurmentsAvailUnion(const std::vector<HW_Granularity> granularityToInspect, const std::vector<MeasurementType> measurementTypeToInspect){
+std::map<MeasurementType, std::map<HW_Granularity, std::map<int, Unit>>> Results::measurementsAvailUnion(const std::vector<HW_Granularity> granularityToInspect, const std::vector<MeasurementType> measurementTypeToInspect){
     std::map<MeasurementType, std::map<HW_Granularity, std::map<int, Unit>>> avail;
     
     for(unsigned long i = 0; i<trial_results.size(); i++){
         for(unsigned long j = 0; j<measurementTypeToInspect.size(); j++){
-            if(trial_results[i].measurments.find(measurementTypeToInspect[j]) != trial_results[i].measurments.end()){
+            if(trial_results[i].measurements.find(measurementTypeToInspect[j]) != trial_results[i].measurements.end()){
                 //Found the measurement
                 for(unsigned long k = 0; k<granularityToInspect.size(); k++){
                     //Found granularity
-                    if(trial_results[i].measurments[measurementTypeToInspect[j]].find(granularityToInspect[k]) != trial_results[i].measurments[measurementTypeToInspect[j]].end()){
-                        for(unsigned long l = 0; l<trial_results[i].measurments[measurementTypeToInspect[j]][granularityToInspect[k]].size(); l++){
+                    if(trial_results[i].measurements[measurementTypeToInspect[j]].find(granularityToInspect[k]) != trial_results[i].measurements[measurementTypeToInspect[j]].end()){
+                        for(unsigned long l = 0; l<trial_results[i].measurements[measurementTypeToInspect[j]][granularityToInspect[k]].size(); l++){
                             if(avail[measurementTypeToInspect[j]][granularityToInspect[k]].find(l) == avail[measurementTypeToInspect[j]][granularityToInspect[k]].end()){
-                                avail[measurementTypeToInspect[j]][granularityToInspect[k]][l] = trial_results[i].measurments[measurementTypeToInspect[j]][granularityToInspect[k]][l].unit;
+                                avail[measurementTypeToInspect[j]][granularityToInspect[k]][l] = trial_results[i].measurements[measurementTypeToInspect[j]][granularityToInspect[k]][l].unit;
                             }/*else{
                                 //check unit 
                                 Unit origUnit = avail[measurementTypeToInspect[j]][granularityToInspect[k]][l];
-                                if(origUnit != trial_results[i].measurments[measurementTypeToInspect[j]][granularityToInspect[k]][l].unit){
+                                if(origUnit != trial_results[i].measurements[measurementTypeToInspect[j]][granularityToInspect[k]][l].unit){
                                     throw std::runtime_error("Inconsistent Units Across Trials");
                                 }
                             }*/

@@ -1,36 +1,40 @@
 #include "pcm_profiler.h"
 
-PCM_Profiler::PCM_Profiler{
+PCM_Profiler::PCM_Profiler(){
     startPowerState = nullptr;
     endPowerState = nullptr;
 }
 
-PCM_Profiler::~PCM_Profiler{
+PCM_Profiler::~PCM_Profiler(){
     if(startPowerState){
         delete[] startPowerState;
     }
     if(endPowerState){
         delete[] endPowerState;
     }
+
+    delete pcm;
 }
 
-MeasurmentCapabilities PCM_Profiler::findMeasurementCapabilities(){
-    MeasurmentCapabilities capabilities;
+MeasurementCapabilities PCM_Profiler::findMeasurementCapabilities(){
+    MeasurementCapabilities capabilities;
     //For now, attempts to collect DRAM statistics but does not check if valid results returned
 
     //TODO: Could be expanded in future Intel chips.  This is what the PCM driver provides as of 2018
 
-    capabilities.measurmentCapabilities[MeasurmentType::AVG_FREQ] = {HW_Granularity::CORE};
-    capabilities.measurmentCapabilities[MeasurmentType::AVG_ACTIVE_FREQ] = {HW_Granularity::CORE};
-    capabilities.measurmentCapabilities[MeasurmentType::ENERGY_USED_CPU] = {HW_Granularity::SOCKET};
-    capabilities.measurmentCapabilities[MeasurmentType::ENERGY_USED_DRAM] = {HW_Granularity::SOCKET};
+    capabilities.measurementCapabilities[MeasurementType::AVG_FREQ] = {HW_Granularity::CORE};
+    capabilities.measurementCapabilities[MeasurementType::AVG_ACTIVE_FREQ] = {HW_Granularity::CORE};
+    capabilities.measurementCapabilities[MeasurementType::ENERGY_USED_CPU] = {HW_Granularity::SOCKET};
+    capabilities.measurementCapabilities[MeasurementType::ENERGY_USED_DRAM] = {HW_Granularity::SOCKET};
+
+    return capabilities;
 };
 
 bool PCM_Profiler::checkProfiler(){
     CPUVendor cpuVendor = findCPUVendor();
     OS os = findOS();
 
-    if(cpuVendor == CPUVendor::INTEL && (os == OS::LINUX || os == OS::MACOS || os = OS::WINDOWS)){
+    if(cpuVendor == CPUVendor::INTEL && (os == OS::LINUX || os == OS::MACOS || os == OS::WINDOWS)){
         return true;
     }
 
@@ -55,7 +59,7 @@ void PCM_Profiler::init()
     // }
 
     //m->allowMultipleInstances();
-    m->disableJKTWorkaround();
+    pcm->disableJKTWorkaround();
 
     //Configure PCM
     const int cpu_model = pcm->getCPUModel();
@@ -110,6 +114,7 @@ void PCM_Profiler::startTrialPowerProfile() {
 
 void PCM_Profiler::endTrialPowerProfile() {
     //Get CPU Core/Socket/Power States
+    int sockets = pcm->getNumSockets();
     pcm->getAllCounterStates(endSstate, endSktstate, endCstates);
     for (int i = 0; i < sockets; i++)
         endPowerState[i] = pcm->getServerUncorePowerState(i);
@@ -121,35 +126,40 @@ void PCM_Profiler::interTrialReset() {
 
 TrialResult PCM_Profiler::computeTrialResult(){
     //At the superclass level, we compute the durations
-    TrialResult result = Profiler.computeTrialResult();
+    TrialResult result = Profiler::computeTrialResult();
 
-    //Compute the trial result for the measurments
+    //Compute the trial result for the measurements
     int cores = pcm->getNumCores();
     int sockets = pcm->getNumSockets();
 
-    std::vector<Measurment> avgCPUFreq;
-    std::vector<Measurment> avgActiveCPUFreq;
+    std::vector<Measurement> avgCPUFreq;
+    std::vector<Measurement> avgActiveCPUFreq;
 
     for(int i = 0; i<cores; i++)
     {  
-        avgCPUFreq.push_back(Measurment(i, Unit(BaseUnit::HERTZ, 0), getAverageFrequency(startCstates[i], endCstates[i]));
-        avgActiveCPUFreq.push_back(Measurment(i, Unit(BaseUnit::HERTZ, 0), getActiveAverageFrequency(startCstates[i], endCstates[i])_;
+        avgCPUFreq.push_back(Measurement(i, Unit(BaseUnit::HERTZ, 0), getAverageFrequency(startCstates[i], endCstates[i])));
+        avgActiveCPUFreq.push_back(Measurement(i, Unit(BaseUnit::HERTZ, 0), getActiveAverageFrequency(startCstates[i], endCstates[i])));
     }
 
-    result.measurments[MeasurmentType::AVG_FREQ][HW_Granularity::CORE] = avgCPUFreq;
-    result.measurments[MeasurmentType::AVG_ACTIVE_FREQ][HW_Granularity::CORE] = avgActiveCPUFreq;
+    result.measurements[MeasurementType::AVG_FREQ][HW_Granularity::CORE] = avgCPUFreq;
+    result.measurements[MeasurementType::AVG_ACTIVE_FREQ][HW_Granularity::CORE] = avgActiveCPUFreq;
 
-    std::vector<Measurment> energyCPUUsed;
-    std::vector<Measurment> energyDRAMUsed;
-    std::vector<Measurment> startPackageThermalHeadroom;
-    std::vector<Measurment> endPackageThermalHeadroom;
+    std::vector<Measurement> energyCPUUsed;
+    std::vector<Measurement> energyDRAMUsed;
+    std::vector<Measurement> startPackageThermalHeadroom;
+    std::vector<Measurement> endPackageThermalHeadroom;
     for(int i = 0; i<sockets; i++)
     {
-        energyCPUUsed.push_back(i, Unit(BaseUnit::JOULE, 0), getConsumedJoules(startPowerState[i], endPowerState[i]));
-        energyDRAMUsed.push_back(i, Unit(BaseUnit::JOULE, 0), getDRAMConsumedJoules(startPowerState[i], endPowerState[i]);
-        startPackageThermalHeadroom[i] = startPowerState[i].getPackageThermalHeadroom();
-        endPackageThermalHeadroom[i] = endPowerState[i].getPackageThermalHeadroom();
+        energyCPUUsed.push_back(Measurement(i, Unit(BaseUnit::JOULE, 0), getConsumedJoules(startPowerState[i], endPowerState[i])));
+        energyDRAMUsed.push_back(Measurement(i, Unit(BaseUnit::JOULE, 0), getDRAMConsumedJoules(startPowerState[i], endPowerState[i])));
+        startPackageThermalHeadroom.push_back(Measurement(i, Unit(BaseUnit::DEG_CELSIUS, 0), startPowerState[i].getPackageThermalHeadroom()));
+        endPackageThermalHeadroom.push_back(Measurement(i, Unit(BaseUnit::DEG_CELSIUS, 0), endPowerState[i].getPackageThermalHeadroom()));
     }
+
+    result.measurements[MeasurementType::ENERGY_USED_CPU][HW_Granularity::SOCKET] = energyCPUUsed;
+    result.measurements[MeasurementType::ENERGY_USED_DRAM][HW_Granularity::SOCKET] = energyDRAMUsed;
+    result.measurements[MeasurementType::THERMAL_HEADROOM_START][HW_Granularity::SOCKET] = startPackageThermalHeadroom;
+    result.measurements[MeasurementType::THERMAL_HEADROOM_STOP][HW_Granularity::SOCKET] = endPackageThermalHeadroom;
 
     return result;
 };
@@ -165,7 +175,7 @@ bool PCM_Profiler::checkFreqChanged()
     bool freq_changed = false;
     for(int i = 0; i < sockets; i++)
     {
-        int freq_change_events = getPCUCounter(1, startStates[i], endStates[i]);
+        int freq_change_events = getPCUCounter(1, startPowerState[i], endPowerState[i]);
         if(freq_change_events > 0)
         {
             freq_changed = true;
@@ -178,4 +188,8 @@ bool PCM_Profiler::checkFreqChanged()
     }
 
     return freq_changed;
+}
+
+std::string PCM_Profiler::profilerName(){
+    return "PCM";
 }

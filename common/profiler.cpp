@@ -1,16 +1,20 @@
 #include "profiler.h"
 #include <cpuid.h>
-#include "ia32intrin.h"
+#include <x86intrin.h>
 #include <cstdio>
 #include <regex>
 
 #include "pcm_profiler.h"
+#include "generic_profiler.h"
+
+CPUInfo::CPUInfo() : cpu(0), core(0), die(0), socket(0){
+}
 
 CPUInfo::CPUInfo(int cpu, int core, int die, int socket) : cpu(cpu), core(core), die(die), socket(socket){
 }
 
 Profiler::Profiler(){
-
+    cpuTopology = Profiler::getCPUTopology();
 }
 
 Profiler::~Profiler(){
@@ -30,9 +34,9 @@ Profiler::CPUVendor Profiler::findCPUVendor(){
         }else if(ebx == signature_INTEL_ebx && ecx == signature_INTEL_ecx && edx == signature_INTEL_edx){
             return Profiler::CPUVendor::INTEL;
         }
-    }else{
-        return Profiler::CPUVendor::UNKNOWN;
     }
+
+    return Profiler::CPUVendor::UNKNOWN;
 }
 
 std::string Profiler::findCPUModelStr(){
@@ -132,13 +136,13 @@ Profiler* Profiler::ProfilerFactory(bool usePerformanceCounters){
         }else if(cpuVendor == CPUVendor::AMD){
             //TODO implement
             std::cerr << "Performance Counter Support is not yet Implemented for AMD" << std::endl;
-            profiler = new Profiler();
+            profiler = new GenericProfiler();
         }else{
             std::cerr << "Performance Counter Support is not Implemented for this Vendor" << std::endl;
-            profiler = new Profiler();
+            profiler = new GenericProfiler();
         }
     }else{
-        profiler = new Profiler();
+        profiler = new GenericProfiler();
     }
 
     return profiler;

@@ -3,6 +3,7 @@
 
     #include <vector>
     #include <map>
+    #include <string>
 
     enum class HW_Granularity{
         SYSTEM, ///<Can measure at the global system level
@@ -51,19 +52,19 @@
     };
 
     const std::vector<MeasurementType> DEFAULT_REPORT_TYPE_LIST = {MeasurementType::AVG_FREQ, 
-                                                                  MeasurementType::AVG_ACTIVE_FREQ, 
-                                                                  MeasurementType::ENERGY_USED_CPU,
-                                                                  MeasurementType::ENERGY_USED_DRAM,
-                                                                  MeasurementType::AVG_PWR_CPU,
-                                                                  MeasurementType::AVG_PWR_DRAM,
-                                                                  MeasurementType::VOLTAGE_CPU,
-                                                                  MeasurementType::VOLTAGE_IO,
-                                                                  MeasurementType::TEMPERATURE_CPU_START,
-                                                                  MeasurementType::TEMPERATURE_CPU_STOP,
-                                                                  MeasurementType::TEMPERATURE_DRAM_START,
-                                                                  MeasurementType::TEMPERATURE_DRAM_STOP,
-                                                                  MeasurementType::THERMAL_HEADROOM_START,
-                                                                  MeasurementType::THERMAL_HEADROOM_STOP};
+                                                                   MeasurementType::AVG_ACTIVE_FREQ, 
+                                                                   MeasurementType::ENERGY_USED_CPU,
+                                                                   MeasurementType::ENERGY_USED_DRAM,
+                                                                   MeasurementType::AVG_PWR_CPU,
+                                                                   MeasurementType::AVG_PWR_DRAM,
+                                                                   MeasurementType::VOLTAGE_CPU,
+                                                                   MeasurementType::VOLTAGE_IO,
+                                                                   MeasurementType::TEMPERATURE_CPU_START,
+                                                                   MeasurementType::TEMPERATURE_CPU_STOP,
+                                                                   MeasurementType::TEMPERATURE_DRAM_START,
+                                                                   MeasurementType::TEMPERATURE_DRAM_STOP,
+                                                                   MeasurementType::THERMAL_HEADROOM_START,
+                                                                   MeasurementType::THERMAL_HEADROOM_STOP};
 
     const std::vector<HW_Granularity> DEFAULT_GRANULARITY_LIST = {HW_Granularity::SYSTEM, 
                                                                   HW_Granularity::SOCKET,
@@ -81,24 +82,24 @@
         bool operator==(const Unit &rhs) const;
     };
 
-    class Measurment{
+    class Measurement{
         public:
         int32_t index; ///< The index of the unit this measurement is taken from.  Pertains to HW_Granulatity. With HW_Granulatity CORE, index 0 refers to core 0
         Unit unit; ///< The unit of the measurement
         std::vector<double> measurement; ///<A vector of values for this measurement.  Can possibly contain multiple values if sampled
-        std::vector<double> deltaT; ///A vector of the time deltas between measurments (if sampling was used)
+        std::vector<double> deltaT; ///A vector of the time deltas between measurements (if sampling was used)
 
-        Measurment();
-        Measurment(int32_t index, Unit unit, double measurment);
-        Measurment(int32_t index, Unit unit, const std::vector<double> &measurment, const std::vector<double> &deltaT);
+        Measurement();
+        Measurement(int32_t index, Unit unit, double measurement);
+        Measurement(int32_t index, Unit unit, const std::vector<double> &measurement, const std::vector<double> &deltaT);
     };
 
-    class MeasurmentCapabilities{
+    class MeasurementCapabilities{
         public:
         //All benchmarks need the ability to time
 
         //Benchmarks can be present at multiple levels (ex. energy use may be availible at the socket, die, and )
-        std::map<MeasurementType, std::vector<HW_Granularity>> measurmentCapabilities;
+        std::map<MeasurementType, std::vector<HW_Granularity>> measurementCapabilities;
     };
 
 #endif

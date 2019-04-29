@@ -22,7 +22,7 @@ APPLE_DRIVER =
 endif
 
 LIB_NAME = libpcmHelper.a
-SRCS = pcm_helper.cpp results.cpp
+SRCS = pcm_helper.cpp profiler.cpp generic_profiler.cpp pcm_profiler.cpp results.cpp measurement.cpp 
 LIB_SRCS = 
 
 SRCS+=$(LIB_SRCS)

@@ -8,9 +8,6 @@
     #include "results.h"
     #include "measurement.h"
 
-    //Forward declaration of derived classes (used in factory)
-    class PCM_Profiler;
-
     // //Only include PCM headers if PCM is used
     // #if USE_PCM == 1
     //     #include "cpucounters.h"
@@ -26,18 +23,21 @@
         int die; //Also "numa"
         int socket;
 
+        CPUInfo();
         CPUInfo(int cpu, int core, int die, int socket);
     };
 
     //This class describes a generic profiler which replaces calls to specific profiler libraries (such as PCM or AMDuProf)
     class Profiler{
-        private:
+        protected:
         std::chrono::high_resolution_clock::time_point start_hrc;
         std::chrono::high_resolution_clock::time_point stop_hrc;
         clock_t start_clock;
         clock_t stop_clock;
         uint64_t start_rdtsc;
         uint64_t stop_rdtsc;
+
+        std::map<int, CPUInfo> cpuTopology;
 
         public:
         enum class CPUVendor{
@@ -77,8 +77,10 @@
         Profiler();
         ~Profiler();
 
+        virtual std::string profilerName() = 0;
+
         virtual bool checkProfiler() = 0; ///<Check that the profiler (subclass) works on the given processor and OS
-        virtual MeasurmentCapabilities findMeasurementCapabilities() = 0; ///<Determine what can be measured
+        virtual MeasurementCapabilities findMeasurementCapabilities() = 0; ///<Determine what can be measured
 
         virtual bool isSampling(); ///<Returns true if the driver uses a sampling methodology
         virtual int64_t samplingPeriod(); ///<Returns the sampling period

@@ -54,7 +54,7 @@ std::string MeasurementHelper::MeasurementType_toString(MeasurementType measurem
         case MeasurementType::THERMAL_HEADROOM_STOP:
             return "ThermalHeadroomStop";
         default:
-            throw std::runtime_error("Unknown MeasurmentType");
+            throw std::runtime_error("Unknown MeasurementType");
             return "Unknown";
     }
 }
@@ -141,6 +141,6 @@ bool Unit::operator==(const Unit &rhs) const {
            exponent == rhs.exponent;
 }
 
-Measurment::Measurment():index(-1) {}
-Measurment::Measurment(int32_t index, Unit unit, double measurment) : index(index), unit(unit), measurement({measurement}){}
-Measurment::Measurment(int32_t index, Unit unit, const std::vector<double> &measurment, const std::vector<double> &deltaT) : index(index), unit(unit), measurement(measurement), deltaT(deltaT) {}
+Measurement::Measurement():index(-1) {}
+Measurement::Measurement(int32_t index, Unit unit, double measurement) : index(index), unit(unit), measurement({measurement}){}
+Measurement::Measurement(int32_t index, Unit unit, const std::vector<double> &measurement, const std::vector<double> &deltaT) : index(index), unit(unit), measurement(measurement), deltaT(deltaT) {}

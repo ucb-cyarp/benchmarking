@@ -34,7 +34,7 @@
              * The index pertains to HW_Granulatity. With HW_Granulatity CORE, index 0 refers to core 0.
              * Each measurement can contain multiple samples if a sampling methodology was used.
              */
-            std::map<MeasurementType, std::map<HW_Granularity, std::vector<Measurment>>> measurments;
+            std::map<MeasurementType, std::map<HW_Granularity, std::vector<Measurement>>> measurements;
 
             TrialResult();
 
@@ -81,7 +81,7 @@
             void write_durations(std::ofstream &csv_file, std::string col0_name, int col0_val, bool include_header);
             void write_durations(std::ofstream &csv_file, std::string col0_name, int col0_val, std::string col1_name, int col1_val, bool include_header);
 
-            std::map<MeasurementType, std::map<HW_Granularity, std::map<int, Unit>>> measurmentsAvailUnion(const std::vector<HW_Granularity> granularityToInspect = DEFAULT_GRANULARITY_LIST, const std::vector<MeasurementType> measurementTypeToInspect = DEFAULT_REPORT_TYPE_LIST);
+            std::map<MeasurementType, std::map<HW_Granularity, std::map<int, Unit>>> measurementsAvailUnion(const std::vector<HW_Granularity> granularityToInspect = DEFAULT_GRANULARITY_LIST, const std::vector<MeasurementType> measurementTypeToInspect = DEFAULT_REPORT_TYPE_LIST);
     };
 
     void statistics(std::chrono::duration<double, std::ratio<1, 1000>>* durations, double* durations_clock);
