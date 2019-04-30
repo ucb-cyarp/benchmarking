@@ -68,11 +68,9 @@ void TrialResult::print_trial(const std::vector<HW_Granularity> granularityToPri
     for(unsigned long i = 0; i<measurementTypeToPrint.size(); i++){
         bool foundMeasurement = false;
         for(unsigned long j = 0; j<granularityToPrint.size(); j++){
-            bool searching = true;
-            for(unsigned long k = 0; searching; k++){
-                if(measurements.find(measurementTypeToPrint[i]) != measurements.end() && 
-                    measurements[measurementTypeToPrint[i]].find(granularityToPrint[j]) != measurements[measurementTypeToPrint[i]].end()){
-
+            if(measurements.find(measurementTypeToPrint[i]) != measurements.end() && 
+            measurements[measurementTypeToPrint[i]].find(granularityToPrint[j]) != measurements[measurementTypeToPrint[i]].end()){
+                for(unsigned long k = 0; k<measurements[measurementTypeToPrint[i]][granularityToPrint[j]].size(); k++){
                     if(!foundMeasurement){
                         //Found the first measurement at this granularity, print the section header
                         printf("\n");
@@ -144,11 +142,7 @@ Statistics Results::measurementStats(MeasurementType measurmentType, HW_Granular
         }
 
         //Check for unit change
-        if(avgUnit.baseUnit != filteredMeasurements[i]->unit.baseUnit){
-            throw std::runtime_error("Incompatible unit found when averaging across trials");
-        }
-        bool needsScaling = avgUnit.exponent != filteredMeasurements[i]->unit.exponent;
-        double scaleFactor = needsScaling ? pow(10.0, filteredMeasurements[i]->unit.exponent - avgUnit.exponent) : 1;
+        double scaleFactor = Unit::scaleFactor(filteredMeasurements[i]->unit, avgUnit);
 
         for(unsigned long j = 0; j<filteredMeasurements[i]->measurement.size(); j++){
             sum += scaleFactor*(filteredMeasurements[i]->measurement[j]);
@@ -167,8 +161,7 @@ Statistics Results::measurementStats(MeasurementType measurmentType, HW_Granular
         //Already checked for baseUnit change
 
         //Check for unit change
-        bool needsScaling = avgUnit.exponent != filteredMeasurements[i]->unit.exponent;
-        double scaleFactor = needsScaling ? pow(10.0, filteredMeasurements[i]->unit.exponent - avgUnit.exponent) : 1;
+        double scaleFactor = Unit::scaleFactor(filteredMeasurements[i]->unit, avgUnit);
 
         for(unsigned long j = 0; j<filteredMeasurements[i]->measurement.size(); j++){
             double tmp = scaleFactor*(filteredMeasurements[i]->measurement[j]) - avg;

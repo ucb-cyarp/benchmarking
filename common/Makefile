@@ -6,6 +6,7 @@ SRC_DIR=.
 CXX=g++
 #CXX = $(MPICXX)
 CFLAGS = -O3 -c -g -std=c++11 -march=native -masm=att
+LIB_CFLAGS = -O0 -c -g -std=c++11 -march=native -masm=att
 INC=-I $(DEPENDS_DIR)/pcm
 LIB_DIRS=-L $(DEPENDS_DIR)/pcm
 LIB=-pthread -lrt -lPCM
@@ -22,17 +23,20 @@ APPLE_DRIVER =
 endif
 
 LIB_NAME = libpcmHelper.a
-SRCS = pcm_helper.cpp profiler.cpp generic_profiler.cpp pcm_profiler.cpp results.cpp measurement.cpp 
-LIB_SRCS = 
+SRCS = pcm_helper.cpp results.cpp measurement.cpp 
+LIB_SRCS = profiler.cpp generic_profiler.cpp pcm_profiler.cpp #These files are not optomized since they deal with starting timers and reordering is not desired
 
-SRCS+=$(LIB_SRCS)
 OBJS=$(patsubst %.cpp,$(BUILD_DIR)/%.o,$(SRCS))
+LIB_OBJS=$(patsubst %.cpp,$(BUILD_DIR)/%.o,$(LIB_SRCS))
 
 #Production
 all: $(LIB_NAME)
 
-$(LIB_NAME): $(OBJS) $(APPLE_DRIVER)
-	ar rcs $(LIB_NAME) $(OBJS)
+$(LIB_NAME): $(OBJS) $(LIB_OBJS) $(APPLE_DRIVER)
+	ar rcs $(LIB_NAME) $(OBJS) $(LIB_OBJS)
+
+$(LIB_OBJS): $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)/ $(DEPENDS_DIR)/pcm/Makefile
+	$(CXX) $(LIB_CFLAGS) $(INC) $(DEFINES) -o $@ $<
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)/ $(DEPENDS_DIR)/pcm/Makefile
 	$(CXX) $(CFLAGS) $(INC) $(DEFINES) -o $@ $<

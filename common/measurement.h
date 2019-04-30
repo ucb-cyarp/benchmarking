@@ -80,6 +80,9 @@
         Unit();
         Unit(BaseUnit baseUnit, int32_t exponent);
         bool operator==(const Unit &rhs) const;
+
+        static double scaleFactor(Unit &from, Unit &to);
+        static double scale(Unit &from, Unit &to, double val);
     };
 
     class Measurement{

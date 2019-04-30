@@ -1,4 +1,5 @@
 #include "measurement.h"
+#include <cmath>
 
 std::string MeasurementHelper::HW_Granularity_toString(HW_Granularity granularity){
     switch(granularity){
@@ -139,6 +140,21 @@ Unit::Unit(BaseUnit baseUnit, int32_t exponent) : baseUnit(baseUnit), exponent(e
 bool Unit::operator==(const Unit &rhs) const {
     return baseUnit == rhs.baseUnit &&
            exponent == rhs.exponent;
+}
+
+double Unit::scaleFactor(Unit &from, Unit &to){
+    if(from.baseUnit != to.baseUnit){
+        throw std::runtime_error("Incompatible unit found durring unit conversion");
+    }
+    bool needsScaling = from.exponent != to.exponent;
+    double scaleFactor = needsScaling ? pow(10.0, from.exponent - to.exponent) : 1;
+
+    return scaleFactor;
+}
+
+double Unit::scale(Unit &from, Unit &to, double val){
+    double scaleFactor = Unit::scaleFactor(from, to);
+    return val*scaleFactor;
 }
 
 Measurement::Measurement():index(-1) {}
