@@ -25,6 +25,7 @@
 
 #include <chrono>
 #include <ctime>
+#include <algorithm>
 
 #include "intrin_bench_default_defines.h"
 
