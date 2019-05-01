@@ -53,7 +53,7 @@ std::string timerType_toString(TimerType type){
     }
 }
 
-void writeTimingMeasurementsToCSV(TimerType timerType, bool frequency, FILE* csv_file, std::map<std::string, std::map<std::string, Results*>*> &kernel_results, std::vector<std::string> &datatypes){
+void writeTimingMeasurementsToCSV(TimerType timerType, bool frequency, FILE* csv_file, std::map<std::string, std::map<std::string, Results*>*> &kernel_results, std::vector<std::string> &kernels, std::vector<std::string> &types){
     for(size_t i = 0; i<types.size(); i++)
     {
         std::string datatype = types[i];
@@ -142,7 +142,7 @@ void writeTimingMeasurementsToCSV(TimerType timerType, bool frequency, FILE* csv
     }
 }
 
-void writeMeasurementsToCSV(MeasurementType measurementType, HW_Granularity granularity, Unit tgtUnit, FILE* csv_file, Profiler* profiler, std::map<std::string, std::map<std::string, Results*>*> &kernel_results, std::vector<std::string> &types, int ind, bool printStdDev){
+void writeMeasurementsToCSV(MeasurementType measurementType, HW_Granularity granularity, Unit tgtUnit, FILE* csv_file, Profiler* profiler, std::map<std::string, std::map<std::string, Results*>*> &kernel_results, std::vector<std::string> &kernels, std::vector<std::string> &types, int ind, bool printStdDev){
     for(size_t i = 0; i<types.size(); i++)
     {
         std::string datatype = types[i];
@@ -151,7 +151,7 @@ void writeMeasurementsToCSV(MeasurementType measurementType, HW_Granularity gran
         if(i == 0)
         {
             std::string unitStr = MeasurementHelper::exponentAbrev(tgtUnit.exponent)+MeasurementHelper::BaseUnit_abrev(tgtUnit.baseUnit);
-            fprintf(csv_file, "\"%s Normalized to 1 Sample (%s) - %s[%d]:\",\"%s\"", MeasurementHelper::MeasurementType_toString(type).c_str(), unitStr.c_str(), MeasurementHelper::HW_Granularity_toString(granularity).c_str(), ind, datatype.c_str());
+            fprintf(csv_file, "\"%s Normalized to 1 Sample (%s) - %s[%d]:\",\"%s\"", MeasurementHelper::MeasurementType_toString(measurementType).c_str(), unitStr.c_str(), MeasurementHelper::HW_Granularity_toString(granularity).c_str(), ind, datatype.c_str());
         }
         else
         {
@@ -179,9 +179,9 @@ void writeMeasurementsToCSV(MeasurementType measurementType, HW_Granularity gran
                 }
                 else
                 {
-                    Statistics stats = result_it->second->measurementStats(measurmentType, granularity, index, true); //TODO: treating as lumped for now.  Re-evaluate later
+                    Statistics stats = result_it->second->measurementStats(measurementType, granularity, ind, true); //TODO: treating as lumped for now.  Re-evaluate later
                     if(stats.valid){
-                        double mean = stats.mean;
+                        double mean = stats.avg;
                         double scaled_mean = Unit::scale(stats.unit, tgtUnit, mean)/STIM_LEN;
 
                         if(printStdDev){
@@ -203,16 +203,16 @@ void writeMeasurementsToCSV(MeasurementType measurementType, HW_Granularity gran
     }
 }
 
-void writeMeasurementsToCSV(MeasurementType measurementType, Unit tgtUnit, FILE* csv_file, Profiler* profiler, std::map<std::string, std::map<std::string, Results*>*> &kernel_results, std::vector<std::string> &types, int cpu, bool printStdDev, std::vector<HW_Granularity> granularities){
+void writeMeasurementsToCSV(MeasurementType measurementType, Unit tgtUnit, FILE* csv_file, Profiler* profiler, std::map<std::string, std::map<std::string, Results*>*> &kernel_results, std::vector<std::string> &kernels, std::vector<std::string> &types, int cpu, bool printStdDev, std::vector<HW_Granularity> granularities){
     if(!profiler->cpuTopology.empty()){
-        core = profiler->cpuTopology[cpu].core;
-        die = profiler->cpuTopology[cpu].die;
-        socket = profiler->cpuTopology[cpu].socket;
+        int core = profiler->cpuTopology[cpu].core;
+        int die = profiler->cpuTopology[cpu].die;
+        int socket = profiler->cpuTopology[cpu].socket;
 
         MeasurementCapabilities capabilities = profiler->findMeasurementCapabilities();
 
         for(unsigned long i = 0; i<granularities.size(); i++){
-            if(capabilities.find(measurementType) != capabilities.end() && capabilities.measurementCapabilities[measurementType].find(granularities[i]) != capabilities.measurementCapabilities[measurementType].end()){
+            if(capabilities.measurementCapabilities.find(measurementType) != capabilities.measurementCapabilities.end() && std::find(capabilities.measurementCapabilities[measurementType].begin(), capabilities.measurementCapabilities[measurementType].end(), granularities[i]) != capabilities.measurementCapabilities[measurementType].end()){
                 int ind;
                 if(granularities[i] == HW_Granularity::SYSTEM){
                     ind = 0;
@@ -224,7 +224,7 @@ void writeMeasurementsToCSV(MeasurementType measurementType, Unit tgtUnit, FILE*
                     ind = core;
                 }
 
-                writeMeasurementsToCSV(measurementType, granularities[i], tgtUnit, csv_file, profiler, kernel_results, types, ind, printStdDev);
+                writeMeasurementsToCSV(measurementType, granularities[i], tgtUnit, csv_file, profiler, kernel_results, kernels, types, ind, printStdDev);
             }
         }
     }else{
@@ -232,19 +232,23 @@ void writeMeasurementsToCSV(MeasurementType measurementType, Unit tgtUnit, FILE*
         MeasurementCapabilities capabilities = profiler->findMeasurementCapabilities();
 
         for(unsigned long i = 0; i<granularities.size(); i++){
-            if(capabilities.find(measurementType) != capabilities.end() && capabilities.measurementCapabilities[measurementType].find(granularities[i]) != capabilities.measurementCapabilities[measurementType].end()){
+            if(capabilities.measurementCapabilities.find(measurementType) != capabilities.measurementCapabilities.end() && std::find(capabilities.measurementCapabilities[measurementType].begin(), capabilities.measurementCapabilities[measurementType].end(), granularities[i]) != capabilities.measurementCapabilities[measurementType].end()){
                 bool size = 0;
 
-                //Check all of the types to see what the max number of indexes for the granularity are
-                for(unsigned long l = 0; l<types.size(); l++){
-                    if(kernel_results.find(types[l]) != kernel_results.end()){
-                        int size_temp = kernel_results[types[l]][measurementType][granularities[i]].size();
-                        size = size_temp>size ? size_temp, size;
-                    }
-                }
+                for(unsigned long j = 0; j<kernels.size(); j++){
+                    if(kernel_results.find(kernels[j]) != kernel_results.end()){
+                        //Check all of the types to see what the max number of indexes for the granularity are
+                        for(unsigned long l = 0; l<types.size(); l++){
+                            if(kernel_results[kernels[j]]->find(types[l]) != kernel_results[kernels[j]]->end()){
+                                int size_temp = (*kernel_results[kernels[j]])[types[l]]->trial_results[0].measurements[measurementType][granularities[i]].size();
+                                size = size_temp>size ? size_temp : size;
+                            }
+                        }
 
-                for(unsigned long k = 0; k<size; k++){
-                    writeMeasurementsToCSV(measurementType, granularities[i], tgtUnit, csv_file, profiler, kernel_results, types, k, printStdDev);
+                        for(unsigned long k = 0; k<size; k++){
+                            writeMeasurementsToCSV(measurementType, granularities[i], tgtUnit, csv_file, profiler, kernel_results, kernels, types, k, printStdDev);
+                        }
+                    }
                 }
             }
         }
@@ -267,7 +271,7 @@ void* run_benchmarks(void* cpu_num)
 
     #if PRINT_TITLE == 1
     printf("\n");
-    printf("****** Profiler Used: %s ******\n", profiler.profilerName().c_str());
+    printf("****** Profiler Used: %s ******\n", profiler->profilerName().c_str());
     #endif
 
     #if PRINT_TITLE == 1
@@ -282,13 +286,13 @@ void* run_benchmarks(void* cpu_num)
     int die = 0;
     int core = 0;
     int reportFilter = false;
-    if(topo.empty()){
+    if(profiler->cpuTopology.empty()){
         std::cerr << "Unable to get CPU Topology from lscpu.  Reported Socket, Die/NUMA, and Core Numbers Will Be Inaccurate." << std::endl;
         std::cerr << "Results will not be filtered accoring to socket, die/NUMA, and core numbers." << std::endl;
     }else{
-        socket = profiler.cpuTopology[*cpu_num_int].socket;
-        die = profiler.cpuTopology[*cpu_num_int].die;
-        core = profiler.cpuTopology[*cpu_num_int].core;
+        socket = profiler->cpuTopology[*cpu_num_int].socket;
+        die = profiler->cpuTopology[*cpu_num_int].die;
+        core = profiler->cpuTopology[*cpu_num_int].core;
     }
 
     #if PRINT_TITLE == 1
@@ -354,18 +358,18 @@ void* run_benchmarks(void* cpu_num)
 
     //======Print table======
     //Print Rate (Ms/s)
-    writeTimingMeasurementsToCSV(TimerType::HRC,   true,  csv_file, kernel_results, types);
-    writeTimingMeasurementsToCSV(TimerType::HRC,   false, csv_file, kernel_results, types);
-    writeTimingMeasurementsToCSV(TimerType::CLOCK, true,  csv_file, kernel_results, types);
-    writeTimingMeasurementsToCSV(TimerType::CLOCK, false, csv_file, kernel_results, types);
-    writeTimingMeasurementsToCSV(TimerType::RDTSC, true,  csv_file, kernel_results, types);
-    writeTimingMeasurementsToCSV(TimerType::RDTSC, false, csv_file, kernel_results, types);
+    writeTimingMeasurementsToCSV(TimerType::HRC,   true,  csv_file, kernel_results, kernels, types);
+    writeTimingMeasurementsToCSV(TimerType::HRC,   false, csv_file, kernel_results, kernels, types);
+    writeTimingMeasurementsToCSV(TimerType::CLOCK, true,  csv_file, kernel_results, kernels, types);
+    writeTimingMeasurementsToCSV(TimerType::CLOCK, false, csv_file, kernel_results, kernels, types);
+    writeTimingMeasurementsToCSV(TimerType::RDTSC, true,  csv_file, kernel_results, kernels, types);
+    writeTimingMeasurementsToCSV(TimerType::RDTSC, false, csv_file, kernel_results, kernels, types);
 
     //Print Energy Use Normalized to 1 Sample (nJ)
-    writeMeasurementsToCSV(MeasurementType::ENERGY_USED_CPU, Unit(BaseUnit::JOULE, -9), csv_file, profiler, kernel_results, types, *cpu_num_int, true);
+    writeMeasurementsToCSV(MeasurementType::ENERGY_USED_CPU, Unit(BaseUnit::JOULE, -9), csv_file, profiler, kernel_results, kernels, types, *cpu_num_int, true);
 
     //Print Clk Frequency (MHz)
-    writeMeasurementsToCSV(MeasurementType::AVG_FREQ, Unit(BaseUnit::HERTZ, 6), csv_file, profiler, kernel_results, types, *cpu_num_int, false);
+    writeMeasurementsToCSV(MeasurementType::AVG_FREQ, Unit(BaseUnit::HERTZ, 6), csv_file, profiler, kernel_results, kernels, types, *cpu_num_int, false);
 
     //Close report file
     fclose(csv_file);
@@ -377,8 +381,7 @@ void* run_benchmarks(void* cpu_num)
 
         for (std::map<std::string, Results*>::iterator sub_it = sub_result->begin(); sub_it != sub_result->end(); sub_it++)
         {
-            sub_it->second->delete_results();
-            delete sub_it->second;
+            delete sub_it->second; //Delete the result which was stored in the heap
         }
 
         delete it->second;

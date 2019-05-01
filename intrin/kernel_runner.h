@@ -8,23 +8,23 @@
     //Define some helper functions to be inlined
 
     //Check for frequency change events.  Discards sample if freq change event occured.  If not, adds result to results.  Prepares for next run in either case
-    inline bool processTrialAndPrepareForNextHelper(Profiler* profiler, Results* results, TrialResult* trial_result, int* trial, int* discard_count){
+    inline bool processTrialAndPrepareForNextHelper(Profiler* profiler, Results &results, TrialResult &trial_result, int* trial, int* discard_count){
             bool freq_change_events_occured = profiler->detectsFreqChange() ? profiler->checkFreqChanged() : false;
             //Proceed if no freq changes occured
-            if(trial_results != NULL)
+            if(!freq_change_events_occured)
             {
                 trial++;
-                results->add_trial(trial_result);
-                discard_count=0;
+                results.add_trial(trial_result);
+                *discard_count=0;
             }
             else
             {
-                discard_count++;
+                (*discard_count)++;
                 #if PRINT_FREQ_CHANGE_EVENT == 1
                     printf("Discarding Run\n");
                 #endif
 
-                if(discard_count >= MAX_DISCARD-1)
+                if(*discard_count >= MAX_DISCARD-1)
                 {
                     #if PRINT_FREQ_CHANGE_EVENT == 1
                         printf("Max Discards Reached ... Exiting\n");
@@ -38,24 +38,22 @@
             return freq_change_events_occured;
     }
 
-    inline void printTrial(TrialResult* trial_result){
+    inline void printTrial(TrialResult &trial_result){
         #if PRINT_TRIALS == 1
-            if(trial_result != NULL){
-                trial_result->print_trial();
-            }
+            trial_result->print_trial();
         #endif 
     }
 
-    inline void printStats(Profiler* profiler, Results* results){
+    inline void printStats(Profiler* profiler, Results* results, int cpu_num){
         #if PRINT_STATS == 1
-        int socket = profiler.cpuTopology[cpu_num].socket;
-        int die = profiler.cpuTopology[cpu_num].die;
-        int core = profiler.cpuTopology[cpu_num].core;
+        int socket = profiler->cpuTopology[cpu_num].socket;
+        int die = profiler->cpuTopology[cpu_num].die;
+        int core = profiler->cpuTopology[cpu_num].core;
 
-        if(profiler.cpuTopology.empty()){
+        if(profiler->cpuTopology.empty()){
             results->print_statistics(STIM_LEN);
         }else{
-            results->print_statistics(socket, die, core, cpu_num, STIM_LEN);
+            results->print_statistics(socket, die, core, STIM_LEN);
         }
         #endif
     }
@@ -85,12 +83,12 @@
 
             profiler->endTrial();
             
-            TrialResult* trial_result = profiler->computeTrialResultAndAddToResults();
+            TrialResult trial_result = profiler->computeTrialResult();
             printTrial(trial_result);
-            processTrialAndPrepareForNextHelper(profiler, results, trial_result, &trial, &discard_count);
+            processTrialAndPrepareForNextHelper(profiler, *results, trial_result, &trial, &discard_count);
         }
 
-        printStats(profiler, results);
+        printStats(profiler, results, cpu_num);
         
         return results;
     }
@@ -120,14 +118,14 @@
 
             profiler->endTrial();
             
-            TrialResult* trial_result = profiler->computeTrialResultAndAddToResults();
+            TrialResult trial_result = profiler->computeTrialResult();
             printTrial(trial_result);
-            processTrialAndPrepareForNextHelper(profiler, results, trial_result, &trial, &discard_count);
+            processTrialAndPrepareForNextHelper(profiler, *results, trial_result, &trial, &discard_count);
 
             _mm_free(a);
         }
 
-        printStats(profiler, results);
+        printStats(profiler, results, cpu_num);
         
         return results;
     }
@@ -159,15 +157,15 @@
 
             profiler->endTrial();
             
-            TrialResult* trial_result = profiler->computeTrialResultAndAddToResults();
+            TrialResult trial_result = profiler->computeTrialResult();
             printTrial(trial_result);
-            processTrialAndPrepareForNextHelper(profiler, results, trial_result, &trial, &discard_count);
+            processTrialAndPrepareForNextHelper(profiler, *results, trial_result, &trial, &discard_count);
 
             _mm_free(a);
             _mm_free(b);
         }
 
-        printStats(profiler, results);
+        printStats(profiler, results, cpu_num);
         
         return results;
     }
@@ -194,23 +192,23 @@
             VecType* b_vec = (VecType * ) b;
             VecType* c_vec = (VecType * ) c;
 
-            profiler->startTrial(a_vec, b_vec, c_vec);
+            profiler->startTrial();
 
             //Run Kernel
-            kernel_fun();
+            kernel_fun(a_vec, b_vec, c_vec);
 
             profiler->endTrial();
             
-            TrialResult* trial_result = profiler->computeTrialResultAndAddToResults();
+            TrialResult trial_result = profiler->computeTrialResult();
             printTrial(trial_result);
-            processTrialAndPrepareForNextHelper(profiler, results, trial_result, &trial, &discard_count);
+            processTrialAndPrepareForNextHelper(profiler, *results, trial_result, &trial, &discard_count);
 
             _mm_free(a);
             _mm_free(b);
             _mm_free(c);
         }
 
-        printStats(profiler, results);
+        printStats(profiler, results, cpu_num);
         
         return results;
     }
@@ -239,16 +237,16 @@
             VecType* c_vec = (VecType * ) c;
             VecType* d_vec = (VecType * ) d;
 
-            profiler->startTrial(a_vec, b_vec, c_vec, d_vec);
+            profiler->startTrial();
 
             //Run Kernel
-            kernel_fun();
+            kernel_fun(a_vec, b_vec, c_vec, d_vec);
 
             profiler->endTrial();
             
-            TrialResult* trial_result = profiler->computeTrialResultAndAddToResults();
+            TrialResult trial_result = profiler->computeTrialResult();
             printTrial(trial_result);
-            processTrialAndPrepareForNextHelper(profiler, results, trial_result, &trial, &discard_count);
+            processTrialAndPrepareForNextHelper(profiler, *results, trial_result, &trial, &discard_count);
 
             _mm_free(a);
             _mm_free(b);
@@ -256,7 +254,7 @@
             _mm_free(d);
         }
 
-        printStats(profiler, results);
+        printStats(profiler, results, cpu_num);
         
         return results;
     }
@@ -290,16 +288,16 @@
 
             profiler->endTrial();
             
-            TrialResult* trial_result = profiler->computeTrialResultAndAddToResults();
+            TrialResult trial_result = profiler->computeTrialResult();
             printTrial(trial_result);
-            processTrialAndPrepareForNextHelper(profiler, results, trial_result, &trial, &discard_count);
+            processTrialAndPrepareForNextHelper(profiler, *results, trial_result, &trial, &discard_count);
 
             _mm_free(a);
             _mm_free(b);
             _mm_free(c);
         }
 
-        printStats(profiler, results);
+        printStats(profiler, results, cpu_num);
         
         return results;
     }
@@ -337,15 +335,15 @@
 
             profiler->endTrial();
             
-            TrialResult* trial_result = profiler->computeTrialResultAndAddToResults();
+            TrialResult trial_result = profiler->computeTrialResult();
             printTrial(trial_result);
-            processTrialAndPrepareForNextHelper(profiler, results, trial_result, &trial, &discard_count);
+            processTrialAndPrepareForNextHelper(profiler, *results, trial_result, &trial, &discard_count);
 
             _mm_free(in_mem);
             _mm_free(out_mem);
         }
 
-        printStats(profiler, results);
+        printStats(profiler, results, cpu_num);
         
         return results;
     }

@@ -181,6 +181,13 @@ TrialResult* Results::add_trial(TrialResult &trial)
     return &trial_results[trial_results.size()-1];
 }
 
+TrialResult* Results::add_trial_set_trialInd(TrialResult &trial)
+{
+    trial.trial = trial_results.size();
+    trial_results.push_back(trial);
+    return &trial_results[trial_results.size()-1];
+}
+
 double Results::avg_duration()
 {
     size_t trials = trial_results.size();

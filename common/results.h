@@ -59,6 +59,7 @@
 
             Results();
 
+            TrialResult* add_trial_set_trialInd(TrialResult &trial);
             TrialResult* add_trial(TrialResult &trial);
 
             double avg_duration();
@@ -75,7 +76,7 @@
             void print_statistics(int socket, int dies, int core, int stim_len, const std::vector<HW_Granularity> granularityToPrint = DEFAULT_GRANULARITY_LIST, const std::vector<MeasurementType> measurementTypeToPrint = DEFAULT_REPORT_TYPE_LIST);
             void print_statistics(std::vector<int> socket, std::vector<int> dies, std::vector<int> cores, int stim_len, const std::vector<HW_Granularity> granularityToPrint = DEFAULT_GRANULARITY_LIST, const std::vector<MeasurementType> measurementTypeToPrint = DEFAULT_REPORT_TYPE_LIST);
             void print_statistics(std::set<int> socket, std::set<int> dies, std::set<int> cores, int stim_len, const std::vector<HW_Granularity> granularityToPrint = DEFAULT_GRANULARITY_LIST, const std::vector<MeasurementType> measurementTypeToPrint = DEFAULT_REPORT_TYPE_LIST);
-            void print_statistics(int stim_len, const std::vector<HW_Granularity> granularityToPrint, const std::vector<MeasurementType> measurementTypeToPrint);
+            void print_statistics(int stim_len, const std::vector<HW_Granularity> granularityToPrint = DEFAULT_GRANULARITY_LIST, const std::vector<MeasurementType> measurementTypeToPrint = DEFAULT_REPORT_TYPE_LIST);
             void write_csv(std::ofstream &csv_file, int socket, int core, const std::vector<HW_Granularity> granularityToPrint = DEFAULT_GRANULARITY_LIST, const std::vector<MeasurementType> measurementTypeToPrint = DEFAULT_REPORT_TYPE_LIST);
             void write_csv(std::ofstream &csv_file, int socket, int core, std::string col0_name, int col0_val, const std::vector<HW_Granularity> granularityToPrint = DEFAULT_GRANULARITY_LIST, const std::vector<MeasurementType> measurementTypeToPrint = DEFAULT_REPORT_TYPE_LIST);
             void write_durations(std::ofstream &csv_file, std::string col0_name, int col0_val, bool include_header);

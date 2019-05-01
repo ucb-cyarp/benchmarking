@@ -37,8 +37,6 @@
         uint64_t start_rdtsc;
         uint64_t stop_rdtsc;
 
-        std::map<int, CPUInfo> cpuTopology;
-
         public:
         enum class CPUVendor{
             INTEL, ///<Intel
@@ -61,7 +59,7 @@
             UNKNOWN
         };
 
-        Results results;
+        std::map<int, CPUInfo> cpuTopology;
 
         static CPUVendor findCPUVendor(); ///< Find CPU vendor using CPUID
         static std::string findCPUModelStr(); ///<Find CPU vendor string
@@ -75,7 +73,7 @@
         static Profiler* ProfilerFactory(bool usePerformanceCounters); //Construct Profiler for machine
 
         Profiler();
-        ~Profiler();
+        virtual ~Profiler();
 
         virtual std::string profilerName() = 0;
 
@@ -94,8 +92,7 @@
         virtual void startTrialPowerProfile() = 0; ///<Start a trial (record counter values)
         virtual void endTrialPowerProfile() = 0; ///<End the trial (record counter values)
         virtual void interTrialReset() = 0; ///<Reset between trials (if required)
-        virtual TrialResult computeTrialResult(); ///<Compute the trial result for the last trial
-        virtual TrialResult* computeTrialResultAndAddToResults();///<Compute the trial result and add to the results.  Returns trialResult if added, null otherwise
+        virtual TrialResult computeTrialResult(); ///<Compute the trial result for the last trial.  Warning! Does not set trial index
 
         virtual bool detectsFreqChange() = 0; ///<Returns true if the profiler can detect a frequency change event
         virtual bool checkFreqChanged() = 0; ///<Returs true if the profiler detected a frequency change event in the last trial

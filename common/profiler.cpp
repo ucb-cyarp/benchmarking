@@ -190,9 +190,3 @@ TrialResult Profiler::computeTrialResult(){
 
     return result;
 }
-
-TrialResult* Profiler::computeTrialResultAndAddToResults(){
-    TrialResult result = computeTrialResult();
-    result.trial = results.trial_results.size();
-    return results.add_trial(result);
-}
