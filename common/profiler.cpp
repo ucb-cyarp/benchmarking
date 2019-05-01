@@ -88,7 +88,7 @@ std::map<int, CPUInfo> Profiler::getCPUTopology(){
 
     //Uses the same technique as in common/cpuTopology.py
 
-    FILE* lscpu = popen("lscpu -p=CPU,SOCKET,NUMA,CORE", "r");
+    FILE* lscpu = popen("lscpu -p=CPU,SOCKET,NODE,CORE", "r");
     if(lscpu != NULL){
         char* buffer = new char[2048];
         std::map<int, CPUInfo> topo;

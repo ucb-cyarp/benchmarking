@@ -19,7 +19,7 @@ def getPlatformTopology():
     osType = platform.system()
     if osType == 'Linux':
         
-        lscpu = subprocess.check_output('lscpu -p=CPU,SOCKET,NUMA,CORE', shell=True).decode('utf-8')
+        lscpu = subprocess.check_output('lscpu -p=CPU,SOCKET,NODE,CORE', shell=True).decode('utf-8')
 
         #Parse the output from lscpu which returns CSV entries with columns : Logical CPU#, Socket, Core
         regexp = re.compile('(\\d*),(\\d*),(\\d*),(\\d*)')
