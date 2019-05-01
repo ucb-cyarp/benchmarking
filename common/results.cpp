@@ -64,6 +64,14 @@ TrialResult::TrialResult(){}
 
 void TrialResult::print_trial(const std::vector<HW_Granularity> granularityToPrint, const std::vector<MeasurementType> measurementTypeToPrint)
 {
+    Unit timeOrigUnit(BaseUnit::SECOND, -3); //Orig unit is ms
+    Unit timeTgtUnit(BaseUnit::SECOND, -3);
+    std::string unitStr = MeasurementHelper::exponentAbrev(timeTgtUnit.exponent)+MeasurementHelper::BaseUnit_abrev(timeTgtUnit.baseUnit);
+    printf("         ##### System Trial [%d] Statistics - Timing #####\n", trial);
+    printf("             High Precision Clock Duration (%s): %f\n", unitStr.c_str(), Unit::scale(timeOrigUnit, timeTgtUnit, duration));
+    printf("             Clock Duration (%s): %f\n", unitStr.c_str(), Unit::scale(timeOrigUnit, timeTgtUnit, duration_clock));
+    //printf("             rdtsc Duration (%s): %f\n", unitStr.c_str(), Unit::scale(timeOrigUnit, timeTgtUnit, duration_rdtsc));
+
     //Print Statistics for each level of HW granularity
     for(unsigned long i = 0; i<measurementTypeToPrint.size(); i++){
         bool foundMeasurement = false;
@@ -74,7 +82,7 @@ void TrialResult::print_trial(const std::vector<HW_Granularity> granularityToPri
                     if(!foundMeasurement){
                         //Found the first measurement at this granularity, print the section header
                         printf("\n");
-                        printf("         ##### %s Statistics #####\n", MeasurementHelper::MeasurementType_toString(measurementTypeToPrint[i]).c_str());
+                        printf("         ##### %s Trial [%d] Statistics #####\n", MeasurementHelper::MeasurementType_toString(measurementTypeToPrint[i]).c_str(), trial);
                         foundMeasurement = true;
                     }
                     std::string unitStr = MeasurementHelper::exponentAbrev(measurements[measurementTypeToPrint[i]][granularityToPrint[j]][k].unit.exponent)+MeasurementHelper::BaseUnit_abrev(measurements[measurementTypeToPrint[i]][granularityToPrint[j]][k].unit.baseUnit);

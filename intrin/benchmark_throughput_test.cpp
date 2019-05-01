@@ -362,8 +362,8 @@ void* run_benchmarks(void* cpu_num)
     writeTimingMeasurementsToCSV(TimerType::HRC,   false, csv_file, kernel_results, kernels, types);
     writeTimingMeasurementsToCSV(TimerType::CLOCK, true,  csv_file, kernel_results, kernels, types);
     writeTimingMeasurementsToCSV(TimerType::CLOCK, false, csv_file, kernel_results, kernels, types);
-    writeTimingMeasurementsToCSV(TimerType::RDTSC, true,  csv_file, kernel_results, kernels, types);
-    writeTimingMeasurementsToCSV(TimerType::RDTSC, false, csv_file, kernel_results, kernels, types);
+    //writeTimingMeasurementsToCSV(TimerType::RDTSC, true,  csv_file, kernel_results, kernels, types);
+    //writeTimingMeasurementsToCSV(TimerType::RDTSC, false, csv_file, kernel_results, kernels, types);
 
     //Print Energy Use Normalized to 1 Sample (nJ)
     writeMeasurementsToCSV(MeasurementType::ENERGY_USED_CPU, Unit(BaseUnit::JOULE, -9), csv_file, profiler, kernel_results, kernels, types, *cpu_num_int, true);

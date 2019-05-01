@@ -19,8 +19,8 @@
     class TrialResult
     {
         public:
-            double duration;
-            double duration_clock;
+            double duration; //high resolution clock duration (in ms)
+            double duration_clock; //clock duration (in ms)
             double duration_rdtsc;
 
             int trial;
