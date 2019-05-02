@@ -140,7 +140,9 @@ void PCM_Profiler::endTrialPowerProfile() {
 
 void PCM_Profiler::interTrialReset() {
     delete[] startPowerState;
+    startPowerState = nullptr;
     delete[] endPowerState;
+    endPowerState = nullptr;
 };
 
 TrialResult PCM_Profiler::computeTrialResult(){
