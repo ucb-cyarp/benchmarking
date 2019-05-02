@@ -86,7 +86,7 @@ void TrialResult::print_trial(const std::vector<HW_Granularity> granularityToPri
                         foundMeasurement = true;
                     }
                     std::string unitStr = MeasurementHelper::exponentAbrev(measurements[measurementTypeToPrint[i]][granularityToPrint[j]][k].unit.exponent)+MeasurementHelper::BaseUnit_abrev(measurements[measurementTypeToPrint[i]][granularityToPrint[j]][k].unit.baseUnit);
-                    printf("             %s %s[%2lu] Mean (%s): %f\n", MeasurementHelper::MeasurementType_toString(measurementTypeToPrint[j]).c_str(), MeasurementHelper::HW_Granularity_toString(granularityToPrint[i]).c_str(), k, unitStr.c_str(), average(measurements[measurementTypeToPrint[i]][granularityToPrint[j]][k].measurement));
+                    printf("             %s %s[%2lu] Mean (%s): %f\n", MeasurementHelper::MeasurementType_toString(measurementTypeToPrint[i]).c_str(), MeasurementHelper::HW_Granularity_toString(granularityToPrint[j]).c_str(), k, unitStr.c_str(), average(measurements[measurementTypeToPrint[i]][granularityToPrint[j]][k].measurement));
                 }
             }
         }
