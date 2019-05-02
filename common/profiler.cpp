@@ -97,8 +97,8 @@ std::map<int, CPUInfo> Profiler::getCPUTopology(){
             std::string lscpu_str = std::string(buffer);
 
             std::smatch matches;
-            std::regex fixRegexExpr("(\\d*),(\\d*),(\\d*),(\\d*)");
-            bool fixMatched = std::regex_match(lscpu_str, matches, fixRegexExpr);
+            std::regex csvRegexExpr("[ |\\t]*([0-9]*),([0-9]*),([0-9]*),([0-9]*)[ |\\t|\\r|\\n]*");
+            bool fixMatched = std::regex_match(lscpu_str, matches, csvRegexExpr);
 
             if(fixMatched && matches.size()==5){
                 //Header will not parse but following lines should

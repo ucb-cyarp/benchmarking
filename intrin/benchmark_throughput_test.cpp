@@ -269,6 +269,7 @@ void* run_benchmarks(void* cpu_num)
     #endif
 
     Profiler* profiler = Profiler::ProfilerFactory(USE_PCM);
+    profiler->init();
 
     #if PRINT_TITLE == 1
     printf("\n");

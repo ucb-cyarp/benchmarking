@@ -107,8 +107,11 @@ void PCM_Profiler::init()
 void PCM_Profiler::startTrialPowerProfile() {
     //Get CPU Core/Socket/Power States
     int sockets = pcm->getNumSockets();
-    for (int i = 0; i < sockets; i++)
+    std::cout << "Sockets" << sockets << std::endl;
+    for (int i = 0; i < sockets; i++){
+        std::cout << "Getting" << i << std::endl;
         startPowerState[i] = pcm->getServerUncorePowerState(i);
+    }
     pcm->getAllCounterStates(startSstate, startSktstate, startCstates);
 };
 
@@ -116,8 +119,9 @@ void PCM_Profiler::endTrialPowerProfile() {
     //Get CPU Core/Socket/Power States
     int sockets = pcm->getNumSockets();
     pcm->getAllCounterStates(endSstate, endSktstate, endCstates);
-    for (int i = 0; i < sockets; i++)
+    for (int i = 0; i < sockets; i++){
         endPowerState[i] = pcm->getServerUncorePowerState(i);
+    }
 };
 
 void PCM_Profiler::interTrialReset() {
