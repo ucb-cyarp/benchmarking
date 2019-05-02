@@ -87,6 +87,7 @@
         void endTrialTimer();
 
         virtual void init() = 0; ///<Initialize the profiler lib (if nessisary)
+        virtual void trialSetup() = 0; ///<Setup the profiler for the upcoming trial (if required)
         virtual void startTrial(); ///<Start a trial (record counter values)
         virtual void endTrial(); ///<End the trial (record counter values)
         virtual void startTrialPowerProfile() = 0; ///<Start a trial (record counter values)

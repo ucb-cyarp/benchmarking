@@ -22,6 +22,10 @@ void GenericProfiler::init()
     //No init required
 }
 
+void GenericProfiler::trialSetup(){
+    //No setup required
+}
+
 void GenericProfiler::startTrialPowerProfile() {
     //Does not profile power
 };

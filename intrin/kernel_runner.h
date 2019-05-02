@@ -82,6 +82,7 @@
 
         while(trial<TRIALS)
         {
+            profiler->trialSetup();
             profiler->startTrial();
 
             //Run Kernel
@@ -117,6 +118,7 @@
 
             VecType* a_vec = (VecType * ) a;
 
+            profiler->trialSetup();
             profiler->startTrial();
 
             //Run Kernel
@@ -156,6 +158,7 @@
             VecType* a_vec = (VecType * ) a;
             VecType* b_vec = (VecType * ) b;
 
+            profiler->trialSetup();
             profiler->startTrial();
 
             //Run Kernel
@@ -198,6 +201,7 @@
             VecType* b_vec = (VecType * ) b;
             VecType* c_vec = (VecType * ) c;
 
+            profiler->trialSetup();
             profiler->startTrial();
 
             //Run Kernel
@@ -243,6 +247,7 @@
             VecType* c_vec = (VecType * ) c;
             VecType* d_vec = (VecType * ) d;
 
+            profiler->trialSetup();
             profiler->startTrial();
 
             //Run Kernel
@@ -287,6 +292,7 @@
             KernelType* b_vec = (KernelType * ) b;
             KernelType* c_vec = (KernelType * ) c;
 
+            profiler->trialSetup();
             profiler->startTrial();
 
             //Run Kernel
@@ -334,6 +340,7 @@
                 initInput(in_item, initCounter);
             }
 
+            profiler->trialSetup();
             profiler->startTrial();
 
             //Run Kernel

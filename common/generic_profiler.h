@@ -15,7 +15,7 @@
             bool checkProfiler() override;
 
             void init() override;
-
+            void trialSetup() override;
             void startTrialPowerProfile() override;
             void endTrialPowerProfile() override;
             void interTrialReset() override;

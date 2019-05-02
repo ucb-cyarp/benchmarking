@@ -99,6 +99,10 @@ void PCM_Profiler::init()
 
     pcm->setBlocked(true);
 
+    
+}
+
+void PCM_Profiler::trialSetup(){
     int sockets = pcm->getNumSockets();
     ServerUncorePowerState* startPowerState = new ServerUncorePowerState[sockets];
     ServerUncorePowerState* endPowerState = new ServerUncorePowerState[sockets];
@@ -125,7 +129,8 @@ void PCM_Profiler::endTrialPowerProfile() {
 };
 
 void PCM_Profiler::interTrialReset() {
-    //Nothing special required between trials
+    delete[] startPowerState;
+    delete[] endPowerState;
 };
 
 TrialResult PCM_Profiler::computeTrialResult(){
