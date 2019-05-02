@@ -329,7 +329,7 @@ void Results::print_statistics(std::vector<int> sockets, std::vector<int> dies, 
                 }
                 if(stats.valid){
                     std::string unitStr = MeasurementHelper::exponentAbrev(stats.unit.exponent)+MeasurementHelper::BaseUnit_abrev(stats.unit.baseUnit);
-                    printf("             %s %s[%2d] Mean (%s): %f, Sample Std Dev: %f\n", MeasurementHelper::MeasurementType_toString(measurementTypeToPrint[j]).c_str(), MeasurementHelper::HW_Granularity_toString(granularityToPrint[i]).c_str(), ind_to_search[k], unitStr.c_str(), stats.avg, stats.stdDev);
+                    printf("             %s %s[%2d] Mean (%s): %f, Sample Std Dev: %f\n", MeasurementHelper::MeasurementType_toString(measurementTypeToPrint[i]).c_str(), MeasurementHelper::HW_Granularity_toString(granularityToPrint[j]).c_str(), ind_to_search[k], unitStr.c_str(), stats.avg, stats.stdDev);
                 }
             }
         }
