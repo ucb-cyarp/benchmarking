@@ -18,14 +18,17 @@ PCM_Profiler::~PCM_Profiler(){
 
 MeasurementCapabilities PCM_Profiler::findMeasurementCapabilities(){
     MeasurementCapabilities capabilities;
-    //For now, attempts to collect DRAM statistics but does not check if valid results returned
+    //For now, does not attempt to collect DRAM statistics
+    //Modify init function to change profile to collect DRAM statistics and uncomment capability line below to collect it
 
     //TODO: Could be expanded in future Intel chips.  This is what the PCM driver provides as of 2018
 
     capabilities.measurementCapabilities[MeasurementType::AVG_FREQ] = {HW_Granularity::CORE};
     capabilities.measurementCapabilities[MeasurementType::AVG_ACTIVE_FREQ] = {HW_Granularity::CORE};
     capabilities.measurementCapabilities[MeasurementType::ENERGY_USED_CPU] = {HW_Granularity::SOCKET};
-    capabilities.measurementCapabilities[MeasurementType::ENERGY_USED_DRAM] = {HW_Granularity::SOCKET};
+    //capabilities.measurementCapabilities[MeasurementType::ENERGY_USED_DRAM] = {HW_Granularity::SOCKET};
+    capabilities.measurementCapabilities[MeasurementType::THERMAL_HEADROOM_START] = {HW_Granularity::SOCKET};
+    capabilities.measurementCapabilities[MeasurementType::THERMAL_HEADROOM_STOP] = {HW_Granularity::SOCKET};
 
     return capabilities;
 };
@@ -111,9 +114,7 @@ void PCM_Profiler::trialSetup(){
 void PCM_Profiler::startTrialPowerProfile() {
     //Get CPU Core/Socket/Power States
     int sockets = pcm->getNumSockets();
-    std::cout << "Sockets" << sockets << std::endl;
     for (int i = 0; i < sockets; i++){
-        std::cout << "Getting" << i << std::endl;
         startPowerState[i] = pcm->getServerUncorePowerState(i);
     }
     pcm->getAllCounterStates(startSstate, startSktstate, startCstates);
@@ -154,19 +155,19 @@ TrialResult PCM_Profiler::computeTrialResult(){
     result.measurements[MeasurementType::AVG_ACTIVE_FREQ][HW_Granularity::CORE] = avgActiveCPUFreq;
 
     std::vector<Measurement> energyCPUUsed;
-    std::vector<Measurement> energyDRAMUsed;
+    // std::vector<Measurement> energyDRAMUsed;
     std::vector<Measurement> startPackageThermalHeadroom;
     std::vector<Measurement> endPackageThermalHeadroom;
     for(int i = 0; i<sockets; i++)
     {
         energyCPUUsed.push_back(Measurement(i, Unit(BaseUnit::JOULE, 0), getConsumedJoules(startPowerState[i], endPowerState[i])));
-        energyDRAMUsed.push_back(Measurement(i, Unit(BaseUnit::JOULE, 0), getDRAMConsumedJoules(startPowerState[i], endPowerState[i])));
+        // energyDRAMUsed.push_back(Measurement(i, Unit(BaseUnit::JOULE, 0), getDRAMConsumedJoules(startPowerState[i], endPowerState[i])));
         startPackageThermalHeadroom.push_back(Measurement(i, Unit(BaseUnit::DEG_CELSIUS, 0), startPowerState[i].getPackageThermalHeadroom()));
         endPackageThermalHeadroom.push_back(Measurement(i, Unit(BaseUnit::DEG_CELSIUS, 0), endPowerState[i].getPackageThermalHeadroom()));
     }
 
     result.measurements[MeasurementType::ENERGY_USED_CPU][HW_Granularity::SOCKET] = energyCPUUsed;
-    result.measurements[MeasurementType::ENERGY_USED_DRAM][HW_Granularity::SOCKET] = energyDRAMUsed;
+    // result.measurements[MeasurementType::ENERGY_USED_DRAM][HW_Granularity::SOCKET] = energyDRAMUsed;
     result.measurements[MeasurementType::THERMAL_HEADROOM_START][HW_Granularity::SOCKET] = startPackageThermalHeadroom;
     result.measurements[MeasurementType::THERMAL_HEADROOM_STOP][HW_Granularity::SOCKET] = endPackageThermalHeadroom;
 
