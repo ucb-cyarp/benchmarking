@@ -334,6 +334,7 @@ void Results::print_statistics(std::vector<int> sockets, std::vector<int> dies, 
             }
         }
     }
+    printf("\n");
 }
 
 void Results::print_statistics(int stim_len, const std::vector<HW_Granularity> granularityToPrint, const std::vector<MeasurementType> measurementTypeToPrint)
@@ -378,6 +379,7 @@ void Results::print_statistics(int stim_len, const std::vector<HW_Granularity> g
             }
         }
     }
+    printf("\n");
 }
 
 void Results::print_statistics(std::set<int> sockets, std::set<int> dies, std::set<int> cores, int stim_len, const std::vector<HW_Granularity> granularityToPrint, const std::vector<MeasurementType> measurementTypeToPrint)
