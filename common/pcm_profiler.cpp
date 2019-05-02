@@ -104,8 +104,8 @@ void PCM_Profiler::init()
 
 void PCM_Profiler::trialSetup(){
     int sockets = pcm->getNumSockets();
-    ServerUncorePowerState* startPowerState = new ServerUncorePowerState[sockets];
-    ServerUncorePowerState* endPowerState = new ServerUncorePowerState[sockets];
+    startPowerState = new ServerUncorePowerState[sockets];
+    endPowerState = new ServerUncorePowerState[sockets];
 }
 
 void PCM_Profiler::startTrialPowerProfile() {
