@@ -298,7 +298,7 @@ void Results::print_statistics(std::vector<int> sockets, std::vector<int> dies, 
     printf("             High Resolution Timer Normalized to Sample - Sample Mean (ns): %f, Sample Std Dev: %f\n", avg_duration_dbl*1000000/stim_len, stddev_duration_dbl*1000000/stim_len);
     printf("             High Resolution Timer - Sample Mean (MS/s): %f\n", stim_len*1.0/(1000.0*avg_duration_dbl));
 
-    printf("\n");
+    //printf("\n");
     printf("         ##### clock() Duration - Process CPU Time (May be Different from Wall Clock Time - Cumulative Time For All Threads) #####\n");
     printf("             Clock - Sample Mean (ms): %f, Sample Std Dev: %f\n", avg_duration_clock_dbl, stddev_duration_clock_dbl);
     printf("             *Clock Normalized to Sample - Sample Mean (ns): %f, Sample Std Dev: %f\n", avg_duration_clock_dbl*1000000/stim_len, stddev_duration_clock_dbl*1000000/stim_len);
@@ -323,7 +323,7 @@ void Results::print_statistics(std::vector<int> sockets, std::vector<int> dies, 
                 Statistics stats = measurementStats(measurementTypeToPrint[i], granularityToPrint[j], ind_to_search[k], true);
                 if(!foundMeasurement && stats.valid){
                     //Found the first measurement at this granularity, print the section header
-                    printf("\n");
+                    //printf("\n");
                     printf("         ##### %s Statistics #####\n", MeasurementHelper::MeasurementType_toString(measurementTypeToPrint[i]).c_str());
                     foundMeasurement = true;
                 }
@@ -351,7 +351,7 @@ void Results::print_statistics(int stim_len, const std::vector<HW_Granularity> g
     printf("             High Resolution Timer Normalized to Sample - Sample Mean (ns): %f, Sample Std Dev: %f\n", avg_duration_dbl*1000000/stim_len, stddev_duration_dbl*1000000/stim_len);
     printf("             High Resolution Timer - Sample Mean (MS/s): %f\n", stim_len*1.0/(1000.0*avg_duration_dbl));
 
-    printf("\n");
+    //printf("\n");
     printf("         ##### clock() Duration - Process CPU Time (May be Different from Wall Clock Time - Cumulative Time For All Threads) #####\n");
     printf("             Clock - Sample Mean (ms): %f, Sample Std Dev: %f\n", avg_duration_clock_dbl, stddev_duration_clock_dbl);
     printf("             *Clock Normalized to Sample - Sample Mean (ns): %f, Sample Std Dev: %f\n", avg_duration_clock_dbl*1000000/stim_len, stddev_duration_clock_dbl*1000000/stim_len);
@@ -367,7 +367,7 @@ void Results::print_statistics(int stim_len, const std::vector<HW_Granularity> g
                 searching = stats.valid;
                 if(!foundMeasurement && stats.valid){
                     //Found the first measurement at this granularity, print the section header
-                    printf("\n");
+                    //printf("\n");
                     printf("         ##### %s Statistics #####\n", MeasurementHelper::MeasurementType_toString(measurementTypeToPrint[i]).c_str());
                     foundMeasurement = true;
                 }
