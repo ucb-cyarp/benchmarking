@@ -13,7 +13,8 @@ PCM_Profiler::~PCM_Profiler(){
         delete[] endPowerState;
     }
 
-    delete pcm;
+    //Deleting PCM appears to cause issues.  Examples do not delete it
+    //delete pcm;
 }
 
 MeasurementCapabilities PCM_Profiler::findMeasurementCapabilities(){
