@@ -42,6 +42,16 @@ std::string MeasurementHelper::MeasurementType_toString(MeasurementType measurem
             return "VoltageCPU";
         case MeasurementType::VOLTAGE_IO:
             return "VoltageIO";
+        case MeasurementType::CURRENT_CPU:
+            return "CurrentCPU";
+        case MeasurementType::CURRENT_IO:
+            return "CurrentIO";
+        case MeasurementType::P_STATE:
+            return "PState";
+        case MeasurementType::C_STATE:
+            return "CState";
+        case MeasurementType::TEMPERATURE:
+            return "TEMPERATURE";
         case MeasurementType::TEMPERATURE_CPU_START:
             return "TemperatureCPUStart";
         case MeasurementType::TEMPERATURE_CPU_STOP:

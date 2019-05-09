@@ -9,6 +9,7 @@
 
     class AMDuProfProfiler : public Profiler{
         bool initialized;
+        bool firstInit; // Used to tell if this is the first time AMD uProf was intialized.  Avoids adding duplicate capabilities
 
         AMDTUInt32 amdCounterSize;
         AMDTPwrCounterDesc* amdCounterDescrs;
@@ -18,6 +19,8 @@
 
         //Sampling Parameters
         AMDTUInt32 samplingInterval; //Power Counter sampling interval in milliseconds
+
+        std::vector<AMDTPwrSample> samples;
 
         /**
          * Decode AMDTPwrCounterDesc to a MeasurementType.  This is returned through a reference

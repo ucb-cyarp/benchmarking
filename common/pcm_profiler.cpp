@@ -213,5 +213,5 @@ bool PCM_Profiler::checkFreqChanged()
 }
 
 std::string PCM_Profiler::profilerName(){
-    return "PCM";
+    return "OPCM";
 }

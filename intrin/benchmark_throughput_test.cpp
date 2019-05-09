@@ -272,13 +272,14 @@ void* run_benchmarks(void* cpu_num)
 
     #if PRINT_TITLE == 1
     printf("\n");
-    printf("****** Profiler Used: %s ******\n", profiler->profilerName().c_str());
+    printf("*****************************************************************\n");
+    printf("Profiler Used: %s\n", profiler->profilerName().c_str());
     #endif
 
     #if PRINT_TITLE == 1
-    printf("**************************************************\n");
+    printf("*****************************************************************\n");
     printf("CPU Brand String: %s\n", Profiler::findCPUModelStr().c_str());
-    printf("**************************************************\n");
+    printf("*****************************************************************\n");
     #endif
 
     int* cpu_num_int = (int*) cpu_num;

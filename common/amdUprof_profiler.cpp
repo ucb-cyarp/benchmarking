@@ -1,8 +1,9 @@
 #include "amdUprof_profiler.h"
 
 #include <algorithm>
+#include <unistd.h>
 
-AMDuProfProfiler::AMDuProfProfiler() : initialized(false), amdCounterSize(0), amdCounterDescrs(nullptr), samplingInterval(100){
+AMDuProfProfiler::AMDuProfProfiler() : initialized(false), firstInit(true), amdCounterSize(0), amdCounterDescrs(nullptr), samplingInterval(100){
     
 }
 
@@ -219,8 +220,35 @@ void AMDuProfProfiler::init()
 {
     //Initialize AMD uProf in online mode (allows collection and analysis of data durring profiling)
     AMDTResult result = AMDTPwrProfileInitialize(AMDT_PWR_MODE_TIMELINE_ONLINE);
+    //std::cerr << "Initialized" << std::endl;
 
-    if(result != AMDT_STATUS_OK){
+    if(result != AMDT_STATUS_OK && result != AMDT_WARN_SMU_DISABLED && result != AMDT_WARN_IGPU_DISABLED){
+        switch(result){
+            case AMDT_ERROR_INVALIDARG:
+                std::cerr << "AMDT_ERROR_INVALIDARG" << std::endl;
+                break;
+            case AMDT_ERROR_DRIVER_UNAVAILABLE:
+                std::cerr << "AMDT_ERROR_DRIVER_UNAVAILABLE" << std::endl;
+                break;
+            case AMDT_DRIVER_VERSION_MISMATCH:
+                std::cerr << "AMDT_DRIVER_VERSION_MISMATCH" << std::endl;
+                break;
+            case AMDT_ERROR_PLATFORM_NOT_SUPPORTED:
+                std::cerr << "AMDT_ERROR_PLATFORM_NOT_SUPPORTED" << std::endl;
+                break;
+            case AMDT_WARN_SMU_DISABLED:
+                std::cerr << "AMDT_WARN_SMU_DISABLED" << std::endl;
+                break;
+            case AMDT_WARN_IGPU_DISABLED:
+                std::cerr << "AMDT_WARN_IGPU_DISABLED" << std::endl;
+                break;
+            case AMDT_ERROR_FAIL:
+                std::cerr << "AMDT_ERROR_FAIL" << std::endl;
+                break;
+            case AMDT_ERROR_PREVIOUS_SESSION_NOT_CLOSED:
+                std::cerr << "AMDT_ERROR_PREVIOUS_SESSION_NOT_CLOSED" << std::endl;
+                break;
+        }
         throw std::runtime_error("Unable to initialize AMD uProf");
     }
 
@@ -279,18 +307,30 @@ void AMDuProfProfiler::init()
         }
 
         //Add this to the measurement capabilities and the map
-        if(std::find(capabilities.measurementCapabilities[measurementType].begin(), capabilities.measurementCapabilities[measurementType].end(), hwGranularity) != capabilities.measurementCapabilities[measurementType].end()){
-            capabilities.measurementCapabilities[measurementType].push_back(hwGranularity);
+        if(firstInit){
+            if(std::find(capabilities.measurementCapabilities[measurementType].begin(), capabilities.measurementCapabilities[measurementType].end(), hwGranularity) != capabilities.measurementCapabilities[measurementType].end()){
+                capabilities.measurementCapabilities[measurementType].push_back(hwGranularity);
+            }
         }
 
         //Note, it is the device instance name that corresponds to our index
         amdCounterIDMap[amdCounterDescrs[i].m_counterID] = MeasurementCollectionPoint(measurementType, hwGranularity, amdCounterDescrs[i].m_devInstanceId, collectionType, measurementUnit);
+
+        //Enable the counter
+        result = AMDTPwrEnableCounter(amdCounterDescrs[i].m_counterID);
+        if(result != AMDT_STATUS_OK){
+            throw std::runtime_error("Could not enable AMD uProf Counter");
+        }
+
     }
 
     result = AMDTPwrSetTimerSamplingPeriod(samplingInterval);
     if(result != AMDT_STATUS_OK){
         throw std::runtime_error("Unable to set sampling interval of AMD uProf");
     }
+
+    firstInit = false;
+    initialized = true;
 }
 
 void AMDuProfProfiler::trialSetup(){
@@ -300,21 +340,117 @@ void AMDuProfProfiler::trialSetup(){
 void AMDuProfProfiler::startTrialPowerProfile() {
     AMDTResult result = AMDTPwrStartProfiling();
 
+    //std::cerr << "Started Profiling" << std::endl;
+
     if(result != AMDT_STATUS_OK){
+        switch(result){
+            case AMDT_ERROR_DRIVER_UNINITIALIZED:
+                std::cerr << "AMDT_ERROR_DRIVER_UNINITIALIZED" << std::endl;
+                break;
+            case AMDT_ERROR_TIMER_NOT_SET:
+                std::cerr << "AMDT_ERROR_TIMER_NOT_SET" << std::endl;
+                break;
+            case AMDT_ERROR_COUNTERS_NOT_ENABLED:
+                std::cerr << "AMDT_ERROR_COUNTERS_NOT_ENABLED" << std::endl;
+                break;
+            case AMDT_ERROR_PROFILE_ALREADY_STARTED:
+                std::cerr << "AMDT_ERROR_PROFILE_ALREADY_STARTED" << std::endl;
+                break;
+            case AMDT_ERROR_PREVIOUS_SESSION_NOT_CLOSED:
+                std::cerr << "AMDT_ERROR_PREVIOUS_SESSION_NOT_CLOSED" << std::endl;
+                break;
+            case AMDT_ERROR_BIOS_VERSION_NOT_SUPPORTED:
+                std::cerr << "AMDT_ERROR_BIOS_VERSION_NOT_SUPPORTED" << std::endl;
+                break;
+            case AMDT_ERROR_FAIL:
+                std::cerr << "AMDT_ERROR_FAIL" << std::endl;
+                break;
+            case AMDT_ERROR_ACCESSDENIED:
+                std::cerr << "AMDT_ERROR_ACCESSDENIED" << std::endl;
+                break;
+        }
         throw std::runtime_error("Unable to start profiling - AMD uProf");
     }
 };
 
 void AMDuProfProfiler::endTrialPowerProfile() {
-    AMDTResult result = AMDTPwrProfileClose();
+    //As it turns out, you can only access the counters while the profile
+    //is running.  We therefore need to keep the profile running while we get 
+    //the counter values.  This will require us to filter results we get
+    //to exclude samples taken after the trial ended
+
+    //Note: clocks have been stopped before this function was called.
+
+    //Get the samples (keep trying until measurements are ready)
+    //std::cerr << "Trying to collect counters" << std::endl;
+
+    AMDTUInt32 numSamples;
+    AMDTPwrSample* rawSamples;
+
+    AMDTResult status;
+    do{
+        status = AMDTPwrReadAllEnabledCounters(&numSamples, &rawSamples);
+
+        //TODO: remove check
+        if(status == AMDT_ERROR_PROFILE_DATA_NOT_AVAILABLE && numSamples > 0){
+            throw std::runtime_error("Call to get counters returned > 0 samples when also reporting that data was not availible");
+        }
+
+        //We need to give the driver some time to get the measurements
+        //If we don't sleep the thread, it will poll for a long time
+        usleep(samplingInterval*1000);
+    }while(status == AMDT_ERROR_PROFILE_DATA_NOT_AVAILABLE);
+
+    //Not always AMDT_STATUS_OK.  For example, if no measurements occured
+    if(status != AMDT_STATUS_OK){
+        switch(status){
+            case AMDT_ERROR_INVALIDARG:
+                std::cerr << "AMDT_ERROR_INVALIDARG" << std::endl;
+                break;
+            case AMDT_ERROR_DRIVER_UNINITIALIZED:
+                std::cerr << "AMDT_ERROR_DRIVER_UNINITIALIZED" << std::endl;
+                break;
+            case AMDT_ERROR_PROFILE_NOT_STARTED:
+                std::cerr << "AMDT_ERROR_PROFILE_NOT_STARTED" << std::endl;
+                break;
+            case AMDT_ERROR_PROFILE_DATA_NOT_AVAILABLE:
+                std::cerr << "AMDT_ERROR_PROFILE_DATA_NOT_AVAILABLE" << std::endl;
+                break;
+            case AMDT_ERROR_OUTOFMEMORY:
+                std::cerr << "AMDT_ERROR_OUTOFMEMORY" << std::endl;
+                break;
+            case AMDT_ERROR_SMU_ACCESS_FAILED:
+                std::cerr << "AMDT_ERROR_SMU_ACCESS_FAILED" << std::endl;
+                break;
+            case AMDT_ERROR_FAIL:
+                std::cerr << "AMDT_ERROR_FAIL" << std::endl;
+                break;
+        }
+
+        throw std::runtime_error("A problem was encountered when fetching samples");
+    }
+
+    //TODO: validate
+    //Copy the measurements before stoping the profiling (in case the arrays are freed)
+    samples = std::vector<AMDTPwrSample>();
+    for(unsigned long i = 0; i<numSamples; i++){
+        samples.push_back(rawSamples[i]);
+    }
+
+    //std::cerr << "Trying to stop profiling" << std::endl;
+    AMDTResult result = AMDTPwrStopProfiling();
 
     if(result != AMDT_STATUS_OK){
         throw std::runtime_error("Unable to stop profiling - AMD uProf");
     }
+    //std::cerr << "Stopped profiling" << std::endl;
 };
 
 void AMDuProfProfiler::interTrialReset() {
     //No specific inter trial reset
+    AMDTResult hResult = AMDTPwrProfileClose();
+    init();
+
 };
 
 TrialResult AMDuProfProfiler::computeTrialResult(){
@@ -336,34 +472,35 @@ TrialResult AMDuProfProfiler::computeTrialResult(){
     //REMEMBER, set sampling to true!
     result.sampled = true;
 
-    //Get the samples
-    AMDTUInt32 numSamples = 0;
-    AMDTPwrSample* samples;
-    AMDTResult status = AMDTPwrReadAllEnabledCounters(&numSamples, &samples);
-
-    if(status != AMDT_STATUS_OK){
-        throw std::runtime_error("A problem was encountered when fetching samples");
+    //Filter the samples based on the timestamp since profiling needs to be running to collect counters
+    //Discard ones that occured after the profile 
+    std::vector<AMDTPwrSample*> filteredSamples;
+    for(unsigned long sampleInd = 0; sampleInd<samples.size(); sampleInd++){
+        double sampleTimestamp = samples[sampleInd].m_elapsedTimeMs;
+        if(sampleTimestamp <= result.duration){
+            filteredSamples.push_back(&samples[sampleInd]);
+        }
     }
 
-    if(numSamples == 0){
-        throw std::runtime_error("The sample period was set such that no samples were corrected for the trial.");
+    if(filteredSamples.size() == 0){
+        throw std::runtime_error("The sample period was set such that no samples were collected for the trial.");
     }else{
-        double sampledDurationMS = samples[numSamples-1].m_elapsedTimeMs; //This is the cumulative time since the trial started.
+        double sampledDurationMS = filteredSamples[filteredSamples.size()-1]->m_elapsedTimeMs; //This is the cumulative time since the trial started.
         if (abs(result.duration - sampledDurationMS)/result.duration > SAMPLING_DURATION_WARNING_THRESHOLD){
-            std::cerr << "Warning! The chosen Sampling Duration resulted in a samplign period which is < " << (1-SAMPLING_DURATION_WARNING_THRESHOLD) << "of the measured trial duration.  This may result in inaccurate results."  << std::endl;
+            std::cerr << "Warning! The chosen sampling interval (" << samplingInterval << " ms) resulted in a sampling duration (" << sampledDurationMS << " ms) which is < " << (1-SAMPLING_DURATION_WARNING_THRESHOLD) << " of the measured trial duration (" << result.duration << " ms).  This may result in inaccurate results."  << std::endl;
         }
     }
 
     //Itterates through the samples
-    for(unsigned long sampleInd = 0; sampleInd<numSamples; sampleInd++){
-        double sampleTimestamp = samples[sampleInd].m_elapsedTimeMs;
+    for(unsigned long sampleInd = 0; sampleInd<filteredSamples.size(); sampleInd++){
+        double sampleTimestamp = filteredSamples[sampleInd]->m_elapsedTimeMs;
 
         //Itterate through the counters within that sample
-        for(unsigned long counterInd = 0; counterInd<samples[sampleInd].m_numOfCounter; counterInd++){
-            if(amdCounterIDMap.find(samples[sampleInd].m_counterValues[counterInd].m_counterID) != amdCounterIDMap.end()){
+        for(unsigned long counterInd = 0; counterInd<filteredSamples[sampleInd]->m_numOfCounter; counterInd++){
+            if(amdCounterIDMap.find(filteredSamples[sampleInd]->m_counterValues[counterInd].m_counterID) != amdCounterIDMap.end()){
                 //This counter is in our map of counters to collect
                 
-                MeasurementCollectionPoint counterInfo = amdCounterIDMap[samples[sampleInd].m_counterValues[counterInd].m_counterID];
+                MeasurementCollectionPoint counterInfo = amdCounterIDMap[filteredSamples[sampleInd]->m_counterValues[counterInd].m_counterID];
 
                 //Check if a result already exits for this counter
                 if(result.measurements[counterInfo.measurementType][counterInfo.granularity].size() > counterInfo.index){
@@ -406,7 +543,7 @@ TrialResult AMDuProfProfiler::computeTrialResult(){
                 }
 
                 measurementToModify->deltaT.push_back(sampleTimestamp - lastTimestamp);
-                measurementToModify->measurement.push_back(samples[sampleInd].m_counterValues[counterInd].m_data);
+                measurementToModify->measurement.push_back(filteredSamples[sampleInd]->m_counterValues[counterInd].m_data);
             }
             
         }
