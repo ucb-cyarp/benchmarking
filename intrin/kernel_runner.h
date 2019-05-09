@@ -2,8 +2,6 @@
     #define _H_KERNEL_RUNNER
 
     #include "results.h"
-    #include "cpucounters.h"
-    #include "pcm_helper.h"
 
     //Define some helper functions to be inlined
 

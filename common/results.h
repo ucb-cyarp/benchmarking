@@ -37,6 +37,7 @@
             std::map<MeasurementType, std::map<HW_Granularity, std::vector<Measurement>>> measurements;
 
             TrialResult();
+            TrialResult(bool sampled);
 
             void print_trial(const std::vector<HW_Granularity> granularityToPrint = DEFAULT_GRANULARITY_LIST, const std::vector<MeasurementType> measurementTypeToPrint = DEFAULT_REPORT_TYPE_LIST);
     };

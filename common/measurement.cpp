@@ -75,6 +75,8 @@ std::string MeasurementHelper::BaseUnit_toString(BaseUnit baseUnit){
             return "DegCelsius";
         case BaseUnit::VOLT:
             return "Volt";
+        case BaseUnit::AMP:
+            return "Amp";
         case BaseUnit::UNITLESS:
             return "Unitless";
         default:
@@ -98,6 +100,8 @@ std::string MeasurementHelper::BaseUnit_abrev(BaseUnit baseUnit){
             return "DegC";
         case BaseUnit::VOLT:
             return "V";
+        case BaseUnit::AMP:
+            return "A";
         case BaseUnit::UNITLESS:
             return "";
         default:
@@ -158,5 +162,8 @@ double Unit::scale(Unit &from, Unit &to, double val){
 }
 
 Measurement::Measurement():index(-1) {}
-Measurement::Measurement(int32_t index, Unit unit, double measurement) : index(index), unit(unit), measurement({measurement}){}
-Measurement::Measurement(int32_t index, Unit unit, const std::vector<double> &measurement, const std::vector<double> &deltaT) : index(index), unit(unit), measurement(measurement), deltaT(deltaT) {}
+Measurement::Measurement(int32_t index, Unit unit, MeasurementCollectionType collectionType, double measurement) : index(index), unit(unit), collectionType(collectionType), measurement({measurement}), deltaTUnit(Unit(BaseUnit::SECOND, 0)){}
+Measurement::Measurement(int32_t index, Unit unit, MeasurementCollectionType collectionType, const std::vector<double> &measurement, Unit deltaTUnit, const std::vector<double> &deltaT) : index(index), unit(unit), collectionType(collectionType), measurement(measurement), deltaT(deltaT), deltaTUnit(deltaTUnit) {}
+
+MeasurementCollectionPoint::MeasurementCollectionPoint() : measurementType(MeasurementType::AVG_FREQ), granularity(HW_Granularity::NONE), index(-1), collectionType(MeasurementCollectionType::INSTANTANEOUS), unit(Unit(BaseUnit::UNITLESS, 0)) {};
+MeasurementCollectionPoint::MeasurementCollectionPoint(MeasurementType &measurementType, HW_Granularity &granularity, int index, MeasurementCollectionType &collectionType, Unit &unit) : measurementType(measurementType), granularity(granularity), index(index), collectionType(collectionType), unit(unit) {};

@@ -2,7 +2,6 @@
     #define _H_GENERIC_PROFILER
 
     #include "profiler.h"
-    #include "cpucounters.h"
 
     class GenericProfiler : public Profiler{
         public:

@@ -29,7 +29,7 @@
 
     //Set default options
     #ifndef STIM_LEN
-        #define STIM_LEN 36000000
+        #define STIM_LEN 3600000
     #endif
 
     #ifndef TRIALS
@@ -61,6 +61,10 @@
     #endif
 
     #ifndef USE_PCM
-        #define USE_PCM 1
+        #define USE_PCM 0
+    #endif
+
+    #ifndef USE_AMDuPROF
+        #define USE_AMDuPROF 0
     #endif
 #endif

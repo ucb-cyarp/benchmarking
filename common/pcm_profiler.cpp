@@ -159,8 +159,8 @@ TrialResult PCM_Profiler::computeTrialResult(){
 
     for(int i = 0; i<cores; i++)
     {  
-        avgCPUFreq.push_back(Measurement(i, Unit(BaseUnit::HERTZ, 0), getAverageFrequency(startCstates[i], endCstates[i])));
-        avgActiveCPUFreq.push_back(Measurement(i, Unit(BaseUnit::HERTZ, 0), getActiveAverageFrequency(startCstates[i], endCstates[i])));
+        avgCPUFreq.push_back(Measurement(i, Unit(BaseUnit::HERTZ, 0), MeasurementCollectionType::INSTANTANEOUS, getAverageFrequency(startCstates[i], endCstates[i])));
+        avgActiveCPUFreq.push_back(Measurement(i, Unit(BaseUnit::HERTZ, 0), MeasurementCollectionType::INSTANTANEOUS, getActiveAverageFrequency(startCstates[i], endCstates[i])));
     }
 
     result.measurements[MeasurementType::AVG_FREQ][HW_Granularity::CORE] = avgCPUFreq;
@@ -172,10 +172,10 @@ TrialResult PCM_Profiler::computeTrialResult(){
     std::vector<Measurement> endPackageThermalHeadroom;
     for(int i = 0; i<sockets; i++)
     {
-        energyCPUUsed.push_back(Measurement(i, Unit(BaseUnit::JOULE, 0), getConsumedJoules(startPowerState[i], endPowerState[i])));
-        // energyDRAMUsed.push_back(Measurement(i, Unit(BaseUnit::JOULE, 0), getDRAMConsumedJoules(startPowerState[i], endPowerState[i])));
-        startPackageThermalHeadroom.push_back(Measurement(i, Unit(BaseUnit::DEG_CELSIUS, 0), startPowerState[i].getPackageThermalHeadroom()));
-        endPackageThermalHeadroom.push_back(Measurement(i, Unit(BaseUnit::DEG_CELSIUS, 0), endPowerState[i].getPackageThermalHeadroom()));
+        energyCPUUsed.push_back(Measurement(i, Unit(BaseUnit::JOULE, 0), MeasurementCollectionType::CUMULATIVE, getConsumedJoules(startPowerState[i], endPowerState[i]))); //This is a degenerate case of MeasurmentCollectionType::CUMULATIVE since only 1 measurmenent is reported.  INSTANTANEOUS would have also worked 
+        // energyDRAMUsed.push_back(Measurement(i, Unit(BaseUnit::JOULE, 0), MeasurmentCollectionType::CUMULATIVE, getDRAMConsumedJoules(startPowerState[i], endPowerState[i])));
+        startPackageThermalHeadroom.push_back(Measurement(i, Unit(BaseUnit::DEG_CELSIUS, 0), MeasurementCollectionType::INSTANTANEOUS, startPowerState[i].getPackageThermalHeadroom()));
+        endPackageThermalHeadroom.push_back(Measurement(i, Unit(BaseUnit::DEG_CELSIUS, 0), MeasurementCollectionType::INSTANTANEOUS, endPowerState[i].getPackageThermalHeadroom()));
     }
 
     result.measurements[MeasurementType::ENERGY_USED_CPU][HW_Granularity::SOCKET] = energyCPUUsed;

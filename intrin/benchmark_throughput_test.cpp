@@ -30,7 +30,6 @@
 #include "intrin_bench_default_defines.h"
 
 #include "profiler.h"
-#include "pcm_profiler.h"
 
 // #include "cpucounters.h"
 // #include "pcm_helper.h"

@@ -5,7 +5,6 @@
 #include <map>
 #include <vector>
 #include "results.h"
-#include "cpucounters.h"
 #include "profiler.h"
 
 //This file is used to describe functions that the benchmark_throughput_test relies on from a test suite

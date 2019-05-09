@@ -4,7 +4,16 @@
 #include <cstdio>
 #include <regex>
 
+#include "intrin_bench_default_defines.h"
+
+#if USE_PCM==1
 #include "pcm_profiler.h"
+#endif
+
+#if USE_AMDuPROF==1
+#include "amdUprof_profiler.h"
+#endif
+
 #include "generic_profiler.h"
 
 CPUInfo::CPUInfo() : cpu(0), core(0), die(0), socket(0){
@@ -132,11 +141,19 @@ Profiler* Profiler::ProfilerFactory(bool usePerformanceCounters){
         CPUVendor cpuVendor = Profiler::findCPUVendor();
 
         if(cpuVendor == CPUVendor::INTEL){
+            #if USE_PCM==1
             profiler = new PCM_Profiler();
-        }else if(cpuVendor == CPUVendor::AMD){
-            //TODO implement
-            std::cerr << "Performance Counter Support is not yet Implemented for AMD" << std::endl;
+            #else
+            std::cerr << "Performance Counter Support for Intel (OPCM) was Not Enabled Durring Compile ... Using Generic Profiler" << std::endl;
             profiler = new GenericProfiler();
+            #endif
+        }else if(cpuVendor == CPUVendor::AMD){
+            #if USE_AMDuPROF==1
+            profiler = new AMDuProfProfiler();
+            #else
+            std::cerr << "Performance Counter Support for AMD (AMDuProf) was Not Enabled Durring Compile ... Using Generic Profiler" << std::endl;
+            profiler = new GenericProfiler();
+            #endif
         }else{
             std::cerr << "Performance Counter Support is not Implemented for this Vendor" << std::endl;
             profiler = new GenericProfiler();

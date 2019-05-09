@@ -24,6 +24,11 @@
         AVG_PWR_DRAM,
         VOLTAGE_CPU,
         VOLTAGE_IO,
+        CURRENT_CPU,
+        CURRENT_IO,
+        P_STATE,
+        C_STATE,
+        TEMPERATURE,
         TEMPERATURE_CPU_START, //Temp at start of benchmark
         TEMPERATURE_CPU_STOP, //Temp at end of benchmark
         TEMPERATURE_DRAM_START,
@@ -36,6 +41,7 @@
         SECOND,
         JOULE,
         WATT,
+        AMP,
         HERTZ,
         DEG_CELSIUS,
         VOLT,
@@ -59,6 +65,11 @@
                                                                    MeasurementType::AVG_PWR_DRAM,
                                                                    MeasurementType::VOLTAGE_CPU,
                                                                    MeasurementType::VOLTAGE_IO,
+                                                                   MeasurementType::CURRENT_CPU,
+                                                                   MeasurementType::CURRENT_IO,
+                                                                   MeasurementType::P_STATE,
+                                                                   MeasurementType::C_STATE,
+                                                                   MeasurementType::TEMPERATURE,
                                                                    MeasurementType::TEMPERATURE_CPU_START,
                                                                    MeasurementType::TEMPERATURE_CPU_STOP,
                                                                    MeasurementType::TEMPERATURE_DRAM_START,
@@ -85,16 +96,35 @@
         static double scale(Unit &from, Unit &to, double val);
     };
 
+    enum class MeasurementCollectionType{
+        INSTANTANEOUS, //Measurements represents the value of the counter at the time it was sampled
+        CUMULATIVE, //Measurements represents the value accomulated over the entire run (requires interpolation if sampled, does not require interpolation if not sampled)
+        UNSUPPORTED
+    };
+
     class Measurement{
         public:
         int32_t index; ///< The index of the unit this measurement is taken from.  Pertains to HW_Granulatity. With HW_Granulatity CORE, index 0 refers to core 0
         Unit unit; ///< The unit of the measurement
         std::vector<double> measurement; ///<A vector of values for this measurement.  Can possibly contain multiple values if sampled
         std::vector<double> deltaT; ///A vector of the time deltas between measurements (if sampling was used)
+        Unit deltaTUnit; ///<The unit of deltaT
+        MeasurementCollectionType collectionType;
 
         Measurement();
-        Measurement(int32_t index, Unit unit, double measurement);
-        Measurement(int32_t index, Unit unit, const std::vector<double> &measurement, const std::vector<double> &deltaT);
+        Measurement(int32_t index, Unit unit, MeasurementCollectionType collectionType, double measurement);
+        Measurement(int32_t index, Unit unit, MeasurementCollectionType collectionType, const std::vector<double> &measurement, Unit deltaTUnit, const std::vector<double> &deltaT);
+    };
+
+    struct MeasurementCollectionPoint{
+        MeasurementType measurementType; ///<The measurement type which is collected
+        HW_Granularity granularity; ///<The granulatity at which the measurement is collected
+        int index; ///<The index of the device at the specified granulatity where the measurement is taken
+        MeasurementCollectionType collectionType; ///<The collection type used for this measurement type at this granularity and index
+        Unit unit; ///<The unit for this measurement type at this granularity and index
+
+        MeasurementCollectionPoint();
+        MeasurementCollectionPoint(MeasurementType &measurementType, HW_Granularity &granularity, int index, MeasurementCollectionType &collectionType, Unit &unit);
     };
 
     class MeasurementCapabilities{
