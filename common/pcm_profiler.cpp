@@ -172,7 +172,7 @@ TrialResult PCM_Profiler::computeTrialResult(){
     std::vector<Measurement> endPackageThermalHeadroom;
     for(int i = 0; i<sockets; i++)
     {
-        energyCPUUsed.push_back(Measurement(i, Unit(BaseUnit::JOULE, 0), MeasurementCollectionType::CUMULATIVE, getConsumedJoules(startPowerState[i], endPowerState[i]))); //This is a degenerate case of MeasurmentCollectionType::CUMULATIVE since only 1 measurmenent is reported.  INSTANTANEOUS would have also worked 
+        energyCPUUsed.push_back(Measurement(i, Unit(BaseUnit::JOULE, 0), MeasurementCollectionType::CUMULATIVE_WHILE_SAMPLED, getConsumedJoules(startPowerState[i], endPowerState[i]))); //This is a degenerate case of MeasurmentCollectionType::CUMULATIVE_WHILE_SAMPLED since only 1 measurmenent is reported.  INSTANTANEOUS would have also worked 
         // energyDRAMUsed.push_back(Measurement(i, Unit(BaseUnit::JOULE, 0), MeasurmentCollectionType::CUMULATIVE, getDRAMConsumedJoules(startPowerState[i], endPowerState[i])));
         startPackageThermalHeadroom.push_back(Measurement(i, Unit(BaseUnit::DEG_CELSIUS, 0), MeasurementCollectionType::INSTANTANEOUS, startPowerState[i].getPackageThermalHeadroom()));
         endPackageThermalHeadroom.push_back(Measurement(i, Unit(BaseUnit::DEG_CELSIUS, 0), MeasurementCollectionType::INSTANTANEOUS, endPowerState[i].getPackageThermalHeadroom()));

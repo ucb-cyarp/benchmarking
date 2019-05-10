@@ -98,7 +98,8 @@
 
     enum class MeasurementCollectionType{
         INSTANTANEOUS, //Measurements represents the value of the counter at the time it was sampled
-        CUMULATIVE, //Measurements represents the value accomulated over the entire run (requires interpolation if sampled, does not require interpolation if not sampled)
+        CUMULATIVE_WHILE_SAMPLED, //Measurements represents the value accomulated over the entire run.  Samples include the accumulation (only the last sample needs to be viewed)
+        CUMULATIVE_DELTA, //Measurements whose values shoulod be accomulated over the entire run.  In this case, the deltas are recorded instead of the accumulated value (requires interpolation if sampled, does not require interpolation if not sampled)
         UNSUPPORTED
     };
 

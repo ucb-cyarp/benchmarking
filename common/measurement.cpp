@@ -158,7 +158,7 @@ bool Unit::operator==(const Unit &rhs) const {
 
 double Unit::scaleFactor(Unit &from, Unit &to){
     if(from.baseUnit != to.baseUnit){
-        throw std::runtime_error("Incompatible unit found durring unit conversion");
+        throw std::runtime_error("Incompatible units found durring unit conversion: " + MeasurementHelper::BaseUnit_toString(from.baseUnit) + " -> " + MeasurementHelper::BaseUnit_toString(to.baseUnit));
     }
     bool needsScaling = from.exponent != to.exponent;
     double scaleFactor = needsScaling ? pow(10.0, from.exponent - to.exponent) : 1;

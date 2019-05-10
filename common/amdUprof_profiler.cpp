@@ -153,7 +153,7 @@ MeasurementCollectionType AMDuProfProfiler::AMDTPwrAggregation2MeasurementCollec
         case AMDTPwrAggregation::AMDT_PWR_VALUE_SINGLE:
             return MeasurementCollectionType::INSTANTANEOUS;
         case AMDTPwrAggregation::AMDT_PWR_VALUE_CUMULATIVE:
-            return MeasurementCollectionType::CUMULATIVE;
+            return MeasurementCollectionType::CUMULATIVE_WHILE_SAMPLED; //TODO: Confirm
     }
     //TODO: support more
     return MeasurementCollectionType::UNSUPPORTED;
@@ -287,6 +287,13 @@ void AMDuProfProfiler::init()
         if(collectionType == MeasurementCollectionType::UNSUPPORTED){
             //Unsupported type, skip
             continue;
+        }
+
+        //TODO: confirm.  uProf seems to use cumulative to denote that a reported measruement includes the accumulation
+        //measurements which should be accumulated (ex. energy use), are repored as single measurements
+        //For now, we check for units which should be accumulated
+        if(measurementUnit.baseUnit == BaseUnit::JOULE && collectionType == MeasurementCollectionType::INSTANTANEOUS){
+            collectionType = MeasurementCollectionType::CUMULATIVE_DELTA;
         }
 
         //TODO: Consider removing

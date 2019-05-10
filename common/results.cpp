@@ -108,46 +108,66 @@ Statistics Results::measurementStats(MeasurementType measurmentType, HW_Granular
         trial_results[i].measurements[measurmentType].find(granularity) != trial_results[i].measurements[measurmentType].end()){
             for(unsigned long j = 0; j<trial_results[i].measurements[measurmentType][granularity].size(); j++){
                 if(trial_results[i].measurements[measurmentType][granularity][j].index == index){
-                    if((treatTrialSamplesAsLumped && trial_results[i].measurements[measurmentType][granularity][j].measurement.size()>1) ||
-                    (trial_results[i].measurements[measurmentType][granularity][j].collectionType == MeasurementCollectionType::CUMULATIVE && trial_results[i].sampled)){ //Still need to run of the degenerate cumulative case of 1 sample if a sampling profiler was used -- need to interpolate
-                        //Average the measurements (if instantanious) or sum (if cumulative)
-                        double sum = 0;
-                        double sampleDuration = 0;
-                        for(unsigned long k = 0; k<trial_results[i].measurements[measurmentType][granularity][j].measurement.size(); k++){
-                            sum += trial_results[i].measurements[measurmentType][granularity][j].measurement[k];
-                            sampleDuration += trial_results[i].measurements[measurmentType][granularity][j].deltaT[k];
-                        }
 
-                        double measurementVal;
-                        if(trial_results[i].measurements[measurmentType][granularity][j].collectionType == MeasurementCollectionType::INSTANTANEOUS){
-                            measurementVal = sum/trial_results[i].measurements[measurmentType][granularity][j].measurement.size();
-                        }else if(trial_results[i].measurements[measurmentType][granularity][j].collectionType == MeasurementCollectionType::CUMULATIVE){
-                            //Interpolate cumulative to the reported measurement time
-                            //We need to do this because, when sampling, the last moments of the trial may not be captured.
-                            //HWhen normalized to the number of samples computed, this may give an optomistic view
-                            //Linear interpolation is used to grow the measurment to the value expected for the remaining portion of the run.
-                            //NOTE: this is only accurate if the sampling interval is sufficiently short that the interpolation is only for a small
-                            //fraction of the trial
-                            Unit durationUnit(BaseUnit::SECOND, -3);
-                            measurementVal = sum * trial_results[i].duration / Unit::scale(trial_results[i].measurements[measurmentType][granularity][j].deltaTUnit, durationUnit, sampleDuration);
+                    bool shouldLump = treatTrialSamplesAsLumped && trial_results[i].measurements[measurmentType][granularity][j].measurement.size()>1;
+                    bool isCumulativeAndSampled = (trial_results[i].measurements[measurmentType][granularity][j].collectionType == MeasurementCollectionType::CUMULATIVE_DELTA ||
+                                                   trial_results[i].measurements[measurmentType][granularity][j].collectionType == MeasurementCollectionType::CUMULATIVE_WHILE_SAMPLED) && trial_results[i].sampled;
+                    
+                    if(shouldLump || isCumulativeAndSampled){ //Still need to run of the degenerate cumulative case of 1 sample if a sampling profiler was used -- need to interpolate
+
+                        if(trial_results[i].measurements[measurmentType][granularity][j].collectionType == MeasurementCollectionType::CUMULATIVE_WHILE_SAMPLED){
+                            //Just take the last measurement in the sample
+                            unsigned long numSamples = trial_results[i].measurements[measurmentType][granularity][j].measurement.size();
+                            if(numSamples>=1){
+                                Measurement cumulativeMeasurement;
+                                cumulativeMeasurement.index = trial_results[i].measurements[measurmentType][granularity][j].index;
+                                cumulativeMeasurement.unit = trial_results[i].measurements[measurmentType][granularity][j].unit;
+                                cumulativeMeasurement.measurement.push_back(trial_results[i].measurements[measurmentType][granularity][j].measurement[numSamples-1]);
+                                lumpedMeasurements.push_back(cumulativeMeasurement);
+                                filteredMeasurements.push_back(&lumpedMeasurements[lumpedMeasurements.size()-1]);
+                            }
                         }else{
-                            throw std::runtime_error("Unknown MeasurementCollectionType");
-                        }
+                            //Average the measurements (if instantanious) or sum (if cumulative_delya)
+                            double sum = 0;
+                            double sampleDuration = 0;
+                            for(unsigned long k = 0; k<trial_results[i].measurements[measurmentType][granularity][j].measurement.size(); k++){
+                                sum += trial_results[i].measurements[measurmentType][granularity][j].measurement[k];
+                                sampleDuration += trial_results[i].measurements[measurmentType][granularity][j].deltaT[k];
+                            }
 
-                        Measurement lumpedMeasurement;
-                        lumpedMeasurement.index = trial_results[i].measurements[measurmentType][granularity][j].index;
-                        lumpedMeasurement.unit = trial_results[i].measurements[measurmentType][granularity][j].unit;
-                        lumpedMeasurement.measurement.push_back(measurementVal);
-                        lumpedMeasurements.push_back(lumpedMeasurement);
-                        filteredMeasurements.push_back(&lumpedMeasurements[lumpedMeasurements.size()-1]);
-                    }else if(trial_results[i].measurements[measurmentType][granularity][j].collectionType != MeasurementCollectionType::CUMULATIVE &&
+                            double measurementVal;
+                            if(trial_results[i].measurements[measurmentType][granularity][j].collectionType == MeasurementCollectionType::INSTANTANEOUS){
+                                measurementVal = sum/trial_results[i].measurements[measurmentType][granularity][j].measurement.size();
+                            }else if(trial_results[i].measurements[measurmentType][granularity][j].collectionType == MeasurementCollectionType::CUMULATIVE_DELTA){
+                                //Interpolate cumulative to the reported measurement time
+                                //We need to do this because, when sampling, the last moments of the trial may not be captured.
+                                //HWhen normalized to the number of samples computed, this may give an optomistic view
+                                //Linear interpolation is used to grow the measurment to the value expected for the remaining portion of the run.
+                                //NOTE: this is only accurate if the sampling interval is sufficiently short that the interpolation is only for a small
+                                //fraction of the trial
+                                Unit durationUnit(BaseUnit::SECOND, -3);
+                                measurementVal = sum * trial_results[i].duration / Unit::scale(trial_results[i].measurements[measurmentType][granularity][j].deltaTUnit, durationUnit, sampleDuration);
+                            }else{
+                                throw std::runtime_error("Unknown MeasurementCollectionType");
+                            }
+
+                            Measurement lumpedMeasurement;
+                            lumpedMeasurement.index = trial_results[i].measurements[measurmentType][granularity][j].index;
+                            lumpedMeasurement.unit = trial_results[i].measurements[measurmentType][granularity][j].unit;
+                            lumpedMeasurement.measurement.push_back(measurementVal);
+                            lumpedMeasurements.push_back(lumpedMeasurement);
+                            filteredMeasurements.push_back(&lumpedMeasurements[lumpedMeasurements.size()-1]);
+                        }
+                    }else if(trial_results[i].measurements[measurmentType][granularity][j].collectionType != MeasurementCollectionType::CUMULATIVE_DELTA &&
+                    trial_results[i].measurements[measurmentType][granularity][j].collectionType != MeasurementCollectionType::CUMULATIVE_WHILE_SAMPLED &&
                     trial_results[i].measurements[measurmentType][granularity][j].collectionType != MeasurementCollectionType::INSTANTANEOUS){
                         throw std::runtime_error("Unknown MeasurementCollectionType");
                     }
                     else{
                         //This is not supposed to be treated as lumped or is not cumulative and sampled
                         //Pass the measurement, with the full array of values
-                        if(trial_results[i].measurements[measurmentType][granularity][j].collectionType == MeasurementCollectionType::CUMULATIVE &&
+                        if((trial_results[i].measurements[measurmentType][granularity][j].collectionType == MeasurementCollectionType::CUMULATIVE_DELTA ||
+                         trial_results[i].measurements[measurmentType][granularity][j].collectionType == MeasurementCollectionType::CUMULATIVE_WHILE_SAMPLED) &&
                         trial_results[i].measurements[measurmentType][granularity][j].measurement.size()>1){
                             throw std::runtime_error("A measurement was found which was cumulative and had >1 data points but was not marked as being sampled");
                         }else{
