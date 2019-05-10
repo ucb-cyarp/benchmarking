@@ -100,8 +100,7 @@ Results::Results()
 
 Statistics Results::measurementStats(MeasurementType measurmentType, HW_Granularity granularity, int32_t index, bool treatTrialSamplesAsLumped){
     //Itterate through the measurements to find the ones that apply
-    std::vector<Measurement> lumpedMeasurements;
-    std::vector<Measurement*> filteredMeasurements;
+    std::vector<Measurement> filteredMeasurements;
     for(unsigned long i = 0; i<trial_results.size(); i++){
         //Itterate through the measurements for this trial at the specified meaurment type and granularity level
         if(trial_results[i].measurements.find(measurmentType) != trial_results[i].measurements.end() && 
@@ -119,12 +118,24 @@ Statistics Results::measurementStats(MeasurementType measurmentType, HW_Granular
                             //Just take the last measurement in the sample
                             unsigned long numSamples = trial_results[i].measurements[measurmentType][granularity][j].measurement.size();
                             if(numSamples>=1){
+                                double duration = 0;
+                                for(unsigned long k = 0; k<trial_results[i].measurements[measurmentType][granularity][j].deltaT.size(); k++){
+                                    duration += trial_results[i].measurements[measurmentType][granularity][j].deltaT[k];
+                                }
+
+                                //Need to scale measurement
+                                double sampledVal = trial_results[i].measurements[measurmentType][granularity][j].measurement[numSamples-1];
+
+                                Unit durationUnit(BaseUnit::SECOND, -3);
+                                double scaledVal = sampledVal * trial_results[i].duration / Unit::scale(trial_results[i].measurements[measurmentType][granularity][j].deltaTUnit, durationUnit, duration);
+
                                 Measurement cumulativeMeasurement;
                                 cumulativeMeasurement.index = trial_results[i].measurements[measurmentType][granularity][j].index;
                                 cumulativeMeasurement.unit = trial_results[i].measurements[measurmentType][granularity][j].unit;
-                                cumulativeMeasurement.measurement.push_back(trial_results[i].measurements[measurmentType][granularity][j].measurement[numSamples-1]);
-                                lumpedMeasurements.push_back(cumulativeMeasurement);
-                                filteredMeasurements.push_back(&lumpedMeasurements[lumpedMeasurements.size()-1]);
+                                cumulativeMeasurement.measurement.push_back(scaledVal);
+                                cumulativeMeasurement.deltaTUnit = durationUnit;
+                                cumulativeMeasurement.deltaT.push_back(scaledVal);
+                                filteredMeasurements.push_back(cumulativeMeasurement);
                             }
                         }else{
                             //Average the measurements (if instantanious) or sum (if cumulative_delya)
@@ -135,7 +146,7 @@ Statistics Results::measurementStats(MeasurementType measurmentType, HW_Granular
                                 sampleDuration += trial_results[i].measurements[measurmentType][granularity][j].deltaT[k];
                             }
 
-                            double measurementVal;
+                            double measurementVal=0;
                             if(trial_results[i].measurements[measurmentType][granularity][j].collectionType == MeasurementCollectionType::INSTANTANEOUS){
                                 measurementVal = sum/trial_results[i].measurements[measurmentType][granularity][j].measurement.size();
                             }else if(trial_results[i].measurements[measurmentType][granularity][j].collectionType == MeasurementCollectionType::CUMULATIVE_DELTA){
@@ -154,9 +165,10 @@ Statistics Results::measurementStats(MeasurementType measurmentType, HW_Granular
                             Measurement lumpedMeasurement;
                             lumpedMeasurement.index = trial_results[i].measurements[measurmentType][granularity][j].index;
                             lumpedMeasurement.unit = trial_results[i].measurements[measurmentType][granularity][j].unit;
+                            lumpedMeasurement.deltaTUnit = Unit(BaseUnit::SECOND, -3);
+                            lumpedMeasurement.deltaT.push_back(trial_results[i].duration);
                             lumpedMeasurement.measurement.push_back(measurementVal);
-                            lumpedMeasurements.push_back(lumpedMeasurement);
-                            filteredMeasurements.push_back(&lumpedMeasurements[lumpedMeasurements.size()-1]);
+                            filteredMeasurements.push_back(lumpedMeasurement);
                         }
                     }else if(trial_results[i].measurements[measurmentType][granularity][j].collectionType != MeasurementCollectionType::CUMULATIVE_DELTA &&
                     trial_results[i].measurements[measurmentType][granularity][j].collectionType != MeasurementCollectionType::CUMULATIVE_WHILE_SAMPLED &&
@@ -171,7 +183,7 @@ Statistics Results::measurementStats(MeasurementType measurmentType, HW_Granular
                         trial_results[i].measurements[measurmentType][granularity][j].measurement.size()>1){
                             throw std::runtime_error("A measurement was found which was cumulative and had >1 data points but was not marked as being sampled");
                         }else{
-                            filteredMeasurements.push_back(&trial_results[i].measurements[measurmentType][granularity][j]);
+                            filteredMeasurements.push_back(trial_results[i].measurements[measurmentType][granularity][j]);
                         }
                     }
                 }
@@ -190,19 +202,19 @@ Statistics Results::measurementStats(MeasurementType measurmentType, HW_Granular
     for(unsigned long i = 0; i<filteredMeasurements.size(); i++){
         if(i == 0){
             //Set the unit based off of the first measurement
-            avgUnit = filteredMeasurements[i]->unit;
+            avgUnit = filteredMeasurements[i].unit;
         }
 
         //Check for sampled
-        if(filteredMeasurements[i]->measurement.size()>1 && treatTrialSamplesAsLumped){
+        if(filteredMeasurements[i].measurement.size()>1 && treatTrialSamplesAsLumped){
             throw std::runtime_error("Specified that sampled trials should be treated as lumped but were not properly processed.");
         }
 
         //Check for unit change
-        double scaleFactor = Unit::scaleFactor(filteredMeasurements[i]->unit, avgUnit);
+        double scaleFactor = Unit::scaleFactor(filteredMeasurements[i].unit, avgUnit);
 
-        for(unsigned long j = 0; j<filteredMeasurements[i]->measurement.size(); j++){
-            sum += scaleFactor*(filteredMeasurements[i]->measurement[j]);
+        for(unsigned long j = 0; j<filteredMeasurements[i].measurement.size(); j++){
+            sum += scaleFactor*(filteredMeasurements[i].measurement[j]);
             count++;
         }
     }
@@ -218,10 +230,10 @@ Statistics Results::measurementStats(MeasurementType measurmentType, HW_Granular
         //Already checked for baseUnit change
 
         //Check for unit change
-        double scaleFactor = Unit::scaleFactor(filteredMeasurements[i]->unit, avgUnit);
+        double scaleFactor = Unit::scaleFactor(filteredMeasurements[i].unit, avgUnit);
 
-        for(unsigned long j = 0; j<filteredMeasurements[i]->measurement.size(); j++){
-            double tmp = scaleFactor*(filteredMeasurements[i]->measurement[j]) - avg;
+        for(unsigned long j = 0; j<filteredMeasurements[i].measurement.size(); j++){
+            double tmp = scaleFactor*(filteredMeasurements[i].measurement[j]) - avg;
             tmp = tmp*tmp;
             stdDev += tmp;
         }
