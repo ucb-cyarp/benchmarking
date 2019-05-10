@@ -335,16 +335,17 @@ double Results::stddev_duration_rdtsc()
     return standard_dev(result, trials);
 }
 
-void Results::print_statistics(int socket, int dies, int core, int stim_len, const std::vector<HW_Granularity> granularityToPrint, const std::vector<MeasurementType> measurementTypeToPrint)
+void Results::print_statistics(int socket, int dies, int core, int thread, int stim_len, const std::vector<HW_Granularity> granularityToPrint, const std::vector<MeasurementType> measurementTypeToPrint)
 {
     std::vector<int> socket_vec = {socket};
     std::vector<int> dies_vec = {dies};
     std::vector<int> core_vec = {core};
+    std::vector<int> thread_vec = {thread};
 
-    print_statistics(socket_vec, dies_vec, core_vec, stim_len, granularityToPrint, measurementTypeToPrint);
+    print_statistics(socket_vec, dies_vec, core_vec, thread_vec, stim_len, granularityToPrint, measurementTypeToPrint);
 }
 
-void Results::print_statistics(std::vector<int> sockets, std::vector<int> dies, std::vector<int> cores, int stim_len, const std::vector<HW_Granularity> granularityToPrint, const std::vector<MeasurementType> measurementTypeToPrint)
+void Results::print_statistics(std::vector<int> sockets, std::vector<int> dies, std::vector<int> cores, std::vector<int> threads, int stim_len, const std::vector<HW_Granularity> granularityToPrint, const std::vector<MeasurementType> measurementTypeToPrint)
 {
     double avg_duration_dbl = this->avg_duration();
     double stddev_duration_dbl = this->stddev_duration();
@@ -378,6 +379,8 @@ void Results::print_statistics(std::vector<int> sockets, std::vector<int> dies, 
                 ind_to_search = sockets;
             }else if(granularityToPrint[j] == HW_Granularity::CORE){
                 ind_to_search = cores;
+            }else if(granularityToPrint[j] == HW_Granularity::THREAD){
+                ind_to_search = threads;
             }
 
             for(unsigned long k = 0; k<ind_to_search.size(); k++){
@@ -443,7 +446,7 @@ void Results::print_statistics(int stim_len, const std::vector<HW_Granularity> g
     //printf("\n");
 }
 
-void Results::print_statistics(std::set<int> sockets, std::set<int> dies, std::set<int> cores, int stim_len, const std::vector<HW_Granularity> granularityToPrint, const std::vector<MeasurementType> measurementTypeToPrint)
+void Results::print_statistics(std::set<int> sockets, std::set<int> dies, std::set<int> cores, std::set<int> threads, int stim_len, const std::vector<HW_Granularity> granularityToPrint, const std::vector<MeasurementType> measurementTypeToPrint)
 {
     std::vector<int> socket_vec;
     for(auto it = sockets.begin(); it != sockets.end(); it++){
@@ -460,15 +463,20 @@ void Results::print_statistics(std::set<int> sockets, std::set<int> dies, std::s
         core_vec.push_back(*it);
     }
 
-    print_statistics(socket_vec, dies_vec, core_vec, stim_len, granularityToPrint, measurementTypeToPrint);
+    std::vector<int> thread_vec;
+    for(auto it = threads.begin(); it != threads.end(); it++){
+        thread_vec.push_back(*it);
+    }
+
+    print_statistics(socket_vec, dies_vec, core_vec, thread_vec, stim_len, granularityToPrint, measurementTypeToPrint);
 }
 
-void Results::write_csv(std::ofstream &csv_file, int socket, int core, const std::vector<HW_Granularity> granularityToPrint, const std::vector<MeasurementType> measurementTypeToPrint)
+void Results::write_csv(std::ofstream &csv_file, int socket, int core, int thread, const std::vector<HW_Granularity> granularityToPrint, const std::vector<MeasurementType> measurementTypeToPrint)
 {
-    write_csv(csv_file, socket, core, "", 0, granularityToPrint, measurementTypeToPrint);
+    write_csv(csv_file, socket, core, thread, "", 0, granularityToPrint, measurementTypeToPrint);
 }
 
-void Results::write_csv(std::ofstream &csv_file, int socket, int core, std::string col0_name, int col0_val, const std::vector<HW_Granularity> granularityToPrint, const std::vector<MeasurementType> measurementTypeToPrint)
+void Results::write_csv(std::ofstream &csv_file, int socket, int core, int thread, std::string col0_name, int col0_val, const std::vector<HW_Granularity> granularityToPrint, const std::vector<MeasurementType> measurementTypeToPrint)
 {
     std::map<MeasurementType, std::map<HW_Granularity, std::map<int, Unit>>> avail = measurementsAvailUnion(granularityToPrint, measurementTypeToPrint); 
 

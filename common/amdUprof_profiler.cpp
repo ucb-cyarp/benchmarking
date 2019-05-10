@@ -78,10 +78,8 @@ void AMDuProfProfiler::AMDMeasurmentType2MeasurementType(AMDTPwrCounterDesc amdC
             foundMeasurementType = true;
             break;
         case AMDT_PWR_CATEGORY_CORRELATED_POWER:
-            //TODO: Evaluate if this should be included as well.
-            //      Compare to other power catagory
-            // measurementType = MeasurementType::AVG_PWR_CPU;
-            // foundMeasurementType = true;
+            measurementType = MeasurementType::AVG_PWR_CPU;
+            foundMeasurementType = true;
             break;
         case AMDT_PWR_CATEGORY_CAC:
             //TODO: Implement?
@@ -265,6 +263,7 @@ void AMDuProfProfiler::init()
         bool foundMeasurementType;
         AMDMeasurmentType2MeasurementType(amdCounterDescrs[i], measurementType, foundMeasurementType);
         if(!foundMeasurementType){
+            // std::cout << "Skipping due to MeasurementType: " << amdCounterDescrs[i].m_name << std::endl;
             continue; //Do not add this catagory to the Measuremenent capabilities
         }
 
@@ -272,6 +271,7 @@ void AMDuProfProfiler::init()
         bool foundHwGranularity;
         AMDDeviceType2HW_Granularity(amdCounterDescrs[i], hwGranularity, foundHwGranularity);
         if(!foundHwGranularity){
+            // std::cout << "Skipping due to Granularity: " << amdCounterDescrs[i].m_name << std::endl;
             continue; //Do not add this catagory/granularity to the Measuremenent capabilities
         }
 
@@ -279,6 +279,7 @@ void AMDuProfProfiler::init()
         bool validMeasurementUnit;
         AMDTPwrUnit2Unit(amdCounterDescrs[i].m_units, measurementUnit, validMeasurementUnit);
         if(!validMeasurementUnit){
+            // std::cout << "Skipping due to MeasurementUnit: " << amdCounterDescrs[i].m_name << std::endl;
             continue; //Do not add this catagory/granularity to the Measuremenent capabilities
         }
 
@@ -286,6 +287,7 @@ void AMDuProfProfiler::init()
 
         if(collectionType == MeasurementCollectionType::UNSUPPORTED){
             //Unsupported type, skip
+            // std::cout << "Skipping due to Unsupported CollectionType: " << amdCounterDescrs[i].m_name << std::endl;
             continue;
         }
 

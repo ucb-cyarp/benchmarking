@@ -303,7 +303,7 @@ void* run_benchmarks(void* cpu_num)
     #else
     printf("Executing on CPU: %3d (Socket: %2d, Die/NUMA: %2d, Core: %3d)\n", *cpu_num_int, socket, die, core);
     #endif
-    printf("**************************************************\n");
+    printf("*****************************************************************\n");
     printf("\n");
     #endif
 

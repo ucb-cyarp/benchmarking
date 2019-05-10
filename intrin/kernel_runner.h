@@ -51,7 +51,7 @@
         if(profiler->cpuTopology.empty()){
             results->print_statistics(STIM_LEN);
         }else{
-            results->print_statistics(socket, die, core, STIM_LEN);
+            results->print_statistics(socket, die, core, cpu_num, STIM_LEN);
         }
         #endif
     }
