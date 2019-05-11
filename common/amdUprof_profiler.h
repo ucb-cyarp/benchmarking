@@ -5,7 +5,7 @@
 
     #include <AMDTPowerProfileApi.h>
 
-    #define SAMPLING_DURATION_WARNING_THRESHOLD 0.1
+    #define SAMPLING_DURATION_WARNING_THRESHOLD 0.2
 
     class AMDuProfProfiler : public Profiler{
         bool initialized;

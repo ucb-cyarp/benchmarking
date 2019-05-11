@@ -47,10 +47,11 @@
         double stdDev;
         Unit unit;
         bool valid;
+        bool cumulative; ///<Signals if the result is for a cumulative metric which should be normalized to the number of samples when reporting
 
         Statistics();
-        Statistics(double avg, double stdDev, Unit unit, bool valid);
-        Statistics(double avg, double stdDev, Unit unit);
+        Statistics(double avg, double stdDev, Unit unit, bool cumulative, bool valid);
+        Statistics(double avg, double stdDev, Unit unit, bool cumulative);
     };
 
     class Results

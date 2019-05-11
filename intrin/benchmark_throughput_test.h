@@ -62,7 +62,7 @@ enum class TimerType{
 std::string timerType_toString(TimerType type);
 
 void writeTimingMeasurementsToCSV(TimerType timerType, bool frequency, FILE* csv_file, std::map<std::string, std::map<std::string, Results*>*> &kernel_results, std::vector<std::string> &kernels, std::vector<std::string> &datatypes);
-void writeMeasurementsToCSV(MeasurementType measurementType, Unit tgtUnit, FILE* csv_file, Profiler* profiler, std::map<std::string, std::map<std::string, Results*>*> &kernel_results, std::vector<std::string> &kernels, std::vector<std::string> &types, int cpu, bool printStdDev, std::vector<HW_Granularity> granularities = DEFAULT_GRANULARITY_LIST);
-void writeMeasurementsToCSV(MeasurementType measurementType, HW_Granularity granularity, Unit tgtUnit, std::string label, FILE* csv_file, Profiler* profiler, std::map<std::string, std::map<std::string, Results*>*> &kernel_results, std::vector<std::string> &kernels, std::vector<std::string> &types, int ind, bool printStdDev);
+void writeMeasurementsToCSV(MeasurementType measurementType, Unit tgtUnit, FILE* csv_file, Profiler* profiler, std::map<std::string, std::map<std::string, Results*>*> &kernel_results, std::vector<std::string> &kernels, std::vector<std::string> &types, int cpu, bool normalize, bool printStdDev, std::vector<HW_Granularity> granularities = DEFAULT_GRANULARITY_LIST);
+void writeMeasurementsToCSV(MeasurementType measurementType, HW_Granularity granularity, Unit tgtUnit, std::string label, FILE* csv_file, Profiler* profiler, std::map<std::string, std::map<std::string, Results*>*> &kernel_results, std::vector<std::string> &kernels, std::vector<std::string> &types, int ind, bool normalize, bool printStdDev);
 
 #endif

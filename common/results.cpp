@@ -53,10 +53,10 @@ double standard_dev(double* arr, size_t len)
 Statistics::Statistics() : avg(0), stdDev(0), unit(Unit(BaseUnit::UNITLESS, 0)), valid(true){
 
 }
-Statistics::Statistics(double avg, double stdDev, Unit unit, bool valid) : avg(avg), stdDev(stdDev), unit(unit), valid(valid){
+Statistics::Statistics(double avg, double stdDev, Unit unit, bool cumulative, bool valid) : avg(avg), stdDev(stdDev), unit(unit), cumulative(cumulative), valid(valid){
 
 }
-Statistics::Statistics(double avg, double stdDev, Unit unit) : avg(avg), stdDev(stdDev), unit(unit), valid(true){
+Statistics::Statistics(double avg, double stdDev, Unit unit, bool cumulative) : avg(avg), stdDev(stdDev), unit(unit), cumulative(cumulative), valid(true){
 
 }
 
@@ -135,6 +135,7 @@ Statistics Results::measurementStats(MeasurementType measurmentType, HW_Granular
                                 cumulativeMeasurement.measurement.push_back(scaledVal);
                                 cumulativeMeasurement.deltaTUnit = durationUnit;
                                 cumulativeMeasurement.deltaT.push_back(scaledVal);
+                                cumulativeMeasurement.collectionType = trial_results[i].measurements[measurmentType][granularity][j].collectionType;
                                 filteredMeasurements.push_back(cumulativeMeasurement);
                             }
                         }else{
@@ -168,6 +169,7 @@ Statistics Results::measurementStats(MeasurementType measurmentType, HW_Granular
                             lumpedMeasurement.deltaTUnit = Unit(BaseUnit::SECOND, -3);
                             lumpedMeasurement.deltaT.push_back(trial_results[i].duration);
                             lumpedMeasurement.measurement.push_back(measurementVal);
+                            lumpedMeasurement.collectionType = trial_results[i].measurements[measurmentType][granularity][j].collectionType;
                             filteredMeasurements.push_back(lumpedMeasurement);
                         }
                     }else if(trial_results[i].measurements[measurmentType][granularity][j].collectionType != MeasurementCollectionType::CUMULATIVE_DELTA &&
@@ -192,7 +194,7 @@ Statistics Results::measurementStats(MeasurementType measurmentType, HW_Granular
     }
 
     if(filteredMeasurements.size() == 0){
-        return Statistics(0, 0, Unit(BaseUnit::UNITLESS, 0), false);
+        return Statistics(0, 0, Unit(BaseUnit::UNITLESS, 0), false, false);
     }
 
     double sum = 0;
@@ -241,7 +243,13 @@ Statistics Results::measurementStats(MeasurementType measurmentType, HW_Granular
         stdDev = sqrt(stdDev);
     }
 
-    return Statistics(avg, stdDev, avgUnit);
+    bool isCumulative = false;
+    if(filteredMeasurements.size() > 0){
+        isCumulative = filteredMeasurements[0].collectionType == MeasurementCollectionType::CUMULATIVE_DELTA || 
+                        filteredMeasurements[0].collectionType == MeasurementCollectionType::CUMULATIVE_WHILE_SAMPLED; 
+    }
+
+    return Statistics(avg, stdDev, avgUnit, isCumulative);
 }
 
 TrialResult* Results::add_trial(TrialResult &trial)
@@ -394,6 +402,13 @@ void Results::print_statistics(std::vector<int> sockets, std::vector<int> dies, 
                 if(stats.valid){
                     std::string unitStr = MeasurementHelper::exponentAbrev(stats.unit.exponent)+MeasurementHelper::BaseUnit_abrev(stats.unit.baseUnit);
                     printf("             %s %s[%2d] Mean (%s): %f, Sample Std Dev: %f\n", MeasurementHelper::MeasurementType_toString(measurementTypeToPrint[i]).c_str(), MeasurementHelper::HW_Granularity_toString(granularityToPrint[j]).c_str(), ind_to_search[k], unitStr.c_str(), stats.avg, stats.stdDev);
+                    if(stats.cumulative){
+                        Unit normalizeUnit = stats.unit;
+                        normalizeUnit.exponent = normalizeUnit.exponent - 6; //TODO, make scale with trial size
+                        std::string normalizeUnitStr = MeasurementHelper::exponentAbrev(normalizeUnit.exponent)+MeasurementHelper::BaseUnit_abrev(normalizeUnit.baseUnit);
+                        double scaleFactor = Unit::scaleFactor(stats.unit, normalizeUnit);
+                        printf("             %s %s[%2lu] Mean - Normalized to Sample (%s): %f, Sample Std Dev: %f\n", MeasurementHelper::MeasurementType_toString(measurementTypeToPrint[i]).c_str(), MeasurementHelper::HW_Granularity_toString(granularityToPrint[j]).c_str(), k, normalizeUnitStr.c_str(), scaleFactor*stats.avg/stim_len, scaleFactor*stats.stdDev/stim_len);
+                    }
                 }
             }
         }
@@ -439,6 +454,13 @@ void Results::print_statistics(int stim_len, const std::vector<HW_Granularity> g
                 if(stats.valid){
                     std::string unitStr = MeasurementHelper::exponentAbrev(stats.unit.exponent)+MeasurementHelper::BaseUnit_abrev(stats.unit.baseUnit);
                     printf("             %s %s[%2lu] Mean (%s): %f, Sample Std Dev: %f\n", MeasurementHelper::MeasurementType_toString(measurementTypeToPrint[i]).c_str(), MeasurementHelper::HW_Granularity_toString(granularityToPrint[j]).c_str(), k, unitStr.c_str(), stats.avg, stats.stdDev);
+                    if(stats.cumulative){
+                        Unit normalizeUnit = stats.unit;
+                        normalizeUnit.exponent = normalizeUnit.exponent - 6; //TODO, make scale with trial size
+                        std::string normalizeUnitStr = MeasurementHelper::exponentAbrev(normalizeUnit.exponent)+MeasurementHelper::BaseUnit_abrev(normalizeUnit.baseUnit);
+                        double scaleFactor = Unit::scaleFactor(stats.unit, normalizeUnit);
+                        printf("             %s %s[%2lu] Mean - Normalized to Sample (%s): %f, Sample Std Dev: %f\n", MeasurementHelper::MeasurementType_toString(measurementTypeToPrint[i]).c_str(), MeasurementHelper::HW_Granularity_toString(granularityToPrint[j]).c_str(), k, normalizeUnitStr.c_str(), scaleFactor*stats.avg/stim_len, scaleFactor*stats.stdDev/stim_len);
+                    }
                 }
             }
         }

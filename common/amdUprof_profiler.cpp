@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <unistd.h>
 
-AMDuProfProfiler::AMDuProfProfiler() : initialized(false), firstInit(true), amdCounterSize(0), amdCounterDescrs(nullptr), samplingInterval(100){
+AMDuProfProfiler::AMDuProfProfiler() : initialized(false), firstInit(true), amdCounterSize(0), amdCounterDescrs(nullptr), samplingInterval(150){
     
 }
 
@@ -281,6 +281,18 @@ void AMDuProfProfiler::init()
         if(!validMeasurementUnit){
             // std::cout << "Skipping due to MeasurementUnit: " << amdCounterDescrs[i].m_name << std::endl;
             continue; //Do not add this catagory/granularity to the Measuremenent capabilities
+        }
+
+        //It looks like uProf sometimes reports energy in mili joules even thought the unit given is AMDT_PWR_UNIT_TYPE_JOULE
+        //TODO: do this more elegantly?
+        if(measurementUnit.baseUnit == BaseUnit::JOULE && measurementUnit.exponent == 0){
+            //Will search the description for the string "reporting in milli joules"
+            std::string counterDescStr = amdCounterDescrs[i].m_description;
+            if(counterDescStr.find("reporting in milli joules") != std::string::npos){
+                measurementUnit.exponent = -3;
+            }else{
+                std::cerr << "Warning, AMDuProf typically reports energy in mJ but a counter was found which does not specify \"reporting in milli joules\": " << amdCounterDescrs[i].m_name << ", " << counterDescStr << std::endl;
+            }
         }
 
         MeasurementCollectionType collectionType = AMDTPwrAggregation2MeasurementCollectionType(amdCounterDescrs[i].m_aggregation);

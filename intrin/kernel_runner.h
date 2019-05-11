@@ -37,6 +37,9 @@
     }
 
     inline void printTrial(TrialResult &trial_result){
+        #if PRINT_TRIALS_DONE == 1
+        printf("---- Finished Trial %d ----\n", trial_result.trial);
+        #endif
         #if PRINT_TRIALS == 1
             trial_result.print_trial();
         #endif 

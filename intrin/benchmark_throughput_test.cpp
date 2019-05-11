@@ -142,7 +142,7 @@ void writeTimingMeasurementsToCSV(TimerType timerType, bool frequency, FILE* csv
     }
 }
 
-void writeMeasurementsToCSV(MeasurementType measurementType, HW_Granularity granularity, Unit tgtUnit, FILE* csv_file, Profiler* profiler, std::map<std::string, std::map<std::string, Results*>*> &kernel_results, std::vector<std::string> &kernels, std::vector<std::string> &types, int ind, bool printStdDev){
+void writeMeasurementsToCSV(MeasurementType measurementType, HW_Granularity granularity, Unit tgtUnit, FILE* csv_file, Profiler* profiler, std::map<std::string, std::map<std::string, Results*>*> &kernel_results, std::vector<std::string> &kernels, std::vector<std::string> &types, int ind, bool normalize, bool printStdDev){
     for(size_t i = 0; i<types.size(); i++)
     {
         std::string datatype = types[i];
@@ -150,8 +150,9 @@ void writeMeasurementsToCSV(MeasurementType measurementType, HW_Granularity gran
         //Print Descr:
         if(i == 0)
         {
+            std::string normalizeStr = normalize ? " - Normalized to 1 Sample -" : "";
             std::string unitStr = MeasurementHelper::exponentAbrev(tgtUnit.exponent)+MeasurementHelper::BaseUnit_abrev(tgtUnit.baseUnit);
-            fprintf(csv_file, "\"%s Normalized to 1 Sample (%s) - %s[%d]:\",\"%s\"", MeasurementHelper::MeasurementType_toString(measurementType).c_str(), unitStr.c_str(), MeasurementHelper::HW_Granularity_toString(granularity).c_str(), ind, datatype.c_str());
+            fprintf(csv_file, "\"%s%s (%s) %s[%d]:\",\"%s\"", MeasurementHelper::MeasurementType_toString(measurementType).c_str(), normalizeStr.c_str(), unitStr.c_str(), MeasurementHelper::HW_Granularity_toString(granularity).c_str(), ind, datatype.c_str());
         }
         else
         {
@@ -182,11 +183,17 @@ void writeMeasurementsToCSV(MeasurementType measurementType, HW_Granularity gran
                     Statistics stats = result_it->second->measurementStats(measurementType, granularity, ind, true); //TODO: treating as lumped for now.  Re-evaluate later
                     if(stats.valid){
                         double mean = stats.avg;
-                        double scaled_mean = Unit::scale(stats.unit, tgtUnit, mean)/STIM_LEN;
+                        double scaled_mean = Unit::scale(stats.unit, tgtUnit, mean);
+                        if(normalize){
+                            scaled_mean /= STIM_LEN;
+                        }
 
                         if(printStdDev){
                             double stddev = stats.stdDev;
-                            double scaled_stddev = Unit::scale(stats.unit, tgtUnit, stddev)/STIM_LEN;
+                            double scaled_stddev = Unit::scale(stats.unit, tgtUnit, stddev);
+                            if(normalize){
+                                scaled_stddev /= STIM_LEN;
+                            }
 
                             fprintf(csv_file, ",%e,%e", scaled_mean, scaled_stddev);
                         }else{
@@ -203,7 +210,7 @@ void writeMeasurementsToCSV(MeasurementType measurementType, HW_Granularity gran
     }
 }
 
-void writeMeasurementsToCSV(MeasurementType measurementType, Unit tgtUnit, FILE* csv_file, Profiler* profiler, std::map<std::string, std::map<std::string, Results*>*> &kernel_results, std::vector<std::string> &kernels, std::vector<std::string> &types, int cpu, bool printStdDev, std::vector<HW_Granularity> granularities){
+void writeMeasurementsToCSV(MeasurementType measurementType, Unit tgtUnit, FILE* csv_file, Profiler* profiler, std::map<std::string, std::map<std::string, Results*>*> &kernel_results, std::vector<std::string> &kernels, std::vector<std::string> &types, int cpu, bool normalize, bool printStdDev, std::vector<HW_Granularity> granularities){
     if(!profiler->cpuTopology.empty()){
         int core = profiler->cpuTopology[cpu].core;
         int die = profiler->cpuTopology[cpu].die;
@@ -224,7 +231,7 @@ void writeMeasurementsToCSV(MeasurementType measurementType, Unit tgtUnit, FILE*
                     ind = core;
                 }
 
-                writeMeasurementsToCSV(measurementType, granularities[i], tgtUnit, csv_file, profiler, kernel_results, kernels, types, ind, printStdDev);
+                writeMeasurementsToCSV(measurementType, granularities[i], tgtUnit, csv_file, profiler, kernel_results, kernels, types, ind, normalize, printStdDev);
             }
         }
     }else{
@@ -246,7 +253,7 @@ void writeMeasurementsToCSV(MeasurementType measurementType, Unit tgtUnit, FILE*
                         }
 
                         for(unsigned long k = 0; k<size; k++){
-                            writeMeasurementsToCSV(measurementType, granularities[i], tgtUnit, csv_file, profiler, kernel_results, kernels, types, k, printStdDev);
+                            writeMeasurementsToCSV(measurementType, granularities[i], tgtUnit, csv_file, profiler, kernel_results, kernels, types, k, normalize, printStdDev);
                         }
                     }
                 }
@@ -368,10 +375,16 @@ void* run_benchmarks(void* cpu_num)
     //writeTimingMeasurementsToCSV(TimerType::RDTSC, false, csv_file, kernel_results, kernels, types);
 
     //Print Energy Use Normalized to 1 Sample (nJ)
-    writeMeasurementsToCSV(MeasurementType::ENERGY_USED_CPU, Unit(BaseUnit::JOULE, -9), csv_file, profiler, kernel_results, kernels, types, *cpu_num_int, true);
+    writeMeasurementsToCSV(MeasurementType::ENERGY_USED_CPU, Unit(BaseUnit::JOULE, -9), csv_file, profiler, kernel_results, kernels, types, *cpu_num_int, true, true);
 
     //Print Clk Frequency (MHz)
-    writeMeasurementsToCSV(MeasurementType::AVG_FREQ, Unit(BaseUnit::HERTZ, 6), csv_file, profiler, kernel_results, kernels, types, *cpu_num_int, false);
+    writeMeasurementsToCSV(MeasurementType::AVG_FREQ, Unit(BaseUnit::HERTZ, 6), csv_file, profiler, kernel_results, kernels, types, *cpu_num_int, false, false);
+
+    //Print Avg. Power (W)
+    writeMeasurementsToCSV(MeasurementType::AVG_PWR_CPU, Unit(BaseUnit::WATT, 0), csv_file, profiler, kernel_results, kernels, types, *cpu_num_int, false, true);
+
+    //Print Avg. Temp (DegC)
+    writeMeasurementsToCSV(MeasurementType::TEMPERATURE, Unit(BaseUnit::DEG_CELSIUS, 0), csv_file, profiler, kernel_results, kernels, types, *cpu_num_int, false, true);
 
     //Close report file
     fclose(csv_file);

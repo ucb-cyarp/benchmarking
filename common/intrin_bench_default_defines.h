@@ -29,11 +29,11 @@
 
     //Set default options
     #ifndef STIM_LEN
-        #define STIM_LEN 500000000
+        #define STIM_LEN 2000000000
     #endif
 
     #ifndef TRIALS
-        #define TRIALS 20
+        #define TRIALS 5
     #endif
 
     #ifndef MAX_DISCARD
@@ -46,6 +46,10 @@
 
     #ifndef PRINT_HEADER
         #define PRINT_HEADER 1
+    #endif
+
+    #ifndef PRINT_TRIALS_DONE
+        #define PRINT_TRIALS_DONE 1
     #endif
 
     #ifndef PRINT_TRIALS
