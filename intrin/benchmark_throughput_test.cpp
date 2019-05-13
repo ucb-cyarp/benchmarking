@@ -219,19 +219,23 @@ void writeMeasurementsToCSV(MeasurementType measurementType, Unit tgtUnit, FILE*
         MeasurementCapabilities capabilities = profiler->findMeasurementCapabilities();
 
         for(unsigned long i = 0; i<granularities.size(); i++){
-            if(capabilities.measurementCapabilities.find(measurementType) != capabilities.measurementCapabilities.end() && std::find(capabilities.measurementCapabilities[measurementType].begin(), capabilities.measurementCapabilities[measurementType].end(), granularities[i]) != capabilities.measurementCapabilities[measurementType].end()){
-                int ind;
-                if(granularities[i] == HW_Granularity::SYSTEM){
-                    ind = 0;
-                }else if(granularities[i] == HW_Granularity::DIE){
-                    ind = die;
-                }else if(granularities[i] == HW_Granularity::SOCKET){
-                    ind = socket;
-                }else if(granularities[i] == HW_Granularity::CORE){
-                    ind = core;
-                }
+            if(capabilities.measurementCapabilities.find(measurementType) != capabilities.measurementCapabilities.end()){
+                if(std::find(capabilities.measurementCapabilities[measurementType].begin(), capabilities.measurementCapabilities[measurementType].end(), granularities[i]) != capabilities.measurementCapabilities[measurementType].end()){
+                    int ind;
+                    if(granularities[i] == HW_Granularity::SYSTEM){
+                        ind = 0;
+                    }else if(granularities[i] == HW_Granularity::DIE){
+                        ind = die;
+                    }else if(granularities[i] == HW_Granularity::SOCKET){
+                        ind = socket;
+                    }else if(granularities[i] == HW_Granularity::CORE){
+                        ind = core;
+                    }else if(granularities[i] == HW_Granularity::THREAD){
+                        ind = cpu;
+                    }
 
-                writeMeasurementsToCSV(measurementType, granularities[i], tgtUnit, csv_file, profiler, kernel_results, kernels, types, ind, normalize, printStdDev);
+                    writeMeasurementsToCSV(measurementType, granularities[i], tgtUnit, csv_file, profiler, kernel_results, kernels, types, ind, normalize, printStdDev);
+                }
             }
         }
     }else{
@@ -374,14 +378,18 @@ void* run_benchmarks(void* cpu_num)
     //writeTimingMeasurementsToCSV(TimerType::RDTSC, true,  csv_file, kernel_results, kernels, types);
     //writeTimingMeasurementsToCSV(TimerType::RDTSC, false, csv_file, kernel_results, kernels, types);
 
-    //Print Energy Use Normalized to 1 Sample (nJ)
-    writeMeasurementsToCSV(MeasurementType::ENERGY_USED_CPU, Unit(BaseUnit::JOULE, -9), csv_file, profiler, kernel_results, kernels, types, *cpu_num_int, true, true);
-
     //Print Clk Frequency (MHz)
     writeMeasurementsToCSV(MeasurementType::AVG_FREQ, Unit(BaseUnit::HERTZ, 6), csv_file, profiler, kernel_results, kernels, types, *cpu_num_int, false, false);
 
+    //Print Energy Use Normalized to 1 Sample (nJ)
+    //writeMeasurementsToCSV(MeasurementType::ENERGY_USED_CPU, Unit(BaseUnit::JOULE, -9), csv_file, profiler, kernel_results, kernels, types, *cpu_num_int, false, true);
+    writeMeasurementsToCSV(MeasurementType::ENERGY_USED_CPU, Unit(BaseUnit::JOULE, -9), csv_file, profiler, kernel_results, kernels, types, *cpu_num_int, true, true);
+
     //Print Avg. Power (W)
     writeMeasurementsToCSV(MeasurementType::AVG_PWR_CPU, Unit(BaseUnit::WATT, 0), csv_file, profiler, kernel_results, kernels, types, *cpu_num_int, false, true);
+
+    //Print Avg. Power (W)
+    writeMeasurementsToCSV(MeasurementType::P_STATE, Unit(BaseUnit::UNITLESS, 0), csv_file, profiler, kernel_results, kernels, types, *cpu_num_int, false, true);
 
     //Print Avg. Temp (DegC)
     writeMeasurementsToCSV(MeasurementType::TEMPERATURE, Unit(BaseUnit::DEG_CELSIUS, 0), csv_file, profiler, kernel_results, kernels, types, *cpu_num_int, false, true);

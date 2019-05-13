@@ -329,7 +329,7 @@ void AMDuProfProfiler::init()
 
         //Add this to the measurement capabilities and the map
         if(firstInit){
-            if(std::find(capabilities.measurementCapabilities[measurementType].begin(), capabilities.measurementCapabilities[measurementType].end(), hwGranularity) != capabilities.measurementCapabilities[measurementType].end()){
+            if(std::find(capabilities.measurementCapabilities[measurementType].begin(), capabilities.measurementCapabilities[measurementType].end(), hwGranularity) == capabilities.measurementCapabilities[measurementType].end()){
                 capabilities.measurementCapabilities[measurementType].push_back(hwGranularity);
             }
         }
