@@ -192,9 +192,9 @@ void Profiler::startTrial(){
 }
 
 void Profiler::endTrial(){
-    //Stop power profile first since it may take some time to start
-    endTrialPowerProfile();
     endTrialTimer();
+    //Stop power profile last since it may take some time to stop
+    endTrialPowerProfile();
 }
 
 TrialResult Profiler::computeTrialResult(){
