@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <unistd.h>
 
-AMDuProfProfiler::AMDuProfProfiler() : initialized(false), firstInit(true), amdCounterSize(0), amdCounterDescrs(nullptr), samplingInterval(150){
+AMDuProfProfiler::AMDuProfProfiler() : initialized(false), firstInit(true), amdCounterSize(0), amdCounterDescrs(nullptr), samplingInterval(100){
     
 }
 
@@ -408,54 +408,77 @@ void AMDuProfProfiler::endTrialPowerProfile() {
     AMDTUInt32 numSamples;
     AMDTPwrSample* rawSamples;
 
-    AMDTResult status;
-    do{
-        status = AMDTPwrReadAllEnabledCounters(&numSamples, &rawSamples);
-
-        //TODO: remove check
-        if(status == AMDT_ERROR_PROFILE_DATA_NOT_AVAILABLE && numSamples > 0){
-            throw std::runtime_error("Call to get counters returned > 0 samples when also reporting that data was not availible");
-        }
-
-        //We need to give the driver some time to get the measurements
-        //If we don't sleep the thread, it will poll for a long time
-        usleep(samplingInterval*1000);
-    }while(status == AMDT_ERROR_PROFILE_DATA_NOT_AVAILABLE);
-
-    //Not always AMDT_STATUS_OK.  For example, if no measurements occured
-    if(status != AMDT_STATUS_OK){
-        switch(status){
-            case AMDT_ERROR_INVALIDARG:
-                std::cerr << "AMDT_ERROR_INVALIDARG" << std::endl;
-                break;
-            case AMDT_ERROR_DRIVER_UNINITIALIZED:
-                std::cerr << "AMDT_ERROR_DRIVER_UNINITIALIZED" << std::endl;
-                break;
-            case AMDT_ERROR_PROFILE_NOT_STARTED:
-                std::cerr << "AMDT_ERROR_PROFILE_NOT_STARTED" << std::endl;
-                break;
-            case AMDT_ERROR_PROFILE_DATA_NOT_AVAILABLE:
-                std::cerr << "AMDT_ERROR_PROFILE_DATA_NOT_AVAILABLE" << std::endl;
-                break;
-            case AMDT_ERROR_OUTOFMEMORY:
-                std::cerr << "AMDT_ERROR_OUTOFMEMORY" << std::endl;
-                break;
-            case AMDT_ERROR_SMU_ACCESS_FAILED:
-                std::cerr << "AMDT_ERROR_SMU_ACCESS_FAILED" << std::endl;
-                break;
-            case AMDT_ERROR_FAIL:
-                std::cerr << "AMDT_ERROR_FAIL" << std::endl;
-                break;
-        }
-
-        throw std::runtime_error("A problem was encountered when fetching samples");
-    }
-
-    //TODO: validate
-    //Copy the measurements before stoping the profiling (in case the arrays are freed)
     samples = std::vector<AMDTPwrSample>();
-    for(unsigned long i = 0; i<numSamples; i++){
-        samples.push_back(rawSamples[i]);
+
+    //Looks like AMDuProf only returns 12 samples at a time.
+
+    AMDTResult status;
+
+    bool dumping = true;
+
+    double trialDuration = (std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(stop_hrc-start_hrc)).count();
+
+    while(dumping){
+        do{
+            status = AMDTPwrReadAllEnabledCounters(&numSamples, &rawSamples);
+
+            //TODO: remove check
+            if(status == AMDT_ERROR_PROFILE_DATA_NOT_AVAILABLE && numSamples > 0){
+                throw std::runtime_error("Call to get counters returned > 0 samples when also reporting that data was not availible");
+            }
+
+            //We need to give the driver some time to get the measurements
+            //If we don't sleep the thread, it will poll for a long time
+            if(status == AMDT_ERROR_PROFILE_DATA_NOT_AVAILABLE){
+                usleep(samplingInterval*100);
+            }
+        }while(status == AMDT_ERROR_PROFILE_DATA_NOT_AVAILABLE);
+
+        //Not always AMDT_STATUS_OK.  For example, if no measurements occured
+        if(status != AMDT_STATUS_OK){
+            switch(status){
+                case AMDT_ERROR_INVALIDARG:
+                    std::cerr << "AMDT_ERROR_INVALIDARG" << std::endl;
+                    break;
+                case AMDT_ERROR_DRIVER_UNINITIALIZED:
+                    std::cerr << "AMDT_ERROR_DRIVER_UNINITIALIZED" << std::endl;
+                    break;
+                case AMDT_ERROR_PROFILE_NOT_STARTED:
+                    std::cerr << "AMDT_ERROR_PROFILE_NOT_STARTED" << std::endl;
+                    break;
+                case AMDT_ERROR_PROFILE_DATA_NOT_AVAILABLE:
+                    std::cerr << "AMDT_ERROR_PROFILE_DATA_NOT_AVAILABLE" << std::endl;
+                    break;
+                case AMDT_ERROR_OUTOFMEMORY:
+                    std::cerr << "AMDT_ERROR_OUTOFMEMORY" << std::endl;
+                    break;
+                case AMDT_ERROR_SMU_ACCESS_FAILED:
+                    std::cerr << "AMDT_ERROR_SMU_ACCESS_FAILED" << std::endl;
+                    break;
+                case AMDT_ERROR_FAIL:
+                    std::cerr << "AMDT_ERROR_FAIL" << std::endl;
+                    break;
+            }
+
+            throw std::runtime_error("A problem was encountered when fetching samples");
+        }
+
+        //std::cout << "Got " << numSamples << " samples" << std::endl;
+
+        //TODO: validate
+        //Copy the measurements before stoping the profiling (in case the arrays are freed)
+        for(unsigned long i = 0; i<numSamples; i++){
+            //std::cout << "Sample [" << i << "]: Timestamp: " << rawSamples[i].m_elapsedTimeMs << " ms ID:" << rawSamples[i].m_recordId << " Ptr: " << &rawSamples[i] << std::endl;
+            samples.push_back(rawSamples[i]);
+        }
+
+        if(numSamples >= 1){
+            if(rawSamples[numSamples-1].m_elapsedTimeMs > trialDuration){
+                std::cout << rawSamples[numSamples-1].m_elapsedTimeMs << " > " << trialDuration << std::endl;
+                //Got the last measurement from this trial
+                dumping = false;
+            }
+        }
     }
 
     //std::cerr << "Trying to stop profiling" << std::endl;
@@ -565,6 +588,14 @@ TrialResult AMDuProfProfiler::computeTrialResult(){
 
                 measurementToModify->deltaT.push_back(sampleTimestamp - lastTimestamp);
                 measurementToModify->measurement.push_back(filteredSamples[sampleInd]->m_counterValues[counterInd].m_data);
+
+                if(measurementToModify->deltaT.size() > 1){
+                    for(unsigned long dt = 1; dt < measurementToModify->deltaT.size(); dt++){
+                        if(measurementToModify->deltaT[0] != measurementToModify->deltaT[dt]){
+                            std::cerr << "Warning! A sample had a longer duration than others in the set.  This probably means that a sample was lost!: Sample: " << dt << " DeltaT[0]: " << measurementToModify->deltaT[0] << " DeltaT[" << dt << "]: " << measurementToModify->deltaT[dt] << std::endl;
+                        }
+                    }
+                }
             }
             
         }
