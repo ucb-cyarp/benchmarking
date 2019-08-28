@@ -370,6 +370,8 @@
     {
         printHeader(title);
 
+        typedef void* voidArr;
+
         Results* results = new Results();
 
         int trial = 0;
@@ -379,8 +381,8 @@
         {
             //Allocate the arrays to operate over
             //Allocate the input arrays
-            void* input_arrays[] = new (void*)[inSizes.size()];
-            void* output_arrays[] = new (void*)[outSizes.size()];
+            void** input_arrays = new voidArr[inSizes.size()];
+            void** output_arrays = new voidArr[outSizes.size()];
 
             for(unsigned long i = 0; i<inSizes.size(); i++){
                 void* in_mem  = _mm_malloc(numInElements[i]*inSizes[i], sizeof(AlignType));
