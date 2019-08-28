@@ -134,6 +134,33 @@ std::map<int, CPUInfo> Profiler::getCPUTopology(){
     return std::map<int, CPUInfo>();
 }
 
+int Profiler::getNumberOfSockets(std::map<int, CPUInfo> &cpuTopology){
+    std::set<int> socketSet;
+    for(auto it = cpuTopology.begin(); it != cpuTopology.end(); it++){
+        socketSet.insert(it->second.socket);
+    }
+
+    return socketSet.size();
+}
+
+int Profiler::getNumberOfCores(std::map<int, CPUInfo> &cpuTopology){
+    std::set<int> coreSet;
+    for(auto it = cpuTopology.begin(); it != cpuTopology.end(); it++){
+        coreSet.insert(it->second.core);
+    }
+
+    return coreSet.size();
+}
+
+int Profiler::getNumberOfDies(std::map<int, CPUInfo> &cpuTopology){
+    std::set<int> dieSet;
+    for(auto it = cpuTopology.begin(); it != cpuTopology.end(); it++){
+        dieSet.insert(it->second.die);
+    }
+
+    return dieSet.size();
+}
+
 Profiler* Profiler::ProfilerFactory(bool usePerformanceCounters){
     Profiler* profiler;
 

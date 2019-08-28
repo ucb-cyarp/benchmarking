@@ -70,6 +70,10 @@
         static std::string EnergyProfiler_toString();
         static std::string OS_toString();
 
+        static int getNumberOfSockets(std::map<int, CPUInfo> &cpuTopology);
+        static int getNumberOfCores(std::map<int, CPUInfo> &cpuTopology);
+        static int getNumberOfDies(std::map<int, CPUInfo> &cpuTopology);
+
         static Profiler* ProfilerFactory(bool usePerformanceCounters); //Construct Profiler for machine
 
         Profiler();
