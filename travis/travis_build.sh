@@ -16,7 +16,7 @@ echo "****Building****"
 if [ "$(uname)" == "Darwin" ]; then
     cd ../intrin
 
-    make
+    make USE_AMDuPROF=0
     if [ $? -eq 0 ]
     then
         echo "****Successfully made intrinsic benchmark with PCM ****"
@@ -34,7 +34,7 @@ if [ "$(uname)" == "Darwin" ]; then
         exit 1
     fi
 
-    make -f Makefile-noPCM
+    make USE_PCM=0 USE_AMDuPROF=0
     if [ $? -eq 0 ]
     then
         echo "****Successfully made intrinsic benchmark with no PCM ****"
@@ -47,7 +47,7 @@ else
     make
     if [ $? -eq 0 ]
     then
-        echo "****Successfully made intrinsic benchmark with PCM ****"
+        echo "****Successfully made intrinsic benchmark with PCM and AMDuProf ****"
     else
         echo "****Unable to make intrinsic benchmark with PCM ****" >&2
         exit 1
@@ -62,12 +62,12 @@ else
         exit 1
     fi
 
-    make -f Makefile-noPCM
+    make USE_PCM=0 USE_AMDuPROF=0
     if [ $? -eq 0 ]
     then
-        echo "****Successfully made intrinsic benchmark with no PCM ****"
+        echo "****Successfully made intrinsic benchmark with no PCM and no AMDuProf ****"
     else
-        echo "****Unable to make intrinsic benchmark with no PCM ****" >&2
+        echo "****Unable to make intrinsic benchmark with no PCM and no AMDuProf ****" >&2
         exit 1
     fi
 
