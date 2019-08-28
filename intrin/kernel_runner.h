@@ -362,4 +362,68 @@
         return results;
     }
 
+    //In this template, a array of void pointers is passed to the kernel for the input and output.
+    //The function need to internally perform the casting
+    //A vector of input type sizes (in bytes) and output type sizes (in bytes) are supplied to 
+    template <typename AlignType>
+    Results* load_store_arb_init_kernel(Profiler* profiler, void (*kernel_fun)(void**, void**), std::vector<int> inSizes, std::vector<int> outSizes, std::vector<int> numInElements, std::vector<int> numOutElements, int cpu_num, const char* title)
+    {
+        printHeader(title);
+
+        Results* results = new Results();
+
+        int trial = 0;
+        int discard_count = 0;
+
+        while(trial<TRIALS)
+        {
+            //Allocate the arrays to operate over
+            //Allocate the input arrays
+            void* input_arrays[] = new (void*)[inSizes.size()];
+            void* output_arrays[] = new (void*)[outSizes.size()];
+
+            for(unsigned long i = 0; i<inSizes.size(); i++){
+                void* in_mem  = _mm_malloc(numInElements[i]*inSizes[i], sizeof(AlignType));
+                input_arrays[i] = in_mem;
+            }
+
+            for(unsigned long i = 0; i<outSizes.size(); i++){
+                void* out_mem  = _mm_malloc(numOutElements[i]*outSizes[i], sizeof(AlignType));
+                output_arrays[i] = out_mem;
+            }
+
+            //Initialize input
+            for(unsigned long initCounter = 0; initCounter < numInElements[0]; initCounter++){
+                initInput(input_arrays, initCounter);
+            }
+
+            profiler->trialSetup();
+            profiler->startTrial();
+
+            //Run Kernel
+            kernel_fun(input_arrays, output_arrays);
+
+            profiler->endTrial();
+            
+            TrialResult trial_result = computeTrialResultAndSetTrialNum(profiler, results);
+            printTrial(trial_result);
+            processTrialAndPrepareForNextHelper(profiler, *results, trial_result, trial, discard_count);
+
+            for(unsigned long i = 0; i<inSizes.size(); i++){
+                _mm_free(input_arrays[i]);
+            }
+
+            for(unsigned long i = 0; i<outSizes.size(); i++){
+                _mm_free(output_arrays[i]);
+            }
+
+            delete[] input_arrays;
+            delete[] output_arrays;
+        }
+
+        printStats(profiler, results, cpu_num);
+        
+        return results;
+    }
+
 #endif
