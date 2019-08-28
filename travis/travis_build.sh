@@ -26,6 +26,9 @@ if [ "$(uname)" == "Darwin" ]; then
     fi
 
     make clean
+    cd ../common
+    make clean
+    cd ../intrin
         if [ $? -eq 0 ]
     then
         echo "****Successfully cleaned intrinsic benchmark ****"
@@ -54,6 +57,9 @@ else
     fi
 
     make clean
+    cd ../common
+    make clean
+    cd ../intrin
         if [ $? -eq 0 ]
     then
         echo "****Successfully cleaned intrinsic benchmark ****"
@@ -70,6 +76,9 @@ else
         echo "****Unable to make intrinsic benchmark with no PCM and no AMDuProf ****" >&2
         exit 1
     fi
+
+    cd ../common
+    make clean
 
     cd ../core-core
     make
