@@ -395,8 +395,9 @@
             }
 
             //Initialize input
+            void* input_arrays_cast = (void*) input_arrays;
             for(unsigned long initCounter = 0; initCounter < numInElements[0]; initCounter++){
-                initInput(input_arrays, initCounter);
+                initInput(input_arrays_cast, initCounter);
             }
 
             profiler->trialSetup();
