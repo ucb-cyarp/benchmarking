@@ -106,8 +106,8 @@ $(DEPENDS_DIR)/pcm/Makefile:
 $(DEPENDS_DIR)/pcm/libPCM.a: $(DEPENDS_DIR)/pcm/Makefile
 	cd $(DEPENDS_DIR)/pcm; make libPCM.a
 
-$(COMMON_DIR)/libpcmHelper.a: $(DEPENDS_DIR)/pcm/Makefile $(DEPENDS_DIR)/pcm/libPCM.a
-	cd $(COMMON_DIR); make
+$(COMMON_DIR)/libProfilerCommon.a:
+	cd $(COMMON_DIR); make USE_PCM=$(USE_PCM) USE_AMDuPROF=$(USE_AMDuPROF)
 	
 clean:
 	rm -f core-core
