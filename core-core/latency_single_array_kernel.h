@@ -1,6 +1,7 @@
 #ifndef _H_LATENCY_SINGLE_ARRAY_KERNEL
     #define _H_LATENCY_SINGLE_ARRAY_KERNEL
-    #include "cpucounters.h"
+    #include <stdint.h>
+    #include <cstddef>
 
     class LatencySingleArrayKernelArgs
     {

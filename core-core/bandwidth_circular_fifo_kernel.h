@@ -1,6 +1,7 @@
 #ifndef _H_BANDWIDTH_CIRCULAR_FIFO_KERNEL
     #define _H_BANDWIDTH_CIRCULAR_FIFO_KERNEL
-    #include "cpucounters.h"
+    #include <stdint.h>
+    #include <cstddef>
 
     class BandwidthCircularFifoKernelArgs
     {

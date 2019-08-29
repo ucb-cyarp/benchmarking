@@ -1,6 +1,7 @@
 #ifndef _H_LATENCY_FLOW_CTRL_KERNEL
     #define _H_LATENCY_FLOW_CTRL_KERNEL
-    #include "cpucounters.h"
+    #include <stdint.h>
+    #include <cstddef>
 
     class LatencyFlowCtrlKernelArgs
     {

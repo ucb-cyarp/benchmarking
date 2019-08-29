@@ -45,6 +45,27 @@ if [ "$(uname)" == "Darwin" ]; then
         echo "****Unable to make intrinsic benchmark with no PCM ****" >&2
         exit 1
     fi
+
+    make clean
+    cd ../common
+    make clean
+        if [ $? -eq 0 ]
+    then
+        echo "****Successfully cleaned intrinsic benchmark ****"
+    else
+        echo "****Unable to clean intrinsic benchmark ****" >&2
+        exit 1
+    fi
+
+    cd ../core-core
+    make USE_PCM=0 USE_AMDuPROF=0
+    if [ $? -eq 0 ]
+    then
+        echo "****Successfully made core-core benchmark with no PCM and no AMDuProf ****"
+    else
+        echo "****Unable to make core-core benchmark with no PCM and no AMDuProf ****" >&2
+        exit 1
+    fi
 else
     cd ../intrin
     make
@@ -89,4 +110,26 @@ else
         echo "****Unable to make core-core benchmark****" >&2
         exit 1
     fi
+
+    make clean
+    cd ../common
+    make clean
+    cd ../core-core
+        if [ $? -eq 0 ]
+    then
+        echo "****Successfully cleaned intrinsic benchmark ****"
+    else
+        echo "****Unable to clean intrinsic benchmark ****" >&2
+        exit 1
+    fi
+
+    make USE_PCM=0 USE_AMDuPROF=0
+    if [ $? -eq 0 ]
+    then
+        echo "****Successfully made core-core benchmark with no PCM and no AMDuProf ****"
+    else
+        echo "****Unable to make core-core benchmark with no PCM and no AMDuProf ****" >&2
+        exit 1
+    fi
+
 fi

@@ -1,8 +1,8 @@
 #ifndef _H_KERNEL_SERVER_RUNNER
     #define _H_KERNEL_SERVER_RUNNER
 
+    #include <stdint.h>
     #include "results.h"
-    #include "cpucounters.h"
     #include "profiler.h"
     #include "kernel_runner_helpers.h"
 

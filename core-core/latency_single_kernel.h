@@ -1,6 +1,6 @@
 #ifndef _H_LATENCY_SINGLE_KERNEL
     #define _H_LATENCY_SINGLE_KERNEL
-    #include "cpucounters.h"
+    #include <stdint.h>
 
     class LatencySingleKernelArgs
     {
