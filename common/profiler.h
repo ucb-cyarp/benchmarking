@@ -96,7 +96,7 @@
         virtual TrialResult computeTrialResult(); ///<Compute the trial result for the last trial.  Warning! Does not set trial index
 
         virtual bool detectsFreqChange() = 0; ///<Returns true if the profiler can detect a frequency change event
-        virtual bool checkFreqChanged() = 0; ///<Returs true if the profiler detected a frequency change event in the last trial
+        virtual bool checkFreqChanged(std::vector<int> socketsOfInterest = {}) = 0; ///<Returns true if the profiler detected a frequency change event in the last trial.  Searches only the sockets specified if provided.  Searches all sockets if no vector provided.
     };
 
 #endif

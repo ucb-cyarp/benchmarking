@@ -50,7 +50,7 @@ bool GenericProfiler::detectsFreqChange(){
     return false;
 }
 
-bool GenericProfiler::checkFreqChanged()
+bool GenericProfiler::checkFreqChanged(std::vector<int> socketsOfInterest)
 {
     return false;
 }

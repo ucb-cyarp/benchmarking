@@ -190,19 +190,32 @@ bool PCM_Profiler::detectsFreqChange(){
     return true;
 }
 
-bool PCM_Profiler::checkFreqChanged()
+bool PCM_Profiler::checkFreqChanged(std::vector<int> socketsOfInterest)
 {
-    int sockets = pcm->getNumSockets();
+    int limit;
+    if(socketsOfInterest.empty()){
+        limit = pcm->getNumSockets();
+    }else{
+        limit = socketsOfInterest.size();
+    }
+    
 
     bool freq_changed = false;
-    for(int i = 0; i < sockets; i++)
+    for(int ind = 0; ind < limit; ind++)
     {
-        int freq_change_events = getPCUCounter(1, startPowerState[i], endPowerState[i]);
+        int socket;
+        if(socketsOfInterest.empty()){
+            socket = ind;
+        }else{
+            socket = socketsOfInterest[ind];
+        }
+
+        int freq_change_events = getPCUCounter(1, startPowerState[socket], endPowerState[socket]);
         if(freq_change_events > 0)
         {
             freq_changed = true;
             #if PRINT_FREQ_CHANGE_EVENT == 1
-                printf("Socket %d experienced %d clock frequency change events!\n", i, freq_change_events);
+                printf("Socket %d experienced %d clock frequency change events!\n", socket, freq_change_events);
             #else
                 break; //No need to check other sockets, frequency changed
             #endif

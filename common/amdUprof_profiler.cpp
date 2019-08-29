@@ -608,7 +608,7 @@ bool AMDuProfProfiler::detectsFreqChange(){
     return false;
 }
 
-bool AMDuProfProfiler::checkFreqChanged()
+bool AMDuProfProfiler::checkFreqChanged(std::vector<int> socketsOfInterest)
 {
     return false;
 }
