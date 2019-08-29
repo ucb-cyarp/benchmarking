@@ -1,9 +1,8 @@
 #ifndef _H_ARRAY_KERNELS
     #define _H_ARRAY_KERNELS
 
-    #include "cpucounters.h"
     #include "results.h"
-    #include "pcm_helper.h"
+    #include "profiler.h"
 
     #include "kernel_server_runner.h"
 
@@ -14,7 +13,7 @@
 
     #include "print_results.h"
 
-    Results* run_latency_single_array_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file=NULL, std::ofstream* raw_file=NULL)
+    Results* run_latency_single_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file=NULL, std::ofstream* raw_file=NULL)
     {
         //=====Test 2=====
         #if PRINT_TITLE == 1
@@ -49,41 +48,57 @@
         reset_arg->shared_ptr = shared_loc;
         reset_arg->length = array_length;
 
-        Results* results = execute_kernel(pcm, latency_single_array_kernel, latency_single_array_kernel_reset, arg_a, arg_b, reset_arg, cpu_a, cpu_b);
+        Results* results = execute_kernel(profiler, latency_single_array_kernel, latency_single_array_kernel_reset, arg_a, arg_b, reset_arg, cpu_a, cpu_b);
 
         #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
             if(report_standalone)
             {
-                #if USE_PCM == 1
-                        std::vector<int> sockets;
-                        int socket_a = pcm->getSocketId(cpu_a);
-                        int socket_b = pcm->getSocketId(cpu_b);
+                if(!profiler->cpuTopology.empty()){
+                    std::vector<int> sockets;
+                    int socket_a = profiler->cpuTopology[cpu_a].socket;
+                    int socket_b = profiler->cpuTopology[cpu_b].socket;
+                    sockets.push_back(socket_a);
+                    if(socket_b != socket_a)
+                    {
+                        sockets.push_back(socket_b);
+                    }
 
-                        sockets.push_back(socket_a);
-                        if(socket_b != socket_a)
-                        {
-                            sockets.push_back(socket_b);
-                        }
+                    std::vector<int> cores;
+                    int core_a = profiler->cpuTopology[cpu_a].core;
+                    int core_b = profiler->cpuTopology[cpu_b].core;
+                    cores.push_back(core_a);
+                    if(core_a != core_b){
+                        cores.push_back(core_b);
+                    }
 
-                        std::vector<int> cores;
-                        cores.push_back(cpu_a);
-                        cores.push_back(cpu_b);
-                
-                        #if PRINT_FULL_STATS == 1
-                            results->print_statistics(sockets, cores, STIM_LEN);
-                        #endif
+                    std::vector<int> dies;
+                    int die_a = profiler->cpuTopology[cpu_a].die;
+                    int die_b = profiler->cpuTopology[cpu_b].die;
+                    dies.push_back(die_a);
+                    if(die_a != die_b){
+                        dies.push_back(die_b);
+                    }
 
-                        #if PRINT_STATS == 1
-                        print_results(results, sizeof(*shared_loc)*array_length, STIM_LEN);
-                        #endif
+                    std::vector<int> threads;
+                    threads.push_back(cpu_a);
+                    if(cpu_a != cpu_b){
+                        threads.push_back(cpu_b);
+                    }
+                    
+                    #if PRINT_FULL_STATS == 1
+                        results->print_statistics(sockets, dies, cores, threads, STIM_LEN);
+                    #endif
 
-                #else
+                    #if PRINT_STATS == 1
+                    print_results(results, sizeof(*shared_loc)*array_length, STIM_LEN);
+                    #endif
+                }else{
                         #if PRINT_FULL_STATS
-                        results->print_statistics(0, cpu_a, STIM_LEN);
+                        results->print_statistics(0, 0, 0, cpu_a, STIM_LEN);
                         #endif
 
                         print_results(results, sizeof(*shared_loc)*array_length, STIM_LEN);
-                #endif
+                }
             }
             else
             {
@@ -100,7 +115,7 @@
         return results;
     }
 
-    SimultaniousResults* run_latency_single_array_kernel(PCM* pcm, int cpu_a, int cpu_b, int cpu_c, int cpu_d, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
+    SimultaniousResults* run_latency_single_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, int cpu_d, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //=====Test 2=====
         #if PRINT_TITLE == 1
@@ -151,54 +166,65 @@
         reset_arg_2->shared_ptr = shared_loc_2;
         reset_arg_2->length = array_length;
 
-        SimultaniousResults* results = execute_kernel(pcm, latency_single_array_kernel, latency_single_array_kernel_reset, arg_a, arg_b, arg_c, arg_d, reset_arg_1, reset_arg_2, cpu_a, cpu_b, cpu_c, cpu_d);
+        SimultaniousResults* results = execute_kernel(profiler, latency_single_array_kernel, latency_single_array_kernel_reset, arg_a, arg_b, arg_c, arg_d, reset_arg_1, reset_arg_2, cpu_a, cpu_b, cpu_c, cpu_d);
 
         #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
             if(report_standalone)
             {
-                #if USE_PCM == 1
-                        std::set<int> sockets;
-                        int socket_a = pcm->getSocketId(cpu_a);
-                        int socket_b = pcm->getSocketId(cpu_b);
-                        int socket_c = pcm->getSocketId(cpu_c);
-                        int socket_d = pcm->getSocketId(cpu_d);
+                if(!profiler->cpuTopology.empty()){
+                    std::set<int> sockets_set;
+                    sockets_set.insert(profiler->cpuTopology[cpu_a].socket);
+                    sockets_set.insert(profiler->cpuTopology[cpu_b].socket);
+                    sockets_set.insert(profiler->cpuTopology[cpu_c].socket);
+                    sockets_set.insert(profiler->cpuTopology[cpu_d].socket);
+                    std::vector<int> sockets(sockets_set.begin(), sockets_set.end());
 
-                        sockets.insert(socket_a);
-                        sockets.insert(socket_b);
-                        sockets.insert(socket_c);
-                        sockets.insert(socket_d);
+                    std::set<int> cores_set;
+                    cores_set.insert(profiler->cpuTopology[cpu_a].core);
+                    cores_set.insert(profiler->cpuTopology[cpu_b].core);
+                    cores_set.insert(profiler->cpuTopology[cpu_c].core);
+                    cores_set.insert(profiler->cpuTopology[cpu_d].core);
+                    std::vector<int> cores(cores_set.begin(), cores_set.end());
 
-                        std::set<int> cores;
-                        cores.insert(cpu_a);
-                        cores.insert(cpu_b);
-                        cores.insert(cpu_c);
-                        cores.insert(cpu_d);
+                    std::set<int> dies_set;
+                    dies_set.insert(profiler->cpuTopology[cpu_a].die);
+                    dies_set.insert(profiler->cpuTopology[cpu_b].die);
+                    dies_set.insert(profiler->cpuTopology[cpu_c].die);
+                    dies_set.insert(profiler->cpuTopology[cpu_d].die);
+                    std::vector<int> dies(dies_set.begin(), dies_set.end());
+
+                    std::set<int> threads_set;
+                    threads_set.insert(cpu_a);
+                    threads_set.insert(cpu_b);
+                    threads_set.insert(cpu_c);
+                    threads_set.insert(cpu_d);
+                    std::vector<int> threads(threads_set.begin(), threads_set.end());
                 
-                        #if PRINT_FULL_STATS == 1
-                            printf("Thread Pair 1 (A/B)\n");
-                            results->results_a->print_statistics(sockets, cores, STIM_LEN);
-                            printf("Thread Pair 2 (C/D)\n");
-                            results->results_b->print_statistics(sockets, cores, STIM_LEN);
-                        #endif
+                    #if PRINT_FULL_STATS == 1
+                        printf("Thread Pair 1 (A/B)\n");
+                        results->results_a->print_statistics(sockets, dies, cores, threads, STIM_LEN);
+                        printf("Thread Pair 2 (C/D)\n");
+                        results->results_b->print_statistics(sockets, dies, cores, threads, STIM_LEN);
+                    #endif
 
-                        #if PRINT_STATS == 1
+                    #if PRINT_STATS == 1
                         printf("Thread Pair 1 (A/B)\n");
                         print_results(results->results_a, sizeof(*shared_loc_1)*array_length, STIM_LEN);
                         printf("Thread Pair 2 (C/D)\n");
                         print_results(results->results_b, sizeof(*shared_loc_2)*array_length, STIM_LEN);
-                        #endif
+                    #endif
 
-                #else
-                        #if PRINT_FULL_STATS
+                }else{
+                    #if PRINT_FULL_STATS
                         printf("Thread Pair 1 (A/B)\n");
-                        results->results_a->print_statistics(0, cpu_a, STIM_LEN);
+                        results->results_a->print_statistics(0, 0, 0, cpu_a, STIM_LEN);
                         printf("Thread Pair 2 (C/D)\n");
-                        results->results_b->print_statistics(0, cpu_c, STIM_LEN);
-                        #endif
+                        results->results_b->print_statistics(0, 0, 0, cpu_c, STIM_LEN);
+                    #endif
 
-                        print_results(results->results_a, sizeof(*shared_loc_1)*array_length, STIM_LEN);
-                        print_results(results->results_b, sizeof(*shared_loc_2)*array_length, STIM_LEN);
-                #endif
+                    print_results(results->results_a, sizeof(*shared_loc_1)*array_length, STIM_LEN);
+                    print_results(results->results_b, sizeof(*shared_loc_2)*array_length, STIM_LEN);
+                }
             }
             else
             {
@@ -226,7 +252,7 @@
      * and a fan-in.  The reported result (since it is reported as 1 way) averages the effect
      * of fanout and fanin
      */
-    SimultaniousResults* run_latency_single_array_kernel(PCM* pcm, int cpu_a, int cpu_b, int cpu_c, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
+    SimultaniousResults* run_latency_single_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //=====Test 2=====
         #if PRINT_TITLE == 1
@@ -275,51 +301,61 @@
         reset_arg_1->length_a = array_length;
         reset_arg_1->length_b = array_length;
 
-        SimultaniousResults* results = execute_kernel_fanin_server_measure(pcm, latency_single_array_kernel, latency_single_array_join_kernel, latency_single_array_join_kernel_reset, arg_a, arg_b, arg_c, reset_arg_1, cpu_a, cpu_b, cpu_c);
+        SimultaniousResults* results = execute_kernel_fanin_server_measure(profiler, latency_single_array_kernel, latency_single_array_join_kernel, latency_single_array_join_kernel_reset, arg_a, arg_b, arg_c, reset_arg_1, cpu_a, cpu_b, cpu_c);
 
         #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
             if(report_standalone)
             {
-                #if USE_PCM == 1
-                        std::set<int> sockets;
-                        int socket_a = pcm->getSocketId(cpu_a);
-                        int socket_b = pcm->getSocketId(cpu_b);
-                        int socket_c = pcm->getSocketId(cpu_c);
+                if(!profiler->cpuTopology.empty()){
+                    std::set<int> sockets_set;
+                    sockets_set.insert(profiler->cpuTopology[cpu_a].socket);
+                    sockets_set.insert(profiler->cpuTopology[cpu_b].socket);
+                    sockets_set.insert(profiler->cpuTopology[cpu_c].socket);
+                    std::vector<int> sockets(sockets_set.begin(), sockets_set.end());
 
-                        sockets.insert(socket_a);
-                        sockets.insert(socket_b);
-                        sockets.insert(socket_c);
+                    std::set<int> cores_set;
+                    cores_set.insert(profiler->cpuTopology[cpu_a].core);
+                    cores_set.insert(profiler->cpuTopology[cpu_b].core);
+                    cores_set.insert(profiler->cpuTopology[cpu_c].core);
+                    std::vector<int> cores(cores_set.begin(), cores_set.end());
 
-                        std::set<int> cores;
-                        cores.insert(cpu_a);
-                        cores.insert(cpu_b);
-                        cores.insert(cpu_c);
-                
-                        #if PRINT_FULL_STATS == 1
-                            printf("Thread Pair 1 (A/C)\n");
-                            results->results_a->print_statistics(sockets, cores, STIM_LEN);
-                            printf("Thread Pair 2 (B/C)\n");
-                            results->results_b->print_statistics(sockets, cores, STIM_LEN);
-                        #endif
+                    std::set<int> dies_set;
+                    dies_set.insert(profiler->cpuTopology[cpu_a].die);
+                    dies_set.insert(profiler->cpuTopology[cpu_b].die);
+                    dies_set.insert(profiler->cpuTopology[cpu_c].die);
+                    std::vector<int> dies(dies_set.begin(), dies_set.end());
 
-                        #if PRINT_STATS == 1
+                    std::set<int> threads_set;
+                    threads_set.insert(cpu_a);
+                    threads_set.insert(cpu_b);
+                    threads_set.insert(cpu_c);
+                    std::vector<int> threads(threads_set.begin(), threads_set.end());
+            
+                    #if PRINT_FULL_STATS == 1
                         printf("Thread Pair 1 (A/C)\n");
-                        print_results(results->results_a, sizeof(*shared_loc_1)*array_length, STIM_LEN);
+                        results->results_a->print_statistics(sockets, dies, cores, threads, STIM_LEN);
                         printf("Thread Pair 2 (B/C)\n");
-                        print_results(results->results_b, sizeof(*shared_loc_2)*array_length, STIM_LEN);
-                        #endif
+                        results->results_b->print_statistics(sockets, dies, cores, threads, STIM_LEN);
+                    #endif
 
-                #else
+                    #if PRINT_STATS == 1
+                    printf("Thread Pair 1 (A/C)\n");
+                    print_results(results->results_a, sizeof(*shared_loc_1)*array_length, STIM_LEN);
+                    printf("Thread Pair 2 (B/C)\n");
+                    print_results(results->results_b, sizeof(*shared_loc_2)*array_length, STIM_LEN);
+                    #endif
+
+                }else{
                         #if PRINT_FULL_STATS
                         printf("Thread Pair 1 (A/C)\n");
-                        results->results_a->print_statistics(0, cpu_a, STIM_LEN);
+                        results->results_a->print_statistics(0, 0, 0, cpu_a, STIM_LEN);
                         printf("Thread Pair 2 (B/C)\n");
-                        results->results_b->print_statistics(0, cpu_c, STIM_LEN);
+                        results->results_b->print_statistics(0, 0, 0, cpu_c, STIM_LEN);
                         #endif
 
                         print_results(results->results_a, sizeof(*shared_loc_1)*array_length, STIM_LEN);
                         print_results(results->results_b, sizeof(*shared_loc_2)*array_length, STIM_LEN);
-                #endif
+                }
             }
             else
             {
@@ -339,7 +375,7 @@
         return results;
     }
 
-    void run_latency_single_array_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, FILE* file=NULL, std::ofstream* raw_file=NULL)
+    void run_latency_single_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, FILE* file=NULL, std::ofstream* raw_file=NULL)
     {
         //Print header
         printf("Single Memory Location - Array\n");
@@ -359,21 +395,20 @@
         for(int i = 0; i<array_lengths.size(); i++)
         {
             size_t array_length = array_lengths[i];
-            Results* latency_single_array_kernel_results = run_latency_single_array_kernel(pcm, cpu_a, cpu_b, array_length, false, format, file, raw_file);
+            Results* latency_single_array_kernel_results = run_latency_single_array_kernel(profiler, cpu_a, cpu_b, array_length, false, format, file, raw_file);
 
             #if WRITE_CSV == 1
             fflush(file);
             #endif
 
             //Cleanup
-            latency_single_array_kernel_results->delete_results();
             delete latency_single_array_kernel_results;
         }
 
         printf("        ==========================================================================================\n");
     }
 
-    void run_latency_single_array_kernel(PCM* pcm, int cpu_a, int cpu_b, int cpu_c, int cpu_d, std::vector<size_t> array_lengths, FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
+    void run_latency_single_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, int cpu_d, std::vector<size_t> array_lengths, FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //Print header
         printf("Single Memory Location - Simultanious - Array\n");
@@ -396,7 +431,7 @@
         for(int i = 0; i<array_lengths.size(); i++)
         {
             size_t array_length = array_lengths[i];
-            SimultaniousResults* latency_single_array_kernel_results_container = run_latency_single_array_kernel(pcm, cpu_a, cpu_b, cpu_c, cpu_d, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
+            SimultaniousResults* latency_single_array_kernel_results_container = run_latency_single_array_kernel(profiler, cpu_a, cpu_b, cpu_c, cpu_d, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
 
             #if WRITE_CSV == 1
             fflush(file_a);
@@ -404,9 +439,6 @@
             #endif
 
             //Cleanup
-            latency_single_array_kernel_results_container->results_a->delete_results();
-            latency_single_array_kernel_results_container->results_b->delete_results();
-
             delete latency_single_array_kernel_results_container->results_a;
             delete latency_single_array_kernel_results_container->results_b;
 
@@ -416,7 +448,7 @@
         printf("        ==========================================================================================\n");
     }
 
-    void run_latency_single_array_kernel(PCM* pcm, int cpu_a, int cpu_b, int cpu_c, std::vector<size_t> array_lengths, FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
+    void run_latency_single_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, std::vector<size_t> array_lengths, FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //Print header
         printf("Single Memory Location - Fan-in/Fan-out - Array\n");
@@ -439,7 +471,7 @@
         for(int i = 0; i<array_lengths.size(); i++)
         {
             size_t array_length = array_lengths[i];
-            SimultaniousResults* latency_single_array_kernel_results_container = run_latency_single_array_kernel(pcm, cpu_a, cpu_b, cpu_c, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
+            SimultaniousResults* latency_single_array_kernel_results_container = run_latency_single_array_kernel(profiler, cpu_a, cpu_b, cpu_c, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
 
             #if WRITE_CSV == 1
             fflush(file_a);
@@ -447,9 +479,6 @@
             #endif
 
             //Cleanup
-            latency_single_array_kernel_results_container->results_a->delete_results();
-            latency_single_array_kernel_results_container->results_b->delete_results();
-
             delete latency_single_array_kernel_results_container->results_a;
             delete latency_single_array_kernel_results_container->results_b;
 
@@ -459,7 +488,7 @@
         printf("        ==========================================================================================\n");
     }
 
-    Results* run_latency_dual_array_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file = NULL, std::ofstream* raw_file=NULL)
+    Results* run_latency_dual_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file = NULL, std::ofstream* raw_file=NULL)
     {
         //=====Test 2=====
         #if PRINT_TITLE == 1
@@ -499,41 +528,58 @@
         reset_arg->shared_ptr_b = shared_loc_b;
         reset_arg->length = array_length;
 
-        Results* results = execute_kernel(pcm, latency_dual_array_kernel, latency_dual_array_kernel_reset, arg_a, arg_b, reset_arg, cpu_a, cpu_b);
+        Results* results = execute_kernel(profiler, latency_dual_array_kernel, latency_dual_array_kernel_reset, arg_a, arg_b, reset_arg, cpu_a, cpu_b);
 
         #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
             if(report_standalone)
             {
-                #if USE_PCM == 1
-                        std::vector<int> sockets;
-                        int socket_a = pcm->getSocketId(cpu_a);
-                        int socket_b = pcm->getSocketId(cpu_b);
+                if(!profiler->cpuTopology.empty()){
+                    std::vector<int> sockets;
+                    int socket_a = profiler->cpuTopology[cpu_a].socket;
+                    int socket_b = profiler->cpuTopology[cpu_b].socket;
+                    sockets.push_back(socket_a);
+                    if(socket_b != socket_a)
+                    {
+                        sockets.push_back(socket_b);
+                    }
 
-                        sockets.push_back(socket_a);
-                        if(socket_b != socket_a)
-                        {
-                            sockets.push_back(socket_b);
-                        }
+                    std::vector<int> cores;
+                    int core_a = profiler->cpuTopology[cpu_a].core;
+                    int core_b = profiler->cpuTopology[cpu_b].core;
+                    cores.push_back(core_a);
+                    if(core_a != core_b){
+                        cores.push_back(core_b);
+                    }
 
-                        std::vector<int> cores;
-                        cores.push_back(cpu_a);
-                        cores.push_back(cpu_b);
-                
-                        #if PRINT_FULL_STATS == 1
-                            results->print_statistics(sockets, cores, STIM_LEN);
-                        #endif
+                    std::vector<int> dies;
+                    int die_a = profiler->cpuTopology[cpu_a].die;
+                    int die_b = profiler->cpuTopology[cpu_b].die;
+                    dies.push_back(die_a);
+                    if(die_a != die_b){
+                        dies.push_back(die_b);
+                    }
 
-                        #if PRINT_STATS == 1
+                    std::vector<int> threads;
+                    threads.push_back(cpu_a);
+                    if(cpu_a != cpu_b){
+                        threads.push_back(cpu_b);
+                    }
+            
+                    #if PRINT_FULL_STATS == 1
+                        results->print_statistics(sockets, dies, cores, threads, STIM_LEN);
+                    #endif
+
+                    #if PRINT_STATS == 1
                         print_results(results, sizeof(*shared_loc_a)*array_length, STIM_LEN);
-                        #endif
+                    #endif
 
-                #else
-                        #if PRINT_FULL_STATS
-                        results->print_statistics(0, cpu_a, STIM_LEN);
-                        #endif
+                }else{
+                    #if PRINT_FULL_STATS
+                        results->print_statistics(0, 0, 0, cpu_a, STIM_LEN);
+                    #endif
 
-                        print_results(results, sizeof(*shared_loc_a)*array_length, STIM_LEN);
-                #endif
+                    print_results(results, sizeof(*shared_loc_a)*array_length, STIM_LEN);
+                }
             }
             else
             {
@@ -551,7 +597,7 @@
         return results;
     }
 
-    SimultaniousResults* run_latency_dual_array_kernel(PCM* pcm, int cpu_a, int cpu_b, int cpu_c, int cpu_d, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
+    SimultaniousResults* run_latency_dual_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, int cpu_d, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //=====Test 2=====
         #if PRINT_TITLE == 1
@@ -614,56 +660,66 @@
         reset_arg_2->shared_ptr_b = shared_loc_b_2;
         reset_arg_2->length = array_length;
 
-        SimultaniousResults* results = execute_kernel(pcm, latency_dual_array_kernel, latency_dual_array_kernel_reset, arg_a, arg_b, arg_c, arg_d, reset_arg_1, reset_arg_2, cpu_a, cpu_b, cpu_c, cpu_d);
+        SimultaniousResults* results = execute_kernel(profiler, latency_dual_array_kernel, latency_dual_array_kernel_reset, arg_a, arg_b, arg_c, arg_d, reset_arg_1, reset_arg_2, cpu_a, cpu_b, cpu_c, cpu_d);
 
         #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
             if(report_standalone)
             {
-                #if USE_PCM == 1
-                        std::set<int> sockets;
-                        int socket_a = pcm->getSocketId(cpu_a);
-                        int socket_b = pcm->getSocketId(cpu_b);
-                        int socket_c = pcm->getSocketId(cpu_c);
-                        int socket_d = pcm->getSocketId(cpu_d);
+                if(!profiler->cpuTopology.empty()){
+                    std::set<int> sockets_set;
+                    sockets_set.insert(profiler->cpuTopology[cpu_a].socket);
+                    sockets_set.insert(profiler->cpuTopology[cpu_b].socket);
+                    sockets_set.insert(profiler->cpuTopology[cpu_c].socket);
+                    sockets_set.insert(profiler->cpuTopology[cpu_d].socket);
+                    std::vector<int> sockets(sockets_set.begin(), sockets_set.end());
 
-                        sockets.insert(socket_a);
-                        sockets.insert(socket_b);
-                        sockets.insert(socket_c);
-                        sockets.insert(socket_d);
+                    std::set<int> cores_set;
+                    cores_set.insert(profiler->cpuTopology[cpu_a].core);
+                    cores_set.insert(profiler->cpuTopology[cpu_b].core);
+                    cores_set.insert(profiler->cpuTopology[cpu_c].core);
+                    cores_set.insert(profiler->cpuTopology[cpu_d].core);
+                    std::vector<int> cores(cores_set.begin(), cores_set.end());
 
-                        std::set<int> cores;
-                        cores.insert(cpu_a);
-                        cores.insert(cpu_b);
-                        cores.insert(cpu_c);
-                        cores.insert(cpu_d);
+                    std::set<int> dies_set;
+                    dies_set.insert(profiler->cpuTopology[cpu_a].die);
+                    dies_set.insert(profiler->cpuTopology[cpu_b].die);
+                    dies_set.insert(profiler->cpuTopology[cpu_c].die);
+                    dies_set.insert(profiler->cpuTopology[cpu_d].die);
+                    std::vector<int> dies(dies_set.begin(), dies_set.end());
+
+                    std::set<int> threads_set;
+                    threads_set.insert(cpu_a);
+                    threads_set.insert(cpu_b);
+                    threads_set.insert(cpu_c);
+                    threads_set.insert(cpu_d);
+                    std::vector<int> threads(threads_set.begin(), threads_set.end());
                 
-                        #if PRINT_FULL_STATS == 1
-                            printf("Thread Pair 1 (A/B)\n");
-                            results->results_a->print_statistics(sockets, cores, STIM_LEN);
-                            printf("Thread Pair 2 (C/D)\n");
-                            results->results_b->print_statistics(sockets, cores, STIM_LEN);
-                        #endif
+                    #if PRINT_FULL_STATS == 1
+                        printf("Thread Pair 1 (A/B)\n");
+                        results->results_a->print_statistics(sockets, dies, cores, threads, STIM_LEN);
+                        printf("Thread Pair 2 (C/D)\n");
+                        results->results_b->print_statistics(sockets, dies, cores, threads, STIM_LEN);
+                    #endif
 
-                        #if PRINT_STATS == 1
+                    #if PRINT_STATS == 1
                         printf("Thread Pair 1 (A/B)\n");
                         print_results(results->results_a, sizeof(*shared_loc_a_1)*array_length, STIM_LEN);
                         printf("Thread Pair 2 (C/D)\n");
                         print_results(results->results_b, sizeof(*shared_loc_a_2)*array_length, STIM_LEN);
-                        #endif
-
-                #else
-                        #if PRINT_FULL_STATS
+                    #endif
+                }else{
+                    #if PRINT_FULL_STATS
                         printf("Thread Pair 1 (A/B)\n");
-                        results->results_a->print_statistics(0, cpu_a, STIM_LEN);
+                        results->results_a->print_statistics(0, 0, 0, cpu_a, STIM_LEN);
                         printf("Thread Pair 2 (C/D)\n");
-                        results->results_b->print_statistics(0, cpu_c, STIM_LEN);
-                        #endif
+                        results->results_b->print_statistics(0, 0, 0, cpu_c, STIM_LEN);
+                    #endif
 
-                        printf("Thread Pair 1 (A/B)\n");
-                        print_results(results->results_a, sizeof(*shared_loc_a_1)*array_length, STIM_LEN);
-                        printf("Thread Pair 2 (C/D)\n");
-                        print_results(results->results_b, sizeof(*shared_loc_a_2)*array_length, STIM_LEN);
-                #endif
+                    printf("Thread Pair 1 (A/B)\n");
+                    print_results(results->results_a, sizeof(*shared_loc_a_1)*array_length, STIM_LEN);
+                    printf("Thread Pair 2 (C/D)\n");
+                    print_results(results->results_b, sizeof(*shared_loc_a_2)*array_length, STIM_LEN);
+                }
             }
             else
             {
@@ -685,7 +741,7 @@
         return results;
     }
 
-    SimultaniousResults* run_latency_dual_array_kernel(PCM* pcm, int cpu_a, int cpu_b, int cpu_c, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
+    SimultaniousResults* run_latency_dual_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //=====Test 2=====
         #if PRINT_TITLE == 1
@@ -747,53 +803,62 @@
         reset_arg_1->length_ab = array_length;
         reset_arg_1->length_cd = array_length;
 
-        SimultaniousResults* results = execute_kernel_fanin_server_measure(pcm, latency_dual_array_kernel, latency_dual_array_join_kernel, latency_dual_array_join_kernel_reset, arg_a, arg_b, arg_c, reset_arg_1, cpu_a, cpu_b, cpu_c);
+        SimultaniousResults* results = execute_kernel_fanin_server_measure(profiler, latency_dual_array_kernel, latency_dual_array_join_kernel, latency_dual_array_join_kernel_reset, arg_a, arg_b, arg_c, reset_arg_1, cpu_a, cpu_b, cpu_c);
 
         #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
             if(report_standalone)
             {
-                #if USE_PCM == 1
-                        std::set<int> sockets;
-                        int socket_a = pcm->getSocketId(cpu_a);
-                        int socket_b = pcm->getSocketId(cpu_b);
-                        int socket_c = pcm->getSocketId(cpu_c);
+                if(!profiler->cpuTopology.empty()){
+                    std::set<int> sockets_set;
+                    sockets_set.insert(profiler->cpuTopology[cpu_a].socket);
+                    sockets_set.insert(profiler->cpuTopology[cpu_b].socket);
+                    sockets_set.insert(profiler->cpuTopology[cpu_c].socket);
+                    std::vector<int> sockets(sockets_set.begin(), sockets_set.end());
 
-                        sockets.insert(socket_a);
-                        sockets.insert(socket_b);
-                        sockets.insert(socket_c);
+                    std::set<int> cores_set;
+                    cores_set.insert(profiler->cpuTopology[cpu_a].core);
+                    cores_set.insert(profiler->cpuTopology[cpu_b].core);
+                    cores_set.insert(profiler->cpuTopology[cpu_c].core);
+                    std::vector<int> cores(cores_set.begin(), cores_set.end());
 
-                        std::set<int> cores;
-                        cores.insert(cpu_a);
-                        cores.insert(cpu_b);
-                        cores.insert(cpu_c);
-                
-                        #if PRINT_FULL_STATS == 1
-                            printf("Thread Pair 1 (A/C)\n");
-                            results->results_a->print_statistics(sockets, cores, STIM_LEN);
-                            printf("Thread Pair 2 (B/C)\n");
-                            results->results_b->print_statistics(sockets, cores, STIM_LEN);
-                        #endif
+                    std::set<int> dies_set;
+                    dies_set.insert(profiler->cpuTopology[cpu_a].die);
+                    dies_set.insert(profiler->cpuTopology[cpu_b].die);
+                    dies_set.insert(profiler->cpuTopology[cpu_c].die);
+                    std::vector<int> dies(dies_set.begin(), dies_set.end());
 
-                        #if PRINT_STATS == 1
+                    std::set<int> threads_set;
+                    threads_set.insert(cpu_a);
+                    threads_set.insert(cpu_b);
+                    threads_set.insert(cpu_c);
+                    std::vector<int> threads(threads_set.begin(), threads_set.end());
+            
+                    #if PRINT_FULL_STATS == 1
                         printf("Thread Pair 1 (A/C)\n");
-                        print_results(results->results_a, sizeof(*shared_loc_a_1)*array_length, STIM_LEN);
+                        results->results_a->print_statistics(sockets, dies, cores, threads, STIM_LEN);
                         printf("Thread Pair 2 (B/C)\n");
-                        print_results(results->results_b, sizeof(*shared_loc_a_2)*array_length, STIM_LEN);
-                        #endif
+                        results->results_b->print_statistics(sockets, dies, cores, threads, STIM_LEN);
+                    #endif
 
-                #else
-                        #if PRINT_FULL_STATS
-                        printf("Thread Pair 1 (A/C)\n");
-                        results->results_a->print_statistics(0, cpu_a, STIM_LEN);
-                        printf("Thread Pair 2 (B/C)\n");
-                        results->results_b->print_statistics(0, cpu_c, STIM_LEN);
-                        #endif
+                    #if PRINT_STATS == 1
+                    printf("Thread Pair 1 (A/C)\n");
+                    print_results(results->results_a, sizeof(*shared_loc_a_1)*array_length, STIM_LEN);
+                    printf("Thread Pair 2 (B/C)\n");
+                    print_results(results->results_b, sizeof(*shared_loc_a_2)*array_length, STIM_LEN);
+                    #endif
+                }else{
+                    #if PRINT_FULL_STATS
+                    printf("Thread Pair 1 (A/C)\n");
+                    results->results_a->print_statistics(0, 0, 0, cpu_a, STIM_LEN);
+                    printf("Thread Pair 2 (B/C)\n");
+                    results->results_b->print_statistics(0, 0, 0, cpu_c, STIM_LEN);
+                    #endif
 
-                        printf("Thread Pair 1 (A/C)\n");
-                        print_results(results->results_a, sizeof(*shared_loc_a_1)*array_length, STIM_LEN);
-                        printf("Thread Pair 2 (B/C)\n");
-                        print_results(results->results_b, sizeof(*shared_loc_a_2)*array_length, STIM_LEN);
-                #endif
+                    printf("Thread Pair 1 (A/C)\n");
+                    print_results(results->results_a, sizeof(*shared_loc_a_1)*array_length, STIM_LEN);
+                    printf("Thread Pair 2 (B/C)\n");
+                    print_results(results->results_b, sizeof(*shared_loc_a_2)*array_length, STIM_LEN);
+                }
             }
             else
             {
@@ -814,7 +879,7 @@
         return results;
     }
 
-    void run_latency_dual_array_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, FILE* file = NULL, std::ofstream* raw_file=NULL)
+    void run_latency_dual_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, FILE* file = NULL, std::ofstream* raw_file=NULL)
     {
         //Print header
         printf("Dual Memory Location - Array\n");
@@ -834,21 +899,20 @@
         for(int i = 0; i<array_lengths.size(); i++)
         {
             size_t array_length = array_lengths[i];
-            Results* latency_dual_array_kernel_results = run_latency_dual_array_kernel(pcm, cpu_a, cpu_b, array_length, false, format, file, raw_file);
+            Results* latency_dual_array_kernel_results = run_latency_dual_array_kernel(profiler, cpu_a, cpu_b, array_length, false, format, file, raw_file);
 
             #if WRITE_CSV == 1
             fflush(file);
             #endif
 
             //Cleanup
-            latency_dual_array_kernel_results->delete_results();
             delete latency_dual_array_kernel_results;
         }
 
         printf("        ==========================================================================================\n");
     }
 
-    void run_latency_dual_array_kernel(PCM* pcm, int cpu_a, int cpu_b, int cpu_c, int cpu_d, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
+    void run_latency_dual_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, int cpu_d, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //Print header
         printf("Dual Memory Location - Simultanious - Array\n");
@@ -871,7 +935,7 @@
         for(int i = 0; i<array_lengths.size(); i++)
         {
             size_t array_length = array_lengths[i];
-            SimultaniousResults* latency_dual_array_kernel_results_container = run_latency_dual_array_kernel(pcm, cpu_a, cpu_b, cpu_c, cpu_d, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
+            SimultaniousResults* latency_dual_array_kernel_results_container = run_latency_dual_array_kernel(profiler, cpu_a, cpu_b, cpu_c, cpu_d, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
 
             #if WRITE_CSV == 1
             fflush(file_a);
@@ -879,9 +943,6 @@
             #endif
 
             //Cleanup
-            latency_dual_array_kernel_results_container->results_a->delete_results();
-            latency_dual_array_kernel_results_container->results_b->delete_results();
-
             delete latency_dual_array_kernel_results_container->results_a;
             delete latency_dual_array_kernel_results_container->results_b;
 
@@ -891,7 +952,7 @@
         printf("        ==========================================================================================\n");
     }
 
-    void run_latency_dual_array_kernel(PCM* pcm, int cpu_a, int cpu_b, int cpu_c, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
+    void run_latency_dual_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //Print header
         printf("Dual Memory Location - Fan-in/Fan-out - Array\n");
@@ -914,7 +975,7 @@
         for(int i = 0; i<array_lengths.size(); i++)
         {
             size_t array_length = array_lengths[i];
-            SimultaniousResults* latency_dual_array_kernel_results_container = run_latency_dual_array_kernel(pcm, cpu_a, cpu_b, cpu_c, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
+            SimultaniousResults* latency_dual_array_kernel_results_container = run_latency_dual_array_kernel(profiler, cpu_a, cpu_b, cpu_c, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
 
             #if WRITE_CSV == 1
             fflush(file_a);
@@ -922,9 +983,6 @@
             #endif
 
             //Cleanup
-            latency_dual_array_kernel_results_container->results_a->delete_results();
-            latency_dual_array_kernel_results_container->results_b->delete_results();
-
             delete latency_dual_array_kernel_results_container->results_a;
             delete latency_dual_array_kernel_results_container->results_b;
 
@@ -934,7 +992,7 @@
         printf("        ==========================================================================================\n");
     }
 
-    Results* run_latency_flow_ctrl_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file=NULL, std::ofstream* raw_file=NULL)
+    Results* run_latency_flow_ctrl_kernel(Profiler* profiler, int cpu_a, int cpu_b, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file=NULL, std::ofstream* raw_file=NULL)
     {
         #if PRINT_TITLE == 1
         if(report_standalone)
@@ -960,41 +1018,58 @@
         args->ack_shared_ptr = shared_ack_loc;
         args->length = array_length;
 
-        Results* results = execute_client_server_kernel(pcm, latency_flow_ctrl_server_kernel, latency_flow_ctrl_client_kernel, latency_flow_ctrl_kernel_reset, args, args, args, cpu_a, cpu_b);
+        Results* results = execute_client_server_kernel(profiler, latency_flow_ctrl_server_kernel, latency_flow_ctrl_client_kernel, latency_flow_ctrl_kernel_reset, args, args, args, cpu_a, cpu_b);
 
         #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
             if(report_standalone)
             {
-                #if USE_PCM == 1
-                        std::vector<int> sockets;
-                        int socket_a = pcm->getSocketId(cpu_a);
-                        int socket_b = pcm->getSocketId(cpu_b);
+                if(!profiler->cpuTopology.empty()){
+                    std::vector<int> sockets;
+                    int socket_a = profiler->cpuTopology[cpu_a].socket;
+                    int socket_b = profiler->cpuTopology[cpu_b].socket;
+                    sockets.push_back(socket_a);
+                    if(socket_b != socket_a)
+                    {
+                        sockets.push_back(socket_b);
+                    }
 
-                        sockets.push_back(socket_a);
-                        if(socket_b != socket_a)
-                        {
-                            sockets.push_back(socket_b);
-                        }
+                    std::vector<int> cores;
+                    int core_a = profiler->cpuTopology[cpu_a].core;
+                    int core_b = profiler->cpuTopology[cpu_b].core;
+                    cores.push_back(core_a);
+                    if(core_a != core_b){
+                        cores.push_back(core_b);
+                    }
 
-                        std::vector<int> cores;
-                        cores.push_back(cpu_a);
-                        cores.push_back(cpu_b);
+                    std::vector<int> dies;
+                    int die_a = profiler->cpuTopology[cpu_a].die;
+                    int die_b = profiler->cpuTopology[cpu_b].die;
+                    dies.push_back(die_a);
+                    if(die_a != die_b){
+                        dies.push_back(die_b);
+                    }
+
+                    std::vector<int> threads;
+                    threads.push_back(cpu_a);
+                    if(cpu_a != cpu_b){
+                        threads.push_back(cpu_b);
+                    }
                 
-                        #if PRINT_FULL_STATS == 1
-                            results->print_statistics(sockets, cores, STIM_LEN);
-                        #endif
+                    #if PRINT_FULL_STATS == 1
+                        results->print_statistics(sockets, dies, cores, threads, STIM_LEN);
+                    #endif
 
-                        #if PRINT_STATS == 1
+                    #if PRINT_STATS == 1
                         print_results(results, sizeof(*shared_array_loc)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
-                        #endif
+                    #endif
 
-                #else
+                }else{
                         #if PRINT_FULL_STATS
-                        results->print_statistics(0, cpu_a, STIM_LEN);
+                            results->print_statistics(0, 0, 0, cpu_a, STIM_LEN);
                         #endif
 
                         print_results(results, sizeof(*shared_array_loc)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
-                #endif
+                }
             }
             else
             {
@@ -1010,7 +1085,7 @@
         return results;
     }
 
-    SimultaniousResults* run_latency_flow_ctrl_kernel(PCM* pcm, int cpu_a, int cpu_b, int cpu_c, int cpu_d, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
+    SimultaniousResults* run_latency_flow_ctrl_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, int cpu_d, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         #if PRINT_TITLE == 1
         if(report_standalone)
@@ -1046,56 +1121,66 @@
         args_2->length = array_length;
 
         //                                                                                                                                                                 S1,     S2,     C1,     C2,     R1,     R2
-        SimultaniousResults* results = execute_client_server_kernel(pcm, latency_flow_ctrl_server_kernel, latency_flow_ctrl_client_kernel, latency_flow_ctrl_kernel_reset, args_1, args_2, args_1, args_2, args_1, args_2, cpu_a, cpu_b, cpu_c, cpu_d);
+        SimultaniousResults* results = execute_client_server_kernel(profiler, latency_flow_ctrl_server_kernel, latency_flow_ctrl_client_kernel, latency_flow_ctrl_kernel_reset, args_1, args_2, args_1, args_2, args_1, args_2, cpu_a, cpu_b, cpu_c, cpu_d);
 
         #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
             if(report_standalone)
             {
-                #if USE_PCM == 1
-                        std::set<int> sockets;
-                        int socket_a = pcm->getSocketId(cpu_a);
-                        int socket_b = pcm->getSocketId(cpu_b);
-                        int socket_c = pcm->getSocketId(cpu_c);
-                        int socket_d = pcm->getSocketId(cpu_d);
+                if(!profiler->cpuTopology.empty()){
+                    std::set<int> sockets_set;
+                    sockets_set.insert(profiler->cpuTopology[cpu_a].socket);
+                    sockets_set.insert(profiler->cpuTopology[cpu_b].socket);
+                    sockets_set.insert(profiler->cpuTopology[cpu_c].socket);
+                    sockets_set.insert(profiler->cpuTopology[cpu_d].socket);
+                    std::vector<int> sockets(sockets_set.begin(), sockets_set.end());
 
-                        sockets.insert(socket_a);
-                        sockets.insert(socket_b);
-                        sockets.insert(socket_c);
-                        sockets.insert(socket_d);
+                    std::set<int> cores_set;
+                    cores_set.insert(profiler->cpuTopology[cpu_a].core);
+                    cores_set.insert(profiler->cpuTopology[cpu_b].core);
+                    cores_set.insert(profiler->cpuTopology[cpu_c].core);
+                    cores_set.insert(profiler->cpuTopology[cpu_d].core);
+                    std::vector<int> cores(cores_set.begin(), cores_set.end());
 
-                        std::set<int> cores;
-                        cores.insert(cpu_a);
-                        cores.insert(cpu_b);
-                        cores.insert(cpu_c);
-                        cores.insert(cpu_d);
-                
-                        #if PRINT_FULL_STATS == 1
-                            printf("Thread Pair 1 (A/B)\n");
-                            results->results_a->print_statistics(sockets, cores, STIM_LEN);
-                            printf("Thread Pair 2 (C/D)\n");
-                            results->results_b->print_statistics(sockets, cores, STIM_LEN);
-                        #endif
+                    std::set<int> dies_set;
+                    dies_set.insert(profiler->cpuTopology[cpu_a].die);
+                    dies_set.insert(profiler->cpuTopology[cpu_b].die);
+                    dies_set.insert(profiler->cpuTopology[cpu_c].die);
+                    dies_set.insert(profiler->cpuTopology[cpu_d].die);
+                    std::vector<int> dies(dies_set.begin(), dies_set.end());
 
-                        #if PRINT_STATS == 1
+                    std::set<int> threads_set;
+                    threads_set.insert(cpu_a);
+                    threads_set.insert(cpu_b);
+                    threads_set.insert(cpu_c);
+                    threads_set.insert(cpu_d);
+                    std::vector<int> threads(threads_set.begin(), threads_set.end());
+            
+                    #if PRINT_FULL_STATS == 1
+                        printf("Thread Pair 1 (A/B)\n");
+                        results->results_a->print_statistics(sockets, dies, cores, threads, STIM_LEN);
+                        printf("Thread Pair 2 (C/D)\n");
+                        results->results_b->print_statistics(sockets, dies, cores, threads, STIM_LEN);
+                    #endif
+
+                    #if PRINT_STATS == 1
                         printf("Thread Pair 1 (A/B)\n");
                         print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
                         printf("Thread Pair 2 (C/D)\n");
                         print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
-                        #endif
-
-                #else
-                        #if PRINT_FULL_STATS
+                    #endif
+                }else{
+                    #if PRINT_FULL_STATS
                         printf("Thread Pair 1 (A/B)\n");
-                        results->results_a->print_statistics(0, cpu_a, STIM_LEN);
+                        results->results_a->print_statistics(0, 0, 0, cpu_a, STIM_LEN);
                         printf("Thread Pair 2 (C/D)\n");
-                        results->results_b->print_statistics(0, cpu_c, STIM_LEN);
-                        #endif
+                        results->results_b->print_statistics(0, 0, 0, cpu_c, STIM_LEN);
+                    #endif
 
-                        printf("Thread Pair 1 (A/B)\n");
-                        print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
-                        printf("Thread Pair 2 (C/D)\n");
-                        print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
-                #endif
+                    printf("Thread Pair 1 (A/B)\n");
+                    print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                    printf("Thread Pair 2 (C/D)\n");
+                    print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
+                }
             }
             else
             {
@@ -1119,7 +1204,7 @@
      * This version tests for fan-in when the comunication mechanism uses the flow control model.
      * 2 servers feed to 1 client.  The servers conduct the measurment
      */
-    SimultaniousResults* run_latency_flow_ctrl_fanin_kernel(PCM* pcm, int cpu_a, int cpu_b, int cpu_c, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
+    SimultaniousResults* run_latency_flow_ctrl_fanin_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         #if PRINT_TITLE == 1
         if(report_standalone)
@@ -1165,53 +1250,63 @@
         args_c->ack_shared_ptr_b = shared_ack_loc_2;
         args_c->length_b = array_length;
 
-        SimultaniousResults* results = execute_kernel_fanin_server_measure(pcm, latency_flow_ctrl_server_kernel, latency_flow_ctrl_client_join_kernel, latency_flow_ctrl_join_kernel_reset, args_a, args_b, args_c, args_c, cpu_a, cpu_b, cpu_c); //Reset args are same as client join args
+        SimultaniousResults* results = execute_kernel_fanin_server_measure(profiler, latency_flow_ctrl_server_kernel, latency_flow_ctrl_client_join_kernel, latency_flow_ctrl_join_kernel_reset, args_a, args_b, args_c, args_c, cpu_a, cpu_b, cpu_c); //Reset args are same as client join args
 
         #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
             if(report_standalone)
             {
-                #if USE_PCM == 1
-                        std::set<int> sockets;
-                        int socket_a = pcm->getSocketId(cpu_a);
-                        int socket_b = pcm->getSocketId(cpu_b);
-                        int socket_c = pcm->getSocketId(cpu_c);
+                if(!profiler->cpuTopology.empty()){
+                    std::set<int> sockets_set;
+                    sockets_set.insert(profiler->cpuTopology[cpu_a].socket);
+                    sockets_set.insert(profiler->cpuTopology[cpu_b].socket);
+                    sockets_set.insert(profiler->cpuTopology[cpu_c].socket);
+                    std::vector<int> sockets(sockets_set.begin(), sockets_set.end());
 
-                        sockets.insert(socket_a);
-                        sockets.insert(socket_b);
-                        sockets.insert(socket_c);
+                    std::set<int> cores_set;
+                    cores_set.insert(profiler->cpuTopology[cpu_a].core);
+                    cores_set.insert(profiler->cpuTopology[cpu_b].core);
+                    cores_set.insert(profiler->cpuTopology[cpu_c].core);
+                    std::vector<int> cores(cores_set.begin(), cores_set.end());
 
-                        std::set<int> cores;
-                        cores.insert(cpu_a);
-                        cores.insert(cpu_b);
-                        cores.insert(cpu_c);
-                
-                        #if PRINT_FULL_STATS == 1
-                            printf("Thread Pair 1 (A/C)\n");
-                            results->results_a->print_statistics(sockets, cores, STIM_LEN);
-                            printf("Thread Pair 2 (B/C)\n");
-                            results->results_b->print_statistics(sockets, cores, STIM_LEN);
-                        #endif
+                    std::set<int> dies_set;
+                    dies_set.insert(profiler->cpuTopology[cpu_a].die);
+                    dies_set.insert(profiler->cpuTopology[cpu_b].die);
+                    dies_set.insert(profiler->cpuTopology[cpu_c].die);
+                    std::vector<int> dies(dies_set.begin(), dies_set.end());
 
-                        #if PRINT_STATS == 1
+                    std::set<int> threads_set;
+                    threads_set.insert(cpu_a);
+                    threads_set.insert(cpu_b);
+                    threads_set.insert(cpu_c);
+                    std::vector<int> threads(threads_set.begin(), threads_set.end());
+            
+                    #if PRINT_FULL_STATS == 1
+                        printf("Thread Pair 1 (A/C)\n");
+                        results->results_a->print_statistics(sockets, dies, cores, threads, STIM_LEN);
+                        printf("Thread Pair 2 (B/C)\n");
+                        results->results_b->print_statistics(sockets, dies, cores, threads, STIM_LEN);
+                    #endif
+
+                    #if PRINT_STATS == 1
                         printf("Thread Pair 1 (A/C)\n");
                         print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
                         printf("Thread Pair 2 (B/C)\n");
                         print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
-                        #endif
+                    #endif
 
-                #else
-                        #if PRINT_FULL_STATS
+                }else{
+                    #if PRINT_FULL_STATS
                         printf("Thread Pair 1 (A/C)\n");
-                        results->results_a->print_statistics(0, cpu_a, STIM_LEN);
+                        results->results_a->print_statistics(0, 0, 0, cpu_a, STIM_LEN);
                         printf("Thread Pair 2 (B/C)\n");
-                        results->results_b->print_statistics(0, cpu_c, STIM_LEN);
-                        #endif
+                        results->results_b->print_statistics(0, 0, 0, cpu_c, STIM_LEN);
+                    #endif
 
-                        printf("Thread Pair 1 (A/C)\n");
-                        print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
-                        printf("Thread Pair 2 (B/C)\n");
-                        print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
-                #endif
+                    printf("Thread Pair 1 (A/C)\n");
+                    print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                    printf("Thread Pair 2 (B/C)\n");
+                    print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
+                }
             }
             else
             {
@@ -1238,7 +1333,7 @@
      * 
      * TODO: Small inaccuracy may occur on the first transaction due to servers starting first
      */
-    SimultaniousResults* run_latency_flow_ctrl_fanout_kernel(PCM* pcm, int cpu_a, int cpu_b, int cpu_c, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
+    SimultaniousResults* run_latency_flow_ctrl_fanout_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         #if PRINT_TITLE == 1
         if(report_standalone)
@@ -1284,53 +1379,63 @@
         args_c->ack_shared_ptr = shared_ack_loc_2;
         args_c->length = array_length;
 
-        SimultaniousResults* results = execute_kernel_fanout_client_measure(pcm, latency_flow_ctrl_server_join_kernel, latency_flow_ctrl_client_kernel, latency_flow_ctrl_join_kernel_reset, args_a, args_b, args_c, args_a, cpu_a, cpu_b, cpu_c); //Reset args are same as server join args
+        SimultaniousResults* results = execute_kernel_fanout_client_measure(profiler, latency_flow_ctrl_server_join_kernel, latency_flow_ctrl_client_kernel, latency_flow_ctrl_join_kernel_reset, args_a, args_b, args_c, args_a, cpu_a, cpu_b, cpu_c); //Reset args are same as server join args
 
         #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
             if(report_standalone)
             {
-                #if USE_PCM == 1
-                        std::set<int> sockets;
-                        int socket_a = pcm->getSocketId(cpu_a);
-                        int socket_b = pcm->getSocketId(cpu_b);
-                        int socket_c = pcm->getSocketId(cpu_c);
+                if(!profiler->cpuTopology.empty()){
+                    std::set<int> sockets_set;
+                    sockets_set.insert(profiler->cpuTopology[cpu_a].socket);
+                    sockets_set.insert(profiler->cpuTopology[cpu_b].socket);
+                    sockets_set.insert(profiler->cpuTopology[cpu_c].socket);
+                    std::vector<int> sockets(sockets_set.begin(), sockets_set.end());
 
-                        sockets.insert(socket_a);
-                        sockets.insert(socket_b);
-                        sockets.insert(socket_c);
+                    std::set<int> cores_set;
+                    cores_set.insert(profiler->cpuTopology[cpu_a].core);
+                    cores_set.insert(profiler->cpuTopology[cpu_b].core);
+                    cores_set.insert(profiler->cpuTopology[cpu_c].core);
+                    std::vector<int> cores(cores_set.begin(), cores_set.end());
 
-                        std::set<int> cores;
-                        cores.insert(cpu_a);
-                        cores.insert(cpu_b);
-                        cores.insert(cpu_c);
-                
-                        #if PRINT_FULL_STATS == 1
-                            printf("Thread Pair 1 (A/B)\n");
-                            results->results_a->print_statistics(sockets, cores, STIM_LEN);
-                            printf("Thread Pair 2 (A/C)\n");
-                            results->results_b->print_statistics(sockets, cores, STIM_LEN);
-                        #endif
+                    std::set<int> dies_set;
+                    dies_set.insert(profiler->cpuTopology[cpu_a].die);
+                    dies_set.insert(profiler->cpuTopology[cpu_b].die);
+                    dies_set.insert(profiler->cpuTopology[cpu_c].die);
+                    std::vector<int> dies(dies_set.begin(), dies_set.end());
 
-                        #if PRINT_STATS == 1
+                    std::set<int> threads_set;
+                    threads_set.insert(cpu_a);
+                    threads_set.insert(cpu_b);
+                    threads_set.insert(cpu_c);
+                    std::vector<int> threads(threads_set.begin(), threads_set.end());
+            
+                    #if PRINT_FULL_STATS == 1
+                        printf("Thread Pair 1 (A/B)\n");
+                        results->results_a->print_statistics(sockets, dies, cores, threads, STIM_LEN);
+                        printf("Thread Pair 2 (A/C)\n");
+                        results->results_b->print_statistics(sockets, dies, cores, threads, STIM_LEN);
+                    #endif
+
+                    #if PRINT_STATS == 1
                         printf("Thread Pair 1 (A/B)\n");
                         print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
                         printf("Thread Pair 2 (A/C)\n");
                         print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
-                        #endif
+                    #endif
 
-                #else
+                }else{
                         #if PRINT_FULL_STATS
-                        printf("Thread Pair 1 (A/B)\n");
-                        results->results_a->print_statistics(0, cpu_a, STIM_LEN);
-                        printf("Thread Pair 2 (A/C)\n");
-                        results->results_b->print_statistics(0, cpu_c, STIM_LEN);
+                            printf("Thread Pair 1 (A/B)\n");
+                            results->results_a->print_statistics(0, 0, 0, cpu_a, STIM_LEN);
+                            printf("Thread Pair 2 (A/C)\n");
+                            results->results_b->print_statistics(0, 0, 0, cpu_c, STIM_LEN);
                         #endif
 
                         printf("Thread Pair 1 (A/B)\n");
                         print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
                         printf("Thread Pair 2 (A/C)\n");
                         print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
-                #endif
+                }
             }
             else
             {
@@ -1351,7 +1456,7 @@
         return results;
     }
 
-    void run_latency_flow_ctrl_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, FILE* file = NULL, std::ofstream* raw_file=NULL)
+    void run_latency_flow_ctrl_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, FILE* file = NULL, std::ofstream* raw_file=NULL)
     {
         //Print header
         printf("Flow Control - Array\n");
@@ -1371,21 +1476,20 @@
         for(int i = 0; i<array_lengths.size(); i++)
         {
             size_t array_length = array_lengths[i];
-            Results* latency_fifo_kernel_results = run_latency_flow_ctrl_kernel(pcm, cpu_a, cpu_b, array_length, false, format, file, raw_file);
+            Results* latency_fifo_kernel_results = run_latency_flow_ctrl_kernel(profiler, cpu_a, cpu_b, array_length, false, format, file, raw_file);
 
             #if WRITE_CSV == 1
             fflush(file);
             #endif
 
             //Cleanup
-            latency_fifo_kernel_results->delete_results();
             delete latency_fifo_kernel_results;
         }
 
         printf("        ==========================================================================================\n");
     }
 
-    void run_latency_flow_ctrl_kernel(PCM* pcm, int cpu_a, int cpu_b, int cpu_c, int cpu_d, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
+    void run_latency_flow_ctrl_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, int cpu_d, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //Print header
         printf("Flow Control - Simultanious - Array\n");
@@ -1408,7 +1512,7 @@
         for(int i = 0; i<array_lengths.size(); i++)
         {
             size_t array_length = array_lengths[i];
-            SimultaniousResults* latency_fifo_kernel_results = run_latency_flow_ctrl_kernel(pcm, cpu_a, cpu_b, cpu_c, cpu_d, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
+            SimultaniousResults* latency_fifo_kernel_results = run_latency_flow_ctrl_kernel(profiler, cpu_a, cpu_b, cpu_c, cpu_d, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
 
             #if WRITE_CSV == 1
             fflush(file_a);
@@ -1416,8 +1520,6 @@
             #endif
 
             //Cleanup
-            latency_fifo_kernel_results->results_a->delete_results();
-            latency_fifo_kernel_results->results_b->delete_results();
             delete latency_fifo_kernel_results->results_a;
             delete latency_fifo_kernel_results->results_b;
             delete latency_fifo_kernel_results;
@@ -1426,7 +1528,7 @@
         printf("        ==========================================================================================\n");
     }
 
-    void run_latency_flow_ctrl_fanin_kernel(PCM* pcm, int cpu_a, int cpu_b, int cpu_c, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
+    void run_latency_flow_ctrl_fanin_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //Print header
         printf("Flow Control - Fan-in - Array\n");
@@ -1449,7 +1551,7 @@
         for(int i = 0; i<array_lengths.size(); i++)
         {
             size_t array_length = array_lengths[i];
-            SimultaniousResults* latency_fifo_kernel_results = run_latency_flow_ctrl_fanin_kernel(pcm, cpu_a, cpu_b, cpu_c, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
+            SimultaniousResults* latency_fifo_kernel_results = run_latency_flow_ctrl_fanin_kernel(profiler, cpu_a, cpu_b, cpu_c, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
 
             #if WRITE_CSV == 1
             fflush(file_a);
@@ -1457,8 +1559,6 @@
             #endif
 
             //Cleanup
-            latency_fifo_kernel_results->results_a->delete_results();
-            latency_fifo_kernel_results->results_b->delete_results();
             delete latency_fifo_kernel_results->results_a;
             delete latency_fifo_kernel_results->results_b;
             delete latency_fifo_kernel_results;
@@ -1467,7 +1567,7 @@
         printf("        ==========================================================================================\n");
     }
 
-    void run_latency_flow_ctrl_fanout_kernel(PCM* pcm, int cpu_a, int cpu_b, int cpu_c, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
+    void run_latency_flow_ctrl_fanout_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //Print header
         printf("Flow Control - Fan-out - Array\n");
@@ -1490,7 +1590,7 @@
         for(int i = 0; i<array_lengths.size(); i++)
         {
             size_t array_length = array_lengths[i];
-            SimultaniousResults* latency_fifo_kernel_results = run_latency_flow_ctrl_fanout_kernel(pcm, cpu_a, cpu_b, cpu_c, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
+            SimultaniousResults* latency_fifo_kernel_results = run_latency_flow_ctrl_fanout_kernel(profiler, cpu_a, cpu_b, cpu_c, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
 
             #if WRITE_CSV == 1
             fflush(file_a);
@@ -1498,8 +1598,6 @@
             #endif
 
             //Cleanup
-            latency_fifo_kernel_results->results_a->delete_results();
-            latency_fifo_kernel_results->results_b->delete_results();
             delete latency_fifo_kernel_results->results_a;
             delete latency_fifo_kernel_results->results_b;
             delete latency_fifo_kernel_results;
@@ -1508,7 +1606,7 @@
         printf("        ==========================================================================================\n");
     }
 
-    Results* run_latency_flow_ctrl_blocked_read_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file=NULL, std::ofstream* raw_file=NULL)
+    Results* run_latency_flow_ctrl_blocked_read_kernel(Profiler* profiler, int cpu_a, int cpu_b, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file=NULL, std::ofstream* raw_file=NULL)
     {
         #if PRINT_TITLE == 1
         if(report_standalone)
@@ -1536,41 +1634,57 @@
         args->valid_shared_ptr = shared_valid_loc;
         args->length = array_length;
 
-        Results* results = execute_client_server_kernel(pcm, latency_flow_ctrl_blocked_read_server_kernel, latency_flow_ctrl_blocked_read_client_kernel, latency_flow_ctrl_blocked_read_kernel_reset, args, args, args, cpu_a, cpu_b);
+        Results* results = execute_client_server_kernel(profiler, latency_flow_ctrl_blocked_read_server_kernel, latency_flow_ctrl_blocked_read_client_kernel, latency_flow_ctrl_blocked_read_kernel_reset, args, args, args, cpu_a, cpu_b);
 
         #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
             if(report_standalone)
             {
-                #if USE_PCM == 1
-                        std::vector<int> sockets;
-                        int socket_a = pcm->getSocketId(cpu_a);
-                        int socket_b = pcm->getSocketId(cpu_b);
+                if(!profiler->cpuTopology.empty()){
+                    std::vector<int> sockets;
+                    int socket_a = profiler->cpuTopology[cpu_a].socket;
+                    int socket_b = profiler->cpuTopology[cpu_b].socket;
+                    sockets.push_back(socket_a);
+                    if(socket_b != socket_a)
+                    {
+                        sockets.push_back(socket_b);
+                    }
 
-                        sockets.push_back(socket_a);
-                        if(socket_b != socket_a)
-                        {
-                            sockets.push_back(socket_b);
-                        }
+                    std::vector<int> cores;
+                    int core_a = profiler->cpuTopology[cpu_a].core;
+                    int core_b = profiler->cpuTopology[cpu_b].core;
+                    cores.push_back(core_a);
+                    if(core_a != core_b){
+                        cores.push_back(core_b);
+                    }
 
-                        std::vector<int> cores;
-                        cores.push_back(cpu_a);
-                        cores.push_back(cpu_b);
-                
-                        #if PRINT_FULL_STATS == 1
-                            results->print_statistics(sockets, cores, STIM_LEN);
-                        #endif
+                    std::vector<int> dies;
+                    int die_a = profiler->cpuTopology[cpu_a].die;
+                    int die_b = profiler->cpuTopology[cpu_b].die;
+                    dies.push_back(die_a);
+                    if(die_a != die_b){
+                        dies.push_back(die_b);
+                    }
 
-                        #if PRINT_STATS == 1
+                    std::vector<int> threads;
+                    threads.push_back(cpu_a);
+                    if(cpu_a != cpu_b){
+                        threads.push_back(cpu_b);
+                    }
+            
+                    #if PRINT_FULL_STATS == 1
+                        results->print_statistics(sockets, dies, cores, threads, STIM_LEN);
+                    #endif
+
+                    #if PRINT_STATS == 1
                         print_results(results, sizeof(*shared_array_loc)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
-                        #endif
+                    #endif
+                }else{
+                    #if PRINT_FULL_STATS
+                        results->print_statistics(0, 0, 0, cpu_a, STIM_LEN);
+                    #endif
 
-                #else
-                        #if PRINT_FULL_STATS
-                        results->print_statistics(0, cpu_a, STIM_LEN);
-                        #endif
-
-                        print_results(results, sizeof(*shared_array_loc)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
-                #endif
+                    print_results(results, sizeof(*shared_array_loc)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                }
             }
             else
             {
@@ -1587,7 +1701,7 @@
         return results;
     }
 
-    SimultaniousResults* run_latency_flow_ctrl_blocked_read_kernel(PCM* pcm, int cpu_a, int cpu_b, int cpu_c, int cpu_d, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
+    SimultaniousResults* run_latency_flow_ctrl_blocked_read_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, int cpu_d, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         #if PRINT_TITLE == 1
         if(report_standalone)
@@ -1626,55 +1740,66 @@
         args_2->length = array_length;
 
         //                                                                                                                                                                                                        S1,     S2,     C1,     C2,     R1,     R2
-        SimultaniousResults* results = execute_client_server_kernel(pcm, latency_flow_ctrl_blocked_read_server_kernel, latency_flow_ctrl_blocked_read_client_kernel, latency_flow_ctrl_blocked_read_kernel_reset, args_1, args_2, args_1, args_2, args_1, args_2, cpu_a, cpu_b, cpu_c, cpu_d);
+        SimultaniousResults* results = execute_client_server_kernel(profiler, latency_flow_ctrl_blocked_read_server_kernel, latency_flow_ctrl_blocked_read_client_kernel, latency_flow_ctrl_blocked_read_kernel_reset, args_1, args_2, args_1, args_2, args_1, args_2, cpu_a, cpu_b, cpu_c, cpu_d);
 
         #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
             if(report_standalone)
             {
-                #if USE_PCM == 1
-                        std::vector<int> sockets;
-                        int socket_a = pcm->getSocketId(cpu_a);
-                        int socket_b = pcm->getSocketId(cpu_b);
+                if(!profiler->cpuTopology.empty()){
+                    std::set<int> sockets_set;
+                    sockets_set.insert(profiler->cpuTopology[cpu_a].socket);
+                    sockets_set.insert(profiler->cpuTopology[cpu_b].socket);
+                    sockets_set.insert(profiler->cpuTopology[cpu_c].socket);
+                    sockets_set.insert(profiler->cpuTopology[cpu_d].socket);
+                    std::vector<int> sockets(sockets_set.begin(), sockets_set.end());
 
-                        sockets.push_back(socket_a);
-                        if(socket_b != socket_a)
-                        {
-                            sockets.push_back(socket_b);
-                        }
+                    std::set<int> cores_set;
+                    cores_set.insert(profiler->cpuTopology[cpu_a].core);
+                    cores_set.insert(profiler->cpuTopology[cpu_b].core);
+                    cores_set.insert(profiler->cpuTopology[cpu_c].core);
+                    cores_set.insert(profiler->cpuTopology[cpu_d].core);
+                    std::vector<int> cores(cores_set.begin(), cores_set.end());
 
-                        std::vector<int> cores;
-                        cores.push_back(cpu_a);
-                        cores.push_back(cpu_b);
-                        cores.push_back(cpu_c);
-                        cores.push_back(cpu_d);
-                
-                        #if PRINT_FULL_STATS == 1
-                            printf("Thread Pair 1 (A/B)\n");
-                            results->results_a->print_statistics(sockets, cores, STIM_LEN);
-                            printf("Thread Pair 2 (C/D)\n");
-                            results->results_b->print_statistics(sockets, cores, STIM_LEN);
-                        #endif
+                    std::set<int> dies_set;
+                    dies_set.insert(profiler->cpuTopology[cpu_a].die);
+                    dies_set.insert(profiler->cpuTopology[cpu_b].die);
+                    dies_set.insert(profiler->cpuTopology[cpu_c].die);
+                    dies_set.insert(profiler->cpuTopology[cpu_d].die);
+                    std::vector<int> dies(dies_set.begin(), dies_set.end());
 
-                        #if PRINT_STATS == 1
+                    std::set<int> threads_set;
+                    threads_set.insert(cpu_a);
+                    threads_set.insert(cpu_b);
+                    threads_set.insert(cpu_c);
+                    threads_set.insert(cpu_d);
+                    std::vector<int> threads(threads_set.begin(), threads_set.end());
+            
+                    #if PRINT_FULL_STATS == 1
+                        printf("Thread Pair 1 (A/B)\n");
+                        results->results_a->print_statistics(sockets, dies, cores, threads, STIM_LEN);
+                        printf("Thread Pair 2 (C/D)\n");
+                        results->results_b->print_statistics(sockets, dies, cores, threads, STIM_LEN);
+                    #endif
+
+                    #if PRINT_STATS == 1
                         printf("Thread Pair 1 (A/B)\n");
                         print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
                         printf("Thread Pair 2 (C/D)\n");
                         print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
-                        #endif
-
-                #else
-                        #if PRINT_FULL_STATS
+                    #endif
+                }else{
+                    #if PRINT_FULL_STATS
                         printf("Thread Pair 1 (A/B)\n");
-                        results->results_a->print_statistics(0, cpu_a, STIM_LEN);
+                        results->results_a->print_statistics(0, 0, 0, cpu_a, STIM_LEN);
                         printf("Thread Pair 2 (C/D)\n");
-                        results->results_b->print_statistics(0, cpu_c, STIM_LEN);
-                        #endif
+                        results->results_b->print_statistics(0, 0, 0, cpu_c, STIM_LEN);
+                    #endif
 
-                        printf("Thread Pair 1 (A/B)\n");
-                        print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
-                        printf("Thread Pair 2 (C/D)\n");
-                        print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
-                #endif
+                    printf("Thread Pair 1 (A/B)\n");
+                    print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                    printf("Thread Pair 2 (C/D)\n");
+                    print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
+                }
             }
             else
             {
@@ -1696,7 +1821,7 @@
         return results;
     }
 
-    SimultaniousResults* run_latency_flow_ctrl_blocked_read_fanin_kernel(PCM* pcm, int cpu_a, int cpu_b, int cpu_c, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
+    SimultaniousResults* run_latency_flow_ctrl_blocked_read_fanin_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         #if PRINT_TITLE == 1
         if(report_standalone)
@@ -1747,52 +1872,62 @@
         cli_args_1->length_b = array_length;
 
 
-        SimultaniousResults* results = execute_kernel_fanin_server_measure(pcm, latency_flow_ctrl_blocked_read_server_kernel, latency_flow_ctrl_blocked_read_client_join_kernel, latency_flow_ctrl_blocked_read_join_kernel_reset, srv_args_1, srv_args_2, cli_args_1, cli_args_1, cpu_a, cpu_b, cpu_c); //Reset arg is cli args
+        SimultaniousResults* results = execute_kernel_fanin_server_measure(profiler, latency_flow_ctrl_blocked_read_server_kernel, latency_flow_ctrl_blocked_read_client_join_kernel, latency_flow_ctrl_blocked_read_join_kernel_reset, srv_args_1, srv_args_2, cli_args_1, cli_args_1, cpu_a, cpu_b, cpu_c); //Reset arg is cli args
 
         #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
             if(report_standalone)
             {
-                #if USE_PCM == 1
-                        std::set<int> sockets;
-                        int socket_a = pcm->getSocketId(cpu_a);
-                        int socket_b = pcm->getSocketId(cpu_b);
-                        int socket_c = pcm->getSocketId(cpu_b);
+                if(!profiler->cpuTopology.empty()){
+                    std::set<int> sockets_set;
+                    sockets_set.insert(profiler->cpuTopology[cpu_a].socket);
+                    sockets_set.insert(profiler->cpuTopology[cpu_b].socket);
+                    sockets_set.insert(profiler->cpuTopology[cpu_c].socket);
+                    std::vector<int> sockets(sockets_set.begin(), sockets_set.end());
 
-                        sockets.insert(socket_a);
-                        sockets.insert(socket_b);
+                    std::set<int> cores_set;
+                    cores_set.insert(profiler->cpuTopology[cpu_a].core);
+                    cores_set.insert(profiler->cpuTopology[cpu_b].core);
+                    cores_set.insert(profiler->cpuTopology[cpu_c].core);
+                    std::vector<int> cores(cores_set.begin(), cores_set.end());
 
-                        std::set<int> cores;
-                        cores.insert(cpu_a);
-                        cores.insert(cpu_b);
-                        cores.insert(cpu_c);
-                
-                        #if PRINT_FULL_STATS == 1
-                            printf("Thread Pair 1 (A/C)\n");
-                            results->results_a->print_statistics(sockets, cores, STIM_LEN);
-                            printf("Thread Pair 2 (B/C)\n");
-                            results->results_b->print_statistics(sockets, cores, STIM_LEN);
-                        #endif
+                    std::set<int> dies_set;
+                    dies_set.insert(profiler->cpuTopology[cpu_a].die);
+                    dies_set.insert(profiler->cpuTopology[cpu_b].die);
+                    dies_set.insert(profiler->cpuTopology[cpu_c].die);
+                    std::vector<int> dies(dies_set.begin(), dies_set.end());
 
-                        #if PRINT_STATS == 1
+                    std::set<int> threads_set;
+                    threads_set.insert(cpu_a);
+                    threads_set.insert(cpu_b);
+                    threads_set.insert(cpu_c);
+                    std::vector<int> threads(threads_set.begin(), threads_set.end());
+            
+                    #if PRINT_FULL_STATS == 1
                         printf("Thread Pair 1 (A/C)\n");
-                        print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                        results->results_a->print_statistics(sockets, dies, cores, threads, STIM_LEN);
                         printf("Thread Pair 2 (B/C)\n");
-                        print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
-                        #endif
+                        results->results_b->print_statistics(sockets, dies, cores, threads, STIM_LEN);
+                    #endif
 
-                #else
-                        #if PRINT_FULL_STATS
-                        printf("Thread Pair 1 (A/C)\n");
-                        results->results_a->print_statistics(0, cpu_a, STIM_LEN);
-                        printf("Thread Pair 2 (B/C)\n");
-                        results->results_b->print_statistics(0, cpu_b, STIM_LEN);
-                        #endif
+                    #if PRINT_STATS == 1
+                    printf("Thread Pair 1 (A/C)\n");
+                    print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                    printf("Thread Pair 2 (B/C)\n");
+                    print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
+                    #endif
+                }else{
+                    #if PRINT_FULL_STATS
+                    printf("Thread Pair 1 (A/C)\n");
+                    results->results_a->print_statistics(0, 0, 0, cpu_a, STIM_LEN);
+                    printf("Thread Pair 2 (B/C)\n");
+                    results->results_b->print_statistics(0, 0, 0, cpu_b, STIM_LEN);
+                    #endif
 
-                        printf("Thread Pair 1 (A/C)\n");
-                        print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
-                        printf("Thread Pair 2 (B/C)\n");
-                        print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
-                #endif
+                    printf("Thread Pair 1 (A/C)\n");
+                    print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                    printf("Thread Pair 2 (B/C)\n");
+                    print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
+                }
             }
             else
             {
@@ -1815,7 +1950,7 @@
         return results;
     }
 
-    SimultaniousResults* run_latency_flow_ctrl_blocked_read_fanout_kernel(PCM* pcm, int cpu_a, int cpu_b, int cpu_c, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
+    SimultaniousResults* run_latency_flow_ctrl_blocked_read_fanout_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         #if PRINT_TITLE == 1
         if(report_standalone)
@@ -1865,52 +2000,63 @@
         cli_args_2->valid_shared_ptr = shared_valid_loc_2;
         cli_args_2->length = array_length;
 
-        SimultaniousResults* results = execute_kernel_fanout_client_measure(pcm, latency_flow_ctrl_blocked_read_server_join_kernel, latency_flow_ctrl_blocked_read_client_kernel, latency_flow_ctrl_blocked_read_join_kernel_reset, srv_args_1, cli_args_1, cli_args_2, srv_args_1, cpu_a, cpu_b, cpu_c); //Reset arg is srv args
+        SimultaniousResults* results = execute_kernel_fanout_client_measure(profiler, latency_flow_ctrl_blocked_read_server_join_kernel, latency_flow_ctrl_blocked_read_client_kernel, latency_flow_ctrl_blocked_read_join_kernel_reset, srv_args_1, cli_args_1, cli_args_2, srv_args_1, cpu_a, cpu_b, cpu_c); //Reset arg is srv args
 
         #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
             if(report_standalone)
             {
-                #if USE_PCM == 1
-                        std::set<int> sockets;
-                        int socket_a = pcm->getSocketId(cpu_a);
-                        int socket_b = pcm->getSocketId(cpu_b);
-                        int socket_c = pcm->getSocketId(cpu_b);
+                if(!profiler->cpuTopology.empty()){
+                    std::set<int> sockets_set;
+                    sockets_set.insert(profiler->cpuTopology[cpu_a].socket);
+                    sockets_set.insert(profiler->cpuTopology[cpu_b].socket);
+                    sockets_set.insert(profiler->cpuTopology[cpu_c].socket);
+                    std::vector<int> sockets(sockets_set.begin(), sockets_set.end());
 
-                        sockets.insert(socket_a);
-                        sockets.insert(socket_b);
+                    std::set<int> cores_set;
+                    cores_set.insert(profiler->cpuTopology[cpu_a].core);
+                    cores_set.insert(profiler->cpuTopology[cpu_b].core);
+                    cores_set.insert(profiler->cpuTopology[cpu_c].core);
+                    std::vector<int> cores(cores_set.begin(), cores_set.end());
 
-                        std::set<int> cores;
-                        cores.insert(cpu_a);
-                        cores.insert(cpu_b);
-                        cores.insert(cpu_c);
-                
-                        #if PRINT_FULL_STATS == 1
-                            printf("Thread Pair 1 (A/B)\n");
-                            results->results_a->print_statistics(sockets, cores, STIM_LEN);
-                            printf("Thread Pair 2 (A/C)\n");
-                            results->results_b->print_statistics(sockets, cores, STIM_LEN);
-                        #endif
+                    std::set<int> dies_set;
+                    dies_set.insert(profiler->cpuTopology[cpu_a].die);
+                    dies_set.insert(profiler->cpuTopology[cpu_b].die);
+                    dies_set.insert(profiler->cpuTopology[cpu_c].die);
+                    std::vector<int> dies(dies_set.begin(), dies_set.end());
 
-                        #if PRINT_STATS == 1
+                    std::set<int> threads_set;
+                    threads_set.insert(cpu_a);
+                    threads_set.insert(cpu_b);
+                    threads_set.insert(cpu_c);
+                    std::vector<int> threads(threads_set.begin(), threads_set.end());
+            
+                    #if PRINT_FULL_STATS == 1
                         printf("Thread Pair 1 (A/B)\n");
-                        print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                        results->results_a->print_statistics(sockets, dies, cores, threads, STIM_LEN);
                         printf("Thread Pair 2 (A/C)\n");
-                        print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
-                        #endif
+                        results->results_b->print_statistics(sockets, dies, cores, threads, STIM_LEN);
+                    #endif
 
-                #else
-                        #if PRINT_FULL_STATS
-                        printf("Thread Pair 1 (A/B)\n");
-                        results->results_a->print_statistics(0, cpu_a, STIM_LEN);
-                        printf("Thread Pair 2 (A/C)\n");
-                        results->results_b->print_statistics(0, cpu_b, STIM_LEN);
-                        #endif
+                    #if PRINT_STATS == 1
+                    printf("Thread Pair 1 (A/B)\n");
+                    print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                    printf("Thread Pair 2 (A/C)\n");
+                    print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
+                    #endif
 
-                        printf("Thread Pair 1 (A/B)\n");
-                        print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
-                        printf("Thread Pair 2 (A/C)\n");
-                        print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
-                #endif
+                }else{
+                    #if PRINT_FULL_STATS
+                    printf("Thread Pair 1 (A/B)\n");
+                    results->results_a->print_statistics(0, 0, 0, cpu_a, STIM_LEN);
+                    printf("Thread Pair 2 (A/C)\n");
+                    results->results_b->print_statistics(0, 0, 0, cpu_b, STIM_LEN);
+                    #endif
+
+                    printf("Thread Pair 1 (A/B)\n");
+                    print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                    printf("Thread Pair 2 (A/C)\n");
+                    print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
+                }
             }
             else
             {
@@ -1933,7 +2079,7 @@
         return results;
     }
 
-    void run_latency_flow_ctrl_blocked_read_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, FILE* file = NULL, std::ofstream* raw_file=NULL)
+    void run_latency_flow_ctrl_blocked_read_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, FILE* file = NULL, std::ofstream* raw_file=NULL)
     {
         //Print header
         printf("Flow Control Blocked Read - Array\n");
@@ -1953,21 +2099,20 @@
         for(int i = 0; i<array_lengths.size(); i++)
         {
             size_t array_length = array_lengths[i];
-            Results* latency_fifo_kernel_results = run_latency_flow_ctrl_blocked_read_kernel(pcm, cpu_a, cpu_b, array_length, false, format, file, raw_file);
+            Results* latency_fifo_kernel_results = run_latency_flow_ctrl_blocked_read_kernel(profiler, cpu_a, cpu_b, array_length, false, format, file, raw_file);
 
             #if WRITE_CSV == 1
             fflush(file);
             #endif
 
             //Cleanup
-            latency_fifo_kernel_results->delete_results();
             delete latency_fifo_kernel_results;
         }
 
         printf("        ==========================================================================================\n");
     }
 
-    void run_latency_flow_ctrl_blocked_read_kernel(PCM* pcm, int cpu_a, int cpu_b, int cpu_c, int cpu_d, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
+    void run_latency_flow_ctrl_blocked_read_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, int cpu_d, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //Print header
         printf("Flow Control Blocked Read - Simultanious - Array\n");
@@ -1990,7 +2135,7 @@
         for(int i = 0; i<array_lengths.size(); i++)
         {
             size_t array_length = array_lengths[i];
-            SimultaniousResults* latency_fifo_kernel_results = run_latency_flow_ctrl_blocked_read_kernel(pcm, cpu_a, cpu_b, cpu_c, cpu_d, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
+            SimultaniousResults* latency_fifo_kernel_results = run_latency_flow_ctrl_blocked_read_kernel(profiler, cpu_a, cpu_b, cpu_c, cpu_d, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
 
             #if WRITE_CSV == 1
             fflush(file_a);
@@ -1998,8 +2143,6 @@
             #endif
 
             //Cleanup
-            latency_fifo_kernel_results->results_a->delete_results();
-            latency_fifo_kernel_results->results_b->delete_results();
             delete latency_fifo_kernel_results->results_a;
             delete latency_fifo_kernel_results->results_b;
             delete latency_fifo_kernel_results;
@@ -2008,7 +2151,7 @@
         printf("        ==========================================================================================\n");
     }
 
-    void run_latency_flow_ctrl_blocked_read_fanin_kernel(PCM* pcm, int cpu_a, int cpu_b, int cpu_c, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
+    void run_latency_flow_ctrl_blocked_read_fanin_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //Print header
         printf("Flow Control Blocked Read - Fan-in - Array\n");
@@ -2031,7 +2174,7 @@
         for(int i = 0; i<array_lengths.size(); i++)
         {
             size_t array_length = array_lengths[i];
-            SimultaniousResults* latency_fifo_kernel_results = run_latency_flow_ctrl_blocked_read_fanin_kernel(pcm, cpu_a, cpu_b, cpu_c, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
+            SimultaniousResults* latency_fifo_kernel_results = run_latency_flow_ctrl_blocked_read_fanin_kernel(profiler, cpu_a, cpu_b, cpu_c, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
 
             #if WRITE_CSV == 1
             fflush(file_a);
@@ -2039,8 +2182,6 @@
             #endif
 
             //Cleanup
-            latency_fifo_kernel_results->results_a->delete_results();
-            latency_fifo_kernel_results->results_b->delete_results();
             delete latency_fifo_kernel_results->results_a;
             delete latency_fifo_kernel_results->results_b;
             delete latency_fifo_kernel_results;
@@ -2049,7 +2190,7 @@
         printf("        ==========================================================================================\n");
     }
 
-    void run_latency_flow_ctrl_blocked_read_fanout_kernel(PCM* pcm, int cpu_a, int cpu_b, int cpu_c, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
+    void run_latency_flow_ctrl_blocked_read_fanout_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //Print header
         printf("Flow Control Blocked Read - Fan-out - Array\n");
@@ -2072,7 +2213,7 @@
         for(int i = 0; i<array_lengths.size(); i++)
         {
             size_t array_length = array_lengths[i];
-            SimultaniousResults* latency_fifo_kernel_results = run_latency_flow_ctrl_blocked_read_fanout_kernel(pcm, cpu_a, cpu_b, cpu_c, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
+            SimultaniousResults* latency_fifo_kernel_results = run_latency_flow_ctrl_blocked_read_fanout_kernel(profiler, cpu_a, cpu_b, cpu_c, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
 
             #if WRITE_CSV == 1
             fflush(file_a);
@@ -2080,8 +2221,6 @@
             #endif
 
             //Cleanup
-            latency_fifo_kernel_results->results_a->delete_results();
-            latency_fifo_kernel_results->results_b->delete_results();
             delete latency_fifo_kernel_results->results_a;
             delete latency_fifo_kernel_results->results_b;
             delete latency_fifo_kernel_results;

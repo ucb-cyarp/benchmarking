@@ -1,9 +1,8 @@
 #ifndef _H_PRINT_RESULTS
     #define _H_PRINT_RESULTS
 
-    #include "cpucounters.h"
     #include "results.h"
-    #include "pcm_helper.h"
+    #include "profiler.h"
 
     #include "kernel_server_runner.h"
     #include "latency_single_kernel.h"

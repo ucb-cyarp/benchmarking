@@ -73,11 +73,13 @@
 
 #include "intrin_bench_default_defines.h"
 
-#include "cpucounters.h"
+#include "profiler.h"
 #include "results.h"
-#include "pcm_helper.h"
 
 #include "kernel_server_runner.h"
+#include "single_kernels.h"
+#include "array_kernels.h"
+#include "fifo_kernels.h"
 
 #include "latency_single_kernel.h"
 #include "latency_dual_kernel.h"
@@ -97,10 +99,16 @@
     #define WRITE_CSV 1
 #endif
 
-#include "print_results.h"
-#include "single_kernels.h"
-#include "array_kernels.h"
-#include "fifo_kernels.h"
+// #include "print_results.h"
+// #include "single_kernels.h"
+// #include "array_kernels.h"
+// #include "fifo_kernels.h"
+
+//TODO: Remove
+#define TEST_SINGLE 1
+#define TEST_FIFO 1
+#define TEST_SIMULTANIOUS 1
+#define TEST_FANIN_FANOUT 1
 
 int main(int argc, char *argv[])
 {
@@ -140,53 +148,76 @@ int main(int argc, char *argv[])
         printf("STIM_LEN: %d (Samples/Vector/Trial), TRIALS: %d\n", STIM_LEN, TRIALS);
     #endif
 
-    #if USE_PCM == 1
-        bool print_topology = false;
-        #if PRINT_TITLE == 1
-        print_topology = true;
-        #endif
 
-        #if PRINT_TITLE == 1
-        printf("\n");
-        printf("****** Platform Information Provided by PCM ******\n");
-        #endif
+    bool print_topology = false;
+    #if PRINT_TITLE == 1
+    print_topology = true;
+    #endif
 
-        PCM* pcm = init_PCM(print_topology);
+    Profiler* profiler = Profiler::ProfilerFactory(USE_PCM || USE_AMDuPROF);
+    profiler->init();
 
-        #if PRINT_TITLE == 1
-        printf("**************************************************\n");
-        printf("CPU Brand String: %s\n", pcm->getCPUBrandString().c_str());
-        printf("**************************************************\n");
-        #endif
+    #if PRINT_TITLE == 1
+    printf("\n");
+    printf("*****************************************************************\n");
+    printf("Profiler Used: %s\n", profiler->profilerName().c_str());
+    #endif
 
-        #if PRINT_TITLE == 1
+    #if PRINT_TITLE == 1
+    printf("*****************************************************************\n");
+    printf("CPU Brand String: %s\n", Profiler::findCPUModelStr().c_str());
+    printf("*****************************************************************\n");
+    #endif
 
-        printf("\n");
-        int cpu_a_socket = pcm->getSocketId(cpu_a);
-        int cpu_a_core = pcm->getCoreId(cpu_a);
-        int cpu_a_tile = pcm->getTileId(cpu_a);
-        printf("CPU A = Logical CPU#: %d, Socket #: %d, Physical Core #: %d, L2 Tile #: %d\n", cpu_a, cpu_a_socket, cpu_a_core, cpu_a_tile);
-        int cpu_b_socket = pcm->getSocketId(cpu_b);
-        int cpu_b_core = pcm->getCoreId(cpu_b);
-        int cpu_b_tile = pcm->getTileId(cpu_b);
-        printf("CPU B = Logical CPU#: %d, Socket #: %d, Physical Core #: %d, L2 Tile #: %d\n", cpu_b, cpu_b_socket, cpu_b_core, cpu_b_tile);
+    int cpu_a_socket = 0;
+    int cpu_a_die = 0;
+    int cpu_a_core = 0;
+    int cpu_b_socket = 0;
+    int cpu_b_die = 0;
+    int cpu_b_core = 0;
+    int reportFilter = false;
+    if(profiler->cpuTopology.empty()){
+        std::cerr << "Unable to get CPU Topology from lscpu.  Reported Socket, Die/NUMA, and Core Numbers Will Be Inaccurate." << std::endl;
+        std::cerr << "Results will not be filtered accoring to socket, die/NUMA, and core numbers." << std::endl;
+    }else{
+        cpu_a_socket = profiler->cpuTopology[cpu_a].socket;
+        cpu_a_die = profiler->cpuTopology[cpu_a].die;
+        cpu_a_core = profiler->cpuTopology[cpu_a].core;
 
-        if(argc == 5)
-        {
-            int cpu_c_socket = pcm->getSocketId(cpu_c);
-            int cpu_c_core = pcm->getCoreId(cpu_c);
-            int cpu_c_tile = pcm->getTileId(cpu_c);
-            printf("CPU C = Logical CPU#: %d, Socket #: %d, Physical Core #: %d, L2 Tile #: %d\n", cpu_c, cpu_c_socket, cpu_c_core, cpu_c_tile);
-            int cpu_d_socket = pcm->getSocketId(cpu_d);
-            int cpu_d_core = pcm->getCoreId(cpu_d);
-            int cpu_d_tile = pcm->getTileId(cpu_d);
-            printf("CPU D = Logical CPU#: %d, Socket #: %d, Physical Core #: %d, L2 Tile #: %d\n", cpu_d, cpu_d_socket, cpu_d_core, cpu_d_tile);
+        cpu_b_socket = profiler->cpuTopology[cpu_b].socket;
+        cpu_b_die = profiler->cpuTopology[cpu_b].die;
+        cpu_b_core = profiler->cpuTopology[cpu_b].core;
+    }
+
+    #if PRINT_TITLE == 1
+    printf("\n");
+    printf("CPU A = Logical CPU#: %d, Socket #: %d, Physical Core #: %d, NUMA/Die/L2Tile #: %d\n", cpu_a, cpu_a_socket, cpu_a_core, cpu_a_die);
+    printf("CPU B = Logical CPU#: %d, Socket #: %d, Physical Core #: %d, NUMA/Die/L2Tile #: %d\n", cpu_b, cpu_b_socket, cpu_b_core, cpu_b_die);
+    #endif
+
+    if(argc == 5)
+    {
+        int cpu_c_socket = 0;
+        int cpu_c_die = 0;
+        int cpu_c_core = 0;
+        int cpu_d_socket = 0;
+        int cpu_d_die = 0;
+        int cpu_d_core = 0;
+        if(!profiler->cpuTopology.empty()){
+            cpu_c_socket = profiler->cpuTopology[cpu_c].socket;
+            cpu_c_die = profiler->cpuTopology[cpu_c].die;
+            cpu_c_core = profiler->cpuTopology[cpu_c].core;
+
+            cpu_d_socket = profiler->cpuTopology[cpu_d].socket;
+            cpu_d_die = profiler->cpuTopology[cpu_d].die;
+            cpu_d_core = profiler->cpuTopology[cpu_d].core;
         }
 
+        #if PRINT_TITLE == 1
+        printf("CPU C = Logical CPU#: %d, Socket #: %d, Physical Core #: %d, NUMA/Die/L2Tile #: %d\n", cpu_c, cpu_c_socket, cpu_c_core, cpu_c_die);
+        printf("CPU D = Logical CPU#: %d, Socket #: %d, Physical Core #: %d, NUMA/Die/L2Tile #: %d\n", cpu_d, cpu_d_socket, cpu_d_core, cpu_d_die);
         #endif
-    #else
-        PCM* pcm = NULL;
-    #endif
+    }
 
     //Setup for array runs
     //std::vector<size_t> array_sizes = {1, 2, 4, 8, 16, 32, 64};
@@ -202,13 +233,11 @@ int main(int argc, char *argv[])
     }
 
     //=====Test 1 - Latency Single Shared Element=====
-    Results* latency_single_kernel_results = run_latency_single_kernel(pcm, cpu_a, cpu_b);
-    latency_single_kernel_results->delete_results();
+    Results* latency_single_kernel_results = run_latency_single_kernel(profiler, cpu_a, cpu_b);
     delete latency_single_kernel_results;
 
     //=====Test 1.1 - Latency Dual Elements=====
-    Results* latency_dual_kernel_results = run_latency_dual_kernel(pcm, cpu_a, cpu_b);
-    latency_dual_kernel_results->delete_results();
+    Results* latency_dual_kernel_results = run_latency_dual_kernel(profiler, cpu_a, cpu_b);
     delete latency_dual_kernel_results;
 
     #if TEST_SINGLE == 1
@@ -224,7 +253,7 @@ int main(int argc, char *argv[])
     single_array_raw_csv_file.open("report_single_array_raw.csv", std::ofstream::out);
     #endif
 
-    run_latency_single_array_kernel(pcm, cpu_a, cpu_b, array_sizes, single_array_csv_file, &single_array_raw_csv_file);
+    run_latency_single_array_kernel(profiler, cpu_a, cpu_b, array_sizes, single_array_csv_file, &single_array_raw_csv_file);
     
     fclose(single_array_csv_file);
     single_array_raw_csv_file.close();
@@ -239,7 +268,7 @@ int main(int argc, char *argv[])
     dual_array_raw_csv_file.open("report_dual_array_raw.csv", std::ofstream::out);
     #endif
 
-    run_latency_dual_array_kernel(pcm, cpu_a, cpu_b, array_sizes, dual_array_csv_file, &dual_array_raw_csv_file);
+    run_latency_dual_array_kernel(profiler, cpu_a, cpu_b, array_sizes, dual_array_csv_file, &dual_array_raw_csv_file);
 
     fclose(dual_array_csv_file);
     dual_array_raw_csv_file.close();
@@ -254,7 +283,7 @@ int main(int argc, char *argv[])
     flow_ctrl_array_raw_csv_file.open("report_flow_ctrl_array_raw.csv", std::ofstream::out);
     #endif
 
-    run_latency_flow_ctrl_kernel(pcm, cpu_a, cpu_b, array_sizes, flow_ctrl_array_csv_file, &flow_ctrl_array_raw_csv_file);
+    run_latency_flow_ctrl_kernel(profiler, cpu_a, cpu_b, array_sizes, flow_ctrl_array_csv_file, &flow_ctrl_array_raw_csv_file);
 
     fclose(flow_ctrl_array_csv_file);
     flow_ctrl_array_raw_csv_file.close();
@@ -269,7 +298,7 @@ int main(int argc, char *argv[])
     flow_ctrl_blocked_read_array_raw_csv_file.open("report_flow_ctrl_blocked_read_array_raw.csv", std::ofstream::out);
     #endif
 
-    run_latency_flow_ctrl_blocked_read_kernel(pcm, cpu_a, cpu_b, array_sizes, flow_ctrl_blocked_read_array_csv_file, &flow_ctrl_blocked_read_array_raw_csv_file);
+    run_latency_flow_ctrl_blocked_read_kernel(profiler, cpu_a, cpu_b, array_sizes, flow_ctrl_blocked_read_array_csv_file, &flow_ctrl_blocked_read_array_raw_csv_file);
 
     fclose(flow_ctrl_blocked_read_array_csv_file);
     flow_ctrl_blocked_read_array_raw_csv_file.close();
@@ -294,7 +323,7 @@ int main(int argc, char *argv[])
     fifo_array_raw_csv_file.open("report_fifo_array_raw.csv", std::ofstream::out);
     #endif
 
-    run_bandwidth_fifo_kernel(pcm, cpu_a, cpu_b, array_sizes, transaction_sizes, fifo_array_csv_file, &fifo_array_raw_csv_file);
+    run_bandwidth_fifo_kernel(profiler, cpu_a, cpu_b, array_sizes, transaction_sizes, fifo_array_csv_file, &fifo_array_raw_csv_file);
 
     fclose(fifo_array_csv_file);
     fifo_array_raw_csv_file.close();
@@ -309,7 +338,7 @@ int main(int argc, char *argv[])
     fifo_blocked_array_raw_csv_file.open("report_fifo_blocked_array_raw.csv", std::ofstream::out);
     #endif
 
-    run_bandwidth_fifo_blocked_kernel(pcm, cpu_a, cpu_b, array_sizes, transaction_sizes, fifo_blocked_array_csv_file, &fifo_blocked_array_raw_csv_file);
+    run_bandwidth_fifo_blocked_kernel(profiler, cpu_a, cpu_b, array_sizes, transaction_sizes, fifo_blocked_array_csv_file, &fifo_blocked_array_raw_csv_file);
 
     fclose(fifo_blocked_array_csv_file);
     fifo_blocked_array_raw_csv_file.close();
@@ -324,7 +353,7 @@ int main(int argc, char *argv[])
     fifo_read_limit_array_raw_csv_file.open("report_fifo_read_limit_array_raw.csv", std::ofstream::out);
     #endif
 
-    run_bandwidth_fifo_read_limit_kernel(pcm, cpu_a, cpu_b, array_sizes, transaction_sizes, fifo_read_limit_array_csv_file, &fifo_read_limit_array_raw_csv_file);
+    run_bandwidth_fifo_read_limit_kernel(profiler, cpu_a, cpu_b, array_sizes, transaction_sizes, fifo_read_limit_array_csv_file, &fifo_read_limit_array_raw_csv_file);
 
     fclose(fifo_read_limit_array_csv_file);
     fifo_read_limit_array_raw_csv_file.close();
@@ -351,7 +380,7 @@ int main(int argc, char *argv[])
         single_array_simultanious_raw_csv_file_b.open("report_single_array_raw_simultanious_b.csv", std::ofstream::out);
         #endif
 
-        run_latency_single_array_kernel(pcm, cpu_a, cpu_b, cpu_c, cpu_d, array_sizes, single_array_simultanious_csv_file_a, single_array_simultanious_csv_file_b, &single_array_simultanious_raw_csv_file_a, &single_array_simultanious_raw_csv_file_b);
+        run_latency_single_array_kernel(profiler, cpu_a, cpu_b, cpu_c, cpu_d, array_sizes, single_array_simultanious_csv_file_a, single_array_simultanious_csv_file_b, &single_array_simultanious_raw_csv_file_a, &single_array_simultanious_raw_csv_file_b);
         
         fclose(single_array_simultanious_csv_file_a);
         fclose(single_array_simultanious_csv_file_b);
@@ -372,7 +401,7 @@ int main(int argc, char *argv[])
         dual_array_simultanious_raw_csv_file_b.open("report_dual_array_simultanious_b_raw.csv", std::ofstream::out);
         #endif
 
-        run_latency_dual_array_kernel(pcm, cpu_a, cpu_b, cpu_c, cpu_d, array_sizes, dual_array_simultanious_csv_file_a, dual_array_simultanious_csv_file_b, &dual_array_simultanious_raw_csv_file_a, &dual_array_simultanious_raw_csv_file_b);
+        run_latency_dual_array_kernel(profiler, cpu_a, cpu_b, cpu_c, cpu_d, array_sizes, dual_array_simultanious_csv_file_a, dual_array_simultanious_csv_file_b, &dual_array_simultanious_raw_csv_file_a, &dual_array_simultanious_raw_csv_file_b);
 
         fclose(dual_array_simultanious_csv_file_a);
         fclose(dual_array_simultanious_csv_file_b);
@@ -393,7 +422,7 @@ int main(int argc, char *argv[])
         flow_ctrl_array_simultanious_raw_csv_file_b.open("report_flow_ctrl_array_simultanious_raw_b.csv", std::ofstream::out);
         #endif
 
-        run_latency_flow_ctrl_kernel(pcm, cpu_a, cpu_b, cpu_c, cpu_d, array_sizes, flow_ctrl_array_simultanious_csv_file_a, flow_ctrl_array_simultanious_csv_file_b, &flow_ctrl_array_simultanious_raw_csv_file_a, &flow_ctrl_array_simultanious_raw_csv_file_b);
+        run_latency_flow_ctrl_kernel(profiler, cpu_a, cpu_b, cpu_c, cpu_d, array_sizes, flow_ctrl_array_simultanious_csv_file_a, flow_ctrl_array_simultanious_csv_file_b, &flow_ctrl_array_simultanious_raw_csv_file_a, &flow_ctrl_array_simultanious_raw_csv_file_b);
 
         fclose(flow_ctrl_array_simultanious_csv_file_a);
         fclose(flow_ctrl_array_simultanious_csv_file_b);
@@ -414,7 +443,7 @@ int main(int argc, char *argv[])
         flow_ctrl_blocked_read_array_simultanious_raw_csv_file_b.open("report_flow_ctrl_blocked_read_array_simultanious_raw_b.csv", std::ofstream::out);
         #endif
 
-        run_latency_flow_ctrl_blocked_read_kernel(pcm, cpu_a, cpu_b, cpu_c, cpu_d, array_sizes, flow_ctrl_blocked_read_array_simultanious_csv_file_a, flow_ctrl_blocked_read_array_simultanious_csv_file_b, &flow_ctrl_blocked_read_array_simultanious_raw_csv_file_a, &flow_ctrl_blocked_read_array_simultanious_raw_csv_file_b);
+        run_latency_flow_ctrl_blocked_read_kernel(profiler, cpu_a, cpu_b, cpu_c, cpu_d, array_sizes, flow_ctrl_blocked_read_array_simultanious_csv_file_a, flow_ctrl_blocked_read_array_simultanious_csv_file_b, &flow_ctrl_blocked_read_array_simultanious_raw_csv_file_a, &flow_ctrl_blocked_read_array_simultanious_raw_csv_file_b);
 
         fclose(flow_ctrl_blocked_read_array_simultanious_csv_file_a);
         fclose(flow_ctrl_blocked_read_array_simultanious_csv_file_b);
@@ -445,7 +474,7 @@ int main(int argc, char *argv[])
         //For multisocket, A and B will be on Different Sockets
         //To make The Servers reside on 1 socket and the Client to reside on the other,
         //the servers will be A & C while the Client will be B
-        run_latency_single_array_kernel(pcm, cpu_a, cpu_c, cpu_b, array_sizes, single_array_fanin_fanout_csv_file_a, single_array_fanin_fanout_csv_file_b, &single_array_fanin_fanout_raw_csv_file_a, &single_array_fanin_fanout_raw_csv_file_b);
+        run_latency_single_array_kernel(profiler, cpu_a, cpu_c, cpu_b, array_sizes, single_array_fanin_fanout_csv_file_a, single_array_fanin_fanout_csv_file_b, &single_array_fanin_fanout_raw_csv_file_a, &single_array_fanin_fanout_raw_csv_file_b);
         
         fclose(single_array_fanin_fanout_csv_file_a);
         fclose(single_array_fanin_fanout_csv_file_b);
@@ -471,7 +500,7 @@ int main(int argc, char *argv[])
         //For multisocket, A and B will be on Different Sockets
         //To make The Servers reside on 1 socket and the Client to reside on the other,
         //the servers will be A & C while the Client will be B
-        run_latency_dual_array_kernel(pcm, cpu_a, cpu_c, cpu_b, array_sizes, dual_array_fanin_fanout_csv_file_a, dual_array_fanin_fanout_csv_file_b, &dual_array_fanin_fanout_raw_csv_file_a, &dual_array_fanin_fanout_raw_csv_file_b);
+        run_latency_dual_array_kernel(profiler, cpu_a, cpu_c, cpu_b, array_sizes, dual_array_fanin_fanout_csv_file_a, dual_array_fanin_fanout_csv_file_b, &dual_array_fanin_fanout_raw_csv_file_a, &dual_array_fanin_fanout_raw_csv_file_b);
 
         fclose(dual_array_fanin_fanout_csv_file_a);
         fclose(dual_array_fanin_fanout_csv_file_b);
@@ -498,7 +527,7 @@ int main(int argc, char *argv[])
         //For multisocket, A and B will be on Different Sockets
         //To make The Servers reside on 1 socket and the Client to reside on the other,
         //the servers will be A & C while the Client will be B
-        run_latency_flow_ctrl_fanin_kernel(pcm, cpu_a, cpu_c, cpu_b, array_sizes, flow_ctrl_array_fanin_csv_file_a, flow_ctrl_array_fanin_csv_file_b, &flow_ctrl_array_fanin_raw_csv_file_a, &flow_ctrl_array_fanin_raw_csv_file_b);
+        run_latency_flow_ctrl_fanin_kernel(profiler, cpu_a, cpu_c, cpu_b, array_sizes, flow_ctrl_array_fanin_csv_file_a, flow_ctrl_array_fanin_csv_file_b, &flow_ctrl_array_fanin_raw_csv_file_a, &flow_ctrl_array_fanin_raw_csv_file_b);
 
         fclose(flow_ctrl_array_fanin_csv_file_a);
         fclose(flow_ctrl_array_fanin_csv_file_b);
@@ -524,7 +553,7 @@ int main(int argc, char *argv[])
         //For multisocket, A and B will be on Different Sockets
         //To make The Server reside on 1 socket and the Clients to reside on the other,
         //the servers will be A while the Client will be B & D
-        run_latency_flow_ctrl_fanout_kernel(pcm, cpu_a, cpu_b, cpu_d, array_sizes, flow_ctrl_array_fanout_csv_file_a, flow_ctrl_array_fanout_csv_file_b, &flow_ctrl_array_fanout_raw_csv_file_a, &flow_ctrl_array_fanout_raw_csv_file_b);
+        run_latency_flow_ctrl_fanout_kernel(profiler, cpu_a, cpu_b, cpu_d, array_sizes, flow_ctrl_array_fanout_csv_file_a, flow_ctrl_array_fanout_csv_file_b, &flow_ctrl_array_fanout_raw_csv_file_a, &flow_ctrl_array_fanout_raw_csv_file_b);
 
         fclose(flow_ctrl_array_fanout_csv_file_a);
         fclose(flow_ctrl_array_fanout_csv_file_b);
@@ -551,7 +580,7 @@ int main(int argc, char *argv[])
         //For multisocket, A and B will be on Different Sockets
         //To make The Servers reside on 1 socket and the Client to reside on the other,
         //the servers will be A & C while the Client will be B
-        run_latency_flow_ctrl_blocked_read_fanin_kernel(pcm, cpu_a, cpu_c, cpu_b, array_sizes, flow_ctrl_blocked_read_array_fanin_csv_file_a, flow_ctrl_blocked_read_array_fanin_csv_file_b, &flow_ctrl_blocked_read_array_fanin_raw_csv_file_a, &flow_ctrl_blocked_read_array_fanin_raw_csv_file_b);
+        run_latency_flow_ctrl_blocked_read_fanin_kernel(profiler, cpu_a, cpu_c, cpu_b, array_sizes, flow_ctrl_blocked_read_array_fanin_csv_file_a, flow_ctrl_blocked_read_array_fanin_csv_file_b, &flow_ctrl_blocked_read_array_fanin_raw_csv_file_a, &flow_ctrl_blocked_read_array_fanin_raw_csv_file_b);
 
         fclose(flow_ctrl_blocked_read_array_fanin_csv_file_a);
         fclose(flow_ctrl_blocked_read_array_fanin_csv_file_b);
@@ -575,7 +604,7 @@ int main(int argc, char *argv[])
         //For multisocket, A and B will be on Different Sockets
         //To make The Server reside on 1 socket and the Clients to reside on the other,
         //the servers will be A while the Client will be B & D
-        run_latency_flow_ctrl_blocked_read_fanout_kernel(pcm, cpu_a, cpu_b, cpu_d, array_sizes, flow_ctrl_blocked_read_array_fanout_csv_file_a, flow_ctrl_blocked_read_array_fanout_csv_file_b, &flow_ctrl_blocked_read_array_fanout_raw_csv_file_a, &flow_ctrl_blocked_read_array_fanout_raw_csv_file_b);
+        run_latency_flow_ctrl_blocked_read_fanout_kernel(profiler, cpu_a, cpu_b, cpu_d, array_sizes, flow_ctrl_blocked_read_array_fanout_csv_file_a, flow_ctrl_blocked_read_array_fanout_csv_file_b, &flow_ctrl_blocked_read_array_fanout_raw_csv_file_a, &flow_ctrl_blocked_read_array_fanout_raw_csv_file_b);
 
         fclose(flow_ctrl_blocked_read_array_fanout_csv_file_a);
         fclose(flow_ctrl_blocked_read_array_fanout_csv_file_b);

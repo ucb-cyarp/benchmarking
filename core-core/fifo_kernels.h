@@ -1,9 +1,8 @@
 #ifndef _H_FIFO_KERNELS
     #define _H_FIFO_KERNELS
 
-    #include "cpucounters.h"
     #include "results.h"
-    #include "pcm_helper.h"
+    #include "profiler.h"
 
     #include "kernel_server_runner.h"
 
@@ -13,7 +12,7 @@
 
     #include "print_results.h"
 
-    Results* run_bandwidth_fifo_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t array_length, int32_t max_write_per_transaction, bool report_standalone=true, std::string format = "", FILE* file=NULL, std::ofstream* raw_file=NULL)
+    Results* run_bandwidth_fifo_kernel(Profiler* profiler, int cpu_a, int cpu_b, size_t array_length, int32_t max_write_per_transaction, bool report_standalone=true, std::string format = "", FILE* file=NULL, std::ofstream* raw_file=NULL)
     {
         #if PRINT_TITLE == 1
         if(report_standalone)
@@ -42,41 +41,57 @@
         args->length = array_length;
         args->max_write_per_transaction = max_write_per_transaction;
 
-        Results* results = execute_client_server_kernel(pcm, bandwidth_circular_fifo_server_kernel, bandwidth_circular_fifo_client_kernel, bandwidth_circular_fifo_kernel_reset, args, args, args, cpu_a, cpu_b);
+        Results* results = execute_client_server_kernel(profiler, bandwidth_circular_fifo_server_kernel, bandwidth_circular_fifo_client_kernel, bandwidth_circular_fifo_kernel_reset, args, args, args, cpu_a, cpu_b);
 
         #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
             if(report_standalone)
             {
-                #if USE_PCM == 1
-                        std::vector<int> sockets;
-                        int socket_a = pcm->getSocketId(cpu_a);
-                        int socket_b = pcm->getSocketId(cpu_b);
+                if(!profiler->cpuTopology.empty()){
+                    std::vector<int> sockets;
+                    int socket_a = profiler->cpuTopology[cpu_a].socket;
+                    int socket_b = profiler->cpuTopology[cpu_b].socket;
+                    sockets.push_back(socket_a);
+                    if(socket_b != socket_a)
+                    {
+                        sockets.push_back(socket_b);
+                    }
 
-                        sockets.push_back(socket_a);
-                        if(socket_b != socket_a)
-                        {
-                            sockets.push_back(socket_b);
-                        }
+                    std::vector<int> cores;
+                    int core_a = profiler->cpuTopology[cpu_a].core;
+                    int core_b = profiler->cpuTopology[cpu_b].core;
+                    cores.push_back(core_a);
+                    if(core_a != core_b){
+                        cores.push_back(core_b);
+                    }
 
-                        std::vector<int> cores;
-                        cores.push_back(cpu_a);
-                        cores.push_back(cpu_b);
-                
-                        #if PRINT_FULL_STATS == 1
-                            results->print_statistics(sockets, cores, STIM_LEN);
-                        #endif
+                    std::vector<int> dies;
+                    int die_a = profiler->cpuTopology[cpu_a].die;
+                    int die_b = profiler->cpuTopology[cpu_b].die;
+                    dies.push_back(die_a);
+                    if(die_a != die_b){
+                        dies.push_back(die_b);
+                    }
 
-                        #if PRINT_STATS == 1
+                    std::vector<int> threads;
+                    threads.push_back(cpu_a);
+                    if(cpu_a != cpu_b){
+                        threads.push_back(cpu_b);
+                    }
+
+                    #if PRINT_FULL_STATS == 1
+                        results->print_statistics(sockets, dies, cores, threads, STIM_LEN);
+                    #endif
+
+                    #if PRINT_STATS == 1
                         print_results(results, sizeof(*shared_array_loc), STIM_LEN);
-                        #endif
+                    #endif
+                }else{
+                    #if PRINT_FULL_STATS
+                        results->print_statistics(0, 0, 0, cpu_a, STIM_LEN);
+                    #endif
 
-                #else
-                        #if PRINT_FULL_STATS
-                        results->print_statistics(0, cpu_a, STIM_LEN);
-                        #endif
-
-                        print_results(results, sizeof(*shared_array_loc), STIM_LEN); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
-                #endif
+                    print_results(results, sizeof(*shared_array_loc), STIM_LEN); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                }
             }
             else
             {
@@ -94,7 +109,7 @@
     }
 
     //MAKE A 2D Table
-    void run_bandwidth_fifo_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, std::vector<int32_t> max_writes_per_transaction, FILE* file = NULL, std::ofstream* raw_file=NULL)
+    void run_bandwidth_fifo_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, std::vector<int32_t> max_writes_per_transaction, FILE* file = NULL, std::ofstream* raw_file=NULL)
     {
         int32_t data_col_width = 10;
 
@@ -160,10 +175,9 @@
                     fflush(file);
                     #endif
 
-                    Results* latency_fifo_kernel_results = run_bandwidth_fifo_kernel(pcm, cpu_a, cpu_b, array_length, max_writes, false, format, file, raw_file);
+                    Results* latency_fifo_kernel_results = run_bandwidth_fifo_kernel(profiler, cpu_a, cpu_b, array_length, max_writes, false, format, file, raw_file);
 
                     //Cleanup
-                    latency_fifo_kernel_results->delete_results();
                     delete latency_fifo_kernel_results;
                 }
                 else
@@ -196,7 +210,7 @@
         printf("\n");
     }
 
-    Results* run_bandwidth_fifo_blocked_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t array_length, int32_t block_length, bool report_standalone=true, std::string format = "", FILE* file=NULL, std::ofstream* raw_file=NULL)
+    Results* run_bandwidth_fifo_blocked_kernel(Profiler* profiler, int cpu_a, int cpu_b, size_t array_length, int32_t block_length, bool report_standalone=true, std::string format = "", FILE* file=NULL, std::ofstream* raw_file=NULL)
     {
         #if PRINT_TITLE == 1
         if(report_standalone)
@@ -225,41 +239,57 @@
         args->length = array_length;
         args->block_length = block_length;
 
-        Results* results = execute_client_server_kernel(pcm, bandwidth_circular_fifo_blocked_server_kernel, bandwidth_circular_fifo_blocked_client_kernel, bandwidth_circular_fifo_blocked_kernel_reset, args, args, args, cpu_a, cpu_b);
+        Results* results = execute_client_server_kernel(profiler, bandwidth_circular_fifo_blocked_server_kernel, bandwidth_circular_fifo_blocked_client_kernel, bandwidth_circular_fifo_blocked_kernel_reset, args, args, args, cpu_a, cpu_b);
 
         #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
             if(report_standalone)
             {
-                #if USE_PCM == 1
-                        std::vector<int> sockets;
-                        int socket_a = pcm->getSocketId(cpu_a);
-                        int socket_b = pcm->getSocketId(cpu_b);
+                if(!profiler->cpuTopology.empty()){
+                    std::vector<int> sockets;
+                    int socket_a = profiler->cpuTopology[cpu_a].socket;
+                    int socket_b = profiler->cpuTopology[cpu_b].socket;
+                    sockets.push_back(socket_a);
+                    if(socket_b != socket_a)
+                    {
+                        sockets.push_back(socket_b);
+                    }
 
-                        sockets.push_back(socket_a);
-                        if(socket_b != socket_a)
-                        {
-                            sockets.push_back(socket_b);
-                        }
+                    std::vector<int> cores;
+                    int core_a = profiler->cpuTopology[cpu_a].core;
+                    int core_b = profiler->cpuTopology[cpu_b].core;
+                    cores.push_back(core_a);
+                    if(core_a != core_b){
+                        cores.push_back(core_b);
+                    }
 
-                        std::vector<int> cores;
-                        cores.push_back(cpu_a);
-                        cores.push_back(cpu_b);
-                
-                        #if PRINT_FULL_STATS == 1
-                            results->print_statistics(sockets, cores, STIM_LEN);
-                        #endif
+                    std::vector<int> dies;
+                    int die_a = profiler->cpuTopology[cpu_a].die;
+                    int die_b = profiler->cpuTopology[cpu_b].die;
+                    dies.push_back(die_a);
+                    if(die_a != die_b){
+                        dies.push_back(die_b);
+                    }
 
-                        #if PRINT_STATS == 1
-                        print_results_blocked_fifo(results, sizeof(*shared_array_loc), STIM_LEN, block_length);
-                        #endif
+                    std::vector<int> threads;
+                    threads.push_back(cpu_a);
+                    if(cpu_a != cpu_b){
+                        threads.push_back(cpu_b);
+                    }
+            
+                    #if PRINT_FULL_STATS == 1
+                        results->print_statistics(sockets, dies, cores, threads, STIM_LEN);
+                    #endif
 
-                #else
-                        #if PRINT_FULL_STATS
-                        results->print_statistics(0, cpu_a, STIM_LEN);
-                        #endif
+                    #if PRINT_STATS == 1
+                    print_results_blocked_fifo(results, sizeof(*shared_array_loc), STIM_LEN, block_length);
+                    #endif
+                }else{
+                    #if PRINT_FULL_STATS
+                        results->print_statistics(0, 0, 0, cpu_a, STIM_LEN);
+                    #endif
 
-                        print_results_blocked_fifo(results, sizeof(*shared_array_loc), STIM_LEN, block_length); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
-                #endif
+                    print_results_blocked_fifo(results, sizeof(*shared_array_loc), STIM_LEN, block_length); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                }
             }
             else
             {
@@ -277,7 +307,7 @@
     }
 
     //MAKE A 2D Table
-    void run_bandwidth_fifo_blocked_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, FILE* file = NULL, std::ofstream* raw_file=NULL)
+    void run_bandwidth_fifo_blocked_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, FILE* file = NULL, std::ofstream* raw_file=NULL)
     {
         int32_t data_col_width = 10;
 
@@ -343,10 +373,9 @@
                     fflush(file);
                     #endif
 
-                    Results* latency_fifo_kernel_results = run_bandwidth_fifo_blocked_kernel(pcm, cpu_a, cpu_b, array_length, block_length, false, format, file, raw_file);
+                    Results* latency_fifo_kernel_results = run_bandwidth_fifo_blocked_kernel(profiler, cpu_a, cpu_b, array_length, block_length, false, format, file, raw_file);
 
                     //Cleanup
-                    latency_fifo_kernel_results->delete_results();
                     delete latency_fifo_kernel_results;
                 }
                 else
@@ -379,7 +408,7 @@
         printf("\n");
     }
 
-    Results* run_bandwidth_fifo_read_limit_kernel(PCM* pcm, int cpu_a, int cpu_b, size_t array_length, int32_t max_elements_per_transaction, bool report_standalone=true, std::string format = "", FILE* file=NULL, std::ofstream* raw_file=NULL)
+    Results* run_bandwidth_fifo_read_limit_kernel(Profiler* profiler, int cpu_a, int cpu_b, size_t array_length, int32_t max_elements_per_transaction, bool report_standalone=true, std::string format = "", FILE* file=NULL, std::ofstream* raw_file=NULL)
     {
         #if PRINT_TITLE == 1
         if(report_standalone)
@@ -408,41 +437,58 @@
         args->length = array_length;
         args->max_elements_per_transaction = max_elements_per_transaction;
 
-        Results* results = execute_client_server_kernel(pcm, bandwidth_circular_fifo_read_limit_server_kernel, bandwidth_circular_fifo_read_limit_client_kernel, bandwidth_circular_fifo_read_limit_kernel_reset, args, args, args, cpu_a, cpu_b);
+        Results* results = execute_client_server_kernel(profiler, bandwidth_circular_fifo_read_limit_server_kernel, bandwidth_circular_fifo_read_limit_client_kernel, bandwidth_circular_fifo_read_limit_kernel_reset, args, args, args, cpu_a, cpu_b);
 
         #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
             if(report_standalone)
             {
-                #if USE_PCM == 1
-                        std::vector<int> sockets;
-                        int socket_a = pcm->getSocketId(cpu_a);
-                        int socket_b = pcm->getSocketId(cpu_b);
+                if(!profiler->cpuTopology.empty()){
+                    std::vector<int> sockets;
+                    int socket_a = profiler->cpuTopology[cpu_a].socket;
+                    int socket_b = profiler->cpuTopology[cpu_b].socket;
+                    sockets.push_back(socket_a);
+                    if(socket_b != socket_a)
+                    {
+                        sockets.push_back(socket_b);
+                    }
 
-                        sockets.push_back(socket_a);
-                        if(socket_b != socket_a)
-                        {
-                            sockets.push_back(socket_b);
-                        }
+                    std::vector<int> cores;
+                    int core_a = profiler->cpuTopology[cpu_a].core;
+                    int core_b = profiler->cpuTopology[cpu_b].core;
+                    cores.push_back(core_a);
+                    if(core_a != core_b){
+                        cores.push_back(core_b);
+                    }
 
-                        std::vector<int> cores;
-                        cores.push_back(cpu_a);
-                        cores.push_back(cpu_b);
-                
-                        #if PRINT_FULL_STATS == 1
-                            results->print_statistics(sockets, cores, STIM_LEN);
-                        #endif
+                    std::vector<int> dies;
+                    int die_a = profiler->cpuTopology[cpu_a].die;
+                    int die_b = profiler->cpuTopology[cpu_b].die;
+                    dies.push_back(die_a);
+                    if(die_a != die_b){
+                        dies.push_back(die_b);
+                    }
 
-                        #if PRINT_STATS == 1
+                    std::vector<int> threads;
+                    threads.push_back(cpu_a);
+                    if(cpu_a != cpu_b){
+                        threads.push_back(cpu_b);
+                    }
+            
+                    #if PRINT_FULL_STATS == 1
+                        results->print_statistics(sockets, dies, cores, threads, STIM_LEN);
+                    #endif
+
+                    #if PRINT_STATS == 1
                         print_results(results, sizeof(*shared_array_loc), STIM_LEN);
-                        #endif
+                    #endif
 
-                #else
-                        #if PRINT_FULL_STATS
-                        results->print_statistics(0, cpu_a, STIM_LEN);
-                        #endif
+                }else{
+                    #if PRINT_FULL_STATS
+                    results->print_statistics(0, 0, 0, cpu_a, STIM_LEN);
+                    #endif
 
-                        print_results(results, sizeof(*shared_array_loc), STIM_LEN); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
-                #endif
+                    print_results(results, sizeof(*shared_array_loc), STIM_LEN); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                }
             }
             else
             {
@@ -460,7 +506,7 @@
     }
 
     //MAKE A 2D Table
-    void run_bandwidth_fifo_read_limit_kernel(PCM* pcm, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, std::vector<int32_t> max_elements_per_transaction, FILE* file = NULL, std::ofstream* raw_file=NULL)
+    void run_bandwidth_fifo_read_limit_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, std::vector<int32_t> max_elements_per_transaction, FILE* file = NULL, std::ofstream* raw_file=NULL)
     {
         int32_t data_col_width = 10;
 
@@ -526,10 +572,9 @@
                     fflush(file);
                     #endif
 
-                    Results* latency_fifo_kernel_results = run_bandwidth_fifo_read_limit_kernel(pcm, cpu_a, cpu_b, array_length, max_elements, false, format, file, raw_file);
+                    Results* latency_fifo_kernel_results = run_bandwidth_fifo_read_limit_kernel(profiler, cpu_a, cpu_b, array_length, max_elements, false, format, file, raw_file);
 
                     //Cleanup
-                    latency_fifo_kernel_results->delete_results();
                     delete latency_fifo_kernel_results;
                 }
                 else
