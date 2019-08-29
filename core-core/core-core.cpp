@@ -130,11 +130,16 @@ int main(int argc, char *argv[])
     std::string cpu_b_str(argv[2]);
     int cpu_b = std::stoi(cpu_b_str);
 
-    std::string cpu_c_str(argv[3]);
-    int cpu_c = std::stoi(cpu_c_str);
+    int cpu_c = 0;
+    int cpu_d = 0;
 
-    std::string cpu_d_str(argv[4]);
-    int cpu_d = std::stoi(cpu_d_str);
+    if(argc == 5){
+        std::string cpu_c_str(argv[3]);
+        cpu_c = std::stoi(cpu_c_str);
+
+        std::string cpu_d_str(argv[4]);
+        cpu_d = std::stoi(cpu_d_str);
+    }
 
     #if PRINT_TITLE == 1
         if(argc == 5)
