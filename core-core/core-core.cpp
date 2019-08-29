@@ -99,17 +99,6 @@
     #define WRITE_CSV 1
 #endif
 
-// #include "print_results.h"
-// #include "single_kernels.h"
-// #include "array_kernels.h"
-// #include "fifo_kernels.h"
-
-//TODO: Remove
-#define TEST_SINGLE 1
-#define TEST_FIFO 1
-#define TEST_SIMULTANIOUS 1
-#define TEST_FANIN_FANOUT 1
-
 int main(int argc, char *argv[])
 {
     //Run these single-threaded benchmarks on CPU 0 (all machines should have CPU 0)
