@@ -27,12 +27,16 @@ def main():
     printTopology(unique_topology)
     print('\nNUMA 0 Unique Cores:')
     printTopology(numa0_unique_topology)
+    print('\nNUMA 1 Unique Cores:')
+    printTopology(numa1_unique_topology)
 
     #Get 2 Unique Cores in Socket 0 (pick sequentially for now)
     cpu_a = (numa0_unique_topology[0])[0]
     cpu_b = (numa1_unique_topology[0])[0]
+    cpu_c = (numa0_unique_topology[1])[0]
+    cpu_d = (numa1_unique_topology[1])[0]
 
-    cmd = './core-core {} {}'.format(cpu_a, cpu_b)
+    cmd = './core-core {} {} {} {}'.format(cpu_a, cpu_b, cpu_c, cpu_d)
 
     cur_time = datetime.datetime.now()
     print("Starting: {}\n".format(str(cur_time)))

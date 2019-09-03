@@ -217,7 +217,8 @@ int main(int argc, char *argv[])
     //std::vector<size_t> array_sizes = {1, 2, 4, 8, 16, 32, 64};
     std::vector<size_t> array_sizes;
     size_t start = 1;
-    size_t stop = 257;
+    //size_t stop = 257;
+    size_t stop = 513;
     // size_t stop = 129;
     // size_t stop = 65;
 
