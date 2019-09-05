@@ -18,7 +18,8 @@ def main():
 
     topology = getPlatformTopology()
     unique_topology = getUniqueCPUs(topology)
-    cache0_unique_topology = filterTopologyByHighestLevelCache(unique_topology, 0)
+    cache0_unique_topology = filterTopologyByNuma(unique_topology, 0)
+    cache1_unique_topology = filterTopologyByNuma(unique_topology, 1)
 
     print('CPU Topology:')
     printTopology(topology)
@@ -26,12 +27,16 @@ def main():
     printTopology(unique_topology)
     print('\nHighest Level Cache 0 Unique Cores:')
     printTopology(cache0_unique_topology)
+    print('\nHighest Level Cache 1 Unique Cores:')
+    printTopology(cache1_unique_topology)
 
     #Get 2 Unique Cores in Socket 0 (pick sequentially for now)
     cpu_a = (cache0_unique_topology[0])[0]
-    cpu_b = (cache0_unique_topology[1])[0]
+    cpu_b = (cache1_unique_topology[0])[0]
+    cpu_c = (cache0_unique_topology[1])[0]
+    cpu_d = (cache1_unique_topology[1])[0]
 
-    cmd = './core-core {} {}'.format(cpu_a, cpu_b)
+    cmd = './core-core {} {} {} {}'.format(cpu_a, cpu_b, cpu_c, cpu_d)
 
     cur_time = datetime.datetime.now()
     print("Starting: {}\n".format(str(cur_time)))
