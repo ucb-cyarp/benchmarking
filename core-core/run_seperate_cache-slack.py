@@ -18,8 +18,8 @@ def main():
 
     topology = getPlatformTopology()
     unique_topology = getUniqueCPUs(topology)
-    cache0_unique_topology = filterTopologyByNuma(unique_topology, 0)
-    cache1_unique_topology = filterTopologyByNuma(unique_topology, 1)
+    cache0_unique_topology = filterTopologyByHighestLevelCache(unique_topology, 0)
+    cache1_unique_topology = filterTopologyByHighestLevelCache(unique_topology, 1)
 
     print('CPU Topology:')
     printTopology(topology)
