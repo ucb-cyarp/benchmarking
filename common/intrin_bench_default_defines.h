@@ -29,11 +29,11 @@
 
     //Set default options
     #ifndef STIM_LEN
-        #define STIM_LEN 2000000000
+        #define STIM_LEN 20000
     #endif
 
     #ifndef TRIALS
-        #define TRIALS 5
+        #define TRIALS 10
     #endif
 
     #ifndef MAX_DISCARD

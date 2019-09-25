@@ -79,6 +79,7 @@ void* latency_single_array_kernel(void* arg)
     while(counter < STIM_LEN)
     {
         //Check all of the 
+         __sync_synchronize();
         if(shared_ptr[index] == (counter+1))
         {
             //The current location has incremented
@@ -92,6 +93,7 @@ void* latency_single_array_kernel(void* arg)
                 counter+=2;
 
                 //Increment the entire array
+                 __sync_synchronize();
                 for(size_t i = 0; i<length; i++)
                 {
                     shared_ptr[i] = counter;
@@ -137,6 +139,7 @@ void* latency_single_array_join_kernel(void* arg)
         if(counter_a < STIM_LEN) //Check because loop will run until both connections finish
         {
             //Check all of the 
+             __sync_synchronize();
             if(shared_ptr_a[index_a] == (counter_a+1))
             {
                 //The current location has incremented
@@ -150,6 +153,7 @@ void* latency_single_array_join_kernel(void* arg)
                     counter_a+=2;
 
                     //Increment the entire array
+                     __sync_synchronize();
                     for(size_t i = 0; i<length_a; i++)
                     {
                         shared_ptr_a[i] = counter_a;
@@ -165,6 +169,7 @@ void* latency_single_array_join_kernel(void* arg)
         if(counter_b < STIM_LEN) //Check because loop will run until both connections finish
         {
             //Check all of the 
+             __sync_synchronize();
             if(shared_ptr_b[index_b] == (counter_b+1))
             {
                 //The current location has incremented
@@ -178,6 +183,7 @@ void* latency_single_array_join_kernel(void* arg)
                     counter_b+=2;
 
                     //Increment the entire array
+                     __sync_synchronize();
                     for(size_t i = 0; i<length_b; i++)
                     {
                         shared_ptr_b[i] = counter_b;
