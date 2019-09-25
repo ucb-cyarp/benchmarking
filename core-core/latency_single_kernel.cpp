@@ -49,11 +49,11 @@ void* latency_single_kernel(void* arg)
     //Execute until the specified number of transactions has occured
     while(counter < STIM_LEN)
     {
-         __sync_synchronize();
+         asm volatile ("" : : : "memory");
         if(*shared_ptr == (counter+1))
         {
             counter+=2;
-             __sync_synchronize();
+             asm volatile ("" : : : "memory");
             *shared_ptr = counter;
         }
 

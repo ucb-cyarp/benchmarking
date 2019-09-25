@@ -94,7 +94,7 @@ void* latency_flow_ctrl_blocked_read_server_kernel(void* arg)
     while(counter < STIM_LEN)
     {
         //Check the ack memory location
-        __sync_synchronize();
+        asm volatile ("" : : : "memory");
         if(*ack_shared_ptr == (counter+1))
         {
             //Last transaction has been acked, increment counter
@@ -102,13 +102,13 @@ void* latency_flow_ctrl_blocked_read_server_kernel(void* arg)
 
             //Send next batch
             //Increment the entire array
-            __sync_synchronize();
+            asm volatile ("" : : : "memory");
             for(size_t i = 0; i<length; i++)
             {
                 array_shared_ptr[i] = counter;
             }
 
-            __sync_synchronize();
+            asm volatile ("" : : : "memory");
             //Increment the valid memory location
             *valid_shared_ptr = counter;
         }
@@ -152,7 +152,7 @@ void* latency_flow_ctrl_blocked_read_server_join_kernel(void* arg)
         if(counter_a < STIM_LEN)
         {
             //Check the ack memory location
-             __sync_synchronize();
+             asm volatile ("" : : : "memory");
             if(*ack_shared_ptr_a == (counter_a+1))
             {
                 //Last transaction has been acked, increment counter
@@ -160,13 +160,13 @@ void* latency_flow_ctrl_blocked_read_server_join_kernel(void* arg)
 
                 //Send next batch
                 //Increment the entire array
-                 __sync_synchronize();
+                 asm volatile ("" : : : "memory");
                 for(size_t i = 0; i<length_a; i++)
                 {
                     array_shared_ptr_a[i] = counter_a;
                 }
 
-                __sync_synchronize();
+                asm volatile ("" : : : "memory");
                 //Increment the valid memory location
                 *valid_shared_ptr_a = counter_a;
             }
@@ -175,7 +175,7 @@ void* latency_flow_ctrl_blocked_read_server_join_kernel(void* arg)
         if(counter_b < STIM_LEN)
         {
             //Check the ack memory location
-             __sync_synchronize();
+             asm volatile ("" : : : "memory");
             if(*ack_shared_ptr_b == (counter_b+1))
             {
                 //Last transaction has been acked, increment counter
@@ -183,13 +183,13 @@ void* latency_flow_ctrl_blocked_read_server_join_kernel(void* arg)
 
                 //Send next batch
                 //Increment the entire array
-                 __sync_synchronize();
+                 asm volatile ("" : : : "memory");
                 for(size_t i = 0; i<length_b; i++)
                 {
                     array_shared_ptr_b[i] = counter_b;
                 }
 
-                __sync_synchronize();
+                asm volatile ("" : : : "memory");
                 //Increment the valid memory location
                 *valid_shared_ptr_b = counter_b;
             }

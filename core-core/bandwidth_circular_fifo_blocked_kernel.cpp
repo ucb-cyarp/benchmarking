@@ -64,9 +64,9 @@ void* bandwidth_circular_fifo_blocked_server_kernel(void* arg)
     while(write_id < STIM_LEN)
     {
         //Get the current read_id
-        __sync_synchronize();
+        asm volatile ("" : : : "memory");
         int32_t read_id = *read_pos_shared_ptr;
-        __sync_synchronize();
+        asm volatile ("" : : : "memory");
 
         //Check if we are allowed to write a full block
         if(length - (write_id - read_id) >= block_length)
@@ -93,7 +93,7 @@ void* bandwidth_circular_fifo_blocked_server_kernel(void* arg)
             write_id += number_to_write;
 
             //Let's sync the write pointer to the new tail of the queue
-            __sync_synchronize();
+            asm volatile ("" : : : "memory");
             *write_pos_shared_ptr = write_id;
         }
 
@@ -127,9 +127,9 @@ void* bandwidth_circular_fifo_blocked_client_kernel(void* arg)
     while(read_id < STIM_LEN)
     {
         
-        __sync_synchronize();
+        asm volatile ("" : : : "memory");
         int32_t write_id = *write_pos_shared_ptr; //get the current write ID
-        __sync_synchronize();
+        asm volatile ("" : : : "memory");
 
         //Check if we are allowed to read a full block
         if(write_id - read_id >= block_length)
@@ -174,7 +174,7 @@ void* bandwidth_circular_fifo_blocked_client_kernel(void* arg)
             //We read and checked all entries, now let's update the read_id
             read_id += num_to_read;
 
-            __sync_synchronize();
+            asm volatile ("" : : : "memory");
             *read_pos_shared_ptr = read_id; //Sync read ID
         }
 
