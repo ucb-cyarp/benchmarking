@@ -27,13 +27,19 @@
     #define MMREG(n) "ymm"#n
     #endif
 
+    //Get the cache line from cat /sys/devices/system/cpu/cpu0/cache/index3/coherency_line_size or another cache index
+    //TODO: automate
+    #ifndef CACHE_LINE_SIZE
+        #define CACHE_LINE_SIZE 64
+    #endif
+
     //Set default options
     #ifndef STIM_LEN
-        #define STIM_LEN 2000000000
+        #define STIM_LEN 8000
     #endif
 
     #ifndef TRIALS
-        #define TRIALS 5
+        #define TRIALS 10
     #endif
 
     #ifndef MAX_DISCARD

@@ -13,6 +13,8 @@
 
     #include "print_results.h"
 
+    #include <cstdlib>
+
     Results* run_latency_single_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file=NULL, std::ofstream* raw_file=NULL)
     {
         //=====Test 2=====
@@ -128,8 +130,12 @@
         #endif
 
         //Initialize
-        int32_t* shared_loc_1 = new int32_t[array_length];
-        int32_t* shared_loc_2 = new int32_t[array_length];
+        size_t amountToAlloc = array_length*sizeof(int32_t);
+        if(amountToAlloc % CACHE_LINE_SIZE != 0){
+            amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
+        }
+        int32_t* shared_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+        int32_t* shared_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
@@ -234,8 +240,8 @@
         #endif
 
         //Clean Up
-        delete[] shared_loc_1;
-        delete[] shared_loc_2;
+        free(shared_loc_1);
+        free(shared_loc_2);
         delete arg_a;
         delete arg_b;
         delete arg_c;
@@ -265,8 +271,12 @@
         #endif
 
         //Initialize
-        int32_t* shared_loc_1 = new int32_t[array_length];
-        int32_t* shared_loc_2 = new int32_t[array_length];
+        size_t amountToAlloc = array_length*sizeof(int32_t);
+        if(amountToAlloc % CACHE_LINE_SIZE != 0){
+            amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
+        }
+        int32_t* shared_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+        int32_t* shared_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
@@ -365,8 +375,8 @@
         #endif
 
         //Clean Up
-        delete[] shared_loc_1;
-        delete[] shared_loc_2;
+        free(shared_loc_1);
+        free(shared_loc_2);
         delete arg_a;
         delete arg_b;
         delete arg_c;
@@ -501,8 +511,12 @@
         #endif
 
         //Initialize
-        int32_t* shared_loc_a = new int32_t[array_length];
-        int32_t* shared_loc_b = new int32_t[array_length];
+        size_t amountToAlloc = array_length*sizeof(int32_t);
+        if(amountToAlloc % CACHE_LINE_SIZE != 0){
+            amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
+        }
+        int32_t* shared_loc_a = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+        int32_t* shared_loc_b = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
@@ -588,8 +602,8 @@
         #endif
 
         //Clean Up
-        delete[] shared_loc_a;
-        delete[] shared_loc_b;
+        free(shared_loc_a);
+        free(shared_loc_b);
         delete arg_a;
         delete arg_b;
         delete reset_arg;
@@ -610,11 +624,15 @@
         #endif
 
         //Initialize
-        int32_t* shared_loc_a_1 = new int32_t[array_length];
-        int32_t* shared_loc_b_1 = new int32_t[array_length];
+        size_t amountToAlloc = array_length*sizeof(int32_t);
+        if(amountToAlloc % CACHE_LINE_SIZE != 0){
+            amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
+        }
+        int32_t* shared_loc_a_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+        int32_t* shared_loc_b_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
 
-        int32_t* shared_loc_a_2 = new int32_t[array_length];
-        int32_t* shared_loc_b_2 = new int32_t[array_length];
+        int32_t* shared_loc_a_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+        int32_t* shared_loc_b_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
@@ -729,10 +747,10 @@
         #endif
 
         //Clean Up
-        delete[] shared_loc_a_1;
-        delete[] shared_loc_b_1;
-        delete[] shared_loc_a_2;
-        delete[] shared_loc_b_2;
+        free(shared_loc_a_1);
+        free(shared_loc_b_1);
+        free(shared_loc_a_2);
+        free(shared_loc_b_2);
         delete arg_a;
         delete arg_b;
         delete reset_arg_1;
@@ -754,11 +772,15 @@
         #endif
 
         //Initialize
-        int32_t* shared_loc_a_1 = new int32_t[array_length];
-        int32_t* shared_loc_b_1 = new int32_t[array_length];
+        size_t amountToAlloc = array_length*sizeof(int32_t);
+        if(amountToAlloc % CACHE_LINE_SIZE != 0){
+            amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
+        }
+        int32_t* shared_loc_a_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+        int32_t* shared_loc_b_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
 
-        int32_t* shared_loc_a_2 = new int32_t[array_length];
-        int32_t* shared_loc_b_2 = new int32_t[array_length];
+        int32_t* shared_loc_a_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+        int32_t* shared_loc_b_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
@@ -868,10 +890,10 @@
         #endif
 
         //Clean Up
-        delete[] shared_loc_a_1;
-        delete[] shared_loc_b_1;
-        delete[] shared_loc_a_2;
-        delete[] shared_loc_b_2;
+        free(shared_loc_a_1);
+        free(shared_loc_b_1);
+        free(shared_loc_a_2);
+        free(shared_loc_b_2);
         delete arg_a;
         delete arg_b;
         delete reset_arg_1;
@@ -1004,8 +1026,17 @@
         #endif
 
         //Initialize
-        int32_t* shared_array_loc = new int32_t[array_length];
-        int32_t* shared_ack_loc = new int32_t;
+        size_t amountToAlloc = array_length*sizeof(int32_t);
+        if(amountToAlloc % CACHE_LINE_SIZE != 0){
+            amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
+        }
+        int32_t* shared_array_loc = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+
+        size_t amountToAllocCursors = sizeof(int32_t);
+        if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
+            amountToAllocCursors += (CACHE_LINE_SIZE - (amountToAllocCursors % CACHE_LINE_SIZE));
+        }
+        int32_t* shared_ack_loc = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
@@ -1078,8 +1109,8 @@
         #endif
 
         //Clean Up
-        delete[] shared_array_loc;
-        delete shared_ack_loc;
+        free(shared_array_loc);
+        free(shared_ack_loc);
         delete args;
 
         return results;
@@ -1097,11 +1128,19 @@
         #endif
 
         //Initialize
-        int32_t* shared_array_loc_1 = new int32_t[array_length];
-        int32_t* shared_ack_loc_1 = new int32_t;
+        size_t amountToAlloc = array_length*sizeof(int32_t);
+        if(amountToAlloc % CACHE_LINE_SIZE != 0){
+            amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
+        }
+        int32_t* shared_array_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+        int32_t* shared_array_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
 
-        int32_t* shared_array_loc_2 = new int32_t[array_length];
-        int32_t* shared_ack_loc_2 = new int32_t;
+        size_t amountToAllocCursors = sizeof(int32_t);
+        if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
+            amountToAllocCursors += (CACHE_LINE_SIZE - (amountToAllocCursors % CACHE_LINE_SIZE));
+        }
+        int32_t* shared_ack_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
+        int32_t* shared_ack_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
@@ -1190,10 +1229,10 @@
         #endif
 
         //Clean Up
-        delete[] shared_array_loc_1;
-        delete[] shared_array_loc_2;
-        delete shared_ack_loc_1;
-        delete shared_ack_loc_2;
+        free(shared_array_loc_1);
+        free(shared_array_loc_2);
+        free(shared_ack_loc_1);
+        free(shared_ack_loc_2);
         delete args_1;
         delete args_2;
 
@@ -1216,11 +1255,19 @@
         #endif
 
         //Initialize
-        int32_t* shared_array_loc_1 = new int32_t[array_length];
-        int32_t* shared_ack_loc_1 = new int32_t;
+        size_t amountToAlloc = array_length*sizeof(int32_t);
+        if(amountToAlloc % CACHE_LINE_SIZE != 0){
+            amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
+        }
+        int32_t* shared_array_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+        int32_t* shared_array_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
 
-        int32_t* shared_array_loc_2 = new int32_t[array_length];
-        int32_t* shared_ack_loc_2 = new int32_t;
+        size_t amountToAllocCursors = sizeof(int32_t);
+        if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
+            amountToAllocCursors += (CACHE_LINE_SIZE - (amountToAllocCursors % CACHE_LINE_SIZE));
+        }
+        int32_t* shared_ack_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
+        int32_t* shared_ack_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
@@ -1316,10 +1363,10 @@
         #endif
 
         //Clean Up
-        delete[] shared_array_loc_1;
-        delete[] shared_array_loc_2;
-        delete shared_ack_loc_1;
-        delete shared_ack_loc_2;
+        free(shared_array_loc_1);
+        free(shared_array_loc_2);
+        free(shared_ack_loc_1);
+        free(shared_ack_loc_2);
         delete args_a;
         delete args_b;
         delete args_c;
@@ -1345,11 +1392,19 @@
         #endif
 
         //Initialize
-        int32_t* shared_array_loc_1 = new int32_t[array_length];
-        int32_t* shared_ack_loc_1 = new int32_t;
+        size_t amountToAlloc = array_length*sizeof(int32_t);
+        if(amountToAlloc % CACHE_LINE_SIZE != 0){
+            amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
+        }
+        int32_t* shared_array_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+        int32_t* shared_array_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
 
-        int32_t* shared_array_loc_2 = new int32_t[array_length];
-        int32_t* shared_ack_loc_2 = new int32_t;
+        size_t amountToAllocCursors = sizeof(int32_t);
+        if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
+            amountToAllocCursors += (CACHE_LINE_SIZE - (amountToAllocCursors % CACHE_LINE_SIZE));
+        }
+        int32_t* shared_ack_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
+        int32_t* shared_ack_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
@@ -1445,10 +1500,10 @@
         #endif
 
         //Clean Up
-        delete[] shared_array_loc_1;
-        delete[] shared_array_loc_2;
-        delete shared_ack_loc_1;
-        delete shared_ack_loc_2;
+        free(shared_array_loc_1);
+        free(shared_array_loc_2);
+        free(shared_ack_loc_1);
+        free(shared_ack_loc_2);
         delete args_a;
         delete args_b;
         delete args_c;
@@ -1618,9 +1673,18 @@
         #endif
 
         //Initialize
-        int32_t* shared_array_loc = new int32_t[array_length];
-        int32_t* shared_ack_loc = new int32_t;
-        int32_t* shared_valid_loc = new int32_t;
+        size_t amountToAlloc = array_length*sizeof(int32_t);
+        if(amountToAlloc % CACHE_LINE_SIZE != 0){
+            amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
+        }
+        int32_t* shared_array_loc = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+
+        size_t amountToAllocCursors = sizeof(int32_t);
+        if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
+            amountToAllocCursors += (CACHE_LINE_SIZE - (amountToAllocCursors % CACHE_LINE_SIZE));
+        }
+        int32_t* shared_ack_loc = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
+        int32_t* shared_valid_loc = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
@@ -1693,9 +1757,9 @@
         #endif
 
         //Clean Up
-        delete[] shared_array_loc;
-        delete shared_ack_loc;
-        delete shared_valid_loc;
+        free(shared_array_loc);
+        free(shared_ack_loc);
+        free(shared_valid_loc);
         delete args;
 
         return results;
@@ -1713,12 +1777,21 @@
         #endif
 
         //Initialize
-        int32_t* shared_array_loc_1 = new int32_t[array_length];
-        int32_t* shared_array_loc_2 = new int32_t[array_length];
-        int32_t* shared_ack_loc_1 = new int32_t;
-        int32_t* shared_ack_loc_2 = new int32_t;
-        int32_t* shared_valid_loc_1 = new int32_t;
-        int32_t* shared_valid_loc_2 = new int32_t;
+        size_t amountToAlloc = array_length*sizeof(int32_t);
+        if(amountToAlloc % CACHE_LINE_SIZE != 0){
+            amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
+        }
+        int32_t* shared_array_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+        int32_t* shared_array_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+
+        size_t amountToAllocCursors = sizeof(int32_t);
+        if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
+            amountToAllocCursors += (CACHE_LINE_SIZE - (amountToAllocCursors % CACHE_LINE_SIZE));
+        }
+        int32_t* shared_ack_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
+        int32_t* shared_valid_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
+        int32_t* shared_ack_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
+        int32_t* shared_valid_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
@@ -1809,12 +1882,12 @@
         #endif
 
         //Clean Up
-        delete[] shared_array_loc_1;
-        delete[] shared_array_loc_2;
-        delete shared_ack_loc_1;
-        delete shared_ack_loc_2;
-        delete shared_valid_loc_1;
-        delete shared_valid_loc_2;
+        free(shared_array_loc_1);
+        free(shared_array_loc_2);
+        free(shared_ack_loc_1);
+        free(shared_ack_loc_2);
+        free(shared_valid_loc_1);
+        free(shared_valid_loc_2);
         delete args_1;
         delete args_2;
 
@@ -1833,12 +1906,21 @@
         #endif
 
         //Initialize
-        int32_t* shared_array_loc_1 = new int32_t[array_length];
-        int32_t* shared_array_loc_2 = new int32_t[array_length];
-        int32_t* shared_ack_loc_1 = new int32_t;
-        int32_t* shared_ack_loc_2 = new int32_t;
-        int32_t* shared_valid_loc_1 = new int32_t;
-        int32_t* shared_valid_loc_2 = new int32_t;
+        size_t amountToAlloc = array_length*sizeof(int32_t);
+        if(amountToAlloc % CACHE_LINE_SIZE != 0){
+            amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
+        }
+        int32_t* shared_array_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+        int32_t* shared_array_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+
+        size_t amountToAllocCursors = sizeof(int32_t);
+        if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
+            amountToAllocCursors += (CACHE_LINE_SIZE - (amountToAllocCursors % CACHE_LINE_SIZE));
+        }
+        int32_t* shared_ack_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
+        int32_t* shared_valid_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
+        int32_t* shared_ack_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
+        int32_t* shared_valid_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
@@ -1937,12 +2019,12 @@
         #endif
 
         //Clean Up
-        delete[] shared_array_loc_1;
-        delete[] shared_array_loc_2;
-        delete shared_ack_loc_1;
-        delete shared_ack_loc_2;
-        delete shared_valid_loc_1;
-        delete shared_valid_loc_2;
+        free(shared_array_loc_1);
+        free(shared_array_loc_2);
+        free(shared_ack_loc_1);
+        free(shared_ack_loc_2);
+        free(shared_valid_loc_1);
+        free(shared_valid_loc_2);
         delete srv_args_1;
         delete srv_args_2;
         delete cli_args_1;
@@ -1962,12 +2044,21 @@
         #endif
 
         //Initialize
-        int32_t* shared_array_loc_1 = new int32_t[array_length];
-        int32_t* shared_array_loc_2 = new int32_t[array_length];
-        int32_t* shared_ack_loc_1 = new int32_t;
-        int32_t* shared_ack_loc_2 = new int32_t;
-        int32_t* shared_valid_loc_1 = new int32_t;
-        int32_t* shared_valid_loc_2 = new int32_t;
+        size_t amountToAlloc = array_length*sizeof(int32_t);
+        if(amountToAlloc % CACHE_LINE_SIZE != 0){
+            amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
+        }
+        int32_t* shared_array_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+        int32_t* shared_array_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+
+        size_t amountToAllocCursors = sizeof(int32_t);
+        if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
+            amountToAllocCursors += (CACHE_LINE_SIZE - (amountToAllocCursors % CACHE_LINE_SIZE));
+        }
+        int32_t* shared_ack_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
+        int32_t* shared_valid_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
+        int32_t* shared_ack_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
+        int32_t* shared_valid_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
@@ -2066,12 +2157,12 @@
         #endif
 
         //Clean Up
-        delete[] shared_array_loc_1;
-        delete[] shared_array_loc_2;
-        delete shared_ack_loc_1;
-        delete shared_ack_loc_2;
-        delete shared_valid_loc_1;
-        delete shared_valid_loc_2;
+        free(shared_array_loc_1);
+        free(shared_array_loc_2);
+        free(shared_ack_loc_1);
+        free(shared_ack_loc_2);
+        free(shared_valid_loc_1);
+        free(shared_valid_loc_2);
         delete srv_args_1;
         delete cli_args_1;
         delete cli_args_2;

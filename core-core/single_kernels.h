@@ -11,6 +11,8 @@
     
     #include "print_results.h"
 
+    #include <cstdlib>
+
     Results* run_latency_single_kernel(Profiler* profiler, int cpu_a, int cpu_b)
     {
         //=====Test 1=====
@@ -20,7 +22,11 @@
         #endif
 
         //Initialize
-        int32_t* shared_loc = new int32_t;
+        size_t amountToAlloc = sizeof(int32_t);
+        if(amountToAlloc % CACHE_LINE_SIZE != 0){
+            amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
+        }
+        int32_t* shared_loc = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
 
         //Init to 0
         *shared_loc = 0;
@@ -89,7 +95,7 @@
         #endif
 
         //Clean Up
-        delete shared_loc;
+        free(shared_loc);
         delete arg_a;
         delete arg_b;
 
@@ -104,8 +110,12 @@
         #endif
 
         //Initialize
-        int32_t* shared_loc_a = new int32_t;
-        int32_t* shared_loc_b = new int32_t;
+        size_t amountToAlloc = sizeof(int32_t);
+        if(amountToAlloc % CACHE_LINE_SIZE != 0){
+            amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
+        }
+        int32_t* shared_loc_a = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+        int32_t* shared_loc_b = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
 
         //Init to 0
         *shared_loc_a = 0;
@@ -179,8 +189,8 @@
         #endif
 
         //Clean Up
-        delete shared_loc_a;
-        delete shared_loc_b;
+        free(shared_loc_a);
+        free(shared_loc_b);
         delete arg_a;
         delete arg_b;
         delete reset_arg;
