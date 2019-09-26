@@ -27,9 +27,15 @@
     #define MMREG(n) "ymm"#n
     #endif
 
+    //Get the cache line from cat /sys/devices/system/cpu/cpu0/cache/index3/coherency_line_size or another cache index
+    //TODO: automate
+    #ifndef CACHE_LINE_SIZE
+        #define CACHE_LINE_SIZE 64
+    #endif
+
     //Set default options
     #ifndef STIM_LEN
-        #define STIM_LEN 20000
+        #define STIM_LEN 8000
     #endif
 
     #ifndef TRIALS
@@ -49,7 +55,7 @@
     #endif
 
     #ifndef PRINT_TRIALS_DONE
-        #define PRINT_TRIALS_DONE 1
+        #define PRINT_TRIALS_DONE 0
     #endif
 
     #ifndef PRINT_TRIALS
@@ -57,7 +63,7 @@
     #endif
 
     #ifndef PRINT_STATS
-        #define PRINT_STATS 1
+        #define PRINT_STATS 0
     #endif
 
     #ifndef PRINT_FREQ_CHANGE_EVENT

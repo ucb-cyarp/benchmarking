@@ -12,6 +12,8 @@
 
     #include "print_results.h"
 
+    #include <cstdlib>
+
     Results* run_bandwidth_fifo_kernel(Profiler* profiler, int cpu_a, int cpu_b, size_t array_length, int32_t max_write_per_transaction, bool report_standalone=true, std::string format = "", FILE* file=NULL, std::ofstream* raw_file=NULL)
     {
         #if PRINT_TITLE == 1
@@ -24,9 +26,18 @@
         #endif
 
         //Initialize
-        int32_t* shared_array_loc = new int32_t[array_length];
-        int32_t* shared_write_id_loc = new int32_t;
-        int32_t* shared_read_id_loc = new int32_t;
+        size_t amountToAlloc = array_length*sizeof(int32_t);
+        if(amountToAlloc % CACHE_LINE_SIZE != 0){
+            amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
+        }
+        int32_t* shared_array_loc = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+
+        size_t amountToAllocCursors = sizeof(int32_t);
+        if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
+            amountToAllocCursors += (CACHE_LINE_SIZE - (amountToAllocCursors % CACHE_LINE_SIZE));
+        }
+        int32_t* shared_write_id_loc = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
+        int32_t* shared_read_id_loc = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
@@ -100,9 +111,9 @@
         #endif
 
         //Clean Up
-        delete[] shared_array_loc;
-        delete shared_write_id_loc;
-        delete shared_read_id_loc;
+        free(shared_array_loc);
+        free(shared_write_id_loc);
+        free(shared_read_id_loc);
         delete args;
 
         return results;
@@ -234,9 +245,18 @@
         #endif
 
         //Initialize
-        int32_t* shared_array_loc = new int32_t[array_length];
-        int32_t* shared_write_id_loc = new int32_t;
-        int32_t* shared_read_id_loc = new int32_t;
+        size_t amountToAlloc = array_length*sizeof(int32_t);
+        if(amountToAlloc % CACHE_LINE_SIZE != 0){
+            amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
+        }
+        int32_t* shared_array_loc = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+
+        size_t amountToAllocCursors = sizeof(int32_t);
+        if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
+            amountToAllocCursors += (CACHE_LINE_SIZE - (amountToAllocCursors % CACHE_LINE_SIZE));
+        }
+        int32_t* shared_write_id_loc = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
+        int32_t* shared_read_id_loc = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
@@ -310,9 +330,9 @@
         #endif
 
         //Clean Up
-        delete[] shared_array_loc;
-        delete shared_write_id_loc;
-        delete shared_read_id_loc;
+        free(shared_array_loc);
+        free(shared_write_id_loc);
+        free(shared_read_id_loc);
         delete args;
 
         return results;
@@ -444,9 +464,18 @@
         #endif
 
         //Initialize
-        int32_t* shared_array_loc = new int32_t[array_length];
-        int32_t* shared_write_id_loc = new int32_t;
-        int32_t* shared_read_id_loc = new int32_t;
+        size_t amountToAlloc = array_length*sizeof(int32_t);
+        if(amountToAlloc % CACHE_LINE_SIZE != 0){
+            amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
+        }
+        int32_t* shared_array_loc = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+
+        size_t amountToAllocCursors = sizeof(int32_t);
+        if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
+            amountToAllocCursors += (CACHE_LINE_SIZE - (amountToAllocCursors % CACHE_LINE_SIZE));
+        }
+        int32_t* shared_write_id_loc = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
+        int32_t* shared_read_id_loc = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
@@ -521,9 +550,9 @@
         #endif
 
         //Clean Up
-        delete[] shared_array_loc;
-        delete shared_write_id_loc;
-        delete shared_read_id_loc;
+        free(shared_array_loc);
+        free(shared_write_id_loc);
+        free(shared_read_id_loc);
         delete args;
 
         return results;
