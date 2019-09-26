@@ -114,6 +114,7 @@
         int32_t data_col_width = 10;
 
         //Print header
+        #if PRINT_TITLE == 1
         printf("FIFO - Array\n");
         printf("        Lengths in int32_t Elements, Data Rates in Mbps\n");
         printf("        ===========================");
@@ -125,6 +126,9 @@
             }
         }
         printf("\n");
+        #endif
+
+        #if PRINT_STATS == 1
         printf("        Array Len \\ Max Trans. Len ");
         for(int i = 0; i<max_writes_per_transaction.size(); i++)
         {
@@ -139,6 +143,7 @@
                 printf("=");
             }
         }
+        #endif
 
         #if WRITE_CSV == 1
         fprintf(file, "\"Array Len \\ Max Trans. Len (int32_t elements)\"");//Command inserted below
@@ -158,7 +163,10 @@
             size_t array_length = array_lengths[i];
 
             //Print the newlinem indent and new array length
+            #if PRINT_STATS == 1
             printf("\n        %27lu", array_length);
+            #endif
+
             #if WRITE_CSV == 1
             fprintf(file, "\n%lu", array_length);
             fflush(file);
@@ -188,7 +196,9 @@
                     fflush(file);
                     #endif
 
+                    #if PRINT_STATS == 1
                     printf(format.c_str(), 0);
+                    #endif
                 }
             }
         }
@@ -199,6 +209,7 @@
         fflush(file);
         #endif
 
+        #if PRINT_TITLE == 1
         printf("\n        ===========================");
         for(int i = 0; i<max_writes_per_transaction.size(); i++)
         {
@@ -208,6 +219,7 @@
             }
         }
         printf("\n");
+        #endif
     }
 
     Results* run_bandwidth_fifo_blocked_kernel(Profiler* profiler, int cpu_a, int cpu_b, size_t array_length, int32_t block_length, bool report_standalone=true, std::string format = "", FILE* file=NULL, std::ofstream* raw_file=NULL)
@@ -312,6 +324,7 @@
         int32_t data_col_width = 10;
 
         //Print header
+        #if PRINT_TITLE == 1
         printf("FIFO - Array - Blocked Transfers\n");
         printf("        Lengths in int32_t Elements, Data Rates in Mbps\n");
         printf("        ===========================");
@@ -323,6 +336,9 @@
             }
         }
         printf("\n");
+        #endif
+
+        #if PRINT_STATS == 1
         printf("        Array Len \\ Max Trans. Len ");
         for(int i = 0; i<block_lengths.size(); i++)
         {
@@ -337,6 +353,7 @@
                 printf("=");
             }
         }
+        #endif
 
         #if WRITE_CSV == 1
         fprintf(file, "\"Array Len \\ Block Length (int32_t elements)\"");//Command inserted below
@@ -356,7 +373,10 @@
             size_t array_length = array_lengths[i];
 
             //Print the newlinem indent and new array length
+            #if PRINT_STATS == 1
             printf("\n        %27lu", array_length);
+            #endif
+
             #if WRITE_CSV == 1
             fprintf(file, "\n%lu", array_length);
             fflush(file);
@@ -386,7 +406,9 @@
                     fflush(file);
                     #endif
 
+                    #if PRINT_STATS == 1
                     printf(format.c_str(), 0);
+                    #endif
                 }
             }
         }
@@ -397,6 +419,7 @@
         fflush(file);
         #endif
 
+        #if PRINT_TITLE == 1
         printf("\n        ===========================");
         for(int i = 0; i<array_lengths.size(); i++)
         {
@@ -406,6 +429,7 @@
             }
         }
         printf("\n");
+        #endif
     }
 
     Results* run_bandwidth_fifo_read_limit_kernel(Profiler* profiler, int cpu_a, int cpu_b, size_t array_length, int32_t max_elements_per_transaction, bool report_standalone=true, std::string format = "", FILE* file=NULL, std::ofstream* raw_file=NULL)
@@ -511,6 +535,7 @@
         int32_t data_col_width = 10;
 
         //Print header
+        #if PRINT_TITLE == 1
         printf("FIFO - Array - Read and Write Limited\n");
         printf("        Lengths in int32_t Elements, Data Rates in Mbps\n");
         printf("        ===========================");
@@ -522,6 +547,9 @@
             }
         }
         printf("\n");
+        #endif
+
+        #if PRINT_STATS == 1
         printf("        Array Len \\ Max Trans. Len ");
         for(int i = 0; i<max_elements_per_transaction.size(); i++)
         {
@@ -536,6 +564,7 @@
                 printf("=");
             }
         }
+        #endif
 
         #if WRITE_CSV == 1
         fprintf(file, "\"Array Len \\ Max Trans. Len (int32_t elements)\"");//Command inserted below
@@ -555,7 +584,10 @@
             size_t array_length = array_lengths[i];
 
             //Print the newlinem indent and new array length
+            #if PRINT_STATS == 1
             printf("\n        %27lu", array_length);
+            #endif 
+
             #if WRITE_CSV == 1
             fprintf(file, "\n%lu", array_length);
             fflush(file);
@@ -585,7 +617,9 @@
                     fflush(file);
                     #endif
 
+                    #if PRINT_STATS == 1
                     printf(format.c_str(), 0);
+                    #endif
                 }
             }
         }
@@ -596,6 +630,7 @@
         fflush(file);
         #endif
 
+        #if PRINT_TITLE == 1
         printf("\n        ===========================");
         for(int i = 0; i<max_elements_per_transaction.size(); i++)
         {
@@ -605,5 +640,6 @@
             }
         }
         printf("\n");
+        #endif
     }
 #endif
