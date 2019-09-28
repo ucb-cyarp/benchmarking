@@ -7,7 +7,7 @@
     #include "kernel_server_runner.h"
     #include "latency_single_kernel.h"
 
-    void print_results(Results* results, int bytes_per_transfer, int stim_len)
+    void print_results(Results* results, int bytes_per_element, int stim_len)
     {
         double avg_duration_ms = results->avg_duration();
         double stddev_duration_ms = results->stddev_duration();
@@ -16,7 +16,7 @@
 
         double transactions_rate_msps = stim_len/(1000.0*avg_duration_ms);
 
-        double data_rate_mbps = 8.0*bytes_per_transfer*stim_len/(1000.0*avg_duration_ms);
+        double data_rate_mbps = 8.0*bytes_per_element*stim_len/(1000.0*avg_duration_ms);
 
         printf("        =======================================================\n");
         printf("        Metric                   |     Avg      |    StdDev    \n");
@@ -28,7 +28,7 @@
         printf("        =======================================================\n");
     }
 
-    void print_results(Results* results, int bytes_per_transfer, int stim_len, int length, std::string format, FILE* file=NULL, std::ofstream* raw_file=NULL)
+    void print_results(Results* results, int bytes_per_element, int stim_len, int length, std::string format, FILE* file=NULL, std::ofstream* raw_file=NULL)
     {
         double avg_duration_ms = results->avg_duration();
         double stddev_duration_ms = results->stddev_duration();
@@ -37,7 +37,7 @@
 
         double transactions_rate_msps = stim_len/(1000.0*avg_duration_ms);
 
-        double data_rate_mbps = 8.0*bytes_per_transfer*stim_len/(1000.0*avg_duration_ms);
+        double data_rate_mbps = 8.0*bytes_per_element*stim_len/(1000.0*avg_duration_ms);
 
         #if PRINT_STATS == 1
         printf(format.c_str(), length, avg_latency_ns, stddev_latency_ns, transactions_rate_msps, data_rate_mbps);
@@ -49,7 +49,7 @@
         #endif
     }
 
-    void print_results(Results* results, int core0, int core1, int bytes_per_transfer, int stim_len, int length, std::string format, FILE* file=NULL, std::ofstream* raw_file=NULL)
+    void print_results(Results* results, int core0, int core1, int bytes_per_element, int stim_len, int length, std::string format, FILE* file=NULL, std::ofstream* raw_file=NULL)
     {
         double avg_duration_ms = results->avg_duration();
         double stddev_duration_ms = results->stddev_duration();
@@ -58,7 +58,7 @@
 
         double transactions_rate_msps = stim_len/(1000.0*avg_duration_ms);
 
-        double data_rate_mbps = 8.0*bytes_per_transfer*stim_len/(1000.0*avg_duration_ms);
+        double data_rate_mbps = 8.0*bytes_per_element*stim_len/(1000.0*avg_duration_ms);
 
         #if PRINT_STATS == 1
         printf(format.c_str(), core0, core1, length, avg_latency_ns, stddev_latency_ns, transactions_rate_msps, data_rate_mbps);
@@ -70,7 +70,7 @@
         #endif
     }
 
-    void print_results(Results* results, int bytes_per_transfer, int stim_len, int length, int max_write_per_transaction, std::string format, FILE* file=NULL, std::ofstream* raw_file=NULL)
+    void print_results(Results* results, int bytes_per_element, int stim_len, int length, int max_write_per_transaction, std::string format, FILE* file=NULL, std::ofstream* raw_file=NULL)
     {
         double avg_duration_ms = results->avg_duration();
         double stddev_duration_ms = results->stddev_duration();
@@ -79,7 +79,7 @@
 
         double transactions_rate_msps = stim_len/(1000.0*avg_duration_ms);
 
-        double data_rate_mbps = 8.0*bytes_per_transfer*stim_len/(1000.0*avg_duration_ms);
+        double data_rate_mbps = 8.0*bytes_per_element*stim_len/(1000.0*avg_duration_ms);
 
         #if PRINT_STATS == 1
         printf(format.c_str(), data_rate_mbps);
@@ -91,16 +91,16 @@
         #endif
     }
 
-    void print_results_blocked_fifo(Results* results, int bytes_per_transfer, int target_stim_len, int block_length)
+    void print_results_blocked_fifo(Results* results, int elements_per_trial, int block_length, int bytes_per_element)
     {
-        //The actual stim length will actually be larger if the block length does not equally divide the stim length.
+        //The actual bytes per trial length will actually be larger if the block length does not equally divide the bytes per trial.
         //Does one more block in this case which fills the remaining slots and adds a few more.
         //The number of unfilled slots without the extra block is target_stim_len%block_len.
         //The amount over the target stim length with the extra block is the block_len - unfilled slots
-        int stim_len = target_stim_len;
-        if(target_stim_len%block_length != 0)
+        int stim_len = elements_per_trial;
+        if(stim_len%block_length != 0)
         {
-            stim_len = target_stim_len + block_length - target_stim_len%block_length;
+            stim_len = stim_len + block_length - stim_len%block_length;
         }
 
         double avg_duration_ms = results->avg_duration();
@@ -110,7 +110,7 @@
 
         double transactions_rate_msps = stim_len/(1000.0*avg_duration_ms);
 
-        double data_rate_mbps = 8.0*bytes_per_transfer*stim_len/(1000.0*avg_duration_ms);
+        double data_rate_mbps = 8.0*bytes_per_element*stim_len/(1000.0*avg_duration_ms);
 
         printf("        =======================================================\n");
         printf("        Metric                   |     Avg      |    StdDev    \n");
@@ -122,16 +122,16 @@
         printf("        =======================================================\n");
     }
 
-    void print_results_blocked_fifo(Results* results, int bytes_per_transfer, int target_stim_len, int length, int block_length, std::string format, FILE* file=NULL, std::ofstream* raw_file=NULL)
+    void print_results_blocked_fifo(Results* results, int elements_per_trial, int length, int block_length, int bytes_per_element, std::string format, FILE* file=NULL, std::ofstream* raw_file=NULL)
     {
         //The actual stim length will actually be larger if the block length does not equally divide the stim length.
         //Does one more block in this case which fills the remaining slots and adds a few more.
         //The number of unfilled slots without the extra block is target_stim_len%block_len.
         //The amount over the target stim length with the extra block is the block_len - unfilled slots
-        int stim_len = target_stim_len;
-        if(target_stim_len%block_length != 0)
+        int stim_len = elements_per_trial;
+        if(stim_len%block_length != 0)
         {
-            stim_len = target_stim_len + block_length - target_stim_len%block_length;
+            stim_len = stim_len + block_length - stim_len%block_length;
         }
 
         double avg_duration_ms = results->avg_duration();
@@ -141,7 +141,7 @@
 
         double transactions_rate_msps = stim_len/(1000.0*avg_duration_ms);
 
-        double data_rate_mbps = 8.0*bytes_per_transfer*stim_len/(1000.0*avg_duration_ms);
+        double data_rate_mbps = 8.0*bytes_per_element*stim_len/(1000.0*avg_duration_ms);
 
         #if PRINT_STATS == 1
         printf(format.c_str(), data_rate_mbps);

@@ -94,19 +94,19 @@
                     #endif
 
                     #if PRINT_STATS == 1
-                        print_results(results, sizeof(*shared_array_loc)*array_length, STIM_LEN);
+                        print_results(results, sizeof(*shared_array_loc), STIM_LEN*array_length);
                     #endif
                 }else{
                     #if PRINT_FULL_STATS
                         results->print_statistics(0, 0, 0, cpu_a, STIM_LEN);
                     #endif
 
-                    print_results(results, sizeof(*shared_array_loc)*array_length, STIM_LEN); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                    print_results(results, sizeof(*shared_array_loc), STIM_LEN*array_length); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
                 }
             }
             else
             {
-                print_results(results, sizeof(*shared_array_loc)*array_length, STIM_LEN, array_length, max_write_per_transaction, format, file, raw_file); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                print_results(results, sizeof(*shared_array_loc), STIM_LEN*array_length, array_length, max_write_per_transaction, format, file, raw_file); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
             }
         #endif
 
@@ -313,19 +313,19 @@
                     #endif
 
                     #if PRINT_STATS == 1
-                    print_results_blocked_fifo(results, sizeof(*shared_array_loc)*array_length, STIM_LEN, block_length);
+                    print_results_blocked_fifo(results, array_length*STIM_LEN, block_length, sizeof(*shared_array_loc));
                     #endif
                 }else{
                     #if PRINT_FULL_STATS
                         results->print_statistics(0, 0, 0, cpu_a, STIM_LEN);
                     #endif
 
-                    print_results_blocked_fifo(results, sizeof(*shared_array_loc)*array_length, STIM_LEN, block_length); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                    print_results_blocked_fifo(results, array_length*STIM_LEN, block_length, sizeof(*shared_array_loc)); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
                 }
             }
             else
             {
-                print_results_blocked_fifo(results, sizeof(*shared_array_loc)*array_length, STIM_LEN, array_length, block_length, format, file, raw_file); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                print_results_blocked_fifo(results, array_length*STIM_LEN, array_length, block_length, sizeof(*shared_array_loc), format, file, raw_file); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
             }
         #endif
 
@@ -532,7 +532,7 @@
                     #endif
 
                     #if PRINT_STATS == 1
-                        print_results(results, sizeof(*shared_array_loc)*array_length, STIM_LEN);
+                        print_results(results, sizeof(*shared_array_loc), STIM_LEN*array_length);
                     #endif
 
                 }else{
@@ -540,12 +540,12 @@
                     results->print_statistics(0, 0, 0, cpu_a, STIM_LEN);
                     #endif
 
-                    print_results(results, sizeof(*shared_array_loc)*array_length, STIM_LEN); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                    print_results(results, sizeof(*shared_array_loc), STIM_LEN*array_length); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
                 }
             }
             else
             {
-                print_results(results, sizeof(*shared_array_loc)*array_length, STIM_LEN, array_length, max_elements_per_transaction, format, file, raw_file); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                print_results(results, sizeof(*shared_array_loc), STIM_LEN*array_length, array_length, max_elements_per_transaction, format, file, raw_file); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
             }
         #endif
 
