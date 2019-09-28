@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
         {
             printf("Core-Core Communication Test: From CPU%d to CPU%d\n", cpu_a, cpu_b);
         }
-        printf("STIM_LEN: %d (Samples/Vector/Trial), TRIALS: %d\n", STIM_LEN, TRIALS);
+        printf("STIM_LEN: %d (Iterations/Trial), TRIALS: %d\n", STIM_LEN, TRIALS);
     #endif
 
 
@@ -234,6 +234,14 @@ int main(int argc, char *argv[])
     {
         array_sizes.push_back(i);
     }
+
+    #if WRITE_CSV == 1
+    std::ofstream parameters_csv;
+    parameters_csv.open("report_parameters.csv", std::ofstream::out);
+    parameters_csv << "STIM_LEN, TRIALS, CPUA, CPUB, CPUC, CPUD, profiler, methodology_version" << std::endl;
+    parameters_csv << STIM_LEN << ", " << TRIALS << ", " << cpu_a << ", " << cpu_b << ", " << cpu_c << "," << cpu_d << ", " << profiler->profilerName() << ", " << "2" << std::endl;
+    parameters_csv.close();
+    #endif
 
     //=====Test 1 - Latency Single Shared Element=====
     Results* latency_single_kernel_results = run_latency_single_kernel(profiler, cpu_a, cpu_b);
