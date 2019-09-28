@@ -376,6 +376,37 @@
                 exit(1);
             }
 
+            struct sched_param threadParams;
+            threadParams.sched_priority = sched_get_priority_max(SCHED_FIFO);
+
+            status=  pthread_attr_setschedparam(&attr_a, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedparam(&attr_b, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedparam(&attr_c, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedparam(&attr_d, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
+                exit(1);
+            }
+
             //Set CPU affinity
             CPU_ZERO(&cpuset_a);
             CPU_SET(cpu_a, &cpuset_a);
@@ -639,6 +670,30 @@
                 exit(1);
             }
 
+            struct sched_param threadParams;
+            threadParams.sched_priority = sched_get_priority_max(SCHED_FIFO);
+
+            status=  pthread_attr_setschedparam(&attr_srv_a, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedparam(&attr_srv_b, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedparam(&attr_cli_c, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
+                exit(1);
+            }
+
             //Set CPU affinity
             CPU_ZERO(&cpuset_srv_a);
             CPU_SET(cpu_srv_a, &cpuset_srv_a);
@@ -879,6 +934,30 @@
                 exit(1);
             }
 
+            struct sched_param threadParams;
+            threadParams.sched_priority = sched_get_priority_max(SCHED_FIFO);
+
+            status=  pthread_attr_setschedparam(&attr_srv_a, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedparam(&attr_cli_b, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedparam(&attr_cli_c, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
+                exit(1);
+            }
+
             //Set CPU affinity
             CPU_ZERO(&cpuset_srv_a);
             CPU_SET(cpu_srv_a, &cpuset_srv_a);
@@ -1092,6 +1171,23 @@
                 exit(1);
             }
 
+            struct sched_param threadParams;
+            threadParams.sched_priority = sched_get_priority_max(SCHED_FIFO);
+
+            status=  pthread_attr_setschedparam(&attr_a, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedparam(&attr_b, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
+                exit(1);
+            }
+
             //Set CPU affinity
             CPU_ZERO(&cpuset_a);
             CPU_SET(cpu_a, &cpuset_a);
@@ -1256,7 +1352,7 @@
                 exit(1);
             }
 
-                        status=  pthread_attr_setinheritsched(&attr_a, PTHREAD_EXPLICIT_SCHED);
+            status=  pthread_attr_setinheritsched(&attr_a, PTHREAD_EXPLICIT_SCHED);
             if(status != 0)
             {
                 printf("Could not set pthread explicit schedule attribute ... exiting\n");
@@ -1309,6 +1405,37 @@
             if(status != 0)
             {
                 printf("Could not set pthread schedule policy to SCHED_FIFO ... exiting\n");
+                exit(1);
+            }
+
+            struct sched_param threadParams;
+            threadParams.sched_priority = sched_get_priority_max(SCHED_FIFO);
+
+            status=  pthread_attr_setschedparam(&attr_a, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedparam(&attr_b, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedparam(&attr_c, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedparam(&attr_d, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
                 exit(1);
             }
 

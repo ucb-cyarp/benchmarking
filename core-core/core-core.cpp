@@ -112,6 +112,10 @@ int main(int argc, char *argv[])
     //http://man7.org/linux/man-pages/man7/sched.7.html
     //http://man7.org/linux/man-pages/man2/sched_get_priority_min.2.html
 
+    //NOTE: You may need to run as root or give yourself the ability to run realtime processes
+    //https://stackoverflow.com/questions/10704983/operation-not-permitted-while-setting-new-priority-for-thread
+    //https://unix.stackexchange.com/questions/154867/real-time-processes-scheduling-in-linux
+
     if(argc != 5 && argc != 3)
     {
         printf("core-core core-a core-b [core-c core-d]\n    core-a: Processor ID for first processor core\n    core-b: Processor ID for second processor core\n    core-c: Processor ID for third processor core\n    core-d: Processor ID for fourth processor core\n    If testing multisocket, recommend that A & B reside on Socket 1 and C & D reside on Socket 2\n");
