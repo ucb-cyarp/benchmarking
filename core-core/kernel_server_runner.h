@@ -111,14 +111,14 @@
                 exit(1);
             }
 
-            status=  pthread_attr_getinheritsched(&attr_a, PTHREAD_EXPLICIT_SCHED);
+            status=  pthread_attr_setinheritsched(&attr_a, PTHREAD_EXPLICIT_SCHED);
             if(status != 0)
             {
                 printf("Could not set pthread explicit schedule attribute ... exiting\n");
                 exit(1);
             }
 
-            status=  pthread_attr_getinheritsched(&attr_b, PTHREAD_EXPLICIT_SCHED);
+            status=  pthread_attr_setinheritsched(&attr_b, PTHREAD_EXPLICIT_SCHED);
             if(status != 0)
             {
                 printf("Could not set pthread explicit schedule attribute ... exiting\n");
@@ -303,28 +303,28 @@
                 exit(1);
             }
 
-            status=  pthread_attr_getinheritsched(&attr_a, PTHREAD_EXPLICIT_SCHED);
+            status=  pthread_attr_setinheritsched(&attr_a, PTHREAD_EXPLICIT_SCHED);
             if(status != 0)
             {
                 printf("Could not set pthread explicit schedule attribute ... exiting\n");
                 exit(1);
             }
 
-            status=  pthread_attr_getinheritsched(&attr_b, PTHREAD_EXPLICIT_SCHED);
+            status=  pthread_attr_setinheritsched(&attr_b, PTHREAD_EXPLICIT_SCHED);
             if(status != 0)
             {
                 printf("Could not set pthread explicit schedule attribute ... exiting\n");
                 exit(1);
             }
 
-            status=  pthread_attr_getinheritsched(&attr_c, PTHREAD_EXPLICIT_SCHED);
+            status=  pthread_attr_setinheritsched(&attr_c, PTHREAD_EXPLICIT_SCHED);
             if(status != 0)
             {
                 printf("Could not set pthread explicit schedule attribute ... exiting\n");
                 exit(1);
             }
 
-            status=  pthread_attr_getinheritsched(&attr_d, PTHREAD_EXPLICIT_SCHED);
+            status=  pthread_attr_setinheritsched(&attr_d, PTHREAD_EXPLICIT_SCHED);
             if(status != 0)
             {
                 printf("Could not set pthread explicit schedule attribute ... exiting\n");
@@ -580,21 +580,21 @@
                 exit(1);
             }
 
-            status=  pthread_attr_getinheritsched(&attr_srv_a, PTHREAD_EXPLICIT_SCHED);
+            status=  pthread_attr_setinheritsched(&attr_srv_a, PTHREAD_EXPLICIT_SCHED);
             if(status != 0)
             {
                 printf("Could not set pthread explicit schedule attribute ... exiting\n");
                 exit(1);
             }
 
-            status=  pthread_attr_getinheritsched(&attr_srv_b, PTHREAD_EXPLICIT_SCHED);
+            status=  pthread_attr_setinheritsched(&attr_srv_b, PTHREAD_EXPLICIT_SCHED);
             if(status != 0)
             {
                 printf("Could not set pthread explicit schedule attribute ... exiting\n");
                 exit(1);
             }
 
-            status=  pthread_attr_getinheritsched(&attr_cli_c, PTHREAD_EXPLICIT_SCHED);
+            status=  pthread_attr_setinheritsched(&attr_cli_c, PTHREAD_EXPLICIT_SCHED);
             if(status != 0)
             {
                 printf("Could not set pthread explicit schedule attribute ... exiting\n");
@@ -820,21 +820,21 @@
                 exit(1);
             }
 
-            status=  pthread_attr_getinheritsched(&attr_srv_a, PTHREAD_EXPLICIT_SCHED);
+            status=  pthread_attr_setinheritsched(&attr_srv_a, PTHREAD_EXPLICIT_SCHED);
             if(status != 0)
             {
                 printf("Could not set pthread explicit schedule attribute ... exiting\n");
                 exit(1);
             }
 
-            status=  pthread_attr_getinheritsched(&attr_cli_b, PTHREAD_EXPLICIT_SCHED);
+            status=  pthread_attr_setinheritsched(&attr_cli_b, PTHREAD_EXPLICIT_SCHED);
             if(status != 0)
             {
                 printf("Could not set pthread explicit schedule attribute ... exiting\n");
                 exit(1);
             }
 
-            status=  pthread_attr_getinheritsched(&attr_cli_c, PTHREAD_EXPLICIT_SCHED);
+            status=  pthread_attr_setinheritsched(&attr_cli_c, PTHREAD_EXPLICIT_SCHED);
             if(status != 0)
             {
                 printf("Could not set pthread explicit schedule attribute ... exiting\n");
@@ -1047,14 +1047,14 @@
                 exit(1);
             }
 
-            status=  pthread_attr_getinheritsched(&attr_a, PTHREAD_EXPLICIT_SCHED);
+            status=  pthread_attr_setinheritsched(&attr_a, PTHREAD_EXPLICIT_SCHED);
             if(status != 0)
             {
                 printf("Could not set pthread explicit schedule attribute ... exiting\n");
                 exit(1);
             }
 
-            status=  pthread_attr_getinheritsched(&attr_b, PTHREAD_EXPLICIT_SCHED);
+            status=  pthread_attr_setinheritsched(&attr_b, PTHREAD_EXPLICIT_SCHED);
             if(status != 0)
             {
                 printf("Could not set pthread explicit schedule attribute ... exiting\n");
@@ -1239,28 +1239,28 @@
                 exit(1);
             }
 
-                        status=  pthread_attr_getinheritsched(&attr_a, PTHREAD_EXPLICIT_SCHED);
+                        status=  pthread_attr_setinheritsched(&attr_a, PTHREAD_EXPLICIT_SCHED);
             if(status != 0)
             {
                 printf("Could not set pthread explicit schedule attribute ... exiting\n");
                 exit(1);
             }
 
-            status=  pthread_attr_getinheritsched(&attr_b, PTHREAD_EXPLICIT_SCHED);
+            status=  pthread_attr_setinheritsched(&attr_b, PTHREAD_EXPLICIT_SCHED);
             if(status != 0)
             {
                 printf("Could not set pthread explicit schedule attribute ... exiting\n");
                 exit(1);
             }
 
-            status=  pthread_attr_getinheritsched(&attr_c, PTHREAD_EXPLICIT_SCHED);
+            status=  pthread_attr_setinheritsched(&attr_c, PTHREAD_EXPLICIT_SCHED);
             if(status != 0)
             {
                 printf("Could not set pthread explicit schedule attribute ... exiting\n");
                 exit(1);
             }
 
-            status=  pthread_attr_getinheritsched(&attr_d, PTHREAD_EXPLICIT_SCHED);
+            status=  pthread_attr_setinheritsched(&attr_d, PTHREAD_EXPLICIT_SCHED);
             if(status != 0)
             {
                 printf("Could not set pthread explicit schedule attribute ... exiting\n");
