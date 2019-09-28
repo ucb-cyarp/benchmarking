@@ -110,6 +110,7 @@ int main(int argc, char *argv[])
     //http://man7.org/linux/man-pages/man3/pthread_attr_setschedpolicy.3.html
     //http://man7.org/linux/man-pages/man3/pthread_attr_setinheritsched.3.html
     //http://man7.org/linux/man-pages/man7/sched.7.html
+    //http://man7.org/linux/man-pages/man2/sched_get_priority_min.2.html
 
     if(argc != 5 && argc != 3)
     {

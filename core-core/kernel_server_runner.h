@@ -139,6 +139,23 @@
                 exit(1);
             }
 
+            struct sched_param threadParams;
+            threadParams.sched_priority = sched_get_priority_max(SCHED_FIFO);
+
+            status=  pthread_attr_setschedparam(&attr_a, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedparam(&attr_b, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
+                exit(1);
+            }
+
             //Set CPU affinity
             CPU_ZERO(&cpuset_a);
             CPU_SET(cpu_a, &cpuset_a);
