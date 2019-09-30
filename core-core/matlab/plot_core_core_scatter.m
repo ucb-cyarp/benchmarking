@@ -80,10 +80,10 @@ grid on;
 %% Plot 4
 figure;
 %subplot(2, 2, 4);
-s2 = scatter(single_array_length_bytes, single_timeToCompletion_procTime, 20, [0.8500 0.3250 0.0980], 'filled');
+s2 = scatter(single_array_length_bytes, flow_ctrl_block_read_timeToCompletion_procTime, 20, [0.8500 0.3250 0.0980], 'filled');
 s2.MarkerFaceAlpha = 0.2;
 hold all;
-s1 = scatter(single_array_length_bytes, single_timeToCompletion_highResClk, 20, [0 0.4470 0.7410], 'filled');
+s1 = scatter(single_array_length_bytes, flow_ctrl_block_read_timeToCompletion_highResClk, 20, [0 0.4470 0.7410], 'filled');
 s1.MarkerFaceAlpha = 0.2;
 xlabel('Transaction Length (Bytes)', 'Interpreter', 'none');
 ylabel('Transaction Time to Completion - One Way (ns)')
