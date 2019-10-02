@@ -1,4 +1,4 @@
-#include "intrin_bench_default_defines.h"
+#include "intrin_bench_default_defines_and_imports_cpp.h"d_imports_cpp.h"
 
 #ifdef __AVX__
     //==========_mm256_load_si256 | _mm256_store_si256 int8==========

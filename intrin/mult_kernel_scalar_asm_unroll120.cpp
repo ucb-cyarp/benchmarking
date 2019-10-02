@@ -1,4 +1,4 @@
-#include "intrin_bench_default_defines.h"
+#include "intrin_bench_default_defines_and_imports_cpp.h"
 
 //See https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/x64-architecture
 //https://docs.oracle.com/cd/E18752_01/html/817-5477/eoizy.html

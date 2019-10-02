@@ -1,6 +1,6 @@
 #ifndef _H_STORE_KERNEL_SCALAR_ASM
     #define _H_STORE_KERNEL_SCALAR_ASM
-    #include "intrin_bench_default_defines.h"
+    #include "intrin_bench_default_defines_and_imports_cpp.h"
 
     //==========store int8==========
     void kernel_asm_store_int8( __m256i* a);

@@ -1,6 +1,6 @@
 #ifndef _H_LOAD_KERNEL_SCALAR_ASM_LOCAL
     #define _H_LOAD_KERNEL_SCALAR_ASM_LOCAL
-    #include "intrin_bench_default_defines.h"
+    #include "intrin_bench_default_defines_and_imports_cpp.h"d_imports_cpp.h"
 
     //==========load int8==========
     void kernel_asm_load_int8_local( __m256i* a);

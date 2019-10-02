@@ -1,6 +1,6 @@
 #ifndef _H_LOAD_ADD_STORE_UNROLL2_KERNEL
     #define _H_LOAD_ADD_STORE_UNROLL2_KERNEL
-    #include "intrin_bench_default_defines.h"
+    #include "intrin_bench_default_defines_and_imports_cpp.h"
 
     #ifdef __AVX2__
         //==========_mm256_add_epi8==========

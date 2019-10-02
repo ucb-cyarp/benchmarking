@@ -12,7 +12,7 @@
  */
 
 #include "latency_dual_array_kernel.h"
-#include "intrin_bench_default_defines.h"
+#include "intrin_bench_default_defines_and_imports_cpp.h"
 
 /*
  * Resets shared ptr array to 0
