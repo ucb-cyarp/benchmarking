@@ -1,6 +1,6 @@
 #ifndef _H_STORE_KERNEL_ASM
     #define _H_STORE_KERNEL_ASM
-    #include "intrin_bench_default_defines.h"
+    #include "intrin_bench_default_defines_and_imports_cpp.h"
 
     #ifdef __AVX__
         //==========_mm256_store_si256 int8==========

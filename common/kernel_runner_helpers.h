@@ -2,7 +2,7 @@
     #define _H_KERNEL_RUNNER_HELPERS
 
     #include "profiler.h"
-    #include "intrin_bench_default_defines.h"
+    #include "intrin_bench_default_defines_and_imports_cpp.h"
     #include <vector>
 
     //Define some helper functions to be inlined

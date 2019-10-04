@@ -1,22 +1,6 @@
 #ifndef _H_INTRIN_BENCH_DEFAULT_DEFINES
     #define _H_INTRIN_BENCH_DEFAULT_DEFINES
 
-    #include <chrono>
-    #include <ctime>
-    #include <cstdio>
-    #include <cmath>
-    #include <fstream>
-    #include <iostream>
-    #include <cstdint>
-
-    //Include Intrinsics
-    #include <x86intrin.h>
-    #include <immintrin.h>
-    #include <mm_malloc.h>
-    // #include <mmintrin.h>
-    // #include <emmintrin.h>
-    // #include <xmmintrin.h>
-
     //There is a bug with older GCC versions not knowing about the ymm registers and thus erroring out
     //when ymm registers appear in the clobber list
     //This is a workaround described by https://stackoverflow.com/questions/14034048/xcode-linker-error-file-too-small-for-architecture-x86-64/29952569
@@ -35,11 +19,11 @@
 
     //Set default options
     #ifndef STIM_LEN
-        #define STIM_LEN 8000
+        #define STIM_LEN 200
     #endif
 
     #ifndef TRIALS
-        #define TRIALS 10
+        #define TRIALS 20
     #endif
 
     #ifndef MAX_DISCARD
@@ -55,7 +39,7 @@
     #endif
 
     #ifndef PRINT_TRIALS_DONE
-        #define PRINT_TRIALS_DONE 1
+        #define PRINT_TRIALS_DONE 0
     #endif
 
     #ifndef PRINT_TRIALS
@@ -63,7 +47,7 @@
     #endif
 
     #ifndef PRINT_STATS
-        #define PRINT_STATS 1
+        #define PRINT_STATS 0
     #endif
 
     #ifndef PRINT_FREQ_CHANGE_EVENT

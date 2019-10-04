@@ -1,7 +1,7 @@
 #ifndef _H_ADD_KERNEL_SCALAR_ASM_UNROLL4
     #define _H_ADD_KERNEL_SCALAR_ASM_UNROLL4
 
-    #include "intrin_bench_default_defines.h"
+    #include "intrin_bench_default_defines_and_imports_cpp.h"
 
         //==========add 8 bit==========
         void kernel_only_asm_add_i8_unroll4();

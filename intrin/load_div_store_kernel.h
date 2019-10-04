@@ -1,7 +1,7 @@
 #ifndef _H_LOAD_DIV_STORE_KERNEL
     #define _H_LOAD_DIV_STORE_KERNEL
 
-    #include "intrin_bench_default_defines.h"
+    #include "intrin_bench_default_defines_and_imports_cpp.h"
 
     #ifdef __AVX__
         //==========_mm256_div_ps==========

@@ -1,6 +1,6 @@
 #ifndef _H_LOAD_KERNEL_ASM_LOCAL_UNROLL120
     #define _H_LOAD_KERNEL_ASM_LOCAL_UNROLL120
-    #include "intrin_bench_default_defines.h"
+    #include "intrin_bench_default_defines_and_imports_cpp.h"
 
     #ifdef __AVX__
         //==========_mm256_load_si256 int8==========

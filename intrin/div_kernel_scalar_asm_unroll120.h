@@ -1,7 +1,7 @@
 #ifndef _H_DIV_KERNEL_SCALAR_ASM_UNROLL120
     #define _H_DIV_KERNEL_SCALAR_ASM_UNROLL120
 
-    #include "intrin_bench_default_defines.h"
+    #include "intrin_bench_default_defines_and_imports_cpp.h"
 
         //==========div 8 bit==========
         void kernel_only_asm_div_i8_unroll120();

@@ -71,7 +71,7 @@
 #include <chrono>
 #include <ctime>
 
-#include "intrin_bench_default_defines.h"
+#include "intrin_bench_default_defines_and_imports_cpp.h"
 
 #include "profiler.h"
 #include "results.h"
