@@ -74,7 +74,7 @@ DEFINES+= -DUSE_AMDuPROF=0
 endif
 
 MAIN_FILE = core-core.cpp
-KERNEL_SRCS = latency_single_kernel.cpp latency_dual_kernel.cpp latency_single_array_kernel.cpp latency_dual_array_kernel.cpp latency_flow_ctrl_kernel.cpp latency_flow_ctrl_blocked_read_kernel.cpp bandwidth_circular_fifo_kernel.cpp bandwidth_circular_fifo_blocked_kernel.cpp bandwidth_circular_fifo_read_limit_kernel.cpp
+KERNEL_SRCS = latency_single_kernel.cpp latency_dual_kernel.cpp latency_single_array_kernel.cpp latency_dual_array_kernel.cpp latency_flow_ctrl_kernel.cpp latency_flow_ctrl_blocked_read_kernel.cpp bandwidth_circular_fifo_kernel.cpp bandwidth_circular_fifo_blocked_kernel.cpp bandwidth_circular_fifo_read_limit_kernel.cpp bandwidth_circular_fifo_blocked_cachedptr_kernel.cpp
 
 SRCS=$(MAIN_FILE)
 SRCS+=$(LIB_SRCS)

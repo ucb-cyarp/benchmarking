@@ -90,6 +90,7 @@
 #include "bandwidth_circular_fifo_kernel.h"
 #include "bandwidth_circular_fifo_blocked_kernel.h"
 #include "bandwidth_circular_fifo_read_limit_kernel.h"
+#include "bandwidth_circular_fifo_blocked_cachedptr_kernel.h"
 
 #ifndef PRINT_FULL_STATS
     #define PRINT_FULL_STATS 0
@@ -368,6 +369,21 @@ int main(int argc, char *argv[])
 
     fclose(fifo_read_limit_array_csv_file);
     fifo_read_limit_array_raw_csv_file.close();
+
+    //=====Test 3.3 - Bandwidth FIFO Blocked Cached Ptrs=====
+    FILE* fifo_blocked_cachedptr_array_csv_file = NULL;
+    std::ofstream fifo_blocked_cachedptr_array_raw_csv_file;
+    #if WRITE_CSV == 1
+    fifo_blocked_cachedptr_array_csv_file = fopen("report_fifo_blocked_cachedptr_array.csv", "w");
+    fifo_blocked_cachedptr_array_raw_csv_file.open("report_fifo_blocked_cachedptr_array_raw.csv", std::ofstream::out);
+    #endif
+
+    run_bandwidth_fifo_blocked_cachedptr_kernel(profiler, cpu_a, cpu_b, array_sizes, transaction_sizes, fifo_blocked_cachedptr_array_csv_file, &fifo_blocked_cachedptr_array_raw_csv_file);
+
+    fclose(fifo_blocked_cachedptr_array_csv_file);
+    fifo_blocked_cachedptr_array_raw_csv_file.close();
+
+    printf("\n");
 
     #endif
 
