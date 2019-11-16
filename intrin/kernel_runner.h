@@ -3,6 +3,7 @@
 
     #include "results.h"
     #include "kernel_runner_helpers.h"
+    #include "mallocHelpers.h"
 
     inline Results* zero_arg_kernel(Profiler* profiler, void (*kernel_fun)(), int cpu_num, const char* title)
     {
@@ -47,7 +48,7 @@
         {
             //Allocate the arrays to operate over
             //These arrays need to be aligned to the vector register size of 256a
-            void* a = _mm_malloc (STIM_LEN*sizeof(KernelType), sizeof(VecType));
+            void* a = _mm_malloc_core (STIM_LEN*sizeof(KernelType), sizeof(VecType), cpu_num);
 
             VecType* a_vec = (VecType * ) a;
 
@@ -85,8 +86,8 @@
         {
             //Allocate the arrays to operate over
             //These arrays need to be aligned to the vector register size of 256a
-            void* a = _mm_malloc (STIM_LEN*sizeof(KernelType), sizeof(VecType));
-            void* b = _mm_malloc (STIM_LEN*sizeof(KernelType), sizeof(VecType));
+            void* a = _mm_malloc_core (STIM_LEN*sizeof(KernelType), sizeof(VecType), cpu_num);
+            void* b = _mm_malloc_core (STIM_LEN*sizeof(KernelType), sizeof(VecType), cpu_num);
 
             VecType* a_vec = (VecType * ) a;
             VecType* b_vec = (VecType * ) b;
@@ -126,9 +127,9 @@
         {
             //Allocate the arrays to operate over
             //These arrays need to be aligned to the vector register size of 256a
-            void* a = _mm_malloc (STIM_LEN*sizeof(KernelType), sizeof(VecType));
-            void* b = _mm_malloc (STIM_LEN*sizeof(KernelType), sizeof(VecType));
-            void* c = _mm_malloc (STIM_LEN*sizeof(KernelType), sizeof(VecType));
+            void* a = _mm_malloc_core (STIM_LEN*sizeof(KernelType), sizeof(VecType), cpu_num);
+            void* b = _mm_malloc_core (STIM_LEN*sizeof(KernelType), sizeof(VecType), cpu_num);
+            void* c = _mm_malloc_core (STIM_LEN*sizeof(KernelType), sizeof(VecType), cpu_num);
 
             VecType* a_vec = (VecType * ) a;
             VecType* b_vec = (VecType * ) b;
@@ -170,10 +171,10 @@
         {
             //Allocate the arrays to operate over
             //These arrays need to be aligned to the vector register size of 256a
-            void* a = _mm_malloc (STIM_LEN*sizeof(KernelType), sizeof(VecType));
-            void* b = _mm_malloc (STIM_LEN*sizeof(KernelType), sizeof(VecType));
-            void* c = _mm_malloc (STIM_LEN*sizeof(KernelType), sizeof(VecType));
-            void* d = _mm_malloc (STIM_LEN*sizeof(KernelType), sizeof(VecType));
+            void* a = _mm_malloc_core (STIM_LEN*sizeof(KernelType), sizeof(VecType), cpu_num);
+            void* b = _mm_malloc_core (STIM_LEN*sizeof(KernelType), sizeof(VecType), cpu_num);
+            void* c = _mm_malloc_core (STIM_LEN*sizeof(KernelType), sizeof(VecType), cpu_num);
+            void* d = _mm_malloc_core (STIM_LEN*sizeof(KernelType), sizeof(VecType), cpu_num);
 
             VecType* a_vec = (VecType * ) a;
             VecType* b_vec = (VecType * ) b;
@@ -216,10 +217,9 @@
         while(trial<TRIALS)
         {
             //Allocate the arrays to operate over
-            //These arrays need to be aligned to the vector register size of 256a
-            void* a = malloc (STIM_LEN*sizeof(KernelType));
-            void* b = malloc (STIM_LEN*sizeof(KernelType));
-            void* c = malloc (STIM_LEN*sizeof(KernelType));
+            void* a = malloc_core (STIM_LEN*sizeof(KernelType), cpu_num);
+            void* b = malloc_core (STIM_LEN*sizeof(KernelType), cpu_num);
+            void* c = malloc_core (STIM_LEN*sizeof(KernelType), cpu_num);
 
             KernelType* a_vec = (KernelType * ) a;
             KernelType* b_vec = (KernelType * ) b;
@@ -237,9 +237,9 @@
             printTrial(trial_result);
             processTrialAndPrepareForNextHelper(profiler, *results, trial_result, trial, discard_count);
 
-            _mm_free(a);
-            _mm_free(b);
-            _mm_free(c);
+            free(a);
+            free(b);
+            free(c);
         }
 
         printStats(profiler, results, cpu_num);
@@ -261,8 +261,8 @@
         {
             //Allocate the arrays to operate over
             //These arrays need to be aligned to the vector register size of 256a
-            void* in_mem  = _mm_malloc (STIM_LEN*sizeof(VecInType),  sizeof(AlignType));
-            void* out_mem = _mm_malloc (STIM_LEN*sizeof(VecOutType), sizeof(AlignType));
+            void* in_mem  = _mm_malloc_core (STIM_LEN*sizeof(VecInType),  sizeof(AlignType), cpu_num);
+            void* out_mem = _mm_malloc_core (STIM_LEN*sizeof(VecOutType), sizeof(AlignType), cpu_num);
 
             VecInType* in_vec =   (VecInType * ) in_mem;
             VecOutType* out_vec = (VecOutType * ) out_mem;
@@ -317,12 +317,12 @@
             void** output_arrays = new voidArr[outSizes.size()];
 
             for(unsigned long i = 0; i<inSizes.size(); i++){
-                void* in_mem  = _mm_malloc(numInElements[i]*inSizes[i], sizeof(AlignType));
+                void* in_mem  = _mm_malloc_core(numInElements[i]*inSizes[i], sizeof(AlignType), cpu_num);
                 input_arrays[i] = in_mem;
             }
 
             for(unsigned long i = 0; i<outSizes.size(); i++){
-                void* out_mem  = _mm_malloc(numOutElements[i]*outSizes[i], sizeof(AlignType));
+                void* out_mem  = _mm_malloc_core(numOutElements[i]*outSizes[i], sizeof(AlignType), cpu_num);
                 output_arrays[i] = out_mem;
             }
 

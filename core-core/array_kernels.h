@@ -15,6 +15,8 @@
 
     #include <cstdlib>
 
+    #include "mallocHelpers.h"
+
     Results* run_latency_single_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file=NULL, std::ofstream* raw_file=NULL)
     {
         //=====Test 2=====
@@ -134,8 +136,8 @@
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
-        int32_t* shared_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+        int32_t* shared_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        int32_t* shared_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_c);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
@@ -275,8 +277,8 @@
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
-        int32_t* shared_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+        int32_t* shared_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        int32_t* shared_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
@@ -515,8 +517,8 @@
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_loc_a = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
-        int32_t* shared_loc_b = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+        int32_t* shared_loc_a = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        int32_t* shared_loc_b = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
@@ -628,11 +630,11 @@
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_loc_a_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
-        int32_t* shared_loc_b_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+        int32_t* shared_loc_a_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        int32_t* shared_loc_b_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
 
-        int32_t* shared_loc_a_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
-        int32_t* shared_loc_b_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+        int32_t* shared_loc_a_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_c);
+        int32_t* shared_loc_b_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_d);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
@@ -776,11 +778,11 @@
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_loc_a_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
-        int32_t* shared_loc_b_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+        int32_t* shared_loc_a_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        int32_t* shared_loc_b_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_c);
 
-        int32_t* shared_loc_a_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
-        int32_t* shared_loc_b_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+        int32_t* shared_loc_a_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
+        int32_t* shared_loc_b_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_c);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
@@ -1030,13 +1032,13 @@
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_array_loc = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+        int32_t* shared_array_loc = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
 
         size_t amountToAllocCursors = sizeof(int32_t);
         if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
             amountToAllocCursors += (CACHE_LINE_SIZE - (amountToAllocCursors % CACHE_LINE_SIZE));
         }
-        int32_t* shared_ack_loc = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
+        int32_t* shared_ack_loc = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_b);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
@@ -1132,15 +1134,15 @@
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_array_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
-        int32_t* shared_array_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+        int32_t* shared_array_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        int32_t* shared_array_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_c);
 
         size_t amountToAllocCursors = sizeof(int32_t);
         if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
             amountToAllocCursors += (CACHE_LINE_SIZE - (amountToAllocCursors % CACHE_LINE_SIZE));
         }
-        int32_t* shared_ack_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
-        int32_t* shared_ack_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
+        int32_t* shared_ack_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_b);
+        int32_t* shared_ack_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_d);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
@@ -1159,7 +1161,7 @@
         args_2->ack_shared_ptr = shared_ack_loc_2;
         args_2->length = array_length;
 
-        //                                                                                                                                                                 S1,     S2,     C1,     C2,     R1,     R2
+        //                                                                                                                                                                          S1,     S2,     C1,     C2,     R1,     R2
         SimultaniousResults* results = execute_client_server_kernel(profiler, latency_flow_ctrl_server_kernel, latency_flow_ctrl_client_kernel, latency_flow_ctrl_kernel_reset, args_1, args_2, args_1, args_2, args_1, args_2, cpu_a, cpu_b, cpu_c, cpu_d);
 
         #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
@@ -1259,15 +1261,15 @@
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_array_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
-        int32_t* shared_array_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+        int32_t* shared_array_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        int32_t* shared_array_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
 
         size_t amountToAllocCursors = sizeof(int32_t);
         if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
             amountToAllocCursors += (CACHE_LINE_SIZE - (amountToAllocCursors % CACHE_LINE_SIZE));
         }
-        int32_t* shared_ack_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
-        int32_t* shared_ack_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
+        int32_t* shared_ack_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_c);
+        int32_t* shared_ack_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_c);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
@@ -1396,15 +1398,15 @@
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_array_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
-        int32_t* shared_array_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+        int32_t* shared_array_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        int32_t* shared_array_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
 
         size_t amountToAllocCursors = sizeof(int32_t);
         if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
             amountToAllocCursors += (CACHE_LINE_SIZE - (amountToAllocCursors % CACHE_LINE_SIZE));
         }
-        int32_t* shared_ack_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
-        int32_t* shared_ack_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
+        int32_t* shared_ack_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_b);
+        int32_t* shared_ack_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_c);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
@@ -1677,14 +1679,14 @@
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_array_loc = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+        int32_t* shared_array_loc = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
 
         size_t amountToAllocCursors = sizeof(int32_t);
         if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
             amountToAllocCursors += (CACHE_LINE_SIZE - (amountToAllocCursors % CACHE_LINE_SIZE));
         }
-        int32_t* shared_ack_loc = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
-        int32_t* shared_valid_loc = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
+        int32_t* shared_ack_loc = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_b);
+        int32_t* shared_valid_loc = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_a);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
@@ -1781,17 +1783,17 @@
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_array_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
-        int32_t* shared_array_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+        int32_t* shared_array_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        int32_t* shared_array_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_c);
 
         size_t amountToAllocCursors = sizeof(int32_t);
         if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
             amountToAllocCursors += (CACHE_LINE_SIZE - (amountToAllocCursors % CACHE_LINE_SIZE));
         }
-        int32_t* shared_ack_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
-        int32_t* shared_valid_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
-        int32_t* shared_ack_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
-        int32_t* shared_valid_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
+        int32_t* shared_ack_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_b);
+        int32_t* shared_valid_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_a);
+        int32_t* shared_ack_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_d);
+        int32_t* shared_valid_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_c);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
@@ -1812,7 +1814,7 @@
         args_2->valid_shared_ptr = shared_valid_loc_2;
         args_2->length = array_length;
 
-        //                                                                                                                                                                                                        S1,     S2,     C1,     C2,     R1,     R2
+        //                                                                                                                                                                                                                 S1,     S2,     C1,     C2,     R1,     R2
         SimultaniousResults* results = execute_client_server_kernel(profiler, latency_flow_ctrl_blocked_read_server_kernel, latency_flow_ctrl_blocked_read_client_kernel, latency_flow_ctrl_blocked_read_kernel_reset, args_1, args_2, args_1, args_2, args_1, args_2, cpu_a, cpu_b, cpu_c, cpu_d);
 
         #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
@@ -1910,17 +1912,17 @@
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_array_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
-        int32_t* shared_array_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+        int32_t* shared_array_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        int32_t* shared_array_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
 
         size_t amountToAllocCursors = sizeof(int32_t);
         if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
             amountToAllocCursors += (CACHE_LINE_SIZE - (amountToAllocCursors % CACHE_LINE_SIZE));
         }
-        int32_t* shared_ack_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
-        int32_t* shared_valid_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
-        int32_t* shared_ack_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
-        int32_t* shared_valid_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
+        int32_t* shared_ack_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_c);
+        int32_t* shared_valid_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_a);
+        int32_t* shared_ack_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_c);
+        int32_t* shared_valid_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_b);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
@@ -2048,17 +2050,17 @@
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_array_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
-        int32_t* shared_array_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+        int32_t* shared_array_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        int32_t* shared_array_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
 
         size_t amountToAllocCursors = sizeof(int32_t);
         if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
             amountToAllocCursors += (CACHE_LINE_SIZE - (amountToAllocCursors % CACHE_LINE_SIZE));
         }
-        int32_t* shared_ack_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
-        int32_t* shared_valid_loc_1 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
-        int32_t* shared_ack_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
-        int32_t* shared_valid_loc_2 = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAllocCursors);
+        int32_t* shared_ack_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_b);
+        int32_t* shared_valid_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_a);
+        int32_t* shared_ack_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_c);
+        int32_t* shared_valid_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_a);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)

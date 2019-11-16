@@ -17,7 +17,7 @@ LIB=-pthread -lrt
 DEFINES=
 
 LIB_NAME = libProfilerCommon.a
-SRCS = results.cpp measurement.cpp 
+SRCS = results.cpp measurement.cpp mallocHelpers.cpp
 LIB_SRCS = profiler.cpp generic_profiler.cpp #These files are not optomized since they deal with starting timers and reordering is not desired
 
 DEPENDS=

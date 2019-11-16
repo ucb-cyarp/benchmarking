@@ -13,6 +13,8 @@
 
     #include <cstdlib>
 
+    #include "mallocHelpers.h"
+
     Results* run_latency_single_kernel(Profiler* profiler, int cpu_a, int cpu_b)
     {
         //=====Test 1=====
@@ -26,7 +28,7 @@
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_loc = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+        int32_t* shared_loc = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
 
         //Init to 0
         *shared_loc = 0;
@@ -114,8 +116,8 @@
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_loc_a = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
-        int32_t* shared_loc_b = (int32_t*) aligned_alloc(CACHE_LINE_SIZE, amountToAlloc);
+        int32_t* shared_loc_a = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        int32_t* shared_loc_b = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
 
         //Init to 0
         *shared_loc_a = 0;
