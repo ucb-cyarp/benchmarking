@@ -57,7 +57,7 @@ void* aligned_alloc_core(size_t alignment, size_t size, int core){
         return rtnVal;
     }
 
-    void* alligned_alloc_core_thread(void* arg_uncast){
+    void* aligned_alloc_core_thread(void* arg_uncast){
         aligned_malloc_args_t* arg = (aligned_malloc_args_t*) arg_uncast;
         size_t size = arg->size;
         size_t alignment = arg->alignment;
@@ -191,7 +191,7 @@ void* aligned_alloc_core(size_t alignment, size_t size, int core){
         status = pthread_attr_init(&attr);
         if(status != 0)
         {
-            printf("Could not create pthread attributes for alligned_alloc_core ... exiting\n");
+            printf("Could not create pthread attributes for aligned_alloc_core ... exiting\n");
             exit(1);
         }
 
@@ -201,7 +201,7 @@ void* aligned_alloc_core(size_t alignment, size_t size, int core){
         status = pthread_attr_setaffinity_np(&attr, sizeof(cpu_set_t), &cpuset);
         if(status != 0)
         {
-            printf("Could not set thread core affinity for alligned_alloc_core ... exiting\n");
+            printf("Could not set thread core affinity for aligned_alloc_core ... exiting\n");
             exit(1);
         }
 
@@ -210,10 +210,10 @@ void* aligned_alloc_core(size_t alignment, size_t size, int core){
         args->size = size;
         args->alignment = alignment;
 
-        status = pthread_create(&thread, &attr, alligned_alloc_core_thread, args);
+        status = pthread_create(&thread, &attr, aligned_alloc_core_thread, args);
         if(status != 0)
         {
-            printf("Could not create a thread for alligned_alloc_core ... exiting\n");
+            printf("Could not create a thread for aligned_alloc_core ... exiting\n");
             errno = status;
             perror(NULL);
             exit(1);
@@ -223,7 +223,7 @@ void* aligned_alloc_core(size_t alignment, size_t size, int core){
         status = pthread_join(thread, &res);
         if(status != 0)
         {
-            printf("Could not join a thread for alligned_alloc_core ... exiting\n");
+            printf("Could not join a thread for aligned_alloc_core ... exiting\n");
             errno = status;
             perror(NULL);
             exit(1);
