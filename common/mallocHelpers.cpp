@@ -1,10 +1,14 @@
 #include "mallocHelpers.h"
 #include <mm_malloc.h>
 #include <stdio.h>
+#include <iostream>
+#include <cstdlib>
+#include <memory>
+#include <cstring>
 
 typedef struct{
     size_t size;
-    size_t allignment;
+    size_t alignment;
 } aligned_malloc_args_t;
 
 #if __APPLE__
@@ -14,14 +18,25 @@ void* malloc_core(size_t size, int core){
     return malloc(size);
 }
 
-void* _mm_malloc_core(size_t size, size_t allignment, int core){
+void* _mm_malloc_core(size_t size, size_t alignment, int core){
     std::cerr << "Warning, cannot allocate on specific core on Mac" << std::endl;
-    return _mm_malloc(size, allignment);
+    return _mm_malloc(size, alignment);
 }
 
-void* aligned_alloc_core(size_t allignment, size_t size, int core){
+void* aligned_alloc_core(size_t alignment, size_t size, int core){
     std::cerr << "Warning, cannot allocate on specific core on Mac" << std::endl;
-    return aligned_alloc(size_t allignment, size_t size);
+    std::cerr << "Warning, Mac does not support aligned_alloc, using posix_memalign instead)" << std::endl;
+
+    size_t allocSize = size + (size%alignment == 0 ? 0 : alignment-(size%alignment));
+
+    void* ptr;
+    int status = posix_memalign(&ptr, alignment, allocSize);
+
+    if(status != 0){
+        ptr = NULL;
+    }
+
+    return ptr;
 }
 
 #else
@@ -36,18 +51,22 @@ void* aligned_alloc_core(size_t allignment, size_t size, int core){
     void* _mm_malloc_core_thread(void* arg_uncast){
         aligned_malloc_args_t* arg = (aligned_malloc_args_t*) arg_uncast;
         size_t size = arg->size;
-        size_t allignment = arg->allignment;
+        size_t alignment = arg->alignment;
 
-        void* rtnVal = _mm_malloc(size, allignment);
+        void* rtnVal = _mm_malloc(size, alignment);
         return rtnVal;
     }
 
     void* alligned_alloc_core_thread(void* arg_uncast){
         aligned_malloc_args_t* arg = (aligned_malloc_args_t*) arg_uncast;
         size_t size = arg->size;
-        size_t allignment = arg->allignment;
+        size_t alignment = arg->alignment;
 
-        void* rtnVal = aligned_alloc(allignment, size);
+        size_t allocSize = size + (size%alignment == 0 ? 0 : alignment-(size%alignment));
+
+        //There is a condition on aligned_alloc that the size must be a
+        //multiple of the alignment
+        void* rtnVal = aligned_alloc(alignment, allocSize);
         return rtnVal;
     }
 
@@ -105,7 +124,7 @@ void* aligned_alloc_core(size_t allignment, size_t size, int core){
         return res;
     }
 
-    void* _mm_malloc_core(size_t size, size_t allignment, int core){
+    void* _mm_malloc_core(size_t size, size_t alignment, int core){
         cpu_set_t cpuset;
         pthread_t thread;
         pthread_attr_t attr;
@@ -134,7 +153,7 @@ void* aligned_alloc_core(size_t allignment, size_t size, int core){
         // - Start Thread
         aligned_malloc_args_t* args = new aligned_malloc_args_t;
         args->size = size;
-        args->allignment = allignment;
+        args->alignment = alignment;
 
         status = pthread_create(&thread, &attr, _mm_malloc_core_thread, args);
         if(status != 0)
@@ -160,7 +179,7 @@ void* aligned_alloc_core(size_t allignment, size_t size, int core){
         return res;
     }
 
-    void* aligned_alloc_core(size_t allignment, size_t size, int core){
+    void* aligned_alloc_core(size_t alignment, size_t size, int core){
         cpu_set_t cpuset;
         pthread_t thread;
         pthread_attr_t attr;
@@ -189,7 +208,7 @@ void* aligned_alloc_core(size_t allignment, size_t size, int core){
         // - Start Thread
         aligned_malloc_args_t* args = new aligned_malloc_args_t;
         args->size = size;
-        args->allignment = allignment;
+        args->alignment = alignment;
 
         status = pthread_create(&thread, &attr, alligned_alloc_core_thread, args);
         if(status != 0)

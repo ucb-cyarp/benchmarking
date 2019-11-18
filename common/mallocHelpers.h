@@ -5,9 +5,9 @@
 
 void* malloc_core(size_t size, int core);
 
-void* _mm_malloc_core(size_t size, size_t allignment, int core);
+void* _mm_malloc_core(size_t size, size_t alignment, int core);
 
 //The order of the arguments is reversed compared to _mm_malloc
-void* aligned_alloc_core(size_t allignment, size_t size, int core); 
+void* aligned_alloc_core(size_t alignment, size_t size, int core); 
 
 #endif
