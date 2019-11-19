@@ -3,6 +3,10 @@ DEPENDS_DIR=../depends
 COMMON_DIR=../common
 SRC_DIR=.
 
+#Parameters that can be supplied to this makefile
+USE_PCM=1
+USE_AMDuPROF=1
+
 #Get Cache Sizes
 # L1D_CACHE_SIZE = $(shell ./get_l1d_cache_size.py)
 # L2_CACHE_SIZE = $(shell ./get_l2_cache_size.py)
@@ -18,26 +22,48 @@ CFLAGS = -O0 -c -g -std=c++11 -march=native -masm=att
 KERNEL_CFLAGS = -O3 -c -g -std=c++11 -march=native -masm=att
 #For kernels that should not be optimized, the following is used
 KERNEL_NO_OPT_CFLAGS = -O0 -c -g -std=c++11 -march=native -masm=att
-INC=-I $(DEPENDS_DIR)/pcm -I $(COMMON_DIR)
-LIB_DIRS=-L $(DEPENDS_DIR)/pcm -L $(COMMON_DIR)
-ifeq ($(UNAME), Darwin)
-LIB=-pthread -lpcmHelper -lPCM -lPcmMsr
-LIB_DIRS+= -L $(DEPENDS_DIR)/pcm/MacMSRDriver/build/Release
-else
-LIB=-pthread -lrt -lpcmHelper -lPCM
-endif
-DEFINES = #-DL1D_CACHE_SIZE=${L1D_CACHE_SIZE} -DL2_CACHE_SIZE=${L2_CACHE_SIZE} -DL3_CACHE_SIZE=${L3_CACHE_SIZE}
+INC=-I $(COMMON_DIR)
+LIB_DIRS=-L $(COMMON_DIR)
+LIB=-pthread -lProfilerCommon
+
+DEFINES= #-DL1D_CACHE_SIZE=${L1D_CACHE_SIZE} -DL2_CACHE_SIZE=${L2_CACHE_SIZE} -DL3_CACHE_SIZE=${L3_CACHE_SIZE}
 #DEFINES = -DPRINT_TRIALS=1
 
+DEPENDS=
+DEPENDS_LIB=$(COMMON_DIR)/libProfilerCommon.a
+
+ifeq ($(USE_PCM), 1)
+DEFINES+= -DUSE_PCM=1
+DEPENDS+= $(DEPENDS_DIR)/pcm/Makefile
+DEPENDS_LIB+= $(DEPENDS_DIR)/pcm/libPCM.a
+INC+= -I $(DEPENDS_DIR)/pcm
+LIB_DIRS+= -L $(DEPENDS_DIR)/pcm
 #Need an additional include directory if on MacOS.
 #Using the technique in pcm makefile to detect MacOS
+UNAME:=$(shell uname)
 ifeq ($(UNAME), Darwin)
 INC+= -I $(DEPENDS_DIR)/pcm/MacMSRDriver
+LIB+= -lPCM -lPcmMsr
+APPLE_DRIVER = $(DEPENDS_DIR)/pcm/MacMSRDriver/build/Release/libPcmMsr.dylib
+LIB_DIRS+= -L $(DEPENDS_DIR)/pcm/MacMSRDriver/build/Release
+else
+LIB+= -lrt -lPCM
+APPLE_DRIVER = 
+endif
+else
+DEFINES+= -DUSE_PCM=0
+endif
+
+ifeq ($(USE_AMDuPROF), 1)
+DEFINES+= -DUSE_AMDuPROF=1
+LIB+= -lAMDPowerProfileAPI
+else
+DEFINES+= -DUSE_AMDuPROF=0
 endif
 
 MAIN_FILE = benchmark_throughput_test.cpp
-LIB_SRCS = micro_bench.cpp #This file is not optomized because it calls the kernel runner (which starts the timers).  Re-ordering code is not desired
-KERNEL_SRCS = store_kernel.cpp load_store_kernel.cpp load_add_store_kernel.cpp load_mult_store_kernel.cpp load_div_store_kernel.cpp load_fma_store_kernel.cpp load_add_store_unroll2_kernel.cpp load_add_store_nointrin_kernel.cpp add_kernel_asm.cpp add_kernel_asm_unroll2.cpp add_kernel_asm_unroll4.cpp add_kernel_asm_unroll8.cpp div_kernel_asm.cpp div_kernel_asm_unroll2.cpp div_kernel_asm_unroll4.cpp fma_kernel_asm.cpp fma_kernel_asm_unroll2.cpp fma_kernel_asm_unroll4.cpp fma_kernel_asm_unroll8.cpp mult_kernel_asm.cpp mult_kernel_asm_unroll2.cpp mult_kernel_asm_unroll4.cpp mult_kernel_asm_unroll8.cpp load_kernel_asm.cpp load_kernel_asm_local.cpp load_kernel_asm_unroll2.cpp load_kernel_asm_local_unroll2.cpp store_kernel_asm.cpp store_kernel_asm_local.cpp add_kernel_scalar_asm.cpp mult_kernel_scalar_asm.cpp mult_kernel_scalar_asm_unroll2.cpp mult_kernel_scalar_asm_unroll4.cpp add_kernel_scalar_asm_unroll2.cpp add_kernel_scalar_asm_unroll4.cpp add_kernel_scalar_asm_unroll6.cpp store_kernel_asm_unroll2.cpp store_kernel_asm_local_unroll2.cpp div_kernel_scalar_asm.cpp div_kernel_scalar_asm_unroll2.cpp fctn_call_kernel.cpp zero_arg_fctn.cpp load_kernel_scalar_asm.cpp load_kernel_scalar_asm_local.cpp store_kernel_scalar_asm.cpp store_kernel_scalar_asm_local.cpp
+LIB_SRCS = micro_bench.cpp #These files are not optomized. micro_bench it calls the kernel runner (which starts the timers by calling functions in the profilers).  Re-ordering code is not desired
+KERNEL_SRCS = store_kernel.cpp load_store_kernel.cpp load_add_store_kernel.cpp load_mult_store_kernel.cpp load_div_store_kernel.cpp load_fma_store_kernel.cpp load_add_store_unroll2_kernel.cpp load_add_store_nointrin_kernel.cpp add_kernel_asm.cpp add_kernel_asm_unroll2.cpp add_kernel_asm_unroll4.cpp add_kernel_asm_unroll8.cpp add_kernel_asm_unroll120.cpp div_kernel_asm.cpp div_kernel_asm_unroll2.cpp div_kernel_asm_unroll4.cpp div_kernel_asm_unroll120.cpp fma_kernel_asm.cpp fma_kernel_asm_unroll2.cpp fma_kernel_asm_unroll4.cpp fma_kernel_asm_unroll8.cpp fma_kernel_asm_unroll120.cpp mult_kernel_asm.cpp mult_kernel_asm_unroll2.cpp mult_kernel_asm_unroll4.cpp mult_kernel_asm_unroll8.cpp mult_kernel_asm_unroll120.cpp load_kernel_asm.cpp load_kernel_asm_local.cpp load_kernel_asm_unroll2.cpp load_kernel_asm_local_unroll2.cpp load_kernel_asm_local_unroll120.cpp store_kernel_asm.cpp store_kernel_asm_local.cpp add_kernel_scalar_asm.cpp mult_kernel_scalar_asm.cpp mult_kernel_scalar_asm_unroll2.cpp mult_kernel_scalar_asm_unroll4.cpp mult_kernel_scalar_asm_unroll120.cpp add_kernel_scalar_asm_unroll2.cpp add_kernel_scalar_asm_unroll4.cpp add_kernel_scalar_asm_unroll6.cpp add_kernel_scalar_asm_unroll120.cpp store_kernel_asm_unroll2.cpp store_kernel_asm_local_unroll2.cpp store_kernel_asm_local_unroll120.cpp div_kernel_scalar_asm.cpp div_kernel_scalar_asm_unroll2.cpp div_kernel_scalar_asm_unroll120.cpp fctn_call_kernel.cpp zero_arg_fctn.cpp load_kernel_scalar_asm.cpp load_kernel_scalar_asm_local.cpp store_kernel_scalar_asm.cpp store_kernel_scalar_asm_local.cpp
 #KERNEL_NO_OPT_SRCS = load_kernel.cpp add_kernel.cpp mult_kernel.cpp div_kernel.cpp fma_kernel.cpp
 KERNEL_NO_OPT_SRCS = 
 
@@ -50,16 +76,16 @@ KERNEL_NO_OPT_OBJS=$(patsubst %.cpp,$(BUILD_DIR)/%.o,$(KERNEL_NO_OPT_SRCS))
 #Production
 all: micro_bench_throughput_test
 
-micro_bench_throughput_test: $(OBJS) $(KERNEL_OBJS) $(KERNEL_NO_OPT_OBJS) $(COMMON_DIR)/libpcmHelper.a $(DEPENDS_DIR)/pcm/libPCM.a 
+micro_bench_throughput_test: $(OBJS) $(KERNEL_OBJS) $(KERNEL_NO_OPT_OBJS) $(DEPENDS_LIB)
 	$(CXX) $(INC) $(LIB_DIRS) -o micro_bench_throughput_test $(OBJS) $(KERNEL_OBJS) $(KERNEL_NO_OPT_OBJS) $(LIB)
 
-$(KERNEL_NO_OPT_OBJS): $(BUILD_DIR)/%.o : $(SRC_DIR)/%.cpp | $(BUILD_DIR)/ $(DEPENDS_DIR)/pcm/Makefile
+$(KERNEL_NO_OPT_OBJS): $(BUILD_DIR)/%.o : $(SRC_DIR)/%.cpp | $(BUILD_DIR)/ $(DEPENDS)
 	$(CXX) $(KERNEL_NO_OPT_CFLAGS) $(INC) $(DEFINES) -o $@ $<
 
-$(KERNEL_OBJS): $(BUILD_DIR)/%.o : $(SRC_DIR)/%.cpp | $(BUILD_DIR)/ $(DEPENDS_DIR)/pcm/Makefile
+$(KERNEL_OBJS): $(BUILD_DIR)/%.o : $(SRC_DIR)/%.cpp | $(BUILD_DIR)/ $(DEPENDS)
 	$(CXX) $(KERNEL_CFLAGS) $(INC) $(DEFINES) -o $@ $<
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)/ $(DEPENDS_DIR)/pcm/Makefile
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)/ $(DEPENDS)
 	$(CXX) $(CFLAGS) $(INC) $(DEFINES) -o $@ $<
 
 $(BUILD_DIR)/:
@@ -71,8 +97,8 @@ $(DEPENDS_DIR)/pcm/Makefile:
 $(DEPENDS_DIR)/pcm/libPCM.a: $(DEPENDS_DIR)/pcm/Makefile
 	cd $(DEPENDS_DIR)/pcm; make libPCM.a
 
-$(COMMON_DIR)/libpcmHelper.a: $(DEPENDS_DIR)/pcm/Makefile $(DEPENDS_DIR)/pcm/libPCM.a
-	cd $(COMMON_DIR); make
+$(COMMON_DIR)/libProfilerCommon.a:
+	cd $(COMMON_DIR); make USE_PCM=$(USE_PCM) USE_AMDuPROF=$(USE_AMDuPROF)
 	
 clean:
 	rm -f micro_bench_throughput_test

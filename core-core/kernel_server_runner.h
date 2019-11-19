@@ -1,16 +1,17 @@
 #ifndef _H_KERNEL_SERVER_RUNNER
     #define _H_KERNEL_SERVER_RUNNER
 
+    #include <stdint.h>
     #include "results.h"
-    #include "cpucounters.h"
-    #include "pcm_helper.h"
+    #include "profiler.h"
+    #include "kernel_runner_helpers.h"
 
-    #include "intrin_bench_default_defines.h"
+    #include "intrin_bench_default_defines_and_imports_cpp.h"
 
     class KernelExeWrapperArgs
     {
         public:
-            PCM* pcm;
+            Profiler* profiler;
             void* (*kernel_fun)(void*);
             void* kernel_arg;
             int cpu_num;
@@ -24,142 +25,60 @@
     };
 
     //Returns a pointer to a Results object
-    //Returns NULL if freq change event occured
+    //Returns NULL if freq change event occured (if detection supported)
     void* kernel_exe_wrapper(void *arg)
     {
         KernelExeWrapperArgs* args = (KernelExeWrapperArgs*) arg;
 
         //Get args from object
-        PCM* pcm = args->pcm;
+        Profiler* profiler = args->profiler;
         void* (*kernel_fun)(void*) = args->kernel_fun;
         void* kernel_arg = args->kernel_arg;
         int cpu_num = args->cpu_num;
 
-#if USE_PCM == 1
-        int sockets = pcm->getNumSockets();
-        int cores = pcm->getNumCores();
-#else
-        int sockets = 1;
-        int cores = 1;
-#endif
-
-        Results* results = new Results(sockets, cores);
-
-        //Allocate measurement arrays
-        std::chrono::duration<double, std::ratio<1, 1000>> durations[1]; //TODO: setting to 1 trial here.  Trials handled outside kernel_server_wrapper
-
-#if USE_PCM == 1
-        //Allocate counter states
-        ServerUncorePowerState* startPowerState = new ServerUncorePowerState[sockets];
-        ServerUncorePowerState* endPowerState = new ServerUncorePowerState[sockets];
-        std::vector<CoreCounterState> startCstates, endCstates;
-        std::vector<SocketCounterState> startSktstate, endSktstate;
-        SystemCounterState startSstate, endSstate;
-#endif
+        Results* results = new Results();
 
         //TODO: ONLY do 1 trial here (trial 0), trials handled outside
         int trial = 0;
+        int discard_count = 0;
 
-#if USE_PCM == 1
-        //Get CPU Core/Socket/Power States
-        for (int i = 0; i < sockets; i++)
-            startPowerState[i] = pcm->getServerUncorePowerState(i);
-        pcm->getAllCounterStates(startSstate, startSktstate, startCstates);
-#endif
-
-        //Start Timer
-        std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
-        clock_t start_clock = clock();
-        uint64_t start_rdtsc = _rdtsc();
+        //Usually is a for loop here but we are only doing 1 trial
+        profiler->trialSetup();
+        profiler->startTrial();
 
         //Run Kernel
         kernel_fun(kernel_arg);
 
-        //Stop Timer 
-        uint64_t stop_rdtsc = _rdtsc();
-        clock_t stop_clock = clock();
-        std::chrono::high_resolution_clock::time_point stop = std::chrono::high_resolution_clock::now();
-
-#if USE_PCM == 1
-        //Get CPU Core/Socket/Power States
-        pcm->getAllCounterStates(endSstate, endSktstate, endCstates);
-        for (int i = 0; i < sockets; i++)
-            endPowerState[i] = pcm->getServerUncorePowerState(i);
-#endif
+        profiler->endTrial();
         
-        TrialResult* trial_result = new TrialResult(sockets, cores, trial);
-
-        //Report Time
-        calculate_durations(trial_result->duration, trial_result->duration_clock, trial_result->duration_rdtsc, start, stop, start_clock, stop_clock, start_rdtsc, stop_rdtsc);
-        
-#if USE_PCM == 1
-        //Report Freq, Power
-        calc_freq_and_power(pcm, trial_result->avgCPUFreq, trial_result->avgActiveCPUFreq, trial_result->energyCPUUsed, trial_result->energyDRAMUsed,
-        startCstates, endCstates, startPowerState, endPowerState);
-#else
-        trial_result->avgCPUFreq[0] = 0;
-        trial_result->avgActiveCPUFreq[0] = 0;
-        trial_result->energyCPUUsed[0] = 0;
-        trial_result->energyDRAMUsed[0] = 0;
-#endif
-
-#if USE_PCM == 1
-        //Report Temp
-        calc_temp(pcm, trial_result->startPackageThermalHeadroom, trial_result->endPackageThermalHeadroom, startPowerState, startPowerState);
-#else
-        trial_result->startPackageThermalHeadroom[0] = -1;
-        trial_result->endPackageThermalHeadroom[0] = -1;
-#endif
+        TrialResult trial_result = computeTrialResultAndSetTrialNum(profiler, results);
 
         #if PRINT_TRIALS == 1
             trial_result->print_trial();
         #endif 
 
-#if USE_PCM == 1
-        //Limit check to socket of interest (single socket for now)
+        //Limit frequency change check to socket of interest (single socket for now)
         std::vector<int> sockets_of_interest;
-        sockets_of_interest.push_back(pcm->getSocketId(cpu_num));
+        sockets_of_interest.push_back(profiler->cpuTopology[cpu_num].socket);
 
-        bool freq_change_events_occured = check_any_freq_changes(pcm, startPowerState, endPowerState, sockets_of_interest);
+        //This function adds the trial result if no frequency change event occured (if the profiler supports checking)
+        bool freq_change_events_occured = processTrialAndPrepareForNextHelper(profiler, *results, trial_result, trial, discard_count);
+
         //Proceed if no freq changes occured
-        if(freq_change_events_occured == false)
-        {
-            results->add_trial(trial_result);
-        }
-        else
+        if(freq_change_events_occured)
         {
             //Cleanup and return null since we had a freq change event
-            delete[] startPowerState;
-            delete[] endPowerState;
-            free(results);
+            delete results;
 
             return NULL;
         }
-#else
-        //Not checking for freq change event.  Increment
-        results->add_trial(trial_result);
-#endif
-            
-#if USE_PCM == 1
-        delete[] startPowerState;
-        delete[] endPowerState;
-#endif
         
         return (void*) results;
     }
 
-
-    Results* execute_kernel(PCM* pcm, void* (*kernel_fun)(void*), void* (*kernel_reset)(void*), void* arg_a, void* arg_b, void* reset_arg, int cpu_a, int cpu_b)
+    Results* execute_kernel(Profiler* profiler, void* (*kernel_fun)(void*), void* (*kernel_reset)(void*), void* arg_a, void* arg_b, void* reset_arg, int cpu_a, int cpu_b)
     {
-        #if USE_PCM == 1
-            int sockets = pcm->getNumSockets();
-            int cores = pcm->getNumCores();
-        #else
-            int sockets = 1;
-            int cores = 1;
-        #endif
-
-        Results* results = new Results(sockets, cores);
+        Results* results = new Results();
 
         int trial = 0;
         int discard_count=0;
@@ -189,6 +108,51 @@
             if(status != 0)
             {
                 printf("Could not create pthread attributes ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setinheritsched(&attr_a, PTHREAD_EXPLICIT_SCHED);
+            if(status != 0)
+            {
+                printf("Could not set pthread explicit schedule attribute ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setinheritsched(&attr_b, PTHREAD_EXPLICIT_SCHED);
+            if(status != 0)
+            {
+                printf("Could not set pthread explicit schedule attribute ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedpolicy(&attr_a, SCHED_FIFO);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule policy to SCHED_FIFO ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedpolicy(&attr_b, SCHED_FIFO);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule policy to SCHED_FIFO ... exiting\n");
+                exit(1);
+            }
+
+            struct sched_param threadParams;
+            threadParams.sched_priority = sched_get_priority_max(SCHED_FIFO);
+
+            status=  pthread_attr_setschedparam(&attr_a, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedparam(&attr_b, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
                 exit(1);
             }
 
@@ -231,7 +195,7 @@
 
             // - Start Thread A
             KernelExeWrapperArgs* server_args = new KernelExeWrapperArgs();
-            server_args->pcm = pcm;
+            server_args->profiler = profiler;
             server_args->kernel_fun = kernel_fun;
             server_args->kernel_arg = arg_a;
             server_args->cpu_num = cpu_a;
@@ -303,18 +267,10 @@
         return results;
     }
 
-    SimultaniousResults* execute_kernel(PCM* pcm, void* (*kernel_fun)(void*), void* (*kernel_reset)(void*), void* arg_a, void* arg_b, void* arg_c, void* arg_d, void* reset_arg_1, void* reset_arg_2, int cpu_a, int cpu_b, int cpu_c, int cpu_d)
+    SimultaniousResults* execute_kernel(Profiler* profiler, void* (*kernel_fun)(void*), void* (*kernel_reset)(void*), void* arg_a, void* arg_b, void* arg_c, void* arg_d, void* reset_arg_1, void* reset_arg_2, int cpu_a, int cpu_b, int cpu_c, int cpu_d)
     {
-        #if USE_PCM == 1
-            int sockets = pcm->getNumSockets();
-            int cores = pcm->getNumCores();
-        #else
-            int sockets = 1;
-            int cores = 1;
-        #endif
-
-        Results* results_a = new Results(sockets, cores);
-        Results* results_c = new Results(sockets, cores);
+        Results* results_a = new Results();
+        Results* results_c = new Results();
 
         SimultaniousResults* simultanious_results = new SimultaniousResults();
 
@@ -361,6 +317,93 @@
             if(status != 0)
             {
                 printf("Could not create pthread attributes ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setinheritsched(&attr_a, PTHREAD_EXPLICIT_SCHED);
+            if(status != 0)
+            {
+                printf("Could not set pthread explicit schedule attribute ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setinheritsched(&attr_b, PTHREAD_EXPLICIT_SCHED);
+            if(status != 0)
+            {
+                printf("Could not set pthread explicit schedule attribute ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setinheritsched(&attr_c, PTHREAD_EXPLICIT_SCHED);
+            if(status != 0)
+            {
+                printf("Could not set pthread explicit schedule attribute ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setinheritsched(&attr_d, PTHREAD_EXPLICIT_SCHED);
+            if(status != 0)
+            {
+                printf("Could not set pthread explicit schedule attribute ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedpolicy(&attr_a, SCHED_FIFO);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule policy to SCHED_FIFO ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedpolicy(&attr_b, SCHED_FIFO);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule policy to SCHED_FIFO ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedpolicy(&attr_c, SCHED_FIFO);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule policy to SCHED_FIFO ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedpolicy(&attr_d, SCHED_FIFO);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule policy to SCHED_FIFO ... exiting\n");
+                exit(1);
+            }
+
+            struct sched_param threadParams;
+            threadParams.sched_priority = sched_get_priority_max(SCHED_FIFO);
+
+            status=  pthread_attr_setschedparam(&attr_a, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedparam(&attr_b, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedparam(&attr_c, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedparam(&attr_d, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
                 exit(1);
             }
 
@@ -423,7 +466,7 @@
 
             // - Start Thread A & C
             KernelExeWrapperArgs* server_args_a = new KernelExeWrapperArgs();
-            server_args_a->pcm = pcm;
+            server_args_a->profiler = profiler;
             server_args_a->kernel_fun = kernel_fun;
             server_args_a->kernel_arg = arg_a;
             server_args_a->cpu_num = cpu_a;
@@ -437,8 +480,9 @@
                 exit(1);
             }
 
+            //TODO: Change this to a generic profiler for server c if AMDuProf
             KernelExeWrapperArgs* server_args_c = new KernelExeWrapperArgs();
-            server_args_c->pcm = pcm;
+            server_args_c->profiler = profiler;
             server_args_c->kernel_fun = kernel_fun;
             server_args_c->kernel_arg = arg_c;
             server_args_c->cpu_num = cpu_c;
@@ -539,18 +583,10 @@
         return simultanious_results;
     }
 
-    SimultaniousResults* execute_kernel_fanin_server_measure(PCM* pcm, void* (*srv_kernel_fun)(void*), void* (*cli_kernel_fun)(void*), void* (*kernel_reset)(void*), void* arg_srv_a, void* arg_srv_b, void* arg_cli_c, void* reset_arg_1, int cpu_srv_a, int cpu_srv_b, int cpu_cli_c)
+    SimultaniousResults* execute_kernel_fanin_server_measure(Profiler* profiler, void* (*srv_kernel_fun)(void*), void* (*cli_kernel_fun)(void*), void* (*kernel_reset)(void*), void* arg_srv_a, void* arg_srv_b, void* arg_cli_c, void* reset_arg_1, int cpu_srv_a, int cpu_srv_b, int cpu_cli_c)
     {
-        #if USE_PCM == 1
-            int sockets = pcm->getNumSockets();
-            int cores = pcm->getNumCores();
-        #else
-            int sockets = 1;
-            int cores = 1;
-        #endif
-
-        Results* results_a = new Results(sockets, cores);
-        Results* results_b = new Results(sockets, cores);
+        Results* results_a = new Results();
+        Results* results_b = new Results();
 
         SimultaniousResults* simultanious_results = new SimultaniousResults();
 
@@ -589,6 +625,72 @@
             if(status != 0)
             {
                 printf("Could not create pthread attributes ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setinheritsched(&attr_srv_a, PTHREAD_EXPLICIT_SCHED);
+            if(status != 0)
+            {
+                printf("Could not set pthread explicit schedule attribute ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setinheritsched(&attr_srv_b, PTHREAD_EXPLICIT_SCHED);
+            if(status != 0)
+            {
+                printf("Could not set pthread explicit schedule attribute ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setinheritsched(&attr_cli_c, PTHREAD_EXPLICIT_SCHED);
+            if(status != 0)
+            {
+                printf("Could not set pthread explicit schedule attribute ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedpolicy(&attr_srv_a, SCHED_FIFO);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule policy to SCHED_FIFO ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedpolicy(&attr_srv_b, SCHED_FIFO);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule policy to SCHED_FIFO ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedpolicy(&attr_cli_c, SCHED_FIFO);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule policy to SCHED_FIFO ... exiting\n");
+                exit(1);
+            }
+
+            struct sched_param threadParams;
+            threadParams.sched_priority = sched_get_priority_max(SCHED_FIFO);
+
+            status=  pthread_attr_setschedparam(&attr_srv_a, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedparam(&attr_srv_b, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedparam(&attr_cli_c, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
                 exit(1);
             }
 
@@ -634,7 +736,7 @@
 
             // - Start Thread A & B
             KernelExeWrapperArgs* server_args_a = new KernelExeWrapperArgs();
-            server_args_a->pcm = pcm;
+            server_args_a->profiler = profiler;
             server_args_a->kernel_fun = srv_kernel_fun;
             server_args_a->kernel_arg = arg_srv_a;
             server_args_a->cpu_num = cpu_srv_a;
@@ -648,8 +750,9 @@
                 exit(1);
             }
 
+            //TODO: Change this to a generic profiler for server b if AMDuProf
             KernelExeWrapperArgs* server_args_b = new KernelExeWrapperArgs();
-            server_args_b->pcm = pcm;
+            server_args_b->profiler = profiler;
             server_args_b->kernel_fun = srv_kernel_fun;
             server_args_b->kernel_arg = arg_srv_b;
             server_args_b->cpu_num = cpu_srv_b;
@@ -744,18 +847,10 @@
 
     //TODO: Note, this version is different from the other in that the server thread starts before the client.  This may allow the server to execute a transaction before the client starts.
     //This can potentially be addressed by changing the initial state of the tests and the arguments passed to the kernels
-    SimultaniousResults* execute_kernel_fanout_client_measure(PCM* pcm, void* (*srv_kernel_fun)(void*), void* (*cli_kernel_fun)(void*), void* (*kernel_reset)(void*), void* arg_srv_a, void* arg_cli_b, void* arg_cli_c, void* reset_arg_1, int cpu_srv_a, int cpu_cli_b, int cpu_cli_c)
+    SimultaniousResults* execute_kernel_fanout_client_measure(Profiler* profiler, void* (*srv_kernel_fun)(void*), void* (*cli_kernel_fun)(void*), void* (*kernel_reset)(void*), void* arg_srv_a, void* arg_cli_b, void* arg_cli_c, void* reset_arg_1, int cpu_srv_a, int cpu_cli_b, int cpu_cli_c)
     {
-        #if USE_PCM == 1
-            int sockets = pcm->getNumSockets();
-            int cores = pcm->getNumCores();
-        #else
-            int sockets = 1;
-            int cores = 1;
-        #endif
-
-        Results* results_b = new Results(sockets, cores);
-        Results* results_c = new Results(sockets, cores);
+        Results* results_b = new Results();
+        Results* results_c = new Results();
 
         SimultaniousResults* simultanious_results = new SimultaniousResults();
 
@@ -794,6 +889,72 @@
             if(status != 0)
             {
                 printf("Could not create pthread attributes ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setinheritsched(&attr_srv_a, PTHREAD_EXPLICIT_SCHED);
+            if(status != 0)
+            {
+                printf("Could not set pthread explicit schedule attribute ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setinheritsched(&attr_cli_b, PTHREAD_EXPLICIT_SCHED);
+            if(status != 0)
+            {
+                printf("Could not set pthread explicit schedule attribute ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setinheritsched(&attr_cli_c, PTHREAD_EXPLICIT_SCHED);
+            if(status != 0)
+            {
+                printf("Could not set pthread explicit schedule attribute ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedpolicy(&attr_srv_a, SCHED_FIFO);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule policy to SCHED_FIFO ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedpolicy(&attr_cli_b, SCHED_FIFO);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule policy to SCHED_FIFO ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedpolicy(&attr_cli_c, SCHED_FIFO);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule policy to SCHED_FIFO ... exiting\n");
+                exit(1);
+            }
+
+            struct sched_param threadParams;
+            threadParams.sched_priority = sched_get_priority_max(SCHED_FIFO);
+
+            status=  pthread_attr_setschedparam(&attr_srv_a, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedparam(&attr_cli_b, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedparam(&attr_cli_c, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
                 exit(1);
             }
 
@@ -838,7 +999,7 @@
 
             // - Start Thread B & C (client)
             KernelExeWrapperArgs* measure_args_b = new KernelExeWrapperArgs();
-            measure_args_b->pcm = pcm;
+            measure_args_b->profiler = profiler;
             measure_args_b->kernel_fun = cli_kernel_fun;
             measure_args_b->kernel_arg = arg_cli_b;
             measure_args_b->cpu_num = cpu_cli_b;
@@ -852,8 +1013,9 @@
                 exit(1);
             }
 
+            //TODO: Change this to a generic profiler for server c if AMDuProf
             KernelExeWrapperArgs* measure_args_c = new KernelExeWrapperArgs();
-            measure_args_c->pcm = pcm;
+            measure_args_c->profiler = profiler;
             measure_args_c->kernel_fun = cli_kernel_fun;
             measure_args_c->kernel_arg = arg_cli_c;
             measure_args_c->cpu_num = cpu_cli_c;
@@ -946,17 +1108,9 @@
         return simultanious_results;
     }
 
-    Results* execute_client_server_kernel(PCM* pcm, void* (*kernel_server)(void*), void* (*kernel_client)(void*), void* (*kernel_reset)(void*), void* arg_server, void* arg_client, void* reset_arg, int cpu_a, int cpu_b)
+    Results* execute_client_server_kernel(Profiler* profiler, void* (*kernel_server)(void*), void* (*kernel_client)(void*), void* (*kernel_reset)(void*), void* arg_server, void* arg_client, void* reset_arg, int cpu_a, int cpu_b)
     {
-        #if USE_PCM == 1
-            int sockets = pcm->getNumSockets();
-            int cores = pcm->getNumCores();
-        #else
-            int sockets = 1;
-            int cores = 1;
-        #endif
-
-        Results* results = new Results(sockets, cores);
+        Results* results = new Results();
 
         int trial = 0;
         int discard_count=0;
@@ -986,6 +1140,51 @@
             if(status != 0)
             {
                 printf("Could not create pthread attributes ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setinheritsched(&attr_a, PTHREAD_EXPLICIT_SCHED);
+            if(status != 0)
+            {
+                printf("Could not set pthread explicit schedule attribute ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setinheritsched(&attr_b, PTHREAD_EXPLICIT_SCHED);
+            if(status != 0)
+            {
+                printf("Could not set pthread explicit schedule attribute ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedpolicy(&attr_a, SCHED_FIFO);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule policy to SCHED_FIFO ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedpolicy(&attr_b, SCHED_FIFO);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule policy to SCHED_FIFO ... exiting\n");
+                exit(1);
+            }
+
+            struct sched_param threadParams;
+            threadParams.sched_priority = sched_get_priority_max(SCHED_FIFO);
+
+            status=  pthread_attr_setschedparam(&attr_a, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedparam(&attr_b, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
                 exit(1);
             }
 
@@ -1028,7 +1227,7 @@
 
             // - Start Thread A
             KernelExeWrapperArgs* server_args = new KernelExeWrapperArgs();
-            server_args->pcm = pcm;
+            server_args->profiler = profiler;
             server_args->kernel_fun = kernel_server;
             server_args->kernel_arg = arg_server;
             server_args->cpu_num = cpu_a;
@@ -1100,18 +1299,10 @@
         return results;
     }
 
-    SimultaniousResults* execute_client_server_kernel(PCM* pcm, void* (*kernel_server)(void*), void* (*kernel_client)(void*), void* (*kernel_reset)(void*), void* arg_server_1, void* arg_server_2, void* arg_client_1, void* arg_client_2, void* reset_arg_1, void* reset_arg_2, int cpu_a, int cpu_b, int cpu_c, int cpu_d)
+    SimultaniousResults* execute_client_server_kernel(Profiler* profiler, void* (*kernel_server)(void*), void* (*kernel_client)(void*), void* (*kernel_reset)(void*), void* arg_server_1, void* arg_server_2, void* arg_client_1, void* arg_client_2, void* reset_arg_1, void* reset_arg_2, int cpu_a, int cpu_b, int cpu_c, int cpu_d)
     {
-        #if USE_PCM == 1
-            int sockets = pcm->getNumSockets();
-            int cores = pcm->getNumCores();
-        #else
-            int sockets = 1;
-            int cores = 1;
-        #endif
-
-        Results* results_a = new Results(sockets, cores);
-        Results* results_c = new Results(sockets, cores);
+        Results* results_a = new Results();
+        Results* results_c = new Results();
 
         SimultaniousResults* simultanious_results = new SimultaniousResults();
 
@@ -1158,6 +1349,93 @@
             if(status != 0)
             {
                 printf("Could not create pthread attributes ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setinheritsched(&attr_a, PTHREAD_EXPLICIT_SCHED);
+            if(status != 0)
+            {
+                printf("Could not set pthread explicit schedule attribute ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setinheritsched(&attr_b, PTHREAD_EXPLICIT_SCHED);
+            if(status != 0)
+            {
+                printf("Could not set pthread explicit schedule attribute ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setinheritsched(&attr_c, PTHREAD_EXPLICIT_SCHED);
+            if(status != 0)
+            {
+                printf("Could not set pthread explicit schedule attribute ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setinheritsched(&attr_d, PTHREAD_EXPLICIT_SCHED);
+            if(status != 0)
+            {
+                printf("Could not set pthread explicit schedule attribute ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedpolicy(&attr_a, SCHED_FIFO);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule policy to SCHED_FIFO ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedpolicy(&attr_b, SCHED_FIFO);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule policy to SCHED_FIFO ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedpolicy(&attr_c, SCHED_FIFO);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule policy to SCHED_FIFO ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedpolicy(&attr_d, SCHED_FIFO);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule policy to SCHED_FIFO ... exiting\n");
+                exit(1);
+            }
+
+            struct sched_param threadParams;
+            threadParams.sched_priority = sched_get_priority_max(SCHED_FIFO);
+
+            status=  pthread_attr_setschedparam(&attr_a, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedparam(&attr_b, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedparam(&attr_c, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
+                exit(1);
+            }
+
+            status=  pthread_attr_setschedparam(&attr_d, &threadParams);
+            if(status != 0)
+            {
+                printf("Could not set pthread schedule parameter ... exiting\n");
                 exit(1);
             }
 
@@ -1220,7 +1498,7 @@
 
             // - Start Thread A & C
             KernelExeWrapperArgs* server_args_a = new KernelExeWrapperArgs();
-            server_args_a->pcm = pcm;
+            server_args_a->profiler = profiler;
             server_args_a->kernel_fun = kernel_server;
             server_args_a->kernel_arg = arg_server_1;
             server_args_a->cpu_num = cpu_a;
@@ -1234,8 +1512,9 @@
                 exit(1);
             }
 
+            //TODO: Change this to a generic profiler for server c if AMDuProf
             KernelExeWrapperArgs* server_args_c = new KernelExeWrapperArgs();
-            server_args_c->pcm = pcm;
+            server_args_c->profiler = profiler;
             server_args_c->kernel_fun = kernel_server;
             server_args_c->kernel_arg = arg_server_2;
             server_args_c->cpu_num = cpu_c;

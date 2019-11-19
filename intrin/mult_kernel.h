@@ -1,7 +1,7 @@
 #ifndef _H_MULT_KERNEL
     #define _H_MULT_KERNEL
 
-    #include "intrin_bench_default_defines.h"
+    #include "intrin_bench_default_defines_and_imports_cpp.h"
 
     #ifdef __AVX2__
         //==========_mm256_mullo_epi16==========

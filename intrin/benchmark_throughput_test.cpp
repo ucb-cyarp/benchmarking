@@ -25,16 +25,246 @@
 
 #include <chrono>
 #include <ctime>
+#include <algorithm>
 
-#include "intrin_bench_default_defines.h"
+#include "intrin_bench_default_defines_and_imports_cpp.h"
 
-#include "cpucounters.h"
-#include "pcm_helper.h"
+#include "profiler.h"
+
+// #include "cpucounters.h"
+// #include "pcm_helper.h"
 
 //#include "kernel_runner.h"
 #include "results.h"
 
 #include "benchmark_throughput_test.h"
+
+std::string timerType_toString(TimerType type){
+    switch(type){
+        case TimerType::HRC:
+            return "High Resolution Clock";
+        case TimerType::CLOCK:
+            return "Clock";
+        case TimerType::RDTSC:
+            return "rdtsc";
+        default:
+            throw std::runtime_error("Unknown TimerType");
+            return "Unknown";
+    }
+}
+
+void writeTimingMeasurementsToCSV(TimerType timerType, bool frequency, FILE* csv_file, std::map<std::string, std::map<std::string, Results*>*> &kernel_results, std::vector<std::string> &kernels, std::vector<std::string> &types){
+    for(size_t i = 0; i<types.size(); i++)
+    {
+        std::string datatype = types[i];
+
+        std::string descr = frequency ? "Rate (Ms/s)" : "Normalized Execution Time for 1 Sample (ns)";
+
+        //Print Descr:
+        if(i == 0)
+        {
+            fprintf(csv_file, "\"%s - From %s\",\"%s\"", descr.c_str(), timerType_toString(timerType).c_str(), datatype.c_str());
+        }
+        else
+        {
+            fprintf(csv_file, ",\"%s\"", datatype.c_str());
+        }
+
+        //Print Data
+        for(size_t j = 0; j<kernels.size(); j++)
+        {
+            std::string kernel_name = kernels[j];
+            std::map<std::string, std::map<std::string, Results*>*>::iterator result_container_it = kernel_results.find(kernel_name);
+
+            if(result_container_it == kernel_results.end())
+            {
+                //No such kernel exists.  Print empty values
+                fprintf(csv_file, ",,");
+            }
+            else
+            {
+                std::map<std::string, Results*>::iterator result_it = result_container_it->second->find(datatype);
+                if(result_it == result_container_it->second->end())
+                {
+                    //No such result exists.  Print empty values
+                    fprintf(csv_file, ",,");
+                }
+                else
+                {
+                    //Print result
+                    double mean_exe_time = 0;
+                    switch(timerType){
+                        case TimerType::HRC:
+                            mean_exe_time = result_it->second->avg_duration();
+                            break;
+                        case TimerType::CLOCK:
+                            mean_exe_time = result_it->second->avg_duration_clock();
+                            break;
+                        case TimerType::RDTSC:
+                            mean_exe_time = result_it->second->avg_duration_rdtsc();
+                            break;
+                        default:
+                            throw std::runtime_error("Unknown TimerType");
+                    }
+
+                    if(frequency){
+                        //Computing frequency
+                        
+                        double scaled_mean = STIM_LEN*1.0/(1000.0*mean_exe_time);
+                        fprintf(csv_file, ",%e,", scaled_mean);
+                    }else{
+                        //Computing normalized duration
+                        double scaled_mean = mean_exe_time*1000000/STIM_LEN;
+
+                        double stddev_exe_time = 0;
+                        switch(timerType){
+                            case TimerType::HRC:
+                                stddev_exe_time = result_it->second->stddev_duration();
+                                break;
+                            case TimerType::CLOCK:
+                                stddev_exe_time = result_it->second->stddev_duration_clock();
+                                break;
+                            case TimerType::RDTSC:
+                                stddev_exe_time = result_it->second->stddev_duration_rdtsc();
+                                break;
+                            default:
+                                throw std::runtime_error("Unknown TimerType");
+                        }
+
+                        double scaled_stddev = stddev_exe_time*1000000/STIM_LEN;
+
+                        fprintf(csv_file, ",%e,%e", scaled_mean, scaled_stddev);
+                    }
+                }
+            }
+        }
+        fprintf(csv_file, "\n");
+    }
+}
+
+void writeMeasurementsToCSV(MeasurementType measurementType, HW_Granularity granularity, Unit tgtUnit, FILE* csv_file, Profiler* profiler, std::map<std::string, std::map<std::string, Results*>*> &kernel_results, std::vector<std::string> &kernels, std::vector<std::string> &types, int ind, bool normalize, bool printStdDev){
+    for(size_t i = 0; i<types.size(); i++)
+    {
+        std::string datatype = types[i];
+
+        //Print Descr:
+        if(i == 0)
+        {
+            std::string normalizeStr = normalize ? " - Normalized to 1 Sample -" : "";
+            std::string unitStr = MeasurementHelper::exponentAbrev(tgtUnit.exponent)+MeasurementHelper::BaseUnit_abrev(tgtUnit.baseUnit);
+            fprintf(csv_file, "\"%s%s (%s) %s[%d]:\",\"%s\"", MeasurementHelper::MeasurementType_toString(measurementType).c_str(), normalizeStr.c_str(), unitStr.c_str(), MeasurementHelper::HW_Granularity_toString(granularity).c_str(), ind, datatype.c_str());
+        }
+        else
+        {
+            fprintf(csv_file, ",\"%s\"", datatype.c_str());
+        }
+
+        //Print Data
+        for(size_t j = 0; j<kernels.size(); j++)
+        {
+            std::string kernel_name = kernels[j];
+            std::map<std::string, std::map<std::string, Results*>*>::iterator result_container_it = kernel_results.find(kernel_name);
+
+            if(result_container_it == kernel_results.end())
+            {
+                //No such kernel exists.  Print empty values
+                fprintf(csv_file, ",,");
+            }
+            else
+            {
+                std::map<std::string, Results*>::iterator result_it = result_container_it->second->find(datatype);
+                if(result_it == result_container_it->second->end())
+                {
+                    //No such result exists.  Print empty values
+                    fprintf(csv_file, ",,");
+                }
+                else
+                {
+                    Statistics stats = result_it->second->measurementStats(measurementType, granularity, ind, true); //TODO: treating as lumped for now.  Re-evaluate later
+                    if(stats.valid){
+                        double mean = stats.avg;
+                        double scaled_mean = Unit::scale(stats.unit, tgtUnit, mean);
+                        if(normalize){
+                            scaled_mean /= STIM_LEN;
+                        }
+
+                        if(printStdDev){
+                            double stddev = stats.stdDev;
+                            double scaled_stddev = Unit::scale(stats.unit, tgtUnit, stddev);
+                            if(normalize){
+                                scaled_stddev /= STIM_LEN;
+                            }
+
+                            fprintf(csv_file, ",%e,%e", scaled_mean, scaled_stddev);
+                        }else{
+                            fprintf(csv_file, ",%e,", scaled_mean);
+                        }
+                    }else{
+                        //No such result exists.  Print empty values
+                        fprintf(csv_file, ",,");
+                    }
+                }
+            }
+        }
+        fprintf(csv_file, "\n");
+    }
+}
+
+void writeMeasurementsToCSV(MeasurementType measurementType, Unit tgtUnit, FILE* csv_file, Profiler* profiler, std::map<std::string, std::map<std::string, Results*>*> &kernel_results, std::vector<std::string> &kernels, std::vector<std::string> &types, int cpu, bool normalize, bool printStdDev, std::vector<HW_Granularity> granularities){
+    if(!profiler->cpuTopology.empty()){
+        int core = profiler->cpuTopology[cpu].core;
+        int die = profiler->cpuTopology[cpu].die;
+        int socket = profiler->cpuTopology[cpu].socket;
+
+        MeasurementCapabilities capabilities = profiler->findMeasurementCapabilities();
+
+        for(unsigned long i = 0; i<granularities.size(); i++){
+            if(capabilities.measurementCapabilities.find(measurementType) != capabilities.measurementCapabilities.end()){
+                if(std::find(capabilities.measurementCapabilities[measurementType].begin(), capabilities.measurementCapabilities[measurementType].end(), granularities[i]) != capabilities.measurementCapabilities[measurementType].end()){
+                    int ind;
+                    if(granularities[i] == HW_Granularity::SYSTEM){
+                        ind = 0;
+                    }else if(granularities[i] == HW_Granularity::DIE){
+                        ind = die;
+                    }else if(granularities[i] == HW_Granularity::SOCKET){
+                        ind = socket;
+                    }else if(granularities[i] == HW_Granularity::CORE){
+                        ind = core;
+                    }else if(granularities[i] == HW_Granularity::THREAD){
+                        ind = cpu;
+                    }
+
+                    writeMeasurementsToCSV(measurementType, granularities[i], tgtUnit, csv_file, profiler, kernel_results, kernels, types, ind, normalize, printStdDev);
+                }
+            }
+        }
+    }else{
+        //For each valid granularity for the measurement, print out each index
+        MeasurementCapabilities capabilities = profiler->findMeasurementCapabilities();
+
+        for(unsigned long i = 0; i<granularities.size(); i++){
+            if(capabilities.measurementCapabilities.find(measurementType) != capabilities.measurementCapabilities.end() && std::find(capabilities.measurementCapabilities[measurementType].begin(), capabilities.measurementCapabilities[measurementType].end(), granularities[i]) != capabilities.measurementCapabilities[measurementType].end()){
+                bool size = 0;
+
+                for(unsigned long j = 0; j<kernels.size(); j++){
+                    if(kernel_results.find(kernels[j]) != kernel_results.end()){
+                        //Check all of the types to see what the max number of indexes for the granularity are
+                        for(unsigned long l = 0; l<types.size(); l++){
+                            if(kernel_results[kernels[j]]->find(types[l]) != kernel_results[kernels[j]]->end()){
+                                int size_temp = (*kernel_results[kernels[j]])[types[l]]->trial_results[0].measurements[measurementType][granularities[i]].size();
+                                size = size_temp>size ? size_temp : size;
+                            }
+                        }
+
+                        for(unsigned long k = 0; k<size; k++){
+                            writeMeasurementsToCSV(measurementType, granularities[i], tgtUnit, csv_file, profiler, kernel_results, kernels, types, k, normalize, printStdDev);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 void* run_benchmarks(void* cpu_num)
 {
@@ -43,48 +273,52 @@ void* run_benchmarks(void* cpu_num)
     std::cout << getReportUnitsName() << std::endl;
     #endif
 
-#if USE_PCM == 1
-
     bool print_topology = false;
     #if PRINT_TITLE == 1
     print_topology = true;
     #endif
 
+    Profiler* profiler = Profiler::ProfilerFactory(USE_PCM);
+    profiler->init();
+
     #if PRINT_TITLE == 1
     printf("\n");
-    printf("****** Platform Information Provided by PCM ******\n");
+    printf("*****************************************************************\n");
+    printf("Profiler Used: %s\n", profiler->profilerName().c_str());
     #endif
 
-    PCM* pcm = init_PCM(print_topology);
-
     #if PRINT_TITLE == 1
-    printf("**************************************************\n");
-    printf("CPU Brand String: %s\n", pcm->getCPUBrandString().c_str());
-    printf("**************************************************\n");
+    printf("*****************************************************************\n");
+    printf("CPU Brand String: %s\n", Profiler::findCPUModelStr().c_str());
+    printf("*****************************************************************\n");
     #endif
 
     int* cpu_num_int = (int*) cpu_num;
-    int socket = pcm->getSocketId(*cpu_num_int);
+
+    int socket = 0;
+    int die = 0;
+    int core = 0;
+    int reportFilter = false;
+    if(profiler->cpuTopology.empty()){
+        std::cerr << "Unable to get CPU Topology from lscpu.  Reported Socket, Die/NUMA, and Core Numbers Will Be Inaccurate." << std::endl;
+        std::cerr << "Results will not be filtered accoring to socket, die/NUMA, and core numbers." << std::endl;
+    }else{
+        socket = profiler->cpuTopology[*cpu_num_int].socket;
+        die = profiler->cpuTopology[*cpu_num_int].die;
+        core = profiler->cpuTopology[*cpu_num_int].core;
+    }
 
     #if PRINT_TITLE == 1
-
-    #if __APPLE__
+    #ifdef __APPLE__
     //Apple does not allow core affinity to be explicitally set 
     #else
-    printf("Executing on Core: %3d (Socket: %2d)\n", *cpu_num_int, socket);
+    printf("Executing on CPU: %3d (Socket: %2d, Die/NUMA: %2d, Core: %3d)\n", *cpu_num_int, socket, die, core);
     #endif
-    printf("**************************************************\n");
+    printf("*****************************************************************\n");
     printf("\n");
     #endif
 
-#else
-    PCM* pcm = NULL;
-    int* cpu_num_int = (int*) cpu_num;
-    int socket = 0;
-#endif
-
-
-    std::map<std::string, std::map<std::string, Results*>*> kernel_results = runBenchSuite(pcm, cpu_num_int);
+    std::map<std::string, std::map<std::string, Results*>*> kernel_results = runBenchSuite(profiler, cpu_num_int);
 
     std::vector<std::string> types = getVarientsToReport();
 
@@ -94,7 +328,7 @@ void* run_benchmarks(void* cpu_num)
 
     //Open CSV File to write
     std::string report_file_name = getReportFileName() + ".csv";
-    FILE * csv_file;
+    FILE* csv_file;
     csv_file = fopen(report_file_name.c_str(), "w");
     
     //=====Write header=====
@@ -109,7 +343,7 @@ void* run_benchmarks(void* cpu_num)
     fprintf(csv_file, "\n");
 
     //Print machine information + Vector Extensions
-    fprintf(csv_file, "\"%s\",", pcm->getCPUBrandString().c_str());
+    fprintf(csv_file, "\"%s\",", profiler->findCPUModelStr().c_str());
     for(std::vector<std::string>::iterator it = vec_ext.begin(); it != vec_ext.end(); it++)
     {
         fprintf(csv_file, ",\"%s\",", it->c_str());
@@ -137,246 +371,28 @@ void* run_benchmarks(void* cpu_num)
 
     //======Print table======
     //Print Rate (Ms/s)
-    for(size_t i = 0; i<types.size(); i++)
-    {
-        std::string datatype = types[i];
+    writeTimingMeasurementsToCSV(TimerType::HRC,   true,  csv_file, kernel_results, kernels, types);
+    writeTimingMeasurementsToCSV(TimerType::HRC,   false, csv_file, kernel_results, kernels, types);
+    writeTimingMeasurementsToCSV(TimerType::CLOCK, true,  csv_file, kernel_results, kernels, types);
+    writeTimingMeasurementsToCSV(TimerType::CLOCK, false, csv_file, kernel_results, kernels, types);
+    //writeTimingMeasurementsToCSV(TimerType::RDTSC, true,  csv_file, kernel_results, kernels, types);
+    //writeTimingMeasurementsToCSV(TimerType::RDTSC, false, csv_file, kernel_results, kernels, types);
 
-        //Print Descr:
-        if(i == 0)
-        {
-            fprintf(csv_file, "\"Rate (Ms/s)\",\"%s\"", datatype.c_str());
-        }
-        else
-        {
-            fprintf(csv_file, ",\"%s\"", datatype.c_str());
-        }
+    //Print Clk Frequency (MHz)
+    writeMeasurementsToCSV(MeasurementType::AVG_FREQ, Unit(BaseUnit::HERTZ, 6), csv_file, profiler, kernel_results, kernels, types, *cpu_num_int, false, false);
 
-        //Print Data
-        for(size_t j = 0; j<kernels.size(); j++)
-        {
-            std::string kernel_name = kernels[j];
-            std::map<std::string, std::map<std::string, Results*>*>::iterator result_container_it = kernel_results.find(kernel_name);
+    //Print Energy Use Normalized to 1 Sample (nJ)
+    //writeMeasurementsToCSV(MeasurementType::ENERGY_USED_CPU, Unit(BaseUnit::JOULE, -9), csv_file, profiler, kernel_results, kernels, types, *cpu_num_int, false, true);
+    writeMeasurementsToCSV(MeasurementType::ENERGY_USED_CPU, Unit(BaseUnit::JOULE, -9), csv_file, profiler, kernel_results, kernels, types, *cpu_num_int, true, true);
 
-            if(result_container_it == kernel_results.end())
-            {
-                //No such kernel exists.  Print empty values
-                fprintf(csv_file, ",,");
-            }
-            else
-            {
-                std::map<std::string, Results*>::iterator result_it = result_container_it->second->find(datatype);
-                if(result_it == result_container_it->second->end())
-                {
-                    //No such result exists.  Print empty values
-                    fprintf(csv_file, ",,");
-                }
-                else
-                {
-                    //Print result (only mean in this case)
+    //Print Avg. Power (W)
+    writeMeasurementsToCSV(MeasurementType::AVG_PWR_CPU, Unit(BaseUnit::WATT, 0), csv_file, profiler, kernel_results, kernels, types, *cpu_num_int, false, true);
 
-                    double mean_exe_time = result_it->second->avg_duration_clock();
-                    double scaled_mean = STIM_LEN*1.0/(1000.0*mean_exe_time);
-                    fprintf(csv_file, ",%e,", scaled_mean);
-                }
-            }
-        }
-        fprintf(csv_file, "\n");
-    }
+    //Print Avg. Power (W)
+    writeMeasurementsToCSV(MeasurementType::P_STATE, Unit(BaseUnit::UNITLESS, 0), csv_file, profiler, kernel_results, kernels, types, *cpu_num_int, false, true);
 
-    //Print Execution Time Normalized to 1 Sample
-    for(size_t i = 0; i<types.size(); i++)
-    {
-        std::string datatype = types[i];
-
-        //Print Descr:
-        if(i == 0)
-        {
-            fprintf(csv_file, "\"Normalized Execution Time for 1 Sample (ns)\",\"%s\"", datatype.c_str());
-        }
-        else
-        {
-            fprintf(csv_file, ",\"%s\"", datatype.c_str());
-        }
-
-        //Print Data
-        for(size_t j = 0; j<kernels.size(); j++)
-        {
-            std::string kernel_name = kernels[j];
-            std::map<std::string, std::map<std::string, Results*>*>::iterator result_container_it = kernel_results.find(kernel_name);
-
-            if(result_container_it == kernel_results.end())
-            {
-                //No such kernel exists.  Print empty values
-                fprintf(csv_file, ",,");
-            }
-            else
-            {
-                std::map<std::string, Results*>::iterator result_it = result_container_it->second->find(datatype);
-                if(result_it == result_container_it->second->end())
-                {
-                    //No such result exists.  Print empty values
-                    fprintf(csv_file, ",,");
-                }
-                else
-                {
-                    double mean_exe_time = result_it->second->avg_duration_clock();
-                    double scaled_mean = mean_exe_time*1000000/STIM_LEN;
-
-                    double stddev_exe_time = result_it->second->stddev_duration_clock();
-                    double scaled_stddev = stddev_exe_time*1000000/STIM_LEN;
-
-                    fprintf(csv_file, ",%e,%e", scaled_mean, scaled_stddev);
-                }
-            }
-        }
-        fprintf(csv_file, "\n");
-    }
-
-    //Print Energy Use Normalized to 1 Sample
-        for(size_t i = 0; i<types.size(); i++)
-    {
-        std::string datatype = types[i];
-
-        //Print Descr:
-        if(i == 0)
-        {
-            fprintf(csv_file, "\"Normalized CPU Energy Use Time for 1 Sample (nJ)\",\"%s\"", datatype.c_str());
-        }
-        else
-        {
-            fprintf(csv_file, ",\"%s\"", datatype.c_str());
-        }
-
-        //Print Data
-        for(size_t j = 0; j<kernels.size(); j++)
-        {
-            std::string kernel_name = kernels[j];
-            std::map<std::string, std::map<std::string, Results*>*>::iterator result_container_it = kernel_results.find(kernel_name);
-
-            if(result_container_it == kernel_results.end())
-            {
-                //No such kernel exists.  Print empty values
-                fprintf(csv_file, ",,");
-            }
-            else
-            {
-                std::map<std::string, Results*>::iterator result_it = result_container_it->second->find(datatype);
-                if(result_it == result_container_it->second->end())
-                {
-                    //No such result exists.  Print empty values
-                    fprintf(csv_file, ",,");
-                }
-                else
-                {
-                    double mean_cpu_energy = result_it->second->avg_EnergyCPUUsed(socket);
-                    double scaled_mean = mean_cpu_energy*1000000000/STIM_LEN;
-
-                    double stddev_cpu_energy = result_it->second->stddev_EnergyCPUUsed(socket);
-                    double scaled_stddev = stddev_cpu_energy*1000000000/STIM_LEN;
-
-                    fprintf(csv_file, ",%e,%e", scaled_mean, scaled_stddev);
-                }
-            }
-        }
-        fprintf(csv_file, "\n");
-    }
-
-    //Print Clk Frequency
-    for(size_t i = 0; i<types.size(); i++)
-    {
-        std::string datatype = types[i];
-
-        //Print Descr:
-        if(i == 0)
-        {
-            fprintf(csv_file, "\"CPU Clk Frequency (MHz)\",\"%s\"", datatype.c_str());
-        }
-        else
-        {
-            fprintf(csv_file, ",\"%s\"", datatype.c_str());
-        }
-
-        //Print Data
-        for(size_t j = 0; j<kernels.size(); j++)
-        {
-            std::string kernel_name = kernels[j];
-            std::map<std::string, std::map<std::string, Results*>*>::iterator result_container_it = kernel_results.find(kernel_name);
-
-            if(result_container_it == kernel_results.end())
-            {
-                //No such kernel exists.  Print empty values
-                fprintf(csv_file, ",,");
-            }
-            else
-            {
-                std::map<std::string, Results*>::iterator result_it = result_container_it->second->find(datatype);
-                if(result_it == result_container_it->second->end())
-                {
-                    //No such result exists.  Print empty values
-                    fprintf(csv_file, ",,");
-                }
-                else
-                {
-                    double avg_cpu_per_dbl = result_it->second->avg_CPUPer(*cpu_num_int);
-                    double freq_mean = 1/avg_cpu_per_dbl/1000000;
-
-
-                    fprintf(csv_file, ",%e,", freq_mean);
-                }
-            }
-        }
-        fprintf(csv_file, "\n");
-    }
-
-    //Print Clk Per
-    for(size_t i = 0; i<types.size(); i++)
-    {
-        std::string datatype = types[i];
-
-        //Print Descr:
-        if(i == 0)
-        {
-            fprintf(csv_file, "\"CPU Clk Period (ns)\",\"%s\"", datatype.c_str());
-        }
-        else
-        {
-            fprintf(csv_file, ",\"%s\"", datatype.c_str());
-        }
-
-        //Print Data
-        for(size_t j = 0; j<kernels.size(); j++)
-        {
-            std::string kernel_name = kernels[j];
-            std::map<std::string, std::map<std::string, Results*>*>::iterator result_container_it = kernel_results.find(kernel_name);
-
-            if(result_container_it == kernel_results.end())
-            {
-                //No such kernel exists.  Print empty values
-                fprintf(csv_file, ",,");
-            }
-            else
-            {
-                std::map<std::string, Results*>::iterator result_it = result_container_it->second->find(datatype);
-                if(result_it == result_container_it->second->end())
-                {
-                    //No such result exists.  Print empty values
-                    fprintf(csv_file, ",,");
-                }
-                else
-                {
-                    double avg_cpu_per_dbl = result_it->second->avg_CPUPer(*cpu_num_int);
-                    double scaled_mean = avg_cpu_per_dbl*1000000000;
-
-                    double stddev_cpu_per_dbl = result_it->second->stddev_CPUPer(*cpu_num_int);
-                    double scaled_stddev = stddev_cpu_per_dbl*1000000000;
-
-
-                    fprintf(csv_file, ",%e,%e", scaled_mean, scaled_stddev);
-                }
-            }
-        }
-        fprintf(csv_file, "\n");
-    }
+    //Print Avg. Temp (DegC)
+    writeMeasurementsToCSV(MeasurementType::TEMPERATURE, Unit(BaseUnit::DEG_CELSIUS, 0), csv_file, profiler, kernel_results, kernels, types, *cpu_num_int, false, true);
 
     //Close report file
     fclose(csv_file);
@@ -388,17 +404,13 @@ void* run_benchmarks(void* cpu_num)
 
         for (std::map<std::string, Results*>::iterator sub_it = sub_result->begin(); sub_it != sub_result->end(); sub_it++)
         {
-            sub_it->second->delete_results();
-            delete sub_it->second;
+            delete sub_it->second; //Delete the result which was stored in the heap
         }
 
         delete it->second;
     }
-
-    #if PRINT_TITLE == 1
-    printf("****** PCM Ceanup ******\n");
-    #endif
-    //Output from PCM appears when distructor runs
+    
+    delete profiler;
 
     return NULL;
 }
@@ -412,7 +424,7 @@ int main(int argc, char *argv[])
     //http://man7.org/linux/man-pages/man3/pthread_attr_setaffinity_np.3.html,
     //http://man7.org/linux/man-pages/man3/pthread_join.3.html
 
-#if __APPLE__
+#ifdef __APPLE__
 #else
     cpu_set_t cpuset;
 #endif
@@ -432,7 +444,7 @@ int main(int argc, char *argv[])
 
     int cpu_number = 0;
 
-#if __APPLE__
+#ifdef __APPLE__
     fprintf(stderr, "Warning: Running on MacOS - Thread Affinity Not Set.  Disregard Core Number\n");
     //It looks like the best we could do would be to request that sets of threads be placed on the same L2 if possible.
     //https://forums.developer.apple.com/thread/44002

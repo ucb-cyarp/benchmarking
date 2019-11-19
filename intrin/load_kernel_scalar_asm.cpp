@@ -1,4 +1,4 @@
-#include "intrin_bench_default_defines.h"
+#include "intrin_bench_default_defines_and_imports_cpp.h"
 
     //==========load int8==========
     void kernel_asm_load_int8( __m256i* a)

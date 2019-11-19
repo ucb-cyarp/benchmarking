@@ -1,7 +1,7 @@
 #ifndef _H_LOAD_ADD_STORE_NOINTRIN_KERNEL
     #define _H_LOAD_ADD_STORE_NOINTRIN_KERNEL
 
-    #include "intrin_bench_default_defines.h"
+    #include "intrin_bench_default_defines_and_imports_cpp.h"
 
     //==========_mm256_add_epi8==========
     void kernel_nointrin_mm256_add_epi8( int8_t* a, int8_t* b, int8_t* c);

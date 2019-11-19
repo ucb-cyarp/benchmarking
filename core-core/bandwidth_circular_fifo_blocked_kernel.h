@@ -1,6 +1,7 @@
 #ifndef _H_BANDWIDTH_CIRCULAR_FIFO_BLOCKED_KERNEL
     #define _H_BANDWIDTH_CIRCULAR_FIFO_BLOCKED_KERNEL
-    #include "cpucounters.h"
+    #include <stdint.h>
+    #include <cstddef>
 
     class BandwidthCircularFifoBlockedKernelArgs
     {

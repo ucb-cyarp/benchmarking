@@ -1,5 +1,5 @@
 %% Init
-clear; close all; clc;
+clear;% close all; clc;
 
 %% Data Import
 start_row = 2;

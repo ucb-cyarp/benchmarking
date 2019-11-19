@@ -1,4 +1,4 @@
-#include "intrin_bench_default_defines.h"
+#include "intrin_bench_default_defines_and_imports_cpp.h"
 
 //See https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/x64-architecture
 //https://docs.oracle.com/cd/E18752_01/html/817-5477/eoizy.html
@@ -14,7 +14,7 @@ void kernel_only_asm_div_i8_unroll2()
                                              //https://gcc.gnu.org/onlinedocs/gcc/Local-Register-Variables.html#Local-Register-Variables
     register int16_t clobberResult asm ("ax"); //Need to specify an output since inputs cannot occur in clobber list
 
-    for(int i = 0; i<STIM_LEN; i++)
+    for(int i = 0; i<STIM_LEN/2; i++)
     {
         //The divide does not have a 2 arg version
         //(al <- quotient, ah <- remainder) <- ax/reg8
@@ -69,7 +69,7 @@ void kernel_only_asm_div_i16_unroll2()
     register int16_t clobberResult0 asm ("ax"); //Need to specify an output since inputs cannot occur in clobber list
     register int16_t clobberResult1 asm ("dx");
 
-    for(int i = 0; i<STIM_LEN; i++)
+    for(int i = 0; i<STIM_LEN/2; i++)
     {
         //(ax <- quotient, dx <- remainder) <- dx:ax/reg16 (the 1st arg is formed by treating dx as the upper sig bits and ax as the lower)
 
@@ -129,7 +129,7 @@ void kernel_only_asm_div_i32_unroll2()
     register int32_t clobberResult0 asm ("eax"); //Need to specify an output since inputs cannot occur in clobber list
     register int32_t clobberResult1 asm ("edx");
 
-    for(int i = 0; i<STIM_LEN; i++)
+    for(int i = 0; i<STIM_LEN/2; i++)
     {
         //(eax <- quotient, edx <- remainder) <- edx:eax/reg16 (the 1st arg is formed by treating edx as the upper sig bits and eax as the lower)
 
@@ -189,7 +189,7 @@ void kernel_only_asm_div_i64_unroll2()
     register int64_t clobberResult0 asm ("rax"); //Need to specify an output since inputs cannot occur in clobber list
     register int64_t clobberResult1 asm ("rdx");
 
-    for(int i = 0; i<STIM_LEN; i++)
+    for(int i = 0; i<STIM_LEN/2; i++)
     {
         //Doing 2 adds to hopefully avoid an issue with dependence.  Intel ASM is reg1=reg1+reg2.  It is not a three register instruction like it is with the vector unit
         //TODO: Verify

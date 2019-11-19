@@ -1,0 +1,22 @@
+#ifndef _H_BANDWIDTH_CIRCULAR_FIFO_BLOCKED_CACHEDPTR_KERNEL
+    #define _H_BANDWIDTH_CIRCULAR_FIFO_BLOCKED_CACHEDPTR_KERNEL
+    #include <stdint.h>
+    #include <cstddef>
+
+    class BandwidthCircularFifoBlockedCachedPtrKernelArgs
+    {
+        public:
+            int32_t* array_shared_ptr;
+            int32_t* write_pos_shared_ptr;
+            int32_t* read_pos_shared_ptr;
+            int32_t block_length;
+            size_t length;
+    };
+
+    void* bandwidth_circular_fifo_blocked_cachedptr_server_kernel(void* arg);
+
+    void* bandwidth_circular_fifo_blocked_cachedptr_client_kernel(void* arg);
+
+    void* bandwidth_circular_fifo_blocked_cachedptr_kernel_reset(void* arg);
+    
+#endif

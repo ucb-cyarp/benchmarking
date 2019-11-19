@@ -16,7 +16,7 @@ echo "****Building****"
 if [ "$(uname)" == "Darwin" ]; then
     cd ../intrin
 
-    make
+    make USE_AMDuPROF=0
     if [ $? -eq 0 ]
     then
         echo "****Successfully made intrinsic benchmark with PCM ****"
@@ -26,6 +26,9 @@ if [ "$(uname)" == "Darwin" ]; then
     fi
 
     make clean
+    cd ../common
+    make clean
+    cd ../intrin
         if [ $? -eq 0 ]
     then
         echo "****Successfully cleaned intrinsic benchmark ****"
@@ -34,7 +37,7 @@ if [ "$(uname)" == "Darwin" ]; then
         exit 1
     fi
 
-    make -f Makefile-noPCM
+    make USE_PCM=0 USE_AMDuPROF=0
     if [ $? -eq 0 ]
     then
         echo "****Successfully made intrinsic benchmark with no PCM ****"
@@ -47,13 +50,16 @@ else
     make
     if [ $? -eq 0 ]
     then
-        echo "****Successfully made intrinsic benchmark with PCM ****"
+        echo "****Successfully made intrinsic benchmark with PCM and AMDuProf ****"
     else
         echo "****Unable to make intrinsic benchmark with PCM ****" >&2
         exit 1
     fi
 
     make clean
+    cd ../common
+    make clean
+    cd ../intrin
         if [ $? -eq 0 ]
     then
         echo "****Successfully cleaned intrinsic benchmark ****"
@@ -62,14 +68,17 @@ else
         exit 1
     fi
 
-    make -f Makefile-noPCM
+    make USE_PCM=0 USE_AMDuPROF=0
     if [ $? -eq 0 ]
     then
-        echo "****Successfully made intrinsic benchmark with no PCM ****"
+        echo "****Successfully made intrinsic benchmark with no PCM and no AMDuProf ****"
     else
-        echo "****Unable to make intrinsic benchmark with no PCM ****" >&2
+        echo "****Unable to make intrinsic benchmark with no PCM and no AMDuProf ****" >&2
         exit 1
     fi
+
+    cd ../common
+    make clean
 
     cd ../core-core
     make
@@ -80,4 +89,26 @@ else
         echo "****Unable to make core-core benchmark****" >&2
         exit 1
     fi
+
+    make clean
+    cd ../common
+    make clean
+    cd ../core-core
+        if [ $? -eq 0 ]
+    then
+        echo "****Successfully cleaned intrinsic benchmark ****"
+    else
+        echo "****Unable to clean intrinsic benchmark ****" >&2
+        exit 1
+    fi
+
+    make USE_PCM=0 USE_AMDuPROF=0
+    if [ $? -eq 0 ]
+    then
+        echo "****Successfully made core-core benchmark with no PCM and no AMDuProf ****"
+    else
+        echo "****Unable to make core-core benchmark with no PCM and no AMDuProf ****" >&2
+        exit 1
+    fi
+
 fi

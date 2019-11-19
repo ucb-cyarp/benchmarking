@@ -11,7 +11,9 @@
  */
 
 #include "latency_flow_ctrl_blocked_read_kernel.h"
-#include "intrin_bench_default_defines.h"
+#include "intrin_bench_default_defines_and_imports_cpp.h"
+#include <cstdlib>
+#include <cstdio>
 
 /*
  * Resets shared ptr array to 0

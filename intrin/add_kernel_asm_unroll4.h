@@ -1,7 +1,7 @@
 #ifndef _H_ADD_KERNEL_ASM_UNROLL4
     #define _H_ADD_KERNEL_ASM_UNROLL4
 
-    #include "intrin_bench_default_defines.h"
+    #include "intrin_bench_default_defines_and_imports_cpp.h"
 
     #ifdef __AVX2__
         //==========_mm256_add_epi8==========

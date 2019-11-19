@@ -20,7 +20,8 @@
  */
 
 #include "latency_dual_kernel.h"
-#include "intrin_bench_default_defines.h"
+#include "intrin_bench_default_defines_and_imports_cpp.h"
+#include <cstddef>
 
 /*
  * Resets shared ptr to 0

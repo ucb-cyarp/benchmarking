@@ -15,7 +15,9 @@
  */
 
 #include "bandwidth_circular_fifo_blocked_kernel.h"
-#include "intrin_bench_default_defines.h"
+#include "intrin_bench_default_defines_and_imports_cpp.h"
+#include <cstdlib>
+#include <cstdio>
 
 /*
  * Resets shared ptr array to 0
@@ -61,7 +63,8 @@ void* bandwidth_circular_fifo_blocked_server_kernel(void* arg)
 
     int32_t write_index = 0;
 
-    while(write_id < STIM_LEN)
+    int32_t writeLim = STIM_LEN*length;
+    while(write_id < writeLim)
     {
         //Get the current read_id
         int32_t read_id = *read_pos_shared_ptr;
@@ -121,7 +124,8 @@ void* bandwidth_circular_fifo_blocked_client_kernel(void* arg)
 
     int32_t read_index = 0;
 
-    while(read_id < STIM_LEN)
+    int32_t readLim = STIM_LEN*length;
+    while(read_id < readLim)
     {
         
         int32_t write_id = *write_pos_shared_ptr; //get the current write ID

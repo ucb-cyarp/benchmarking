@@ -1,6 +1,7 @@
 #ifndef _H_LATENCY_FLOW_CTRL_BLOCKED_READ_KERNEL
     #define _H_LATENCY_FLOW_CTRL_BLOCKED_READ_KERNEL
-    #include "cpucounters.h"
+    #include <stdint.h>
+    #include <cstddef>
 
     class LatencyFlowCtrlBlockedReadKernelArgs
     {

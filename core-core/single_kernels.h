@@ -1,9 +1,8 @@
 #ifndef _H_SINGLE_KERNELS
     #define _H_SINGLE_KERNELS
 
-    #include "cpucounters.h"
     #include "results.h"
-    #include "pcm_helper.h"
+    #include "profiler.h"
 
     #include "kernel_server_runner.h"
     
@@ -12,16 +11,24 @@
     
     #include "print_results.h"
 
-    Results* run_latency_single_kernel(PCM* pcm, int cpu_a, int cpu_b)
+    #include <cstdlib>
+
+    #include "mallocHelpers.h"
+
+    Results* run_latency_single_kernel(Profiler* profiler, int cpu_a, int cpu_b)
     {
         //=====Test 1=====
         #if PRINT_TITLE == 1
-        printf("\n");
-        printf("Single Memory Location\n");
+            printf("\n");
+            printf("Single Memory Location\n");
         #endif
 
         //Initialize
-        int32_t* shared_loc = new int32_t;
+        size_t amountToAlloc = sizeof(int32_t);
+        if(amountToAlloc % CACHE_LINE_SIZE != 0){
+            amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
+        }
+        int32_t* shared_loc = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
 
         //Init to 0
         *shared_loc = 0;
@@ -36,60 +43,81 @@
 
         void* reset_arg = shared_loc; //Argument for reset function is shared location
 
-
-        Results* results = execute_kernel(pcm, latency_single_kernel, latency_single_kernel_reset, arg_a, arg_b, reset_arg, cpu_a, cpu_b);
+        Results* results = execute_kernel(profiler, latency_single_kernel, latency_single_kernel_reset, arg_a, arg_b, reset_arg, cpu_a, cpu_b);
 
         #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1
-            #if USE_PCM == 1
-                    std::vector<int> sockets;
-                    int socket_a = pcm->getSocketId(cpu_a);
-                    int socket_b = pcm->getSocketId(cpu_b);
+            if(!profiler->cpuTopology.empty()){
+                std::vector<int> sockets;
+                int socket_a = profiler->cpuTopology[cpu_a].socket;
+                int socket_b = profiler->cpuTopology[cpu_b].socket;
+                sockets.push_back(socket_a);
+                if(socket_b != socket_a)
+                {
+                    sockets.push_back(socket_b);
+                }
 
-                    sockets.push_back(socket_a);
-                    if(socket_b != socket_a)
-                    {
-                        sockets.push_back(socket_b);
-                    }
+                std::vector<int> cores;
+                int core_a = profiler->cpuTopology[cpu_a].core;
+                int core_b = profiler->cpuTopology[cpu_b].core;
+                cores.push_back(core_a);
+                if(core_a != core_b){
+                    cores.push_back(core_b);
+                }
 
-                    std::vector<int> cores;
-                    cores.push_back(cpu_a);
-                    cores.push_back(cpu_b);
-            
-                    #if PRINT_FULL_STATS == 1
-                        results->print_statistics(sockets, cores, STIM_LEN);
-                    #endif
+                std::vector<int> dies;
+                int die_a = profiler->cpuTopology[cpu_a].die;
+                int die_b = profiler->cpuTopology[cpu_b].die;
+                dies.push_back(die_a);
+                if(die_a != die_b){
+                    dies.push_back(die_b);
+                }
 
-                    #if PRINT_STATS == 1
+                std::vector<int> threads;
+                threads.push_back(cpu_a);
+                if(cpu_a != cpu_b){
+                    threads.push_back(cpu_b);
+                }
+        
+                #if PRINT_FULL_STATS == 1
+                    results->print_statistics(sockets, dies, cores, threads, STIM_LEN);
+                #endif
+
+                #if PRINT_STATS == 1
                     print_results(results, sizeof(*shared_loc), STIM_LEN);
-                    #endif
+                #endif
+            }else{
+                #if PRINT_FULL_STATS
+                    results->print_statistics(0, 0, 0, cpu_a, STIM_LEN);
+                #endif
 
-            #else
-                    #if PRINT_FULL_STATS
-                    results->print_statistics(0, cpu_a, STIM_LEN);
-                    #endif
-
+                #if PRINT_STATS == 1
                     print_results(results, sizeof(*shared_loc), STIM_LEN);
-            #endif
+                #endif
+            }
         #endif
 
         //Clean Up
-        delete shared_loc;
+        free(shared_loc);
         delete arg_a;
         delete arg_b;
 
         return results;
     }
 
-    Results* run_latency_dual_kernel(PCM* pcm, int cpu_a, int cpu_b)
+    Results* run_latency_dual_kernel(Profiler* profiler, int cpu_a, int cpu_b)
     {
-    #if PRINT_TITLE == 1
-        printf("\n");
-        printf("Dual Memory Locations\n");
+        #if PRINT_TITLE == 1
+            printf("\n");
+            printf("Dual Memory Locations\n");
         #endif
 
         //Initialize
-        int32_t* shared_loc_a = new int32_t;
-        int32_t* shared_loc_b = new int32_t;
+        size_t amountToAlloc = sizeof(int32_t);
+        if(amountToAlloc % CACHE_LINE_SIZE != 0){
+            amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
+        }
+        int32_t* shared_loc_a = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        int32_t* shared_loc_b = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
 
         //Init to 0
         *shared_loc_a = 0;
@@ -109,44 +137,62 @@
         reset_arg->shared_ptr_a = shared_loc_a;
         reset_arg->shared_ptr_b = shared_loc_b;
 
-        Results* results = execute_kernel(pcm, latency_dual_kernel, latency_dual_kernel_reset, arg_a, arg_b, reset_arg, cpu_a, cpu_b);
+        Results* results = execute_kernel(profiler, latency_dual_kernel, latency_dual_kernel_reset, arg_a, arg_b, reset_arg, cpu_a, cpu_b);
 
         #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1
-            #if USE_PCM == 1
-                    std::vector<int> sockets;
-                    int socket_a = pcm->getSocketId(cpu_a);
-                    int socket_b = pcm->getSocketId(cpu_b);
+            if(!profiler->cpuTopology.empty()){
+                std::vector<int> sockets;
+                int socket_a = profiler->cpuTopology[cpu_a].socket;
+                int socket_b = profiler->cpuTopology[cpu_b].socket;
+                sockets.push_back(socket_a);
+                if(socket_b != socket_a)
+                {
+                    sockets.push_back(socket_b);
+                }
 
-                    sockets.push_back(socket_a);
-                    if(socket_b != socket_a)
-                    {
-                        sockets.push_back(socket_b);
-                    }
+                std::vector<int> cores;
+                int core_a = profiler->cpuTopology[cpu_a].core;
+                int core_b = profiler->cpuTopology[cpu_b].core;
+                cores.push_back(core_a);
+                if(core_a != core_b){
+                    cores.push_back(core_b);
+                }
 
-                    std::vector<int> cores;
-                    cores.push_back(cpu_a);
-                    cores.push_back(cpu_b);
+                std::vector<int> dies;
+                int die_a = profiler->cpuTopology[cpu_a].die;
+                int die_b = profiler->cpuTopology[cpu_b].die;
+                dies.push_back(die_a);
+                if(die_a != die_b){
+                    dies.push_back(die_b);
+                }
+
+                std::vector<int> threads;
+                threads.push_back(cpu_a);
+                if(cpu_a != cpu_b){
+                    threads.push_back(cpu_b);
+                }
             
-                    #if PRINT_FULL_STATS == 1
-                        results->print_statistics(sockets, cores, STIM_LEN);
-                    #endif
+                #if PRINT_FULL_STATS == 1
+                    results->print_statistics(sockets, dies, cores, threads, STIM_LEN);
+                #endif
 
-                    #if PRINT_STATS == 1
-                    print_results(results, sizeof(*shared_loc_a), STIM_LEN);
-                    #endif
+                #if PRINT_STATS == 1
+                print_results(results, sizeof(*shared_loc_a), STIM_LEN);
+                #endif
+            }else{
+                #if PRINT_FULL_STATS
+                results->print_statistics(0, 0, 0, cpu_a, STIM_LEN);
+                #endif
 
-            #else
-                    #if PRINT_FULL_STATS
-                    results->print_statistics(0, cpu_a, STIM_LEN);
-                    #endif
-
-                    print_results(results, sizeof(*shared_loc_a), STIM_LEN);
-            #endif
+                #if PRINT_STATS == 1
+                print_results(results, sizeof(*shared_loc_a), STIM_LEN);
+                #endif
+            }
         #endif
 
         //Clean Up
-        delete shared_loc_a;
-        delete shared_loc_b;
+        free(shared_loc_a);
+        free(shared_loc_b);
         delete arg_a;
         delete arg_b;
         delete reset_arg;

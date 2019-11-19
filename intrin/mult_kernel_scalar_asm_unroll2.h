@@ -1,7 +1,7 @@
 #ifndef _H_MULT_KERNEL_SCALAR_ASM_UNROLL2
     #define _H_MULT_KERNEL_SCALAR_ASM_UNROLL2
 
-    #include "intrin_bench_default_defines.h"
+    #include "intrin_bench_default_defines_and_imports_cpp.h"
 
         //==========mult 8 bit==========
         void kernel_only_asm_mult_i8_unroll2();
