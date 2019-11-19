@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include "mallocHelpers.h"
 #include <mm_malloc.h>
 #include <stdio.h>
@@ -5,6 +6,9 @@
 #include <cstdlib>
 #include <memory>
 #include <cstring>
+#include <sched.h>
+#include <unistd.h>
+#include <pthread.h>
 
 typedef struct{
     size_t size;
