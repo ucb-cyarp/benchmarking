@@ -1,4 +1,4 @@
-function plot_latency_scatter(directoryList, includeProcTime, normalizeAll, size, alpha)
+function plot_latency_scatter(directoryList, includeWallTime, includeProcTime, normalizeAll, size, alpha)
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -59,17 +59,21 @@ for i = 1:length(directoryList)
         s2.MarkerFaceAlpha = alpha;
         hold all;
     end
-    s1 = scatter(a1, single_array_length_bytes, single_timeToCompletion_highResClk, size, [0 0.4470 0.7410], 'filled');
-    singleArrayPlots = [singleArrayPlots, a1];
-    maxSingleArray = max([maxSingleArray, max(max(single_timeToCompletion_highResClk))]);
-    s1.MarkerFaceAlpha = alpha;
+    if includeWallTime
+        s1 = scatter(a1, single_array_length_bytes, single_timeToCompletion_highResClk, size, [0 0.4470 0.7410], 'filled');
+        singleArrayPlots = [singleArrayPlots, a1];
+        maxSingleArray = max([maxSingleArray, max(max(single_timeToCompletion_highResClk))]);
+        s1.MarkerFaceAlpha = alpha;
+    end
+    hold off;
     xlabel('Transaction Length (Bytes)', 'Interpreter', 'none');
     ylabel('Transaction Time to Completion - One Way (ns)')
-    title(['Core-Core Transactions with Single Shared Array - (' directory ')']);
-    if includeProcTime
+    title({'Core-Core Transactions with Single Shared Array', directory}, 'Interpreter', 'none');
+    if includeProcTime && includeWallTime
         legend([s1, s2], {'High Resolution Clock', 'Thread Process Time'});
-        hold off;
-    else
+    elseif includeProcTime
+        legend([s2], {'Thread Process Time'});
+    elseif includeWallTime
         legend([s1], {'High Resolution Clock'});
     end
     grid on;
@@ -84,17 +88,21 @@ for i = 1:length(directoryList)
         s2.MarkerFaceAlpha = alpha;
         hold all;
     end
-    s1 = scatter(a1, single_array_length_bytes, dual_timeToCompletion_highResClk, size, [0 0.4470 0.7410], 'filled');
-    doubleArrayPlots = [doubleArrayPlots, a1];
-    maxDoubleArray = max([maxDoubleArray, max(max(dual_timeToCompletion_highResClk))]);
-    s1.MarkerFaceAlpha = alpha;
+    if includeWallTime
+        s1 = scatter(a1, single_array_length_bytes, dual_timeToCompletion_highResClk, size, [0 0.4470 0.7410], 'filled');
+        doubleArrayPlots = [doubleArrayPlots, a1];
+        maxDoubleArray = max([maxDoubleArray, max(max(dual_timeToCompletion_highResClk))]);
+        s1.MarkerFaceAlpha = alpha;
+    end
     xlabel('Transaction Length (Bytes)', 'Interpreter', 'none');
     ylabel('Transaction Time to Completion - One Way (ns)')
-    title(['Core-Core Transactions with Dual Shared Arrays - (' directory ')']);
-    if includeProcTime
+    title({'Core-Core Transactions with Dual Shared Arrays', directory}, 'Interpreter', 'none');
+    hold off;
+    if includeProcTime && includeWallTime
         legend([s1, s2], {'High Resolution Clock', 'Thread Process Time'});
-        hold off;
-    else
+    elseif includeProcTime
+        legend([s2], {'Thread Process Time'});
+    elseif includeWallTime
         legend([s1], {'High Resolution Clock'});
     end
     grid on;
@@ -109,17 +117,22 @@ for i = 1:length(directoryList)
         s2.MarkerFaceAlpha = alpha;
         hold all;
     end
-    s1 = scatter(a1, single_array_length_bytes, flow_ctrl_timeToCompletion_highResClk, size, [0 0.4470 0.7410], 'filled');
-    flowCtrlArrayPlots = [flowCtrlArrayPlots, a1];
-    maxFlowCtrlArray = max([maxFlowCtrlArray, max(max(flow_ctrl_timeToCompletion_highResClk))]);
-    s1.MarkerFaceAlpha = alpha;
+    if includeWallTime
+        s1 = scatter(a1, single_array_length_bytes, flow_ctrl_timeToCompletion_highResClk, size, [0 0.4470 0.7410], 'filled');
+        flowCtrlArrayPlots = [flowCtrlArrayPlots, a1];
+        maxFlowCtrlArray = max([maxFlowCtrlArray, max(max(flow_ctrl_timeToCompletion_highResClk))]);
+        s1.MarkerFaceAlpha = alpha;
+    end
     xlabel('Transaction Length (Bytes)', 'Interpreter', 'none');
     ylabel('Transaction Time to Completion - One Way (ns)')
-    title(['Core-Core Flow Control Transactions with Ack - (' directory ')']);
-    if includeProcTime
+    title({'Core-Core Flow Control Transactions with Ack', directory}, 'Interpreter', 'none');
+    hold off;
+    if includeProcTime && includeWallTime
         legend([s1, s2], {'High Resolution Clock', 'Thread Process Time'});
         hold off;
-    else
+    elseif includeProcTime
+        legend([s2], {'Thread Process Time'});
+    elseif includeWallTime
         legend([s1], {'High Resolution Clock'});
     end
     grid on;
@@ -134,17 +147,22 @@ for i = 1:length(directoryList)
         s2.MarkerFaceAlpha = alpha;
         hold all;
     end
-    s1 = scatter(a1, single_array_length_bytes, flow_ctrl_block_read_timeToCompletion_highResClk, size, [0 0.4470 0.7410], 'filled');
-    flowControlArrayBlockReadPlots = [flowControlArrayBlockReadPlots, a1];
-    maxFlowControlArrayBlockRead = max([maxFlowControlArrayBlockRead, max(max(flow_ctrl_block_read_timeToCompletion_highResClk))]);
-    s1.MarkerFaceAlpha = alpha;
+    if includeWallTime
+        s1 = scatter(a1, single_array_length_bytes, flow_ctrl_block_read_timeToCompletion_highResClk, size, [0 0.4470 0.7410], 'filled');
+        flowControlArrayBlockReadPlots = [flowControlArrayBlockReadPlots, a1];
+        maxFlowControlArrayBlockRead = max([maxFlowControlArrayBlockRead, max(max(flow_ctrl_block_read_timeToCompletion_highResClk))]);
+        s1.MarkerFaceAlpha = alpha;
+    end
     xlabel('Transaction Length (Bytes)', 'Interpreter', 'none');
     ylabel('Transaction Time to Completion - One Way (ns)')
-    title(['Core-Core Flow Control (Blocked Read) Transactions with Ack - (' directory ')']);
-    if includeProcTime
+    title({'Core-Core Flow Control (Blocked Read) Transactions with Ack', directory}, 'Interpreter', 'none');
+    hold off;
+    if includeProcTime && includeWallTime
         legend([s1, s2], {'High Resolution Clock', 'Thread Process Time'});
         hold off;
-    else
+    elseif includeProcTime
+        legend([s2], {'Thread Process Time'});
+    elseif includeWallTime
         legend([s1], {'High Resolution Clock'});
     end
     grid on;
