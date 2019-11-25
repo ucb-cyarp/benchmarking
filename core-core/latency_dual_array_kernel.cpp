@@ -21,8 +21,8 @@ void* latency_dual_array_kernel_reset(void* arg)
 {
     LatencyDualArrayKernelResetArgs* args = (LatencyDualArrayKernelResetArgs*) arg;
 
-    volatile int32_t* shared_ptr_a_int = args->shared_ptr_a;
-    volatile int32_t* shared_ptr_b_int = args->shared_ptr_b;
+    int32_t* shared_ptr_a_int = args->shared_ptr_a;
+    int32_t* shared_ptr_b_int = args->shared_ptr_b;
     size_t length = args->length;
 
     for(size_t i = 0; i<length; i++)
@@ -43,8 +43,8 @@ void* latency_dual_array_join_kernel_reset(void* arg)
 {
     LatencyDualArrayJoinKernelResetArgs* args = (LatencyDualArrayJoinKernelResetArgs*) arg;
 
-    volatile int32_t* shared_ptr_a_int = args->shared_ptr_a;
-    volatile int32_t* shared_ptr_b_int = args->shared_ptr_b;
+    int32_t* shared_ptr_a_int = args->shared_ptr_a;
+    int32_t* shared_ptr_b_int = args->shared_ptr_b;
     size_t length_ab = args->length_ab;
 
     for(size_t i = 0; i<length_ab; i++)
@@ -53,8 +53,8 @@ void* latency_dual_array_join_kernel_reset(void* arg)
         shared_ptr_b_int[i] = 0;
     }
 
-    volatile int32_t* shared_ptr_c_int = args->shared_ptr_c;
-    volatile int32_t* shared_ptr_d_int = args->shared_ptr_d;
+    int32_t* shared_ptr_c_int = args->shared_ptr_c;
+    int32_t* shared_ptr_d_int = args->shared_ptr_d;
     size_t length_cd = args->length_cd;
 
     for(size_t i = 0; i<length_cd; i++)
@@ -75,8 +75,8 @@ void* latency_dual_array_kernel(void* arg)
 {
     //Get the shared pointer and the initial counter value
     LatencyDualArrayKernelArgs* kernel_args = (LatencyDualArrayKernelArgs*) arg;
-    volatile int32_t* my_shared_ptr = kernel_args->my_shared_ptr;
-    volatile int32_t* other_shared_ptr = kernel_args->other_shared_ptr;
+    int32_t* my_shared_ptr = kernel_args->my_shared_ptr;
+    int32_t* other_shared_ptr = kernel_args->other_shared_ptr;
     size_t length = kernel_args->length;
     int32_t counter = kernel_args->init_counter;
 
@@ -126,13 +126,13 @@ void* latency_dual_array_join_kernel(void* arg)
 {
     //Get the shared pointer and the initial counter value
     LatencyDualArrayJoinKernelArgs* kernel_args = (LatencyDualArrayJoinKernelArgs*) arg;
-    volatile int32_t* my_shared_ptr_a = kernel_args->my_shared_ptr_a;
-    volatile int32_t* other_shared_ptr_a = kernel_args->other_shared_ptr_a;
+    int32_t* my_shared_ptr_a = kernel_args->my_shared_ptr_a;
+    int32_t* other_shared_ptr_a = kernel_args->other_shared_ptr_a;
     size_t length_a = kernel_args->length_a;
     int32_t counter_a = kernel_args->init_counter_a;
 
-    volatile int32_t* my_shared_ptr_b = kernel_args->my_shared_ptr_b;
-    volatile int32_t* other_shared_ptr_b = kernel_args->other_shared_ptr_b;
+    int32_t* my_shared_ptr_b = kernel_args->my_shared_ptr_b;
+    int32_t* other_shared_ptr_b = kernel_args->other_shared_ptr_b;
     size_t length_b = kernel_args->length_b;
     int32_t counter_b = kernel_args->init_counter_b;
 

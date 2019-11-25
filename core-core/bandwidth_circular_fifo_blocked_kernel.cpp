@@ -26,9 +26,9 @@ void* bandwidth_circular_fifo_blocked_kernel_reset(void* arg)
 {
     BandwidthCircularFifoBlockedKernelArgs* args = (BandwidthCircularFifoBlockedKernelArgs*) arg;
 
-    volatile int32_t* array_shared_ptr_int = args->array_shared_ptr;
-    volatile int32_t* write_pos_shared_ptr_int = args->write_pos_shared_ptr;
-    volatile int32_t* read_pos_shared_ptr_int = args->read_pos_shared_ptr;
+    int32_t* array_shared_ptr_int = args->array_shared_ptr;
+    int32_t* write_pos_shared_ptr_int = args->write_pos_shared_ptr;
+    int32_t* read_pos_shared_ptr_int = args->read_pos_shared_ptr;
     size_t length = args->length;
 
     *write_pos_shared_ptr_int = 0;
@@ -51,9 +51,9 @@ void* bandwidth_circular_fifo_blocked_server_kernel(void* arg)
 {
     //Get the shared pointer and the initial counter value
     BandwidthCircularFifoBlockedKernelArgs* kernel_args = (BandwidthCircularFifoBlockedKernelArgs*) arg;
-    volatile int32_t* array_shared_ptr = kernel_args->array_shared_ptr;
-    volatile int32_t* write_pos_shared_ptr = kernel_args->write_pos_shared_ptr;
-    volatile int32_t* read_pos_shared_ptr = kernel_args->read_pos_shared_ptr;
+    int32_t* array_shared_ptr = kernel_args->array_shared_ptr;
+    int32_t* write_pos_shared_ptr = kernel_args->write_pos_shared_ptr;
+    int32_t* read_pos_shared_ptr = kernel_args->read_pos_shared_ptr;
 
     size_t length = kernel_args->length;
     int32_t block_length = kernel_args->block_length;
@@ -112,9 +112,9 @@ void* bandwidth_circular_fifo_blocked_client_kernel(void* arg)
 {
     //Get the shared pointer and the initial counter value
     BandwidthCircularFifoBlockedKernelArgs* kernel_args = (BandwidthCircularFifoBlockedKernelArgs*) arg;
-    volatile int32_t* array_shared_ptr = kernel_args->array_shared_ptr;
-    volatile int32_t* write_pos_shared_ptr = kernel_args->write_pos_shared_ptr;
-    volatile int32_t* read_pos_shared_ptr = kernel_args->read_pos_shared_ptr;
+    int32_t* array_shared_ptr = kernel_args->array_shared_ptr;
+    int32_t* write_pos_shared_ptr = kernel_args->write_pos_shared_ptr;
+    int32_t* read_pos_shared_ptr = kernel_args->read_pos_shared_ptr;
 
     size_t length = kernel_args->length;
     size_t block_length = kernel_args->block_length;

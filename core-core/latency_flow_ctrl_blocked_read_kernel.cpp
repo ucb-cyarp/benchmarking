@@ -22,9 +22,9 @@ void* latency_flow_ctrl_blocked_read_kernel_reset(void* arg)
 {
     LatencyFlowCtrlBlockedReadKernelArgs* args = (LatencyFlowCtrlBlockedReadKernelArgs*) arg;
 
-    volatile int32_t* array_shared_ptr_int = args->array_shared_ptr;
-    volatile int32_t* ack_shared_ptr_int = args->ack_shared_ptr;
-    volatile int32_t* valid_shared_ptr_int = args->valid_shared_ptr;
+    int32_t* array_shared_ptr_int = args->array_shared_ptr;
+    int32_t* ack_shared_ptr_int = args->ack_shared_ptr;
+    int32_t* valid_shared_ptr_int = args->valid_shared_ptr;
     size_t length = args->length;
 
     *ack_shared_ptr_int = 0;
@@ -45,14 +45,14 @@ void* latency_flow_ctrl_blocked_read_join_kernel_reset(void* arg)
 {
     LatencyFlowCtrlBlockedReadJoinKernelArgs* args = (LatencyFlowCtrlBlockedReadJoinKernelArgs*) arg;
 
-    volatile int32_t* array_shared_ptr_int_a = args->array_shared_ptr_a;
-    volatile int32_t* ack_shared_ptr_int_a = args->ack_shared_ptr_a;
-    volatile int32_t* valid_shared_ptr_int_a = args->valid_shared_ptr_a;
+    int32_t* array_shared_ptr_int_a = args->array_shared_ptr_a;
+    int32_t* ack_shared_ptr_int_a = args->ack_shared_ptr_a;
+    int32_t* valid_shared_ptr_int_a = args->valid_shared_ptr_a;
     size_t length_a = args->length_a;
 
-    volatile int32_t* array_shared_ptr_int_b = args->array_shared_ptr_b;
-    volatile int32_t* ack_shared_ptr_int_b = args->ack_shared_ptr_b;
-    volatile int32_t* valid_shared_ptr_int_b = args->valid_shared_ptr_b;
+    int32_t* array_shared_ptr_int_b = args->array_shared_ptr_b;
+    int32_t* ack_shared_ptr_int_b = args->ack_shared_ptr_b;
+    int32_t* valid_shared_ptr_int_b = args->valid_shared_ptr_b;
     size_t length_b = args->length_b;
 
     *ack_shared_ptr_int_a = 0;
@@ -83,9 +83,9 @@ void* latency_flow_ctrl_blocked_read_server_kernel(void* arg)
 {
     //Get the shared pointer and the initial counter value
     LatencyFlowCtrlBlockedReadKernelArgs* kernel_args = (LatencyFlowCtrlBlockedReadKernelArgs*) arg;
-    volatile int32_t* array_shared_ptr = kernel_args->array_shared_ptr;
-    volatile int32_t* ack_shared_ptr = kernel_args->ack_shared_ptr;
-    volatile int32_t* valid_shared_ptr = kernel_args->valid_shared_ptr;
+    int32_t* array_shared_ptr = kernel_args->array_shared_ptr;
+    int32_t* ack_shared_ptr = kernel_args->ack_shared_ptr;
+    int32_t* valid_shared_ptr = kernel_args->valid_shared_ptr;
     size_t length = kernel_args->length;
 
     int32_t counter = -1; //Server
@@ -127,14 +127,14 @@ void* latency_flow_ctrl_blocked_read_server_join_kernel(void* arg)
 {
     //Get the shared pointer and the initial counter value
     LatencyFlowCtrlBlockedReadJoinKernelArgs* kernel_args = (LatencyFlowCtrlBlockedReadJoinKernelArgs*) arg;
-    volatile int32_t* array_shared_ptr_a = kernel_args->array_shared_ptr_a;
-    volatile int32_t* ack_shared_ptr_a = kernel_args->ack_shared_ptr_a;
-    volatile int32_t* valid_shared_ptr_a = kernel_args->valid_shared_ptr_a;
+    int32_t* array_shared_ptr_a = kernel_args->array_shared_ptr_a;
+    int32_t* ack_shared_ptr_a = kernel_args->ack_shared_ptr_a;
+    int32_t* valid_shared_ptr_a = kernel_args->valid_shared_ptr_a;
     size_t length_a = kernel_args->length_a;
 
-    volatile int32_t* array_shared_ptr_b = kernel_args->array_shared_ptr_b;
-    volatile int32_t* ack_shared_ptr_b = kernel_args->ack_shared_ptr_b;
-    volatile int32_t* valid_shared_ptr_b = kernel_args->valid_shared_ptr_b;
+    int32_t* array_shared_ptr_b = kernel_args->array_shared_ptr_b;
+    int32_t* ack_shared_ptr_b = kernel_args->ack_shared_ptr_b;
+    int32_t* valid_shared_ptr_b = kernel_args->valid_shared_ptr_b;
     size_t length_b = kernel_args->length_b;
 
     int32_t counter_a = -1; //Server
@@ -203,9 +203,9 @@ void* latency_flow_ctrl_blocked_read_client_kernel(void* arg)
 {
     //Get the shared pointer and the initial counter value
     LatencyFlowCtrlBlockedReadKernelArgs* kernel_args = (LatencyFlowCtrlBlockedReadKernelArgs*) arg;
-    volatile int32_t* array_shared_ptr = kernel_args->array_shared_ptr;
-    volatile int32_t* ack_shared_ptr = kernel_args->ack_shared_ptr;
-    volatile int32_t* valid_shared_ptr = kernel_args->valid_shared_ptr;
+    int32_t* array_shared_ptr = kernel_args->array_shared_ptr;
+    int32_t* ack_shared_ptr = kernel_args->ack_shared_ptr;
+    int32_t* valid_shared_ptr = kernel_args->valid_shared_ptr;
     size_t length = kernel_args->length;
 
     int32_t counter = 0; //Client
@@ -252,14 +252,14 @@ void* latency_flow_ctrl_blocked_read_client_join_kernel(void* arg)
 {
     //Get the shared pointer and the initial counter value
     LatencyFlowCtrlBlockedReadJoinKernelArgs* kernel_args = (LatencyFlowCtrlBlockedReadJoinKernelArgs*) arg;
-    volatile int32_t* array_shared_ptr_a = kernel_args->array_shared_ptr_a;
-    volatile int32_t* ack_shared_ptr_a = kernel_args->ack_shared_ptr_a;
-    volatile int32_t* valid_shared_ptr_a = kernel_args->valid_shared_ptr_a;
+    int32_t* array_shared_ptr_a = kernel_args->array_shared_ptr_a;
+    int32_t* ack_shared_ptr_a = kernel_args->ack_shared_ptr_a;
+    int32_t* valid_shared_ptr_a = kernel_args->valid_shared_ptr_a;
     size_t length_a = kernel_args->length_a;
 
-    volatile int32_t* array_shared_ptr_b = kernel_args->array_shared_ptr_b;
-    volatile int32_t* ack_shared_ptr_b = kernel_args->ack_shared_ptr_b;
-    volatile int32_t* valid_shared_ptr_b = kernel_args->valid_shared_ptr_b;
+    int32_t* array_shared_ptr_b = kernel_args->array_shared_ptr_b;
+    int32_t* ack_shared_ptr_b = kernel_args->ack_shared_ptr_b;
+    int32_t* valid_shared_ptr_b = kernel_args->valid_shared_ptr_b;
     size_t length_b = kernel_args->length_b;
 
     int32_t counter_a = 0; //Client

@@ -28,7 +28,7 @@
  */
 void* latency_single_kernel_reset(void* shared_ptr)
 {
-    volatile int32_t* shared_ptr_int = (int32_t*) shared_ptr;
+    int32_t* shared_ptr_int = (int32_t*) shared_ptr;
 
     *shared_ptr_int = 0;
 
@@ -44,7 +44,7 @@ void* latency_single_kernel(void* arg)
 {
     //Get the shared pointer and the initial counter value
     LatencySingleKernelArgs* kernel_args = (LatencySingleKernelArgs*) arg;
-    volatile int32_t* shared_ptr = kernel_args->shared_ptr;
+    int32_t* shared_ptr = kernel_args->shared_ptr;
     int32_t counter = kernel_args->init_counter;
 
     //Execute until the specified number of transactions has occured
