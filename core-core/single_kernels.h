@@ -15,12 +15,17 @@
 
     #include "mallocHelpers.h"
 
+    #include <ctime>
+
     Results* run_latency_single_kernel(Profiler* profiler, int cpu_a, int cpu_b)
     {
         //=====Test 1=====
         #if PRINT_TITLE == 1
             printf("\n");
-            printf("Single Memory Location\n");
+            time_t currentTime = time(NULL);
+            struct tm * localT;
+            localT = localtime(&currentTime);
+            printf("Single Memory Location | Start Time: %s", asctime(localT));
         #endif
 
         //Initialize
@@ -108,7 +113,10 @@
     {
         #if PRINT_TITLE == 1
             printf("\n");
-            printf("Dual Memory Locations\n");
+            time_t currentTime = time(NULL);
+            struct tm * localT;
+            localT = localtime(&currentTime);
+            printf("Dual Memory Locations | Start Time: %s", asctime(localT));
         #endif
 
         //Initialize
