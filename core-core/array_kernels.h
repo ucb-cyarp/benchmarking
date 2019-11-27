@@ -33,12 +33,16 @@
         #endif
 
         //Initialize
-        int32_t* shared_loc = new int32_t[array_length];
+        size_t amountToAlloc = array_length*sizeof(std::atomic_int32_t);
+        if(amountToAlloc % CACHE_LINE_SIZE != 0){
+            amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
+        }
+        std::atomic_int32_t* shared_loc = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
         {
-            shared_loc[i] = 0;
+            std::atomic_init(shared_loc+i, 0);
         }
 
         LatencySingleArrayKernelArgs* arg_a = new LatencySingleArrayKernelArgs();
@@ -138,18 +142,18 @@
         #endif
 
         //Initialize
-        size_t amountToAlloc = array_length*sizeof(int32_t);
+        size_t amountToAlloc = array_length*sizeof(std::atomic_int32_t);
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
-        int32_t* shared_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_c);
+        std::atomic_int32_t* shared_loc_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        std::atomic_int32_t* shared_loc_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_c);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
         {
-            shared_loc_1[i] = 0;
-            shared_loc_2[i] = 0;
+            std::atomic_init(shared_loc_1+i, 0);
+            std::atomic_init(shared_loc_2+i, 0);
         }
 
         LatencySingleArrayKernelArgs* arg_a = new LatencySingleArrayKernelArgs();
@@ -282,18 +286,18 @@
         #endif
 
         //Initialize
-        size_t amountToAlloc = array_length*sizeof(int32_t);
+        size_t amountToAlloc = array_length*sizeof(std::atomic_int32_t);
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
-        int32_t* shared_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
+        std::atomic_int32_t* shared_loc_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        std::atomic_int32_t* shared_loc_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
         {
-            shared_loc_1[i] = 0;
-            shared_loc_2[i] = 0;
+            std::atomic_init(shared_loc_1+i, 0);
+            std::atomic_init(shared_loc_2+i, 0);
         }
 
         //Construct 2 servers and 1 client.  Servers will measure.
@@ -534,18 +538,18 @@
         #endif
 
         //Initialize
-        size_t amountToAlloc = array_length*sizeof(int32_t);
+        size_t amountToAlloc = array_length*sizeof(std::atomic_int32_t);
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_loc_a = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
-        int32_t* shared_loc_b = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
+        std::atomic_int32_t* shared_loc_a = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        std::atomic_int32_t* shared_loc_b = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
         {
-            shared_loc_a[i] = 0;
-            shared_loc_b[i] = 0;
+            std::atomic_init(shared_loc_a+i, 0);
+            std::atomic_init(shared_loc_b+i, 0);
         }
 
         LatencyDualArrayKernelArgs* arg_a = new LatencyDualArrayKernelArgs();
@@ -650,24 +654,24 @@
         #endif
 
         //Initialize
-        size_t amountToAlloc = array_length*sizeof(int32_t);
+        size_t amountToAlloc = array_length*sizeof(std::atomic_int32_t);
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_loc_a_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
-        int32_t* shared_loc_b_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
+        std::atomic_int32_t* shared_loc_a_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        std::atomic_int32_t* shared_loc_b_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
 
-        int32_t* shared_loc_a_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_c);
-        int32_t* shared_loc_b_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_d);
+        std::atomic_int32_t* shared_loc_a_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_c);
+        std::atomic_int32_t* shared_loc_b_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_d);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
         {
-            shared_loc_a_1[i] = 0;
-            shared_loc_b_1[i] = 0;
+            std::atomic_init(shared_loc_a_1+i, 0);
+            std::atomic_init(shared_loc_b_1+i, 0);
 
-            shared_loc_a_2[i] = 0;
-            shared_loc_b_2[i] = 0;
+            std::atomic_init(shared_loc_a_2+i, 0);
+            std::atomic_init(shared_loc_b_2+i, 0);
         }
 
         LatencyDualArrayKernelArgs* arg_a = new LatencyDualArrayKernelArgs();
@@ -801,24 +805,24 @@
         #endif
 
         //Initialize
-        size_t amountToAlloc = array_length*sizeof(int32_t);
+        size_t amountToAlloc = array_length*sizeof(std::atomic_int32_t);
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_loc_a_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
-        int32_t* shared_loc_b_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_c);
+        std::atomic_int32_t* shared_loc_a_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        std::atomic_int32_t* shared_loc_b_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_c);
 
-        int32_t* shared_loc_a_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
-        int32_t* shared_loc_b_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_c);
+        std::atomic_int32_t* shared_loc_a_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
+        std::atomic_int32_t* shared_loc_b_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_c);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
         {
-            shared_loc_a_1[i] = 0;
-            shared_loc_b_1[i] = 0;
+            std::atomic_init(shared_loc_a_1+i, 0);
+            std::atomic_init(shared_loc_b_1+i, 0);
 
-            shared_loc_a_2[i] = 0;
-            shared_loc_b_2[i] = 0;
+            std::atomic_init(shared_loc_a_2+i, 0);
+            std::atomic_init(shared_loc_b_2+i, 0);
         }
 
         //2 Servers, 1 Client - Servers will measure

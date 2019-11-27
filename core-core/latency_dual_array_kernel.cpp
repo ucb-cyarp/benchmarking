@@ -22,14 +22,14 @@ void* latency_dual_array_kernel_reset(void* arg)
 {
     LatencyDualArrayKernelResetArgs* args = (LatencyDualArrayKernelResetArgs*) arg;
 
-    int32_t* shared_ptr_a_int = args->shared_ptr_a;
-    int32_t* shared_ptr_b_int = args->shared_ptr_b;
+    std::atomic_int32_t* shared_ptr_a_int = args->shared_ptr_a;
+    std::atomic_int32_t* shared_ptr_b_int = args->shared_ptr_b;
     size_t length = args->length;
 
     for(size_t i = 0; i<length; i++)
     {
-        shared_ptr_a_int[i] = 0;
-        shared_ptr_b_int[i] = 0;
+        std::atomic_store_explicit(shared_ptr_a_int+i, 0, std::memory_order_relaxed);
+        std::atomic_store_explicit(shared_ptr_b_int+i, 0, std::memory_order_relaxed);
     }
 
     //TODO: Compare the use of stdatomic fence to an array of stdatomics
@@ -47,24 +47,24 @@ void* latency_dual_array_join_kernel_reset(void* arg)
 {
     LatencyDualArrayJoinKernelResetArgs* args = (LatencyDualArrayJoinKernelResetArgs*) arg;
 
-    int32_t* shared_ptr_a_int = args->shared_ptr_a;
-    int32_t* shared_ptr_b_int = args->shared_ptr_b;
+    std::atomic_int32_t* shared_ptr_a_int = args->shared_ptr_a;
+    std::atomic_int32_t* shared_ptr_b_int = args->shared_ptr_b;
     size_t length_ab = args->length_ab;
 
     for(size_t i = 0; i<length_ab; i++)
     {
-        shared_ptr_a_int[i] = 0;
-        shared_ptr_b_int[i] = 0;
+        std::atomic_store_explicit(shared_ptr_a_int+i, 0, std::memory_order_relaxed);
+        std::atomic_store_explicit(shared_ptr_b_int+i, 0, std::memory_order_relaxed);
     }
 
-    int32_t* shared_ptr_c_int = args->shared_ptr_c;
-    int32_t* shared_ptr_d_int = args->shared_ptr_d;
+    std::atomic_int32_t* shared_ptr_c_int = args->shared_ptr_c;
+    std::atomic_int32_t* shared_ptr_d_int = args->shared_ptr_d;
     size_t length_cd = args->length_cd;
 
     for(size_t i = 0; i<length_cd; i++)
     {
-        shared_ptr_c_int[i] = 0;
-        shared_ptr_d_int[i] = 0;
+        std::atomic_store_explicit(shared_ptr_c_int+i, 0, std::memory_order_relaxed);
+        std::atomic_store_explicit(shared_ptr_d_int+i, 0, std::memory_order_relaxed);
     }
 
     //TODO: Compare the use of stdatomic fence to an array of stdatomics
@@ -82,8 +82,8 @@ void* latency_dual_array_kernel(void* arg)
 {
     //Get the shared pointer and the initial counter value
     LatencyDualArrayKernelArgs* kernel_args = (LatencyDualArrayKernelArgs*) arg;
-    int32_t* my_shared_ptr = kernel_args->my_shared_ptr;
-    int32_t* other_shared_ptr = kernel_args->other_shared_ptr;
+    std::atomic_int32_t* my_shared_ptr = kernel_args->my_shared_ptr;
+    std::atomic_int32_t* other_shared_ptr = kernel_args->other_shared_ptr;
     size_t length = kernel_args->length;
     int32_t counter = kernel_args->init_counter;
 
@@ -92,11 +92,8 @@ void* latency_dual_array_kernel(void* arg)
 
     while(counter < STIM_LEN)
     {
-        //TODO: Compare the use of stdatomic fence to an array of stdatomics
-        std::atomic_thread_fence(std::memory_order_acquire);
-
         //Check all of the 
-        if(other_shared_ptr[index] == (counter+1))
+        if(std::atomic_load_explicit(other_shared_ptr+index, std::memory_order_acquire) == (counter+1))
         {
             //The current location has incremented
             //Check the next one
@@ -111,7 +108,7 @@ void* latency_dual_array_kernel(void* arg)
                 //Increment the entire array
                 for(size_t i = 0; i<length; i++)
                 {
-                    my_shared_ptr[i] = counter;
+                    std::atomic_store_explicit(my_shared_ptr+i, counter, std::memory_order_relaxed);
                 }
 
                 //TODO: Compare the use of stdatomic fence to an array of stdatomics
@@ -139,13 +136,13 @@ void* latency_dual_array_join_kernel(void* arg)
 {
     //Get the shared pointer and the initial counter value
     LatencyDualArrayJoinKernelArgs* kernel_args = (LatencyDualArrayJoinKernelArgs*) arg;
-    int32_t* my_shared_ptr_a = kernel_args->my_shared_ptr_a;
-    int32_t* other_shared_ptr_a = kernel_args->other_shared_ptr_a;
+    std::atomic_int32_t* my_shared_ptr_a = kernel_args->my_shared_ptr_a;
+    std::atomic_int32_t* other_shared_ptr_a = kernel_args->other_shared_ptr_a;
     size_t length_a = kernel_args->length_a;
     int32_t counter_a = kernel_args->init_counter_a;
 
-    int32_t* my_shared_ptr_b = kernel_args->my_shared_ptr_b;
-    int32_t* other_shared_ptr_b = kernel_args->other_shared_ptr_b;
+    std::atomic_int32_t* my_shared_ptr_b = kernel_args->my_shared_ptr_b;
+    std::atomic_int32_t* other_shared_ptr_b = kernel_args->other_shared_ptr_b;
     size_t length_b = kernel_args->length_b;
     int32_t counter_b = kernel_args->init_counter_b;
 
@@ -157,11 +154,8 @@ void* latency_dual_array_join_kernel(void* arg)
     {
         if(counter_a < STIM_LEN)
         {
-            //TODO: Compare the use of stdatomic fence to an array of stdatomics
-            std::atomic_thread_fence(std::memory_order_acquire);
-
             //Check all of the 
-            if(other_shared_ptr_a[index_a] == (counter_a+1))
+            if(std::atomic_load_explicit(other_shared_ptr_a+index_a, std::memory_order_acquire) == (counter_a+1))
             {
                 //The current location has incremented
                 //Check the next one
@@ -176,7 +170,7 @@ void* latency_dual_array_join_kernel(void* arg)
                     //Increment the entire array
                     for(size_t i = 0; i<length_a; i++)
                     {
-                        my_shared_ptr_a[i] = counter_a;
+                        std::atomic_store_explicit(my_shared_ptr_a+i, counter_a, std::memory_order_relaxed);
                     }
 
                     //TODO: Compare the use of stdatomic fence to an array of stdatomics
@@ -190,11 +184,8 @@ void* latency_dual_array_join_kernel(void* arg)
 
         if(counter_b < STIM_LEN)
         {
-            //TODO: Compare the use of stdatomic fence to an array of stdatomics
-            std::atomic_thread_fence(std::memory_order_acquire);
-
             //Check all of the 
-            if(other_shared_ptr_b[index_b] == (counter_b+1))
+            if(std::atomic_load_explicit(other_shared_ptr_b+index_b, std::memory_order_acquire) == (counter_b+1))
             {
                 //The current location has incremented
                 //Check the next one
@@ -209,7 +200,7 @@ void* latency_dual_array_join_kernel(void* arg)
                     //Increment the entire array
                     for(size_t i = 0; i<length_b; i++)
                     {
-                        my_shared_ptr_b[i] = counter_b;
+                        std::atomic_store_explicit(my_shared_ptr_b+i, counter_b, std::memory_order_relaxed);
                     }
 
                     //TODO: Compare the use of stdatomic fence to an array of stdatomics
