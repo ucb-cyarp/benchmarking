@@ -36,11 +36,11 @@ matrix:
   include:
     - compiler: gcc
       os: linux
-      dist: trusty
+      dist: bionic
       env: COMPILER=g++-7
     - compiler: clang
       os: linux
-      dist: trusty
+      dist: bionic
       env: COMPILER=clang++-6.0
 #    - compiler: gcc
 #      os: osx
