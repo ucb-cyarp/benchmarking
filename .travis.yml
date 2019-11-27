@@ -11,8 +11,8 @@ before_install:
   - export START_PATH=`pwd`
 
 before_script:
-    - if [[ "$COMPILER" = "g++-5"        ]] && [[ "$TRAVIS_OS_NAME" != "osx" ]]; then export CXX="g++-5" CC="gcc-5";              fi
-    - if [[ "$COMPILER" = "clang++-3.8"  ]] && [[ "$TRAVIS_OS_NAME" != "osx" ]]; then export CXX="clang++-3.8" CC="clang-3.8";    fi
+    - if [[ "$COMPILER" = "g++-7"        ]] && [[ "$TRAVIS_OS_NAME" != "osx" ]]; then export CXX="g++-7" CC="gcc-7";              fi
+    - if [[ "$COMPILER" = "clang++-6.0"  ]] && [[ "$TRAVIS_OS_NAME" != "osx" ]]; then export CXX="clang++-6.0" CC="clang-6.0";    fi
     - export PATH="$START_PATH/depends/amduprof/AMDuProf_Linux_x64_3.1.35/bin:$PATH"
     - export LD_LIBRARY_PATH="$START_PATH/depends/amduprof/AMDuProf_Linux_x64_3.1.35/lib:$LD_LIBRARY_PATH"
     - export LD_LIBRARY_PATH="$START_PATH/depends/amduprof/AMDuProf_Linux_x64_3.1.35/bin:$LD_LIBRARY_PATH"
@@ -37,18 +37,18 @@ matrix:
     - compiler: gcc
       os: linux
       dist: trusty
-      env: COMPILER=g++-5
+      env: COMPILER=g++-7
     - compiler: clang
       os: linux
       dist: trusty
-      env: COMPILER=clang++-3.8
+      env: COMPILER=clang++-6.0
 #    - compiler: gcc
 #      os: osx
-#      osx_image: xcode9.4
+#      osx_image: xcode11.2
 #      env: COMPILER=g++
     - compiler: clang
       os: osx
-      osx_image: xcode9.4
+      osx_image: xcode11.2
       env: COMPILER=clang++
   exclide:
     - compiler: gcc
@@ -60,9 +60,9 @@ addons:
     - ubuntu-toolchain-r-test
 #    - llvm-toolchain-trusty-3.8
     packages:
-    - clang-3.8
-    - gcc-5
-    - g++-5
+    - clang-6.0
+    - gcc-7
+    - g++-7
 
 script:
   - echo $CXX; echo $CC
