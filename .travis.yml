@@ -57,7 +57,7 @@ matrix:
 addons:
   apt:
     sources:
-    - ubuntu-toolchain-r-test
+#    - ubuntu-toolchain-r-test
 #    - llvm-toolchain-trusty-3.8
     packages:
     - clang-6.0
