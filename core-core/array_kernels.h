@@ -24,7 +24,10 @@
         if(report_standalone)
         {
             printf("\n");
-            printf("Single Memory Location - Array\n");
+            time_t currentTime = time(NULL);
+            struct tm * localT;
+            localT = localtime(&currentTime);
+            printf("Single Memory Location - Array | Start Time: %s", asctime(localT));
             printf("Array Length: %lu int32_t Elements\n", array_length);
         }
         #endif
@@ -126,7 +129,10 @@
         if(report_standalone)
         {
             printf("\n");
-            printf("Single Memory Location - Simultanious - Array\n");
+            time_t currentTime = time(NULL);
+            struct tm * localT;
+            localT = localtime(&currentTime);
+            printf("Single Memory Location - Simultanious | Start Time: %s", asctime(localT));
             printf("Array Length: %lu int32_t Elements\n", array_length);
         }
         #endif
@@ -267,7 +273,10 @@
         if(report_standalone)
         {
             printf("\n");
-            printf("Single Memory Location - Fan-in/Fan-out - Array\n");
+            time_t currentTime = time(NULL);
+            struct tm * localT;
+            localT = localtime(&currentTime);
+            printf("Single Memory Location - Fan-in/Fan-out - Array | Start Time: %s", asctime(localT));
             printf("Array Length: %lu int32_t Elements\n", array_length);
         }
         #endif
@@ -390,7 +399,10 @@
     void run_latency_single_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, FILE* file=NULL, std::ofstream* raw_file=NULL)
     {
         //Print header
-        printf("Single Memory Location - Array\n");
+        time_t currentTime = time(NULL);
+        struct tm * localT;
+        localT = localtime(&currentTime);
+        printf("Single Memory Location - Array | Start Time: %s", asctime(localT));
         printf("        ==========================================================================================\n");
         printf("          Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
         printf("        (int32_t Elements) |       Avg, StdDev        |                         |                 \n");
@@ -423,7 +435,10 @@
     void run_latency_single_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, int cpu_d, std::vector<size_t> array_lengths, FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //Print header
-        printf("Single Memory Location - Simultanious - Array\n");
+        time_t currentTime = time(NULL);
+        struct tm * localT;
+        localT = localtime(&currentTime);
+        printf("Single Memory Location - Simultanious - Array | Start Time: %s", asctime(localT));
         printf("        ========================================================================================================\n");
         printf("         CPU <-> CPU |  Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
         printf("                     |(int32_t Elements) |       Avg, StdDev        |                         |                 \n");
@@ -463,7 +478,10 @@
     void run_latency_single_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, std::vector<size_t> array_lengths, FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //Print header
-        printf("Single Memory Location - Fan-in/Fan-out - Array\n");
+        time_t currentTime = time(NULL);
+        struct tm * localT;
+        localT = localtime(&currentTime);
+        printf("Single Memory Location - Fan-in/Fan-out - Array | Start Time: %s", asctime(localT));
         printf("        ========================================================================================================\n");
         printf("         CPU <-> CPU |  Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
         printf("                     |(int32_t Elements) |       Avg, StdDev        |                         |                 \n");
@@ -507,7 +525,10 @@
         if(report_standalone)
         {
             printf("\n");
-            printf("Dual Memory Location - Array\n");
+            time_t currentTime = time(NULL);
+            struct tm * localT;
+            localT = localtime(&currentTime);
+            printf("Dual Memory Location - Array | Start Time: %s", asctime(localT));
             printf("Array Length: %lu int32_t Elements\n", array_length);
         }
         #endif
@@ -620,7 +641,10 @@
         if(report_standalone)
         {
             printf("\n");
-            printf("Dual Memory Location - Simultanious - Array\n");
+            time_t currentTime = time(NULL);
+            struct tm * localT;
+            localT = localtime(&currentTime);
+            printf("Dual Memory Location - Simultanious - Array | Start Time: %s", asctime(localT));
             printf("Array Length: %lu int32_t Elements\n", array_length);
         }
         #endif
@@ -768,7 +792,10 @@
         if(report_standalone)
         {
             printf("\n");
-            printf("Dual Memory Location - Fan-in/Fan-out - Array\n");
+            time_t currentTime = time(NULL);
+            struct tm * localT;
+            localT = localtime(&currentTime);
+            printf("Dual Memory Location - Fan-in/Fan-out - Array | Start Time: %s", asctime(localT));
             printf("Array Length: %lu int32_t Elements\n", array_length);
         }
         #endif
@@ -906,7 +933,10 @@
     void run_latency_dual_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, FILE* file = NULL, std::ofstream* raw_file=NULL)
     {
         //Print header
-        printf("Dual Memory Location - Array\n");
+        time_t currentTime = time(NULL);
+        struct tm * localT;
+        localT = localtime(&currentTime);
+        printf("Dual Memory Location - Array | Start Time: %s", asctime(localT));
         printf("        ==========================================================================================\n");
         printf("          Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
         printf("        (int32_t Elements) |       Avg, StdDev        |                         |                 \n");
@@ -939,7 +969,10 @@
     void run_latency_dual_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, int cpu_d, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //Print header
-        printf("Dual Memory Location - Simultanious - Array\n");
+        time_t currentTime = time(NULL);
+        struct tm * localT;
+        localT = localtime(&currentTime);
+        printf("Dual Memory Location - Simultanious - Array | Start Time: %s", asctime(localT));
         printf("        ========================================================================================================\n");
         printf("         CPU <-> CPU |  Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
         printf("                     |(int32_t Elements) |       Avg, StdDev        |                         |                 \n");
@@ -979,7 +1012,10 @@
     void run_latency_dual_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //Print header
-        printf("Dual Memory Location - Fan-in/Fan-out - Array\n");
+        time_t currentTime = time(NULL);
+        struct tm * localT;
+        localT = localtime(&currentTime);
+        printf("Dual Memory Location - Fan-in/Fan-out - Array | Start Time: %s", asctime(localT));
         printf("        ========================================================================================================\n");
         printf("         CPU <-> CPU |  Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
         printf("                     |(int32_t Elements) |       Avg, StdDev        |                         |                 \n");
@@ -1022,7 +1058,10 @@
         if(report_standalone)
         {
             printf("\n");
-            printf("Flow Control - Array\n");
+            time_t currentTime = time(NULL);
+            struct tm * localT;
+            localT = localtime(&currentTime);
+            printf("Flow Control - Array | Start Time: %s", asctime(localT));
             printf("Array Length: %lu int32_t Elements\n", array_length);
         }
         #endif
@@ -1125,7 +1164,10 @@
         if(report_standalone)
         {
             printf("\n");
-            printf("Flow Control - Simultanious - Array\n");
+            time_t currentTime = time(NULL);
+            struct tm * localT;
+            localT = localtime(&currentTime);
+            printf("Flow Control - Simultanious - Array | Start Time: %s", asctime(localT));
             printf("Array Length: %lu int32_t Elements\n", array_length);
         }
         #endif
@@ -1254,7 +1296,10 @@
         if(report_standalone)
         {
             printf("\n");
-            printf("Flow Control - Fan-in - Array\n");
+            time_t currentTime = time(NULL);
+            struct tm * localT;
+            localT = localtime(&currentTime);
+            printf("Flow Control - Fan-in - Array | Start Time: %s", asctime(localT));
             printf("Array Length: %lu int32_t Elements\n", array_length);
         }
         #endif
@@ -1393,7 +1438,10 @@
         if(report_standalone)
         {
             printf("\n");
-            printf("Flow Control - Fan-out - Array\n");
+            time_t currentTime = time(NULL);
+            struct tm * localT;
+            localT = localtime(&currentTime);
+            printf("Flow Control - Fan-out - Array | Start Time: %s", asctime(localT));
             printf("Array Length: %lu int32_t Elements\n", array_length);
         }
         #endif
@@ -1523,7 +1571,10 @@
     void run_latency_flow_ctrl_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, FILE* file = NULL, std::ofstream* raw_file=NULL)
     {
         //Print header
-        printf("Flow Control - Array\n");
+        time_t currentTime = time(NULL);
+        struct tm * localT;
+        localT = localtime(&currentTime);
+        printf("Flow Control - Array | Start Time: %s", asctime(localT));
         printf("        ==========================================================================================\n");
         printf("          Transfer Length  |  Round Trip Latency (ns) | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
         printf("        (int32_t Elements) |       Avg, StdDev        |                         |                 \n");
@@ -1556,7 +1607,10 @@
     void run_latency_flow_ctrl_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, int cpu_d, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //Print header
-        printf("Flow Control - Simultanious - Array\n");
+    time_t currentTime = time(NULL);
+        struct tm * localT;
+        localT = localtime(&currentTime);
+        printf("Flow Control - Simultanious - Array | Start Time: %s", asctime(localT));
         printf("        ========================================================================================================\n");
         printf("         CPU <-> CPU |  Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
         printf("                     |(int32_t Elements) |       Avg, StdDev        |                         |                 \n");
@@ -1595,7 +1649,10 @@
     void run_latency_flow_ctrl_fanin_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //Print header
-        printf("Flow Control - Fan-in - Array\n");
+        time_t currentTime = time(NULL);
+        struct tm * localT;
+        localT = localtime(&currentTime);
+        printf("Flow Control - Fan-in - Array | Start Time: %s", asctime(localT));
         printf("        ========================================================================================================\n");
         printf("         CPU <-> CPU |  Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
         printf("                     |(int32_t Elements) |       Avg, StdDev        |                         |                 \n");
@@ -1634,7 +1691,10 @@
     void run_latency_flow_ctrl_fanout_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //Print header
-        printf("Flow Control - Fan-out - Array\n");
+        time_t currentTime = time(NULL);
+        struct tm * localT;
+        localT = localtime(&currentTime);
+        printf("Flow Control - Fan-out - Array | Start Time: %s", asctime(localT));
         printf("        ========================================================================================================\n");
         printf("         CPU <-> CPU |  Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
         printf("                     |(int32_t Elements) |       Avg, StdDev        |                         |                 \n");
@@ -1676,7 +1736,10 @@
         if(report_standalone)
         {
             printf("\n");
-            printf("Flow Control Blocked Read - Array\n");
+            time_t currentTime = time(NULL);
+            struct tm * localT;
+            localT = localtime(&currentTime);
+            printf("Flow Control Blocked Read - Array | Start Time: %s", asctime(localT));
             printf("Array Length: %lu int32_t Elements\n", array_length);
         }
         #endif
@@ -1782,6 +1845,10 @@
         if(report_standalone)
         {
             printf("\n");
+            time_t currentTime = time(NULL);
+            struct tm * localT;
+            localT = localtime(&currentTime);
+            printf("Flow Control Blocked Read - Simultanious - Array | Start Time: %s", asctime(localT));
             printf("Flow Control Blocked Read - Simultanious - Array\n");
             printf("Array Length: %lu int32_t Elements\n", array_length);
         }
@@ -1915,7 +1982,10 @@
         if(report_standalone)
         {
             printf("\n");
-            printf("Flow Control Blocked Read - Fan-in - Array\n");
+            time_t currentTime = time(NULL);
+            struct tm * localT;
+            localT = localtime(&currentTime);
+            printf("Flow Control Blocked Read - Fan-in - Array | Start Time: %s", asctime(localT));
             printf("Array Length: %lu int32_t Elements\n", array_length);
         }
         #endif
@@ -2057,6 +2127,10 @@
         if(report_standalone)
         {
             printf("\n");
+            time_t currentTime = time(NULL);
+            struct tm * localT;
+            localT = localtime(&currentTime);
+            printf("Flow Control Blocked Read - Fan-in - Array | Start Time: %s", asctime(localT));
             printf("Flow Control Blocked Read - Fan-in - Array\n");
             printf("Array Length: %lu int32_t Elements\n", array_length);
         }
@@ -2196,7 +2270,10 @@
     void run_latency_flow_ctrl_blocked_read_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, FILE* file = NULL, std::ofstream* raw_file=NULL)
     {
         //Print header
-        printf("Flow Control Blocked Read - Array\n");
+        time_t currentTime = time(NULL);
+        struct tm * localT;
+        localT = localtime(&currentTime);
+        printf("Flow Control Blocked Read - Array | Start Time: %s", asctime(localT));
         printf("        ==========================================================================================\n");
         printf("          Transfer Length  |  Round Trip Latency (ns) | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
         printf("        (int32_t Elements) |       Avg, StdDev        |                         |                 \n");
@@ -2229,7 +2306,10 @@
     void run_latency_flow_ctrl_blocked_read_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, int cpu_d, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //Print header
-        printf("Flow Control Blocked Read - Simultanious - Array\n");
+        time_t currentTime = time(NULL);
+        struct tm * localT;
+        localT = localtime(&currentTime);
+        printf("Flow Control Blocked Read - Simultanious - Array | Start Time: %s", asctime(localT));
         printf("        ========================================================================================================\n");
         printf("         CPU <-> CPU |  Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
         printf("                     |(int32_t Elements) |       Avg, StdDev        |                         |                 \n");
@@ -2268,7 +2348,10 @@
     void run_latency_flow_ctrl_blocked_read_fanin_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //Print header
-        printf("Flow Control Blocked Read - Fan-in - Array\n");
+        time_t currentTime = time(NULL);
+        struct tm * localT;
+        localT = localtime(&currentTime);
+        printf("Flow Control Blocked Read - Fan-in - Array | Start Time: %s", asctime(localT));
         printf("        ========================================================================================================\n");
         printf("         CPU <-> CPU |  Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
         printf("                     |(int32_t Elements) |       Avg, StdDev        |                         |                 \n");
@@ -2307,7 +2390,10 @@
     void run_latency_flow_ctrl_blocked_read_fanout_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //Print header
-        printf("Flow Control Blocked Read - Fan-out - Array\n");
+        time_t currentTime = time(NULL);
+        struct tm * localT;
+        localT = localtime(&currentTime);
+        printf("Flow Control Blocked Read - Fan-out - Array | Start Time: %s", asctime(localT));
         printf("        ========================================================================================================\n");
         printf("         CPU <-> CPU |  Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
         printf("                     |(int32_t Elements) |       Avg, StdDev        |                         |                 \n");

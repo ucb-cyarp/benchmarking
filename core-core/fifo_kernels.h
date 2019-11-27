@@ -131,7 +131,10 @@
 
         //Print header
         #if PRINT_TITLE == 1
-        printf("FIFO - Array\n");
+        time_t currentTime = time(NULL);
+        struct tm * localT;
+        localT = localtime(&currentTime);
+        printf("FIFO - Array | Start Time: %s", asctime(localT));
         printf("        Lengths in int32_t Elements, Data Rates in Mbps\n");
         printf("        ===========================");
         for(int i = 0; i<max_writes_per_transaction.size(); i++)
@@ -352,7 +355,10 @@
 
         //Print header
         #if PRINT_TITLE == 1
-        printf("FIFO - Array - Blocked Transfers\n");
+        time_t currentTime = time(NULL);
+        struct tm * localT;
+        localT = localtime(&currentTime);
+        printf("FIFO - Array - Blocked Transfers | Start Time: %s", asctime(localT));
         printf("        Lengths in int32_t Elements, Data Rates in Mbps\n");
         printf("        ===========================");
         for(int i = 0; i<block_lengths.size(); i++)
@@ -574,7 +580,10 @@
 
         //Print header
         #if PRINT_TITLE == 1
-        printf("FIFO - Array - Read and Write Limited\n");
+        time_t currentTime = time(NULL);
+        struct tm * localT;
+        localT = localtime(&currentTime);
+        printf("FIFO - Array - Read and Write Limited | Start Time: %s", asctime(localT));
         printf("        Lengths in int32_t Elements, Data Rates in Mbps\n");
         printf("        ===========================");
         for(int i = 0; i<max_elements_per_transaction.size(); i++)
@@ -795,7 +804,10 @@
 
         //Print header
         #if PRINT_TITLE == 1
-        printf("FIFO - Array - Blocked Transfers Cached Indexes\n");
+        time_t currentTime = time(NULL);
+        struct tm * localT;
+        localT = localtime(&currentTime);
+        printf("FIFO - Array - Blocked Transfers Cached Indexes | Start Time: %s", asctime(localT));
         printf("        Lengths in int32_t Elements, Data Rates in Mbps\n");
         printf("        ===========================");
         for(int i = 0; i<block_lengths.size(); i++)
