@@ -33,7 +33,11 @@
         #endif
 
         //Initialize
-        int32_t* shared_loc = new int32_t[array_length];
+        size_t amountToAlloc = array_length*sizeof(int32_t);
+        if(amountToAlloc % CACHE_LINE_SIZE != 0){
+            amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
+        }
+        int32_t* shared_loc = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
