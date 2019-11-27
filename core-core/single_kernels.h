@@ -31,6 +31,7 @@
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
         std::atomic_int32_t* shared_loc = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        std::atomic_init(shared_loc, 0);
 
         //Init to 0
         *shared_loc = 0;
@@ -120,6 +121,8 @@
         }
         std::atomic_int32_t* shared_loc_a = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
         std::atomic_int32_t* shared_loc_b = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
+        std::atomic_init(shared_loc_a, 0);
+        std::atomic_init(shared_loc_b, 0);
 
         //Init to 0
         *shared_loc_a = 0;
