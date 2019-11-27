@@ -2,12 +2,13 @@
     #define _H_LATENCY_FLOW_CTRL_KERNEL
     #include <stdint.h>
     #include <cstddef>
+    #include <atomic>
 
     class LatencyFlowCtrlKernelArgs
     {
         public:
             int32_t* array_shared_ptr;
-            int32_t* ack_shared_ptr;
+            std::atomic_int32_t* ack_shared_ptr;
             size_t length;
     };
 
@@ -15,11 +16,11 @@
     {
         public:
             int32_t* array_shared_ptr_a;
-            int32_t* ack_shared_ptr_a;
+            std::atomic_int32_t* ack_shared_ptr_a;
             size_t length_a;
 
             int32_t* array_shared_ptr_b;
-            int32_t* ack_shared_ptr_b;
+            std::atomic_int32_t* ack_shared_ptr_b;
             size_t length_b;
     };
 

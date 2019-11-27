@@ -13,6 +13,7 @@
 
 #include "latency_single_array_kernel.h"
 #include "intrin_bench_default_defines_and_imports_cpp.h"
+#include <atomic>
 
 /*
  * Resets shared ptr array to 0
@@ -21,13 +22,16 @@ void* latency_single_array_kernel_reset(void* arg)
 {
     LatencySingleArrayKernelResetArgs* args = (LatencySingleArrayKernelResetArgs*) arg;
 
-    volatile int32_t* shared_ptr_int = args->shared_ptr;
+    int32_t* shared_ptr_int = args->shared_ptr;
     size_t length = args->length;
 
     for(size_t i = 0; i<length; i++)
     {
         shared_ptr_int[i] = 0;
     }
+
+    //TODO: Compare the use of stdatomic fence to an array of stdatomics
+    std::atomic_thread_fence(std::memory_order_release);
 
     return NULL;
 }
@@ -41,10 +45,10 @@ void* latency_single_array_join_kernel_reset(void* arg)
 {
     LatencySingleArrayJoinKernelResetArgs* args = (LatencySingleArrayJoinKernelResetArgs*) arg;
 
-    volatile int32_t* shared_ptr_int_a = args->shared_ptr_a;
+    int32_t* shared_ptr_int_a = args->shared_ptr_a;
     size_t length_a = args->length_a;
 
-    volatile int32_t* shared_ptr_int_b = args->shared_ptr_b;
+    int32_t* shared_ptr_int_b = args->shared_ptr_b;
     size_t length_b = args->length_b;
 
     for(size_t i = 0; i<length_a; i++)
@@ -56,6 +60,9 @@ void* latency_single_array_join_kernel_reset(void* arg)
     {
         shared_ptr_int_b[i] = 0;
     }
+
+    //TODO: Compare the use of stdatomic fence to an array of stdatomics
+    std::atomic_thread_fence(std::memory_order_release);
 
     return NULL;
 }
@@ -69,7 +76,7 @@ void* latency_single_array_kernel(void* arg)
 {
     //Get the shared pointer and the initial counter value
     LatencySingleArrayKernelArgs* kernel_args = (LatencySingleArrayKernelArgs*) arg;
-    volatile int32_t* shared_ptr = kernel_args->shared_ptr;
+    int32_t* shared_ptr = kernel_args->shared_ptr;
     size_t length = kernel_args->length;
     int32_t counter = kernel_args->init_counter;
 
@@ -78,6 +85,9 @@ void* latency_single_array_kernel(void* arg)
 
     while(counter < STIM_LEN)
     {
+        //TODO: Compare the use of stdatomic fence to an array of stdatomics
+        std::atomic_thread_fence(std::memory_order_acquire);
+
         //Check all of the 
         if(shared_ptr[index] == (counter+1))
         {
@@ -96,6 +106,9 @@ void* latency_single_array_kernel(void* arg)
                 {
                     shared_ptr[i] = counter;
                 }
+
+                //TODO: Compare the use of stdatomic fence to an array of stdatomics
+                std::atomic_thread_fence(std::memory_order_release);
 
                 //Reset index for next round
                 index = 0;
@@ -119,11 +132,11 @@ void* latency_single_array_join_kernel(void* arg)
 {
     //Get the shared pointer and the initial counter value
     LatencySingleArrayJoinKernelArgs* kernel_args = (LatencySingleArrayJoinKernelArgs*) arg;
-    volatile int32_t* shared_ptr_a = kernel_args->shared_ptr_a;
+    int32_t* shared_ptr_a = kernel_args->shared_ptr_a;
     size_t length_a = kernel_args->length_a;
     int32_t counter_a = kernel_args->init_counter_a;
 
-    volatile int32_t* shared_ptr_b = kernel_args->shared_ptr_b;
+    int32_t* shared_ptr_b = kernel_args->shared_ptr_b;
     size_t length_b = kernel_args->length_b;
     int32_t counter_b = kernel_args->init_counter_b;
 
@@ -136,6 +149,9 @@ void* latency_single_array_join_kernel(void* arg)
         //Handle Connection A
         if(counter_a < STIM_LEN) //Check because loop will run until both connections finish
         {
+            //TODO: Compare the use of stdatomic fence to an array of stdatomics
+            std::atomic_thread_fence(std::memory_order_acquire);
+
             //Check all of the 
             if(shared_ptr_a[index_a] == (counter_a+1))
             {
@@ -154,6 +170,9 @@ void* latency_single_array_join_kernel(void* arg)
                     {
                         shared_ptr_a[i] = counter_a;
                     }
+                    
+                    //TODO: Compare the use of stdatomic fence to an array of stdatomics
+                    std::atomic_thread_fence(std::memory_order_release);
 
                     //Reset index for next round
                     index_a = 0;
@@ -164,6 +183,9 @@ void* latency_single_array_join_kernel(void* arg)
         //Handle Connection B
         if(counter_b < STIM_LEN) //Check because loop will run until both connections finish
         {
+            //TODO: Compare the use of stdatomic fence to an array of stdatomics
+            std::atomic_thread_fence(std::memory_order_acquire);
+
             //Check all of the 
             if(shared_ptr_b[index_b] == (counter_b+1))
             {
@@ -182,6 +204,9 @@ void* latency_single_array_join_kernel(void* arg)
                     {
                         shared_ptr_b[i] = counter_b;
                     }
+
+                    //TODO: Compare the use of stdatomic fence to an array of stdatomics
+                    std::atomic_thread_fence(std::memory_order_release);
 
                     //Reset index for next round
                     index_b = 0;

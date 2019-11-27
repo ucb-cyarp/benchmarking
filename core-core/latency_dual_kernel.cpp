@@ -29,11 +29,11 @@
 void* latency_dual_kernel_reset(void* arg)
 {
     LatencyDualKernelResetArgs* args = (LatencyDualKernelResetArgs*) arg;
-    volatile int32_t* shared_ptr_a_int = args->shared_ptr_a;
-    volatile int32_t* shared_ptr_b_int = args->shared_ptr_b;
+    std::atomic_int32_t* shared_ptr_a_int = args->shared_ptr_a;
+    std::atomic_int32_t* shared_ptr_b_int = args->shared_ptr_b;
 
-    *shared_ptr_a_int = 0;
-    *shared_ptr_b_int = 0;
+    std::atomic_store_explicit(shared_ptr_a_int, 0, std::memory_order_release);
+    std::atomic_store_explicit(shared_ptr_b_int, 0, std::memory_order_release);
 
     return NULL;
 }
@@ -47,17 +47,17 @@ void* latency_dual_kernel(void* arg)
 {
     //Get the shared pointer and the initial counter value
     LatencyDualKernelArgs* kernel_args = (LatencyDualKernelArgs*) arg;
-    volatile int32_t* my_shared_ptr = kernel_args->my_shared_ptr;
-    volatile int32_t* other_shared_ptr = kernel_args->other_shared_ptr;
+    std::atomic_int32_t* my_shared_ptr = kernel_args->my_shared_ptr;
+    std::atomic_int32_t* other_shared_ptr = kernel_args->other_shared_ptr;
     int32_t counter = kernel_args->init_counter;
 
     //Execute until the specified number of transactions has occured
     while(counter < STIM_LEN)
     {
-        if(*other_shared_ptr == (counter+1))
+        if(std::atomic_load_explicit(other_shared_ptr, std::memory_order_acquire) == (counter+1))
         {
             counter+=2;
-            *my_shared_ptr = counter;
+            std::atomic_store_explicit(my_shared_ptr, counter, std::memory_order_release);
         }
 
         //Poll on the memory location until the above condition is met or the counter exceeds STIM_LEN

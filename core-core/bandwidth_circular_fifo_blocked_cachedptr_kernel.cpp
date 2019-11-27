@@ -26,18 +26,18 @@ void* bandwidth_circular_fifo_blocked_cachedptr_kernel_reset(void* arg)
 {
     BandwidthCircularFifoBlockedCachedPtrKernelArgs* args = (BandwidthCircularFifoBlockedCachedPtrKernelArgs*) arg;
 
-    volatile int32_t* array_shared_ptr_int = args->array_shared_ptr;
-    volatile int32_t* write_pos_shared_ptr_int = args->write_pos_shared_ptr;
-    volatile int32_t* read_pos_shared_ptr_int = args->read_pos_shared_ptr;
+    int32_t* array_shared_ptr_int = args->array_shared_ptr;
+    std::atomic_int32_t* write_pos_shared_ptr_int = args->write_pos_shared_ptr;
+    std::atomic_int32_t* read_pos_shared_ptr_int = args->read_pos_shared_ptr;
     size_t length = args->length;
-
-    *write_pos_shared_ptr_int = 0;
-    *read_pos_shared_ptr_int = 0;
 
     for(size_t i = 0; i<length; i++)
     {
         array_shared_ptr_int[i] = 0;
     }
+
+    std::atomic_store_explicit(write_pos_shared_ptr_int, 0, std::memory_order_release);
+    std::atomic_store_explicit(read_pos_shared_ptr_int, 0, std::memory_order_release);
 
     return NULL;
 }
@@ -51,15 +51,15 @@ void* bandwidth_circular_fifo_blocked_cachedptr_server_kernel(void* arg)
 {
     //Get the shared pointer and the initial counter value
     BandwidthCircularFifoBlockedCachedPtrKernelArgs* kernel_args = (BandwidthCircularFifoBlockedCachedPtrKernelArgs*) arg;
-    volatile int32_t* array_shared_ptr = kernel_args->array_shared_ptr;
-    volatile int32_t* write_pos_shared_ptr = kernel_args->write_pos_shared_ptr;
-    volatile int32_t* read_pos_shared_ptr = kernel_args->read_pos_shared_ptr;
+    int32_t* array_shared_ptr = kernel_args->array_shared_ptr;
+    std::atomic_int32_t* write_pos_shared_ptr = kernel_args->write_pos_shared_ptr;
+    std::atomic_int32_t* read_pos_shared_ptr = kernel_args->read_pos_shared_ptr;
 
     size_t length = kernel_args->length;
     int32_t block_length = kernel_args->block_length;
 
     int32_t write_id = 0;
-    *write_pos_shared_ptr = write_id; //sync write id
+    std::atomic_store_explicit(write_pos_shared_ptr, write_id, std::memory_order_release); //sync write id
 
     int32_t write_index = 0;
 
@@ -95,13 +95,13 @@ void* bandwidth_circular_fifo_blocked_cachedptr_server_kernel(void* arg)
             write_id += number_to_write;
 
             //Let's sync the write pointer to the new tail of the queue
-            *write_pos_shared_ptr = write_id;
+            std::atomic_store_explicit(write_pos_shared_ptr, write_id, std::memory_order_release);
         }else{
             //The cached read ptr indicates that there is no room
             //Update it for the next round in case things have changed
 
             //Get the current read_id
-            read_id = *read_pos_shared_ptr;
+            read_id = std::atomic_load_explicit(read_pos_shared_ptr, std::memory_order_acquire);
         }
 
         //Poll until we are able to write again or we have reached the test end
@@ -119,15 +119,15 @@ void* bandwidth_circular_fifo_blocked_cachedptr_client_kernel(void* arg)
 {
     //Get the shared pointer and the initial counter value
     BandwidthCircularFifoBlockedCachedPtrKernelArgs* kernel_args = (BandwidthCircularFifoBlockedCachedPtrKernelArgs*) arg;
-    volatile int32_t* array_shared_ptr = kernel_args->array_shared_ptr;
-    volatile int32_t* write_pos_shared_ptr = kernel_args->write_pos_shared_ptr;
-    volatile int32_t* read_pos_shared_ptr = kernel_args->read_pos_shared_ptr;
+    int32_t* array_shared_ptr = kernel_args->array_shared_ptr;
+    std::atomic_int32_t* write_pos_shared_ptr = kernel_args->write_pos_shared_ptr;
+    std::atomic_int32_t* read_pos_shared_ptr = kernel_args->read_pos_shared_ptr;
 
     size_t length = kernel_args->length;
     size_t block_length = kernel_args->block_length;
 
     int32_t read_id = 0;
-    *read_pos_shared_ptr = read_id; //sync read id
+    std::atomic_store_explicit(read_pos_shared_ptr, read_id, std::memory_order_release); //sync read id
 
     int32_t read_index = 0;
 
@@ -181,13 +181,13 @@ void* bandwidth_circular_fifo_blocked_cachedptr_client_kernel(void* arg)
             //We read and checked all entries, now let's update the read_id
             read_id += num_to_read;
 
-            *read_pos_shared_ptr = read_id; //Sync read ID
+            std::atomic_store_explicit(read_pos_shared_ptr, read_id, std::memory_order_release); //Sync read ID
         }else{
             //The cached write ptr indicates that there is nothing to read
             //Update it for the next round in case things have changed
 
             //Get the current read_id
-            write_id = *write_pos_shared_ptr; //get the current write ID
+            write_id = std::atomic_load_explicit(write_pos_shared_ptr, std::memory_order_acquire); //get the current write ID
         }
 
         //Poll until there is more data to read or the end of the test
