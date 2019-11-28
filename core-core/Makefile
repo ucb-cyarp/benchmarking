@@ -25,7 +25,7 @@ KERNEL_CFLAGS = -O3 -c -g -std=c++11 -march=native -masm=att
 KERNEL_NO_OPT_CFLAGS = -O0 -c -g -std=c++11 -march=native -masm=att
 INC=-I $(COMMON_DIR)
 LIB_DIRS=-L $(COMMON_DIR)
-LIB=-pthread -lrt -lProfilerCommon
+LIB=-pthread -lrt -lProfilerCommon -latomic
 
 TEST_CLASSES = -DTEST_SINGLE=1 -DTEST_FIFO=1 -DTEST_SIMULTANIOUS=1 -DTEST_FANIN_FANOUT=1
 
