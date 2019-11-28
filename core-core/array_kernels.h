@@ -1132,11 +1132,11 @@
         #endif
 
         //Initialize
-        size_t amountToAlloc = array_length*sizeof(int32_t);
+        size_t amountToAlloc = array_length*sizeof(std::atomic_int32_t);
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_array_loc = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        std::atomic_int32_t* shared_array_loc = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
 
         size_t amountToAllocCursors = sizeof(std::atomic_int32_t);
         if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
@@ -1152,7 +1152,11 @@
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
         {
-            shared_array_loc[i] = 0;
+            std::atomic_init(shared_array_loc+i, 0);
+            if(!std::atomic_is_lock_free(shared_array_loc+i)){
+                printf("Atomic is not lock free and was expected to be");
+                exit(1);
+            }
         }
 
         LatencyFlowCtrlKernelArgs* args = new LatencyFlowCtrlKernelArgs();
@@ -1242,12 +1246,12 @@
         #endif
 
         //Initialize
-        size_t amountToAlloc = array_length*sizeof(int32_t);
+        size_t amountToAlloc = array_length*sizeof(std::atomic_int32_t);
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_array_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
-        int32_t* shared_array_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_c);
+        std::atomic_int32_t* shared_array_loc_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        std::atomic_int32_t* shared_array_loc_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_c);
 
         size_t amountToAllocCursors = sizeof(std::atomic_int32_t);
         if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
@@ -1269,8 +1273,16 @@
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
         {
-            shared_array_loc_1[i] = 0;
-            shared_array_loc_2[i] = 0;
+            std::atomic_init(shared_array_loc_1+i, 0);
+            if(!std::atomic_is_lock_free(shared_array_loc_1+i)){
+                printf("Atomic is not lock free and was expected to be");
+                exit(1);
+            }
+            std::atomic_init(shared_array_loc_2+i, 0);
+            if(!std::atomic_is_lock_free(shared_array_loc_2+i)){
+                printf("Atomic is not lock free and was expected to be");
+                exit(1);
+            }
         }
 
         LatencyFlowCtrlKernelArgs* args_1 = new LatencyFlowCtrlKernelArgs();
@@ -1382,12 +1394,12 @@
         #endif
 
         //Initialize
-        size_t amountToAlloc = array_length*sizeof(int32_t);
+        size_t amountToAlloc = array_length*sizeof(std::atomic_int32_t);
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_array_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
-        int32_t* shared_array_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
+        std::atomic_int32_t* shared_array_loc_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        std::atomic_int32_t* shared_array_loc_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
 
         size_t amountToAllocCursors = sizeof(std::atomic_int32_t);
         if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
@@ -1409,8 +1421,16 @@
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
         {
-            shared_array_loc_1[i] = 0;
-            shared_array_loc_2[i] = 0;
+            std::atomic_init(shared_array_loc_1+i, 0);
+            if(!std::atomic_is_lock_free(shared_array_loc_1+i)){
+                printf("Atomic is not lock free and was expected to be");
+                exit(1);
+            }
+            std::atomic_init(shared_array_loc_2+i, 0);
+            if(!std::atomic_is_lock_free(shared_array_loc_2+i)){
+                printf("Atomic is not lock free and was expected to be");
+                exit(1);
+            }
         }
 
         //2 Servers
@@ -1532,12 +1552,12 @@
         #endif
 
         //Initialize
-        size_t amountToAlloc = array_length*sizeof(int32_t);
+        size_t amountToAlloc = array_length*sizeof(std::atomic_int32_t);
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_array_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
-        int32_t* shared_array_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        std::atomic_int32_t* shared_array_loc_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        std::atomic_int32_t* shared_array_loc_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
 
         size_t amountToAllocCursors = sizeof(std::atomic_int32_t);
         if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
@@ -1559,8 +1579,16 @@
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
         {
-            shared_array_loc_1[i] = 0;
-            shared_array_loc_2[i] = 0;
+            std::atomic_init(shared_array_loc_1+i, 0);
+            if(!std::atomic_is_lock_free(shared_array_loc_1+i)){
+                printf("Atomic is not lock free and was expected to be");
+                exit(1);
+            }
+            std::atomic_init(shared_array_loc_2+i, 0);
+            if(!std::atomic_is_lock_free(shared_array_loc_2+i)){
+                printf("Atomic is not lock free and was expected to be");
+                exit(1);
+            }
         }
 
         //1 Server

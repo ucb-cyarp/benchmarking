@@ -7,7 +7,7 @@
     class LatencyFlowCtrlKernelArgs
     {
         public:
-            int32_t* array_shared_ptr;
+            std::atomic_int32_t* array_shared_ptr;
             std::atomic_int32_t* ack_shared_ptr;
             size_t length;
     };
@@ -15,11 +15,11 @@
     class LatencyFlowCtrlJoinKernelArgs
     {
         public:
-            int32_t* array_shared_ptr_a;
+            std::atomic_int32_t* array_shared_ptr_a;
             std::atomic_int32_t* ack_shared_ptr_a;
             size_t length_a;
 
-            int32_t* array_shared_ptr_b;
+            std::atomic_int32_t* array_shared_ptr_b;
             std::atomic_int32_t* ack_shared_ptr_b;
             size_t length_b;
     };

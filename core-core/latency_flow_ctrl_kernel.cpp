@@ -14,13 +14,13 @@ void* latency_flow_ctrl_kernel_reset(void* arg)
 {
     LatencyFlowCtrlKernelArgs* args = (LatencyFlowCtrlKernelArgs*) arg;
 
-    int32_t* array_shared_ptr_int = args->array_shared_ptr;
+    std::atomic_int32_t* array_shared_ptr_int = args->array_shared_ptr;
     std::atomic_int32_t* ack_shared_ptr_int = args->ack_shared_ptr;
     size_t length = args->length;
 
     for(size_t i = 0; i<length; i++)
     {
-        array_shared_ptr_int[i] = 0;
+        std::atomic_store_explicit(array_shared_ptr_int+i, 0, std::memory_order_relaxed);
     }
 
     std::atomic_store_explicit(ack_shared_ptr_int, 0, std::memory_order_release);
@@ -35,24 +35,24 @@ void* latency_flow_ctrl_join_kernel_reset(void* arg)
 {
     LatencyFlowCtrlJoinKernelArgs* args = (LatencyFlowCtrlJoinKernelArgs*) arg;
 
-    int32_t* array_shared_ptr_int_a = args->array_shared_ptr_a;
+    std::atomic_int32_t* array_shared_ptr_int_a = args->array_shared_ptr_a;
     std::atomic_int32_t* ack_shared_ptr_int_a = args->ack_shared_ptr_a;
     size_t length_a = args->length_a;
 
-    int32_t* array_shared_ptr_int_b = args->array_shared_ptr_b;
+    std::atomic_int32_t* array_shared_ptr_int_b = args->array_shared_ptr_b;
     std::atomic_int32_t* ack_shared_ptr_int_b = args->ack_shared_ptr_b;
     size_t length_b = args->length_b;
 
     for(size_t i = 0; i<length_a; i++)
     {
-        array_shared_ptr_int_a[i] = 0;
+        std::atomic_store_explicit(array_shared_ptr_int_a+i, 0, std::memory_order_relaxed);
     }
 
     std::atomic_store_explicit(ack_shared_ptr_int_a, 0, std::memory_order_release);
 
     for(size_t i = 0; i<length_b; i++)
     {
-        array_shared_ptr_int_b[i] = 0;
+        std::atomic_store_explicit(array_shared_ptr_int_b+i, 0, std::memory_order_relaxed);
     }
     
     std::atomic_store_explicit(ack_shared_ptr_int_b, 0, std::memory_order_release);
@@ -69,7 +69,7 @@ void* latency_flow_ctrl_server_kernel(void* arg)
 {
     //Get the shared pointer and the initial counter value
     LatencyFlowCtrlKernelArgs* kernel_args = (LatencyFlowCtrlKernelArgs*) arg;
-    int32_t* array_shared_ptr = kernel_args->array_shared_ptr;
+    std::atomic_int32_t* array_shared_ptr = kernel_args->array_shared_ptr;
     std::atomic_int32_t* ack_shared_ptr = kernel_args->ack_shared_ptr;
     size_t length = kernel_args->length;
 
@@ -90,7 +90,7 @@ void* latency_flow_ctrl_server_kernel(void* arg)
             //Increment the entire array
             for(size_t i = 0; i<length; i++)
             {
-                array_shared_ptr[i] = counter;
+                std::atomic_store_explicit(array_shared_ptr+i, counter, std::memory_order_relaxed);
             }
 
             //TODO: Check if this fence is required.  In other tests (ex. FIFO), there is an implicit barrier with an update to the write pointer
@@ -114,11 +114,11 @@ void* latency_flow_ctrl_server_join_kernel(void* arg)
 {
     //Get the shared pointer and the initial counter value
     LatencyFlowCtrlJoinKernelArgs* kernel_args = (LatencyFlowCtrlJoinKernelArgs*) arg;
-    int32_t* array_shared_ptr_a = kernel_args->array_shared_ptr_a;
+    std::atomic_int32_t* array_shared_ptr_a = kernel_args->array_shared_ptr_a;
     std::atomic_int32_t* ack_shared_ptr_a = kernel_args->ack_shared_ptr_a;
     size_t length_a = kernel_args->length_a;
 
-    int32_t* array_shared_ptr_b = kernel_args->array_shared_ptr_b;
+    std::atomic_int32_t* array_shared_ptr_b = kernel_args->array_shared_ptr_b;
     std::atomic_int32_t* ack_shared_ptr_b = kernel_args->ack_shared_ptr_b;
     size_t length_b = kernel_args->length_b;
 
@@ -145,7 +145,7 @@ void* latency_flow_ctrl_server_join_kernel(void* arg)
                 //Increment the entire array
                 for(size_t i = 0; i<length_a; i++)
                 {
-                    array_shared_ptr_a[i] = counter_a;
+                    std::atomic_store_explicit(array_shared_ptr_a+i, counter_a, std::memory_order_relaxed);
                 }
 
                 //TODO: Check if this fence is required.  In other tests (ex. FIFO), there is an implicit barrier with an update to the write pointer
@@ -165,7 +165,7 @@ void* latency_flow_ctrl_server_join_kernel(void* arg)
                 //Increment the entire array
                 for(size_t i = 0; i<length_b; i++)
                 {
-                    array_shared_ptr_b[i] = counter_b;
+                    std::atomic_store_explicit(array_shared_ptr_b+i, counter_b, std::memory_order_relaxed);
                 }
 
                 //TODO: Check if this fence is required.  In other tests (ex. FIFO), there is an implicit barrier with an update to the write pointer
@@ -188,7 +188,7 @@ void* latency_flow_ctrl_client_kernel(void* arg)
 {
     //Get the shared pointer and the initial counter value
     LatencyFlowCtrlKernelArgs* kernel_args = (LatencyFlowCtrlKernelArgs*) arg;
-    int32_t* array_shared_ptr = kernel_args->array_shared_ptr;
+    std::atomic_int32_t* array_shared_ptr = kernel_args->array_shared_ptr;
     std::atomic_int32_t* ack_shared_ptr = kernel_args->ack_shared_ptr;
     size_t length = kernel_args->length;
 
@@ -201,10 +201,7 @@ void* latency_flow_ctrl_client_kernel(void* arg)
     {
         //Check all of the memory locations
 
-        //TODO: Check if this fence is nessisary.  Other tests (ex FIFO) have an atomic load with aquire semantics for the write ptr
-        std::atomic_thread_fence(std::memory_order_acquire);
-
-        if(array_shared_ptr[index] == (counter+1))
+        if(std::atomic_load_explicit(array_shared_ptr+index, std::memory_order_acquire) == (counter+1))
         {
             //The current location has incremented
             //Check the next one
@@ -241,11 +238,11 @@ void* latency_flow_ctrl_client_join_kernel(void* arg)
 {
     //Get the shared pointer and the initial counter value
     LatencyFlowCtrlJoinKernelArgs* kernel_args = (LatencyFlowCtrlJoinKernelArgs*) arg;
-    int32_t* array_shared_ptr_a = kernel_args->array_shared_ptr_a;
+    std::atomic_int32_t* array_shared_ptr_a = kernel_args->array_shared_ptr_a;
     std::atomic_int32_t* ack_shared_ptr_a = kernel_args->ack_shared_ptr_a;
     size_t length_a = kernel_args->length_a;
 
-    int32_t* array_shared_ptr_b = kernel_args->array_shared_ptr_b;
+    std::atomic_int32_t* array_shared_ptr_b = kernel_args->array_shared_ptr_b;
     std::atomic_int32_t* ack_shared_ptr_b = kernel_args->ack_shared_ptr_b;
     size_t length_b = kernel_args->length_b;
 
@@ -262,11 +259,8 @@ void* latency_flow_ctrl_client_join_kernel(void* arg)
     {
         if(counter_a < STIM_LEN)
         {
-            //TODO: Check if this fence is nessisary.  Other tests (ex FIFO) have an atomic load with aquire semantics for the write ptr
-            std::atomic_thread_fence(std::memory_order_acquire);
-
             //Check all of the memory locations
-            if(array_shared_ptr_a[index_a] == (counter_a+1))
+            if(std::atomic_load_explicit(array_shared_ptr_a+index_a, std::memory_order_acquire) == (counter_a+1))
             {
                 //The current location has incremented
                 //Check the next one
@@ -289,11 +283,8 @@ void* latency_flow_ctrl_client_join_kernel(void* arg)
 
         if(counter_b < STIM_LEN)
         {
-            //TODO: Check if this fence is nessisary.  Other tests (ex FIFO) have an atomic load with aquire semantics for the write ptr
-            std::atomic_thread_fence(std::memory_order_acquire);
-
             //Check all of the memory locations
-            if(array_shared_ptr_b[index_b] == (counter_b+1))
+            if(std::atomic_load_explicit(array_shared_ptr_b+index_b, std::memory_order_acquire) == (counter_b+1))
             {
                 //The current location has incremented
                 //Check the next one
