@@ -444,6 +444,33 @@ int main(int argc, char *argv[])
 
     int cpu_number = 0;
 
+    #if USE_SCHED_FIFO==1
+        status=  pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
+        if(status != 0)
+        {
+            printf("Could not set pthread explicit schedule attribute ... exiting\n");
+            exit(1);
+        }
+
+        status=  pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
+        if(status != 0)
+        {
+            printf("Could not set pthread schedule policy to SCHED_FIFO ... exiting\n");
+            exit(1);
+        }
+
+        struct sched_param threadParams;
+        threadParams.sched_priority = sched_get_priority_max(SCHED_FIFO);
+
+        status=  pthread_attr_setschedparam(&attr, &threadParams);
+        if(status != 0)
+        {
+            printf("Could not set pthread schedule parameter ... exiting\n");
+            exit(1);
+        }
+    #endif
+
+
 #ifdef __APPLE__
     fprintf(stderr, "Warning: Running on MacOS - Thread Affinity Not Set.  Disregard Core Number\n");
     //It looks like the best we could do would be to request that sets of threads be placed on the same L2 if possible.

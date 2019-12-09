@@ -61,4 +61,8 @@
     #ifndef USE_AMDuPROF
         #define USE_AMDuPROF 0
     #endif
+
+    #ifndef USE_SCHED_FIFO 
+        #define USE_SCHED_FIFO 1 //USE Real Time Scheduling SCHED_FIFO
+    #endif
 #endif
