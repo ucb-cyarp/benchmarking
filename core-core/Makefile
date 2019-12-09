@@ -112,10 +112,10 @@ $(DEPENDS_DIR)/pcm/Makefile:
 	git submodule update --init --recursive $(DEPENDS_DIR)/pcm
 
 $(DEPENDS_DIR)/pcm/libPCM.a: $(DEPENDS_DIR)/pcm/Makefile
-	cd $(DEPENDS_DIR)/pcm; make libPCM.a
+	cd $(DEPENDS_DIR)/pcm; make CXX=$(CXX) CC=$(CC) libPCM.a
 
 $(COMMON_DIR)/libProfilerCommon.a:
-	cd $(COMMON_DIR); make USE_PCM=$(USE_PCM) USE_AMDuPROF=$(USE_AMDuPROF) USE_SCHED_FIFO=${USE_SCHED_FIFO}
+	cd $(COMMON_DIR); make CXX=$(CXX) CC=$(CC) USE_PCM=$(USE_PCM) USE_AMDuPROF=$(USE_AMDuPROF) USE_SCHED_FIFO=${USE_SCHED_FIFO}
 	
 clean:
 	rm -f core-core
