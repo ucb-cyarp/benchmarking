@@ -6,6 +6,7 @@ SRC_DIR=.
 #Parameters that can be supplied to this makefile
 USE_PCM=1
 USE_AMDuPROF=1
+USE_SCHED_FIFO=1
 
 #Get Cache Sizes
 # L1D_CACHE_SIZE = $(shell ./get_l1d_cache_size.py)
@@ -73,6 +74,12 @@ else
 DEFINES+= -DUSE_AMDuPROF=0
 endif
 
+ifeq ($(USE_SCHED_FIFO), 1)
+DEFINES+= -DUSE_SCHED_FIFO=1
+else
+DEFINES+= -DUSE_SCHED_FIFO=0
+endif
+
 MAIN_FILE = core-core.cpp
 KERNEL_SRCS = latency_single_kernel.cpp latency_dual_kernel.cpp latency_single_array_kernel.cpp latency_dual_array_kernel.cpp latency_flow_ctrl_kernel.cpp latency_flow_ctrl_blocked_read_kernel.cpp bandwidth_circular_fifo_kernel.cpp bandwidth_circular_fifo_blocked_kernel.cpp bandwidth_circular_fifo_read_limit_kernel.cpp bandwidth_circular_fifo_blocked_cachedptr_kernel.cpp
 
@@ -108,7 +115,7 @@ $(DEPENDS_DIR)/pcm/libPCM.a: $(DEPENDS_DIR)/pcm/Makefile
 	cd $(DEPENDS_DIR)/pcm; make libPCM.a
 
 $(COMMON_DIR)/libProfilerCommon.a:
-	cd $(COMMON_DIR); make USE_PCM=$(USE_PCM) USE_AMDuPROF=$(USE_AMDuPROF)
+	cd $(COMMON_DIR); make USE_PCM=$(USE_PCM) USE_AMDuPROF=$(USE_AMDuPROF) USE_SCHED_FIFO=${USE_SCHED_FIFO}
 	
 clean:
 	rm -f core-core
