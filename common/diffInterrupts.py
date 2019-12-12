@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+#Computes the difference between 2 dumps of /proc/interrupts for a user provided list of CPUs
+#Filters out rows where there was no difference
+
 import argparse
 
 def getColums(header, cpuList):
