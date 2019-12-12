@@ -83,6 +83,7 @@ def printTable(irqCountDiffs, cpuList, irqDescription, irqIDOrder):
 
     irqIDHeaderLabel = 'IRQ_ID'
     cpuFormat = 'CPU{}'
+    seperator = '    '
 
     #Remove entries with 0 difference
     for irqID in irqCountDiffs.keys():
@@ -99,7 +100,6 @@ def printTable(irqCountDiffs, cpuList, irqDescription, irqIDOrder):
     #Get Table Column Widths
     widthIrqID = len(irqIDHeaderLabel)
     diffWidths = []
-    descrWidths = []
 
     for irqID in irqIDOrderFiltered:
         if len(irqID)>widthIrqID:
@@ -113,14 +113,6 @@ def printTable(irqCountDiffs, cpuList, irqDescription, irqIDOrder):
             if entryLen > diffWidths[i]:
                 diffWidths[i] = entryLen
 
-        for i in range(0, len(irqDescription[irqID])):
-            if i >= len(descrWidths):
-                descrWidths.append(0)
-
-            entryLen = len(irqDescription[irqID][i])
-            if entryLen > descrWidths[i]:
-                descrWidths[i] = entryLen
-
     #Print the table
 
     #Print the header
@@ -129,7 +121,7 @@ def printTable(irqCountDiffs, cpuList, irqDescription, irqIDOrder):
 
     for i in range(0, len(cpuList)):
         cpuStr = cpuFormat.format(cpuList[i])
-        formatStr = ' {:>'+str(diffWidths[i])+'}'
+        formatStr = seperator+'{:>'+str(diffWidths[i])+'}'
         print(formatStr.format(cpuStr) , end='')
 
     print('');
@@ -140,12 +132,14 @@ def printTable(irqCountDiffs, cpuList, irqDescription, irqIDOrder):
         print(formatStr.format(irqID) , end='')
 
         for i in range(0, len(cpuList)):
-            formatStr = ' {:>'+str(diffWidths[i])+'}'
+            formatStr = seperator+'{:>'+str(diffWidths[i])+'}'
             print(formatStr.format(irqCountDiffs[irqID][i]) , end='')
 
         for i in range(0, len(irqDescription[irqID])):
-            formatStr = ' {:<'+str(descrWidths[i])+'}'
-            print(formatStr.format(irqDescription[irqID][i]) , end='')
+            front = ' '
+            if i == 0:
+                front = seperator
+            print(front+irqDescription[irqID][i], end='')
 
         print('')
 
