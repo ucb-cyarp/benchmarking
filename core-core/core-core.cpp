@@ -249,8 +249,8 @@ int main(int argc, char *argv[])
     delete latency_single_kernel_results;
 
     //=====Test 1.1 - Latency Dual Elements=====
-    Results* latency_dual_kernel_results = run_latency_dual_kernel(profiler, cpu_a, cpu_b);
-    delete latency_dual_kernel_results;
+    //Results* latency_dual_kernel_results = run_latency_dual_kernel(profiler, cpu_a, cpu_b);
+    //delete latency_dual_kernel_results;
 
     #if TEST_SINGLE == 1
 

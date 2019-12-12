@@ -19,11 +19,21 @@
 
     //Set default options
     #ifndef STIM_LEN
-        #define STIM_LEN 200
+	//#define STIM_LEN 200
+	//#define STIM_LEN 2000
+	//#define STIM_LEN 8000
+	//#define STIM_LEN 20000
+        //#define STIM_LEN 200000
+        //#define STIM_LEN 2000000
+        //#define STIM_LEN 200000000
+        #define STIM_LEN 2000000000
+        //#define STIM_LEN 100000
     #endif
 
     #ifndef TRIALS
-        #define TRIALS 20
+        //#define TRIALS 20
+        //#define TRIALS 100
+        #define TRIALS 1
     #endif
 
     #ifndef MAX_DISCARD
