@@ -40,6 +40,8 @@ def main():
     subprocess.call('cat /proc/interrupts > interruptsBefore.txt', shell=True, executable='/bin/bash')
     subprocess.call(cmd, shell=True, executable='/bin/bash')
     subprocess.call('cat /proc/interrupts > interruptsAfter.txt', shell=True, executable='/bin/bash')
+    diffInterruptsCmd = '../common/diffInterrupts.py --start interruptsBefore.txt --end interruptsAfter.txt {} {} | tee interruptsDiff.txt'.format(cpu_a, cpu_b)
+    subprocess.call(diffInterruptsCmd, shell=True, executable='/bin/bash')
 
     cur_time = datetime.datetime.now()
     print("\nFinished: {}\n".format(str(cur_time)))
