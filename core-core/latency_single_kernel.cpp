@@ -23,6 +23,7 @@
 #include "intrin_bench_default_defines_and_imports_cpp.h"
 #include <cstddef>
 #include <atomic>
+#include <chrono>
 
 /*
  * Resets shared ptr to 0
@@ -47,6 +48,9 @@ void* latency_single_kernel(void* arg)
     LatencySingleKernelArgs* kernel_args = (LatencySingleKernelArgs*) arg;
     std::atomic_int32_t* shared_ptr = kernel_args->shared_ptr;
     int32_t counter = kernel_args->init_counter;
+	    
+    std::chrono::high_resolution_clock::time_point start_hrc = std::chrono::high_resolution_clock::now();
+    double dummy;
 
     //Execute until the specified number of transactions has occured
     while(counter < STIM_LEN)
@@ -55,10 +59,17 @@ void* latency_single_kernel(void* arg)
         {
             counter+=2;
             std::atomic_store_explicit(shared_ptr, counter, std::memory_order_release);
+
+	    std::chrono::high_resolution_clock::time_point stop_hrc = std::chrono::high_resolution_clock::now();
+
+	    double dur = (std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(stop_hrc-start_hrc)).count();
+
+	    dummy += dur;
+	    
         }
 
         //Poll on the memory location until the above condition is met or the counter exceeds STIM_LEN
     }
 
-    return NULL;
+    return (void*) &dummy; //I know this returns a bad pointer
 }
