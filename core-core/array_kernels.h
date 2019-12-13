@@ -17,10 +17,6 @@
 
     #include "mallocHelpers.h"
 
-    #define PRINT_STATS 1 
-    #define PRINT_FULL_STATS 1
-    #define WRITE_CSV 1
-
     // ==== Helper functions ====
 
     void printTitleArray(bool report_standalone, std::string title, size_t array_length){
@@ -31,9 +27,17 @@
             time_t currentTime = time(NULL);
             struct tm * localT;
             localT = localtime(&currentTime);
-            printf("%s | Start Time: %s", title, asctime(localT));
+            printf("%s | Start Time: %s", title.c_str(), asctime(localT));
             printf("Array Length: %lu int32_t Elements\n", array_length);
         }
+        #endif
+    }
+
+    void writeCSVHeader(FILE* file, std::ofstream* raw_file){
+        #if WRITE_CSV == 1
+        fprintf(file, "\"Transfer Length (int32_t Elements)\", \"One Way Latency (ns) - Avg\", \"One Way Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
+        fflush(file);
+        *raw_file << "\"Transfer Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
         #endif
     }
 
@@ -42,43 +46,33 @@
         time_t currentTime = time(NULL);
         struct tm * localT;
         localT = localtime(&currentTime);
-        printf("%s | Start Time: %s", title, asctime(localT));
+        printf("%s | Start Time: %s", title.c_str(), asctime(localT));
         printf("        ==========================================================================================\n");
         printf("          Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
         printf("        (int32_t Elements) |       Avg, StdDev        |                         |                 \n");
         printf("        ==========================================================================================\n");
 
-        #if WRITE_CSV == 1
-        fprintf(file, "\"Transfer Length (int32_t Elements)\", \"One Way Latency (ns) - Avg\", \"One Way Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
-        fflush(file);
-        *raw_file << "\"Transfer Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
-        #endif
+        writeCSVHeader(file, raw_file);
 
         std::string format = "        %18d | %11.6f, %11.6f | %23.6f | %15.6f \n";
         return format;
     }
 
     //Return format
-    std::string tableHeaderArray2Streams(std::string title, FILE* file_a, FILE* file_b, std::ofstream* raw_file_a, std::ofstream* raw_file_b){
-        time_t currentTime = time(NULL);
-        struct tm * localT;
-        localT = localtime(&currentTime);
-        printf("%s | Start Time: %s", title, asctime(localT));
-        printf("        ========================================================================================================\n");
-        printf("         CPU <-> CPU |  Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
-        printf("                     |(int32_t Elements) |       Avg, StdDev        |                         |                 \n");
-        printf("        ========================================================================================================\n");
+    std::string tableHeaderArray2Streams(std::string title, FILE* file_a, FILE* file_b, std::ofstream* raw_file_a, std::ofstream* raw_file_b, bool bidirectional){
+        //The printed header is the same as the 1 stream version
+        tableHeaderArray1Stream(title, file_a, raw_file_a);
 
-        #if WRITE_CSV == 1
-        fprintf(file_a, "\"Transfer Length (int32_t Elements)\", \"One Way Latency (ns) - Avg\", \"One Way Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
-        fflush(file_a);
-        fprintf(file_b, "\"Transfer Length (int32_t Elements)\", \"One Way Latency (ns) - Avg\", \"One Way Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
-        fflush(file_b);
-        *raw_file_a << "\"Transfer Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
-        *raw_file_b << "\"Transfer Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
-        #endif
+        //Write the header for the second stream csv files (first stream is handled by tableHeaderArray1Stream)
+        writeCSVHeader(file_b, raw_file_b);
 
-        std::string format = "         %3d <-> %-3d | %17d | %11.6f, %11.6f | %23.6f | %15.6f \n";
+        std::string format = "";
+        if(bidirectional){
+            format = "          %3d -> %-3d | %17d | %11.6f, %11.6f | %23.6f | %15.6f \n";
+        }else{
+            format = "         %3d <-> %-3d | %17d | %11.6f, %11.6f | %23.6f | %15.6f \n";
+        }
+
         return format;
     }
 
@@ -281,6 +275,74 @@
             {
                 print_results(results->results_a, cpu_a, cpu_c, sizeof(elementType)*array_length, STIM_LEN, array_length, format, file_a, raw_file_a);
                 print_results(results->results_b, cpu_b, cpu_c, sizeof(elementType)*array_length, STIM_LEN, array_length, format, file_b, raw_file_b);
+            }
+        #endif
+    }
+
+    template <typename elementType>
+    void exportResultsArray3CoreFanOut(bool report_standalone, Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, SimultaniousResults* results, size_t array_length, std::string format, FILE* file_a, FILE* file_b, std::ofstream* raw_file_a, std::ofstream* raw_file_b){
+        #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
+            if(report_standalone)
+            {
+                if(!profiler->cpuTopology.empty()){
+                    std::set<int> sockets_set;
+                    sockets_set.insert(profiler->cpuTopology[cpu_a].socket);
+                    sockets_set.insert(profiler->cpuTopology[cpu_b].socket);
+                    sockets_set.insert(profiler->cpuTopology[cpu_c].socket);
+                    std::vector<int> sockets(sockets_set.begin(), sockets_set.end());
+
+                    std::set<int> cores_set;
+                    cores_set.insert(profiler->cpuTopology[cpu_a].core);
+                    cores_set.insert(profiler->cpuTopology[cpu_b].core);
+                    cores_set.insert(profiler->cpuTopology[cpu_c].core);
+                    std::vector<int> cores(cores_set.begin(), cores_set.end());
+
+                    std::set<int> dies_set;
+                    dies_set.insert(profiler->cpuTopology[cpu_a].die);
+                    dies_set.insert(profiler->cpuTopology[cpu_b].die);
+                    dies_set.insert(profiler->cpuTopology[cpu_c].die);
+                    std::vector<int> dies(dies_set.begin(), dies_set.end());
+
+                    std::set<int> threads_set;
+                    threads_set.insert(cpu_a);
+                    threads_set.insert(cpu_b);
+                    threads_set.insert(cpu_c);
+                    std::vector<int> threads(threads_set.begin(), threads_set.end());
+            
+                    #if PRINT_FULL_STATS == 1
+                        printf("Thread Pair 1 (A/B)\n");
+                        results->results_a->print_statistics(sockets, dies, cores, threads, STIM_LEN);
+                        printf("Thread Pair 2 (A/C)\n");
+                        results->results_b->print_statistics(sockets, dies, cores, threads, STIM_LEN);
+                    #endif
+
+                    #if PRINT_STATS == 1
+                        printf("Thread Pair 1 (A/B)\n");
+                        print_results(results->results_a, sizeof(elementType)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                        printf("Thread Pair 2 (A/C)\n");
+                        print_results(results->results_b, sizeof(elementType)*array_length, STIM_LEN/2);
+                    #endif
+
+                }else{
+                        #if PRINT_FULL_STATS == 1
+                            printf("Thread Pair 1 (A/B)\n");
+                            results->results_a->print_statistics(0, 0, 0, cpu_a, STIM_LEN);
+                            printf("Thread Pair 2 (A/C)\n");
+                            results->results_b->print_statistics(0, 0, 0, cpu_c, STIM_LEN);
+                        #endif
+
+                        #if PRINT_STATS == 1
+                            printf("Thread Pair 1 (A/B)\n");
+                            print_results(results->results_a, sizeof(elementType)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                            printf("Thread Pair 2 (A/C)\n");
+                            print_results(results->results_b, sizeof(elementType)*array_length, STIM_LEN/2);
+                        #endif
+                }
+            }
+            else
+            {
+                print_results(results->results_a, cpu_a, cpu_b, sizeof(elementType)*array_length, STIM_LEN/2, array_length, format, file_a, raw_file_a); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
+                print_results(results->results_b, cpu_a, cpu_c, sizeof(elementType)*array_length, STIM_LEN/2, array_length, format, file_b, raw_file_b);
             }
         #endif
     }
@@ -509,7 +571,7 @@
     void run_latency_single_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, int cpu_d, std::vector<size_t> array_lengths, FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //Print header
-        std::string format = tableHeaderArray2Streams("Single Memory Location - Simultanious - Array", file_a, file_b, raw_file_a, raw_file_b);
+        std::string format = tableHeaderArray2Streams("Single Memory Location - Simultanious - Array", file_a, file_b, raw_file_a, raw_file_b, true);
 
         for(int i = 0; i<array_lengths.size(); i++)
         {
@@ -534,7 +596,7 @@
     void run_latency_single_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, std::vector<size_t> array_lengths, FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //Print header
-        std::string format = tableHeaderArray2Streams("Single Memory Location - Fan-in/Fan-out - Array", file_a, file_b, raw_file_a, raw_file_b);
+        std::string format = tableHeaderArray2Streams("Single Memory Location - Fan-in/Fan-out - Array", file_a, file_b, raw_file_a, raw_file_b, true);
 
         for(int i = 0; i<array_lengths.size(); i++)
         {
@@ -824,7 +886,7 @@
     void run_latency_dual_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, int cpu_d, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //Print header
-        std::string format = tableHeaderArray2Streams("Dual Memory Location - Simultanious - Array", file_a, file_b, raw_file_a, raw_file_b);
+        std::string format = tableHeaderArray2Streams("Dual Memory Location - Simultanious - Array", file_a, file_b, raw_file_a, raw_file_b, true);
 
         for(int i = 0; i<array_lengths.size(); i++)
         {
@@ -849,7 +911,7 @@
     void run_latency_dual_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //Print header
-        std::string format = tableHeaderArray2Streams("Dual Memory Location - Fan-in/Fan-out - Array", file_a, file_b, raw_file_a, raw_file_b);
+        std::string format = tableHeaderArray2Streams("Dual Memory Location - Fan-in/Fan-out - Array", file_a, file_b, raw_file_a, raw_file_b, true);
 
         for(int i = 0; i<array_lengths.size(); i++)
         {
@@ -996,17 +1058,7 @@
      */
     SimultaniousResults* run_latency_flow_ctrl_fanin_kernel_point(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
-        #if PRINT_TITLE == 1
-        if(report_standalone)
-        {
-            printf("\n");
-            time_t currentTime = time(NULL);
-            struct tm * localT;
-            localT = localtime(&currentTime);
-            printf("Flow Control - Fan-in - Array | Start Time: %s", asctime(localT));
-            printf("Array Length: %lu int32_t Elements\n", array_length);
-        }
-        #endif
+        printTitleArray(report_standalone, "Flow Control - Fan-in - Array", array_length);
 
         //Initialize
         size_t amountToAlloc = array_length*sizeof(std::atomic_int32_t);
@@ -1071,68 +1123,7 @@
 
         SimultaniousResults* results = execute_kernel_fanin_server_measure(profiler, latency_flow_ctrl_server_kernel, latency_flow_ctrl_client_join_kernel, latency_flow_ctrl_join_kernel_reset, args_a, args_b, args_c, args_c, cpu_a, cpu_b, cpu_c); //Reset args are same as client join args
 
-        #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
-            if(report_standalone)
-            {
-                if(!profiler->cpuTopology.empty()){
-                    std::set<int> sockets_set;
-                    sockets_set.insert(profiler->cpuTopology[cpu_a].socket);
-                    sockets_set.insert(profiler->cpuTopology[cpu_b].socket);
-                    sockets_set.insert(profiler->cpuTopology[cpu_c].socket);
-                    std::vector<int> sockets(sockets_set.begin(), sockets_set.end());
-
-                    std::set<int> cores_set;
-                    cores_set.insert(profiler->cpuTopology[cpu_a].core);
-                    cores_set.insert(profiler->cpuTopology[cpu_b].core);
-                    cores_set.insert(profiler->cpuTopology[cpu_c].core);
-                    std::vector<int> cores(cores_set.begin(), cores_set.end());
-
-                    std::set<int> dies_set;
-                    dies_set.insert(profiler->cpuTopology[cpu_a].die);
-                    dies_set.insert(profiler->cpuTopology[cpu_b].die);
-                    dies_set.insert(profiler->cpuTopology[cpu_c].die);
-                    std::vector<int> dies(dies_set.begin(), dies_set.end());
-
-                    std::set<int> threads_set;
-                    threads_set.insert(cpu_a);
-                    threads_set.insert(cpu_b);
-                    threads_set.insert(cpu_c);
-                    std::vector<int> threads(threads_set.begin(), threads_set.end());
-            
-                    #if PRINT_FULL_STATS == 1
-                        printf("Thread Pair 1 (A/C)\n");
-                        results->results_a->print_statistics(sockets, dies, cores, threads, STIM_LEN);
-                        printf("Thread Pair 2 (B/C)\n");
-                        results->results_b->print_statistics(sockets, dies, cores, threads, STIM_LEN);
-                    #endif
-
-                    #if PRINT_STATS == 1
-                        printf("Thread Pair 1 (A/C)\n");
-                        print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
-                        printf("Thread Pair 2 (B/C)\n");
-                        print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
-                    #endif
-
-                }else{
-                    #if PRINT_FULL_STATS
-                        printf("Thread Pair 1 (A/C)\n");
-                        results->results_a->print_statistics(0, 0, 0, cpu_a, STIM_LEN);
-                        printf("Thread Pair 2 (B/C)\n");
-                        results->results_b->print_statistics(0, 0, 0, cpu_c, STIM_LEN);
-                    #endif
-
-                    printf("Thread Pair 1 (A/C)\n");
-                    print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
-                    printf("Thread Pair 2 (B/C)\n");
-                    print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
-                }
-            }
-            else
-            {
-                print_results(results->results_a, cpu_a, cpu_c, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2, array_length, format, file_a, raw_file_a); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
-                print_results(results->results_b, cpu_b, cpu_c, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2, array_length, format, file_b, raw_file_b);
-            }
-        #endif
+        exportResultsArray3CoreFanInFanOut<std::atomic_int32_t>(report_standalone, profiler, cpu_a, cpu_b, cpu_c, results, array_length, format, file_a, file_b, raw_file_a, raw_file_b);
 
         //Clean Up
         free(shared_array_loc_1);
@@ -1154,17 +1145,7 @@
      */
     SimultaniousResults* run_latency_flow_ctrl_fanout_kernel_point(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
-        #if PRINT_TITLE == 1
-        if(report_standalone)
-        {
-            printf("\n");
-            time_t currentTime = time(NULL);
-            struct tm * localT;
-            localT = localtime(&currentTime);
-            printf("Flow Control - Fan-out - Array | Start Time: %s", asctime(localT));
-            printf("Array Length: %lu int32_t Elements\n", array_length);
-        }
-        #endif
+        printTitleArray(report_standalone, "Flow Control - Fan-out - Array", array_length);
 
         //Initialize
         size_t amountToAlloc = array_length*sizeof(std::atomic_int32_t);
@@ -1229,68 +1210,7 @@
 
         SimultaniousResults* results = execute_kernel_fanout_client_measure(profiler, latency_flow_ctrl_server_join_kernel, latency_flow_ctrl_client_kernel, latency_flow_ctrl_join_kernel_reset, args_a, args_b, args_c, args_a, cpu_a, cpu_b, cpu_c); //Reset args are same as server join args
 
-        #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
-            if(report_standalone)
-            {
-                if(!profiler->cpuTopology.empty()){
-                    std::set<int> sockets_set;
-                    sockets_set.insert(profiler->cpuTopology[cpu_a].socket);
-                    sockets_set.insert(profiler->cpuTopology[cpu_b].socket);
-                    sockets_set.insert(profiler->cpuTopology[cpu_c].socket);
-                    std::vector<int> sockets(sockets_set.begin(), sockets_set.end());
-
-                    std::set<int> cores_set;
-                    cores_set.insert(profiler->cpuTopology[cpu_a].core);
-                    cores_set.insert(profiler->cpuTopology[cpu_b].core);
-                    cores_set.insert(profiler->cpuTopology[cpu_c].core);
-                    std::vector<int> cores(cores_set.begin(), cores_set.end());
-
-                    std::set<int> dies_set;
-                    dies_set.insert(profiler->cpuTopology[cpu_a].die);
-                    dies_set.insert(profiler->cpuTopology[cpu_b].die);
-                    dies_set.insert(profiler->cpuTopology[cpu_c].die);
-                    std::vector<int> dies(dies_set.begin(), dies_set.end());
-
-                    std::set<int> threads_set;
-                    threads_set.insert(cpu_a);
-                    threads_set.insert(cpu_b);
-                    threads_set.insert(cpu_c);
-                    std::vector<int> threads(threads_set.begin(), threads_set.end());
-            
-                    #if PRINT_FULL_STATS == 1
-                        printf("Thread Pair 1 (A/B)\n");
-                        results->results_a->print_statistics(sockets, dies, cores, threads, STIM_LEN);
-                        printf("Thread Pair 2 (A/C)\n");
-                        results->results_b->print_statistics(sockets, dies, cores, threads, STIM_LEN);
-                    #endif
-
-                    #if PRINT_STATS == 1
-                        printf("Thread Pair 1 (A/B)\n");
-                        print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
-                        printf("Thread Pair 2 (A/C)\n");
-                        print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
-                    #endif
-
-                }else{
-                        #if PRINT_FULL_STATS
-                            printf("Thread Pair 1 (A/B)\n");
-                            results->results_a->print_statistics(0, 0, 0, cpu_a, STIM_LEN);
-                            printf("Thread Pair 2 (A/C)\n");
-                            results->results_b->print_statistics(0, 0, 0, cpu_c, STIM_LEN);
-                        #endif
-
-                        printf("Thread Pair 1 (A/B)\n");
-                        print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
-                        printf("Thread Pair 2 (A/C)\n");
-                        print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
-                }
-            }
-            else
-            {
-                print_results(results->results_a, cpu_a, cpu_b, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2, array_length, format, file_a, raw_file_a); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
-                print_results(results->results_b, cpu_a, cpu_c, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2, array_length, format, file_b, raw_file_b);
-            }
-        #endif
+        exportResultsArray3CoreFanOut<std::atomic_int32_t>(report_standalone, profiler, cpu_a, cpu_b, cpu_c, results, array_length, format, file_a, file_b, raw_file_a, raw_file_b);
 
         //Clean Up
         free(shared_array_loc_1);
@@ -1307,27 +1227,12 @@
     void run_latency_flow_ctrl_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, FILE* file = NULL, std::ofstream* raw_file=NULL)
     {
         //Print header
-        time_t currentTime = time(NULL);
-        struct tm * localT;
-        localT = localtime(&currentTime);
-        printf("Flow Control - Array | Start Time: %s", asctime(localT));
-        printf("        ==========================================================================================\n");
-        printf("          Transfer Length  |  Round Trip Latency (ns) | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
-        printf("        (int32_t Elements) |       Avg, StdDev        |                         |                 \n");
-        printf("        ==========================================================================================\n");
-
-        #if WRITE_CSV == 1
-        fprintf(file, "\"Transfer Length (int32_t Elements)\", \"Round Trip Latency (ns) - Avg\", \"Round Trip Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
-        fflush(file);
-        *raw_file << "\"Transfer Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
-        #endif
-
-        std::string format = "        %18d | %11.6f, %11.6f | %23.6f | %15.6f \n";
+        std::string format = tableHeaderArray1Stream("Flow Control - Array", file, raw_file);
 
         for(int i = 0; i<array_lengths.size(); i++)
         {
             size_t array_length = array_lengths[i];
-            Results* latency_fifo_kernel_results = run_latency_flow_ctrl_kernel(profiler, cpu_a, cpu_b, array_length, false, format, file, raw_file);
+            Results* latency_fifo_kernel_results = run_latency_flow_ctrl_kernel_point(profiler, cpu_a, cpu_b, array_length, false, format, file, raw_file);
 
             #if WRITE_CSV == 1
             fflush(file);
@@ -1337,36 +1242,19 @@
             delete latency_fifo_kernel_results;
         }
 
-        printf("        ==========================================================================================\n");
+        tableFooter();
     }
 
     void run_latency_flow_ctrl_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, int cpu_d, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //Print header
     time_t currentTime = time(NULL);
-        struct tm * localT;
-        localT = localtime(&currentTime);
-        printf("Flow Control - Simultanious - Array | Start Time: %s", asctime(localT));
-        printf("        ========================================================================================================\n");
-        printf("         CPU <-> CPU |  Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
-        printf("                     |(int32_t Elements) |       Avg, StdDev        |                         |                 \n");
-        printf("        ========================================================================================================\n");
-
-        #if WRITE_CSV == 1
-        fprintf(file_a, "\"Transfer Length (int32_t Elements)\", \"Round Trip Latency (ns) - Avg\", \"Round Trip Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
-        fflush(file_a);
-        fprintf(file_b, "\"Transfer Length (int32_t Elements)\", \"Round Trip Latency (ns) - Avg\", \"Round Trip Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
-        fflush(file_b);
-        *raw_file_a << "\"Transfer Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
-        *raw_file_b << "\"Transfer Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
-        #endif
-
-        std::string format = "         %3d <-> %-3d | %17d | %11.6f, %11.6f | %23.6f | %15.6f \n";
+        std::string format = tableHeaderArray2Streams("Flow Control - Simultanious - Array", file_a, file_b, raw_file_a, raw_file_b, true);
 
         for(int i = 0; i<array_lengths.size(); i++)
         {
             size_t array_length = array_lengths[i];
-            SimultaniousResults* latency_fifo_kernel_results = run_latency_flow_ctrl_kernel(profiler, cpu_a, cpu_b, cpu_c, cpu_d, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
+            SimultaniousResults* latency_fifo_kernel_results = run_latency_flow_ctrl_kernel_point(profiler, cpu_a, cpu_b, cpu_c, cpu_d, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
 
             #if WRITE_CSV == 1
             fflush(file_a);
@@ -1379,36 +1267,18 @@
             delete latency_fifo_kernel_results;
         }
 
-        printf("        ==========================================================================================\n");
+        tableFooter();
     }
 
     void run_latency_flow_ctrl_fanin_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //Print header
-        time_t currentTime = time(NULL);
-        struct tm * localT;
-        localT = localtime(&currentTime);
-        printf("Flow Control - Fan-in - Array | Start Time: %s", asctime(localT));
-        printf("        ========================================================================================================\n");
-        printf("         CPU <-> CPU |  Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
-        printf("                     |(int32_t Elements) |       Avg, StdDev        |                         |                 \n");
-        printf("        ========================================================================================================\n");
-
-        #if WRITE_CSV == 1
-        fprintf(file_a, "\"Transfer Length (int32_t Elements)\", \"Round Trip Latency (ns) - Avg\", \"Round Trip Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
-        fflush(file_a);
-        fprintf(file_b, "\"Transfer Length (int32_t Elements)\", \"Round Trip Latency (ns) - Avg\", \"Round Trip Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
-        fflush(file_b);
-        *raw_file_a << "\"Transfer Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
-        *raw_file_b << "\"Transfer Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
-        #endif
-
-        std::string format = "          %3d -> %-3d | %17d | %11.6f, %11.6f | %23.6f | %15.6f \n";
+        std::string format = tableHeaderArray2Streams("Flow Control - Fan-in - Array", file_a, file_b, raw_file_a, raw_file_b, false);
 
         for(int i = 0; i<array_lengths.size(); i++)
         {
             size_t array_length = array_lengths[i];
-            SimultaniousResults* latency_fifo_kernel_results = run_latency_flow_ctrl_fanin_kernel(profiler, cpu_a, cpu_b, cpu_c, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
+            SimultaniousResults* latency_fifo_kernel_results = run_latency_flow_ctrl_fanin_kernel_point(profiler, cpu_a, cpu_b, cpu_c, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
 
             #if WRITE_CSV == 1
             fflush(file_a);
@@ -1421,36 +1291,18 @@
             delete latency_fifo_kernel_results;
         }
 
-        printf("        ==========================================================================================\n");
+        tableFooter();
     }
 
     void run_latency_flow_ctrl_fanout_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //Print header
-        time_t currentTime = time(NULL);
-        struct tm * localT;
-        localT = localtime(&currentTime);
-        printf("Flow Control - Fan-out - Array | Start Time: %s", asctime(localT));
-        printf("        ========================================================================================================\n");
-        printf("         CPU <-> CPU |  Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
-        printf("                     |(int32_t Elements) |       Avg, StdDev        |                         |                 \n");
-        printf("        ========================================================================================================\n");
-
-        #if WRITE_CSV == 1
-        fprintf(file_a, "\"Transfer Length (int32_t Elements)\", \"Round Trip Latency (ns) - Avg\", \"Round Trip Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
-        fflush(file_a);
-        fprintf(file_b, "\"Transfer Length (int32_t Elements)\", \"Round Trip Latency (ns) - Avg\", \"Round Trip Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
-        fflush(file_b);
-        *raw_file_a << "\"Transfer Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
-        *raw_file_b << "\"Transfer Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
-        #endif
-
-        std::string format = "          %3d -> %-3d | %17d | %11.6f, %11.6f | %23.6f | %15.6f \n";
+        std::string format = tableHeaderArray2Streams("Flow Control - Fan-out - Array", file_a, file_b, raw_file_a, raw_file_b, false);
 
         for(int i = 0; i<array_lengths.size(); i++)
         {
             size_t array_length = array_lengths[i];
-            SimultaniousResults* latency_fifo_kernel_results = run_latency_flow_ctrl_fanout_kernel(profiler, cpu_a, cpu_b, cpu_c, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
+            SimultaniousResults* latency_fifo_kernel_results = run_latency_flow_ctrl_fanout_kernel_point(profiler, cpu_a, cpu_b, cpu_c, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
 
             #if WRITE_CSV == 1
             fflush(file_a);
@@ -1463,22 +1315,12 @@
             delete latency_fifo_kernel_results;
         }
 
-        printf("        ==========================================================================================\n");
+        tableFooter();
     }
 
     Results* run_latency_flow_ctrl_blocked_read_kernel_point(Profiler* profiler, int cpu_a, int cpu_b, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file=NULL, std::ofstream* raw_file=NULL)
     {
-        #if PRINT_TITLE == 1
-        if(report_standalone)
-        {
-            printf("\n");
-            time_t currentTime = time(NULL);
-            struct tm * localT;
-            localT = localtime(&currentTime);
-            printf("Flow Control Blocked Read - Array | Start Time: %s", asctime(localT));
-            printf("Array Length: %lu int32_t Elements\n", array_length);
-        }
-        #endif
+        printTitleArray(report_standalone, "Flow Control Blocked Read - Array", array_length);
 
         //Initialize
         size_t amountToAlloc = array_length*sizeof(int32_t);
@@ -1518,61 +1360,7 @@
 
         Results* results = execute_client_server_kernel(profiler, latency_flow_ctrl_blocked_read_server_kernel, latency_flow_ctrl_blocked_read_client_kernel, latency_flow_ctrl_blocked_read_kernel_reset, args, args, args, cpu_a, cpu_b);
 
-        #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
-            if(report_standalone)
-            {
-                if(!profiler->cpuTopology.empty()){
-                    std::vector<int> sockets;
-                    int socket_a = profiler->cpuTopology[cpu_a].socket;
-                    int socket_b = profiler->cpuTopology[cpu_b].socket;
-                    sockets.push_back(socket_a);
-                    if(socket_b != socket_a)
-                    {
-                        sockets.push_back(socket_b);
-                    }
-
-                    std::vector<int> cores;
-                    int core_a = profiler->cpuTopology[cpu_a].core;
-                    int core_b = profiler->cpuTopology[cpu_b].core;
-                    cores.push_back(core_a);
-                    if(core_a != core_b){
-                        cores.push_back(core_b);
-                    }
-
-                    std::vector<int> dies;
-                    int die_a = profiler->cpuTopology[cpu_a].die;
-                    int die_b = profiler->cpuTopology[cpu_b].die;
-                    dies.push_back(die_a);
-                    if(die_a != die_b){
-                        dies.push_back(die_b);
-                    }
-
-                    std::vector<int> threads;
-                    threads.push_back(cpu_a);
-                    if(cpu_a != cpu_b){
-                        threads.push_back(cpu_b);
-                    }
-            
-                    #if PRINT_FULL_STATS == 1
-                        results->print_statistics(sockets, dies, cores, threads, STIM_LEN);
-                    #endif
-
-                    #if PRINT_STATS == 1
-                        print_results(results, sizeof(*shared_array_loc)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
-                    #endif
-                }else{
-                    #if PRINT_FULL_STATS
-                        results->print_statistics(0, 0, 0, cpu_a, STIM_LEN);
-                    #endif
-
-                    print_results(results, sizeof(*shared_array_loc)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
-                }
-            }
-            else
-            {
-                print_results(results, sizeof(*shared_array_loc)*array_length, STIM_LEN/2, array_length, format, file, raw_file); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
-            }
-        #endif
+        exportResultsArray2Core<int32_t>(report_standalone, profiler, cpu_a, cpu_b, results, array_length, format, file, raw_file);
 
         //Clean Up
         free(shared_array_loc);
@@ -1585,18 +1373,7 @@
 
     SimultaniousResults* run_latency_flow_ctrl_blocked_read_kernel_point(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, int cpu_d, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
-        #if PRINT_TITLE == 1
-        if(report_standalone)
-        {
-            printf("\n");
-            time_t currentTime = time(NULL);
-            struct tm * localT;
-            localT = localtime(&currentTime);
-            printf("Flow Control Blocked Read - Simultanious - Array | Start Time: %s", asctime(localT));
-            printf("Flow Control Blocked Read - Simultanious - Array\n");
-            printf("Array Length: %lu int32_t Elements\n", array_length);
-        }
-        #endif
+        printTitleArray(report_standalone, "Flow Control Blocked Read - Simultanious - Array", array_length);
 
         //Initialize
         size_t amountToAlloc = array_length*sizeof(int32_t);
@@ -1655,73 +1432,9 @@
         args_2->length = array_length;
 
         //                                                                                                                                                                                                                 S1,     S2,     C1,     C2,     R1,     R2
-        SimultaniousResults* results = execute_client_server_kernel_point(profiler, latency_flow_ctrl_blocked_read_server_kernel, latency_flow_ctrl_blocked_read_client_kernel, latency_flow_ctrl_blocked_read_kernel_reset, args_1, args_2, args_1, args_2, args_1, args_2, cpu_a, cpu_b, cpu_c, cpu_d);
+        SimultaniousResults* results = execute_client_server_kernel(profiler, latency_flow_ctrl_blocked_read_server_kernel, latency_flow_ctrl_blocked_read_client_kernel, latency_flow_ctrl_blocked_read_kernel_reset, args_1, args_2, args_1, args_2, args_1, args_2, cpu_a, cpu_b, cpu_c, cpu_d);
 
-        #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
-            if(report_standalone)
-            {
-                if(!profiler->cpuTopology.empty()){
-                    std::set<int> sockets_set;
-                    sockets_set.insert(profiler->cpuTopology[cpu_a].socket);
-                    sockets_set.insert(profiler->cpuTopology[cpu_b].socket);
-                    sockets_set.insert(profiler->cpuTopology[cpu_c].socket);
-                    sockets_set.insert(profiler->cpuTopology[cpu_d].socket);
-                    std::vector<int> sockets(sockets_set.begin(), sockets_set.end());
-
-                    std::set<int> cores_set;
-                    cores_set.insert(profiler->cpuTopology[cpu_a].core);
-                    cores_set.insert(profiler->cpuTopology[cpu_b].core);
-                    cores_set.insert(profiler->cpuTopology[cpu_c].core);
-                    cores_set.insert(profiler->cpuTopology[cpu_d].core);
-                    std::vector<int> cores(cores_set.begin(), cores_set.end());
-
-                    std::set<int> dies_set;
-                    dies_set.insert(profiler->cpuTopology[cpu_a].die);
-                    dies_set.insert(profiler->cpuTopology[cpu_b].die);
-                    dies_set.insert(profiler->cpuTopology[cpu_c].die);
-                    dies_set.insert(profiler->cpuTopology[cpu_d].die);
-                    std::vector<int> dies(dies_set.begin(), dies_set.end());
-
-                    std::set<int> threads_set;
-                    threads_set.insert(cpu_a);
-                    threads_set.insert(cpu_b);
-                    threads_set.insert(cpu_c);
-                    threads_set.insert(cpu_d);
-                    std::vector<int> threads(threads_set.begin(), threads_set.end());
-            
-                    #if PRINT_FULL_STATS == 1
-                        printf("Thread Pair 1 (A/B)\n");
-                        results->results_a->print_statistics(sockets, dies, cores, threads, STIM_LEN);
-                        printf("Thread Pair 2 (C/D)\n");
-                        results->results_b->print_statistics(sockets, dies, cores, threads, STIM_LEN);
-                    #endif
-
-                    #if PRINT_STATS == 1
-                        printf("Thread Pair 1 (A/B)\n");
-                        print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
-                        printf("Thread Pair 2 (C/D)\n");
-                        print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
-                    #endif
-                }else{
-                    #if PRINT_FULL_STATS
-                        printf("Thread Pair 1 (A/B)\n");
-                        results->results_a->print_statistics(0, 0, 0, cpu_a, STIM_LEN);
-                        printf("Thread Pair 2 (C/D)\n");
-                        results->results_b->print_statistics(0, 0, 0, cpu_c, STIM_LEN);
-                    #endif
-
-                    printf("Thread Pair 1 (A/B)\n");
-                    print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
-                    printf("Thread Pair 2 (C/D)\n");
-                    print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
-                }
-            }
-            else
-            {
-                print_results(results->results_a, cpu_a, cpu_b, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2, array_length, format, file_a, raw_file_a); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
-                print_results(results->results_b, cpu_c, cpu_d, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2, array_length, format, file_b, raw_file_b);
-            }
-        #endif
+        exportResultsArray4Core<int32_t>(report_standalone, profiler, cpu_a, cpu_b, cpu_c, cpu_d, results,  array_length, format, file_a, file_b, raw_file_a, raw_file_b);
 
         //Clean Up
         free(shared_array_loc_1);
@@ -1738,17 +1451,7 @@
 
     SimultaniousResults* run_latency_flow_ctrl_blocked_read_fanin_kernel_point(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
-        #if PRINT_TITLE == 1
-        if(report_standalone)
-        {
-            printf("\n");
-            time_t currentTime = time(NULL);
-            struct tm * localT;
-            localT = localtime(&currentTime);
-            printf("Flow Control Blocked Read - Fan-in - Array | Start Time: %s", asctime(localT));
-            printf("Array Length: %lu int32_t Elements\n", array_length);
-        }
-        #endif
+        printTitleArray(report_standalone, "Flow Control Blocked Read - Fan-in - Array", array_length);
 
         //Initialize
         size_t amountToAlloc = array_length*sizeof(int32_t);
@@ -1818,70 +1521,9 @@
         cli_args_1->valid_shared_ptr_b = shared_valid_loc_2;
         cli_args_1->length_b = array_length;
 
-
         SimultaniousResults* results = execute_kernel_fanin_server_measure(profiler, latency_flow_ctrl_blocked_read_server_kernel, latency_flow_ctrl_blocked_read_client_join_kernel, latency_flow_ctrl_blocked_read_join_kernel_reset, srv_args_1, srv_args_2, cli_args_1, cli_args_1, cpu_a, cpu_b, cpu_c); //Reset arg is cli args
 
-        #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
-            if(report_standalone)
-            {
-                if(!profiler->cpuTopology.empty()){
-                    std::set<int> sockets_set;
-                    sockets_set.insert(profiler->cpuTopology[cpu_a].socket);
-                    sockets_set.insert(profiler->cpuTopology[cpu_b].socket);
-                    sockets_set.insert(profiler->cpuTopology[cpu_c].socket);
-                    std::vector<int> sockets(sockets_set.begin(), sockets_set.end());
-
-                    std::set<int> cores_set;
-                    cores_set.insert(profiler->cpuTopology[cpu_a].core);
-                    cores_set.insert(profiler->cpuTopology[cpu_b].core);
-                    cores_set.insert(profiler->cpuTopology[cpu_c].core);
-                    std::vector<int> cores(cores_set.begin(), cores_set.end());
-
-                    std::set<int> dies_set;
-                    dies_set.insert(profiler->cpuTopology[cpu_a].die);
-                    dies_set.insert(profiler->cpuTopology[cpu_b].die);
-                    dies_set.insert(profiler->cpuTopology[cpu_c].die);
-                    std::vector<int> dies(dies_set.begin(), dies_set.end());
-
-                    std::set<int> threads_set;
-                    threads_set.insert(cpu_a);
-                    threads_set.insert(cpu_b);
-                    threads_set.insert(cpu_c);
-                    std::vector<int> threads(threads_set.begin(), threads_set.end());
-            
-                    #if PRINT_FULL_STATS == 1
-                        printf("Thread Pair 1 (A/C)\n");
-                        results->results_a->print_statistics(sockets, dies, cores, threads, STIM_LEN);
-                        printf("Thread Pair 2 (B/C)\n");
-                        results->results_b->print_statistics(sockets, dies, cores, threads, STIM_LEN);
-                    #endif
-
-                    #if PRINT_STATS == 1
-                    printf("Thread Pair 1 (A/C)\n");
-                    print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
-                    printf("Thread Pair 2 (B/C)\n");
-                    print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
-                    #endif
-                }else{
-                    #if PRINT_FULL_STATS
-                    printf("Thread Pair 1 (A/C)\n");
-                    results->results_a->print_statistics(0, 0, 0, cpu_a, STIM_LEN);
-                    printf("Thread Pair 2 (B/C)\n");
-                    results->results_b->print_statistics(0, 0, 0, cpu_b, STIM_LEN);
-                    #endif
-
-                    printf("Thread Pair 1 (A/C)\n");
-                    print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
-                    printf("Thread Pair 2 (B/C)\n");
-                    print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
-                }
-            }
-            else
-            {
-                print_results(results->results_a, cpu_a, cpu_c, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2, array_length, format, file_a, raw_file_a); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
-                print_results(results->results_b, cpu_b, cpu_c, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2, array_length, format, file_b, raw_file_b);
-            }
-        #endif
+        exportResultsArray3CoreFanInFanOut<int32_t>(report_standalone, profiler, cpu_a, cpu_b, cpu_c, results, array_length, format, file_a, file_b, raw_file_a, raw_file_b);
 
         //Clean Up
         free(shared_array_loc_1);
@@ -1899,18 +1541,7 @@
 
     SimultaniousResults* run_latency_flow_ctrl_blocked_read_fanout_kernel_point(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, size_t array_length, bool report_standalone=true, std::string format = "", FILE* file_a=NULL, FILE* file_b=NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
-        #if PRINT_TITLE == 1
-        if(report_standalone)
-        {
-            printf("\n");
-            time_t currentTime = time(NULL);
-            struct tm * localT;
-            localT = localtime(&currentTime);
-            printf("Flow Control Blocked Read - Fan-in - Array | Start Time: %s", asctime(localT));
-            printf("Flow Control Blocked Read - Fan-in - Array\n");
-            printf("Array Length: %lu int32_t Elements\n", array_length);
-        }
-        #endif
+        printTitleArray(report_standalone, "Flow Control Blocked Read - Fan-Out - Array", array_length);
 
         //Initialize
         size_t amountToAlloc = array_length*sizeof(int32_t);
@@ -1982,68 +1613,7 @@
 
         SimultaniousResults* results = execute_kernel_fanout_client_measure(profiler, latency_flow_ctrl_blocked_read_server_join_kernel, latency_flow_ctrl_blocked_read_client_kernel, latency_flow_ctrl_blocked_read_join_kernel_reset, srv_args_1, cli_args_1, cli_args_2, srv_args_1, cpu_a, cpu_b, cpu_c); //Reset arg is srv args
 
-        #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
-            if(report_standalone)
-            {
-                if(!profiler->cpuTopology.empty()){
-                    std::set<int> sockets_set;
-                    sockets_set.insert(profiler->cpuTopology[cpu_a].socket);
-                    sockets_set.insert(profiler->cpuTopology[cpu_b].socket);
-                    sockets_set.insert(profiler->cpuTopology[cpu_c].socket);
-                    std::vector<int> sockets(sockets_set.begin(), sockets_set.end());
-
-                    std::set<int> cores_set;
-                    cores_set.insert(profiler->cpuTopology[cpu_a].core);
-                    cores_set.insert(profiler->cpuTopology[cpu_b].core);
-                    cores_set.insert(profiler->cpuTopology[cpu_c].core);
-                    std::vector<int> cores(cores_set.begin(), cores_set.end());
-
-                    std::set<int> dies_set;
-                    dies_set.insert(profiler->cpuTopology[cpu_a].die);
-                    dies_set.insert(profiler->cpuTopology[cpu_b].die);
-                    dies_set.insert(profiler->cpuTopology[cpu_c].die);
-                    std::vector<int> dies(dies_set.begin(), dies_set.end());
-
-                    std::set<int> threads_set;
-                    threads_set.insert(cpu_a);
-                    threads_set.insert(cpu_b);
-                    threads_set.insert(cpu_c);
-                    std::vector<int> threads(threads_set.begin(), threads_set.end());
-            
-                    #if PRINT_FULL_STATS == 1
-                        printf("Thread Pair 1 (A/B)\n");
-                        results->results_a->print_statistics(sockets, dies, cores, threads, STIM_LEN);
-                        printf("Thread Pair 2 (A/C)\n");
-                        results->results_b->print_statistics(sockets, dies, cores, threads, STIM_LEN);
-                    #endif
-
-                    #if PRINT_STATS == 1
-                    printf("Thread Pair 1 (A/B)\n");
-                    print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
-                    printf("Thread Pair 2 (A/C)\n");
-                    print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
-                    #endif
-
-                }else{
-                    #if PRINT_FULL_STATS
-                    printf("Thread Pair 1 (A/B)\n");
-                    results->results_a->print_statistics(0, 0, 0, cpu_a, STIM_LEN);
-                    printf("Thread Pair 2 (A/C)\n");
-                    results->results_b->print_statistics(0, 0, 0, cpu_b, STIM_LEN);
-                    #endif
-
-                    printf("Thread Pair 1 (A/B)\n");
-                    print_results(results->results_a, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
-                    printf("Thread Pair 2 (A/C)\n");
-                    print_results(results->results_b, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2);
-                }
-            }
-            else
-            {
-                print_results(results->results_a, cpu_a, cpu_b, sizeof(*shared_array_loc_1)*array_length, STIM_LEN/2, array_length, format, file_a, raw_file_a); //Div by 2 is because the counter increments for each direction of the FIFO transaction (transmit and ack)
-                print_results(results->results_b, cpu_a, cpu_c, sizeof(*shared_array_loc_2)*array_length, STIM_LEN/2, array_length, format, file_b, raw_file_b);
-            }
-        #endif
+        exportResultsArray3CoreFanOut<int32_t>(report_standalone, profiler, cpu_a, cpu_b, cpu_c, results, array_length, format, file_a, file_b, raw_file_a, raw_file_b);
 
         //Clean Up
         free(shared_array_loc_1);
@@ -2062,27 +1632,12 @@
     void run_latency_flow_ctrl_blocked_read_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, FILE* file = NULL, std::ofstream* raw_file=NULL)
     {
         //Print header
-        time_t currentTime = time(NULL);
-        struct tm * localT;
-        localT = localtime(&currentTime);
-        printf("Flow Control Blocked Read - Array | Start Time: %s", asctime(localT));
-        printf("        ==========================================================================================\n");
-        printf("          Transfer Length  |  Round Trip Latency (ns) | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
-        printf("        (int32_t Elements) |       Avg, StdDev        |                         |                 \n");
-        printf("        ==========================================================================================\n");
-
-        #if WRITE_CSV == 1
-        fprintf(file, "\"Transfer Length (int32_t Elements)\", \"Round Trip Latency (ns) - Avg\", \"Round Trip Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
-        fflush(file);
-        *raw_file << "\"Transfer Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
-        #endif
-
-        std::string format = "        %18d | %11.6f, %11.6f | %23.6f | %15.6f \n";
+        std::string format = tableHeaderArray1Stream("Flow Control Blocked Read - Array", file, raw_file);
 
         for(int i = 0; i<array_lengths.size(); i++)
         {
             size_t array_length = array_lengths[i];
-            Results* latency_fifo_kernel_results = run_latency_flow_ctrl_blocked_read_kernel(profiler, cpu_a, cpu_b, array_length, false, format, file, raw_file);
+            Results* latency_fifo_kernel_results = run_latency_flow_ctrl_blocked_read_kernel_point(profiler, cpu_a, cpu_b, array_length, false, format, file, raw_file);
 
             #if WRITE_CSV == 1
             fflush(file);
@@ -2092,36 +1647,18 @@
             delete latency_fifo_kernel_results;
         }
 
-        printf("        ==========================================================================================\n");
+        tableFooter();
     }
 
     void run_latency_flow_ctrl_blocked_read_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, int cpu_d, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //Print header
-        time_t currentTime = time(NULL);
-        struct tm * localT;
-        localT = localtime(&currentTime);
-        printf("Flow Control Blocked Read - Simultanious - Array | Start Time: %s", asctime(localT));
-        printf("        ========================================================================================================\n");
-        printf("         CPU <-> CPU |  Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
-        printf("                     |(int32_t Elements) |       Avg, StdDev        |                         |                 \n");
-        printf("        ========================================================================================================\n");
-
-        #if WRITE_CSV == 1
-        fprintf(file_a, "\"Transfer Length (int32_t Elements)\", \"Round Trip Latency (ns) - Avg\", \"Round Trip Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
-        fflush(file_a);
-        fprintf(file_b, "\"Transfer Length (int32_t Elements)\", \"Round Trip Latency (ns) - Avg\", \"Round Trip Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
-        fflush(file_b);
-        *raw_file_a << "\"Transfer Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
-        *raw_file_b << "\"Transfer Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
-        #endif
-
-        std::string format = "         %3d <-> %-3d | %17d | %11.6f, %11.6f | %23.6f | %15.6f \n";
+        std::string format = tableHeaderArray2Streams("Flow Control Blocked Read - Simultanious - Array", file_a, file_b, raw_file_a, raw_file_b, true);
 
         for(int i = 0; i<array_lengths.size(); i++)
         {
             size_t array_length = array_lengths[i];
-            SimultaniousResults* latency_fifo_kernel_results = run_latency_flow_ctrl_blocked_read_kernel(profiler, cpu_a, cpu_b, cpu_c, cpu_d, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
+            SimultaniousResults* latency_fifo_kernel_results = run_latency_flow_ctrl_blocked_read_kernel_point(profiler, cpu_a, cpu_b, cpu_c, cpu_d, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
 
             #if WRITE_CSV == 1
             fflush(file_a);
@@ -2134,36 +1671,18 @@
             delete latency_fifo_kernel_results;
         }
 
-        printf("        ==========================================================================================\n");
+        tableFooter();
     }
 
     void run_latency_flow_ctrl_blocked_read_fanin_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //Print header
-        time_t currentTime = time(NULL);
-        struct tm * localT;
-        localT = localtime(&currentTime);
-        printf("Flow Control Blocked Read - Fan-in - Array | Start Time: %s", asctime(localT));
-        printf("        ========================================================================================================\n");
-        printf("         CPU <-> CPU |  Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
-        printf("                     |(int32_t Elements) |       Avg, StdDev        |                         |                 \n");
-        printf("        ========================================================================================================\n");
-
-        #if WRITE_CSV == 1
-        fprintf(file_a, "\"Transfer Length (int32_t Elements)\", \"Round Trip Latency (ns) - Avg\", \"Round Trip Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
-        fflush(file_a);
-        fprintf(file_b, "\"Transfer Length (int32_t Elements)\", \"Round Trip Latency (ns) - Avg\", \"Round Trip Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
-        fflush(file_b);
-        *raw_file_a << "\"Transfer Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
-        *raw_file_b << "\"Transfer Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
-        #endif
-
-        std::string format = "          %3d -> %-3d | %17d | %11.6f, %11.6f | %23.6f | %15.6f \n";
+        std::string format = tableHeaderArray2Streams("Flow Control Blocked Read - Fan-in - Array", file_a, file_b, raw_file_a, raw_file_b, false);
 
         for(int i = 0; i<array_lengths.size(); i++)
         {
             size_t array_length = array_lengths[i];
-            SimultaniousResults* latency_fifo_kernel_results = run_latency_flow_ctrl_blocked_read_fanin_kernel(profiler, cpu_a, cpu_b, cpu_c, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
+            SimultaniousResults* latency_fifo_kernel_results = run_latency_flow_ctrl_blocked_read_fanin_kernel_point(profiler, cpu_a, cpu_b, cpu_c, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
 
             #if WRITE_CSV == 1
             fflush(file_a);
@@ -2176,36 +1695,18 @@
             delete latency_fifo_kernel_results;
         }
 
-        printf("        ==========================================================================================\n");
+        tableFooter();
     }
 
     void run_latency_flow_ctrl_blocked_read_fanout_kernel(Profiler* profiler, int cpu_a, int cpu_b, int cpu_c, std::vector<size_t> array_lengths, FILE* file_a = NULL, FILE* file_b = NULL, std::ofstream* raw_file_a=NULL, std::ofstream* raw_file_b=NULL)
     {
         //Print header
-        time_t currentTime = time(NULL);
-        struct tm * localT;
-        localT = localtime(&currentTime);
-        printf("Flow Control Blocked Read - Fan-out - Array | Start Time: %s", asctime(localT));
-        printf("        ========================================================================================================\n");
-        printf("         CPU <-> CPU |  Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
-        printf("                     |(int32_t Elements) |       Avg, StdDev        |                         |                 \n");
-        printf("        ========================================================================================================\n");
-
-        #if WRITE_CSV == 1
-        fprintf(file_a, "\"Transfer Length (int32_t Elements)\", \"Round Trip Latency (ns) - Avg\", \"Round Trip Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
-        fflush(file_a);
-        fprintf(file_b, "\"Transfer Length (int32_t Elements)\", \"Round Trip Latency (ns) - Avg\", \"Round Trip Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
-        fflush(file_b);
-        *raw_file_a << "\"Transfer Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
-        *raw_file_b << "\"Transfer Length (int32_t Elements)\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
-        #endif
-
-        std::string format = "          %3d -> %-3d | %17d | %11.6f, %11.6f | %23.6f | %15.6f \n";
+        std::string format = tableHeaderArray2Streams("Flow Control Blocked Read - Fan-out - Array", file_a, file_b, raw_file_a, raw_file_b, false);
 
         for(int i = 0; i<array_lengths.size(); i++)
         {
             size_t array_length = array_lengths[i];
-            SimultaniousResults* latency_fifo_kernel_results = run_latency_flow_ctrl_blocked_read_fanout_kernel(profiler, cpu_a, cpu_b, cpu_c, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
+            SimultaniousResults* latency_fifo_kernel_results = run_latency_flow_ctrl_blocked_read_fanout_kernel_point(profiler, cpu_a, cpu_b, cpu_c, array_length, false, format, file_a, file_b, raw_file_a, raw_file_b);
 
             #if WRITE_CSV == 1
             fflush(file_a);
@@ -2218,6 +1719,6 @@
             delete latency_fifo_kernel_results;
         }
 
-        printf("        ==========================================================================================\n");
+        tableFooter();
     }
 #endif
