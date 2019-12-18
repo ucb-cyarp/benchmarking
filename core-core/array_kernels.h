@@ -33,16 +33,20 @@
         #endif
 
         //Initialize
-        size_t amountToAlloc = array_length*sizeof(int32_t);
+        size_t amountToAlloc = array_length*sizeof(std::atomic_int32_t);
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_loc = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        std::atomic_int32_t* shared_loc = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
         {
-            shared_loc[i] = 0;
+            std::atomic_init(shared_loc+i, 0);
+            if(!std::atomic_is_lock_free(shared_loc+i)){
+                printf("Atomic is not lock free and was expected to be");
+                exit(1);
+            }
         }
 
         LatencySingleArrayKernelArgs* arg_a = new LatencySingleArrayKernelArgs();
@@ -142,18 +146,26 @@
         #endif
 
         //Initialize
-        size_t amountToAlloc = array_length*sizeof(int32_t);
+        size_t amountToAlloc = array_length*sizeof(std::atomic_int32_t);
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
-        int32_t* shared_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_c);
+        std::atomic_int32_t* shared_loc_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        std::atomic_int32_t* shared_loc_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_c);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
         {
-            shared_loc_1[i] = 0;
-            shared_loc_2[i] = 0;
+            std::atomic_init(shared_loc_1+i, 0);
+            if(!std::atomic_is_lock_free(shared_loc_1+i)){
+                printf("Atomic is not lock free and was expected to be");
+                exit(1);
+            }
+            std::atomic_init(shared_loc_2+i, 0);
+            if(!std::atomic_is_lock_free(shared_loc_2+i)){
+                printf("Atomic is not lock free and was expected to be");
+                exit(1);
+            }
         }
 
         LatencySingleArrayKernelArgs* arg_a = new LatencySingleArrayKernelArgs();
@@ -286,18 +298,27 @@
         #endif
 
         //Initialize
-        size_t amountToAlloc = array_length*sizeof(int32_t);
+        size_t amountToAlloc = array_length*sizeof(std::atomic_int32_t);
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
-        int32_t* shared_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
+        std::atomic_int32_t* shared_loc_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        std::atomic_int32_t* shared_loc_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
         {
-            shared_loc_1[i] = 0;
-            shared_loc_2[i] = 0;
+            std::atomic_init(shared_loc_1+i, 0);
+            if(!std::atomic_is_lock_free(shared_loc_1+i)){
+                printf("Atomic is not lock free and was expected to be");
+                exit(1);
+            }
+
+            std::atomic_init(shared_loc_2+i, 0);
+            if(!std::atomic_is_lock_free(shared_loc_2+i)){
+                printf("Atomic is not lock free and was expected to be");
+                exit(1);
+            }
         }
 
         //Construct 2 servers and 1 client.  Servers will measure.
@@ -538,18 +559,26 @@
         #endif
 
         //Initialize
-        size_t amountToAlloc = array_length*sizeof(int32_t);
+        size_t amountToAlloc = array_length*sizeof(std::atomic_int32_t);
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_loc_a = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
-        int32_t* shared_loc_b = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
+        std::atomic_int32_t* shared_loc_a = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        std::atomic_int32_t* shared_loc_b = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
         {
-            shared_loc_a[i] = 0;
-            shared_loc_b[i] = 0;
+            std::atomic_init(shared_loc_a+i, 0);
+            if(!std::atomic_is_lock_free(shared_loc_a+i)){
+                printf("Atomic is not lock free and was expected to be");
+                exit(1);
+            }
+            std::atomic_init(shared_loc_b+i, 0);
+            if(!std::atomic_is_lock_free(shared_loc_b+i)){
+                printf("Atomic is not lock free and was expected to be");
+                exit(1);
+            }
         }
 
         LatencyDualArrayKernelArgs* arg_a = new LatencyDualArrayKernelArgs();
@@ -654,24 +683,40 @@
         #endif
 
         //Initialize
-        size_t amountToAlloc = array_length*sizeof(int32_t);
+        size_t amountToAlloc = array_length*sizeof(std::atomic_int32_t);
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_loc_a_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
-        int32_t* shared_loc_b_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
+        std::atomic_int32_t* shared_loc_a_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        std::atomic_int32_t* shared_loc_b_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
 
-        int32_t* shared_loc_a_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_c);
-        int32_t* shared_loc_b_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_d);
+        std::atomic_int32_t* shared_loc_a_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_c);
+        std::atomic_int32_t* shared_loc_b_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_d);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
         {
-            shared_loc_a_1[i] = 0;
-            shared_loc_b_1[i] = 0;
+            std::atomic_init(shared_loc_a_1+i, 0);
+            if(!std::atomic_is_lock_free(shared_loc_a_1+i)){
+                printf("Atomic is not lock free and was expected to be");
+                exit(1);
+            }
+            std::atomic_init(shared_loc_b_1+i, 0);
+            if(!std::atomic_is_lock_free(shared_loc_b_1+i)){
+                printf("Atomic is not lock free and was expected to be");
+                exit(1);
+            }
 
-            shared_loc_a_2[i] = 0;
-            shared_loc_b_2[i] = 0;
+            std::atomic_init(shared_loc_a_2+i, 0);
+            if(!std::atomic_is_lock_free(shared_loc_a_2+i)){
+                printf("Atomic is not lock free and was expected to be");
+                exit(1);
+            }
+            std::atomic_init(shared_loc_b_2+i, 0);
+            if(!std::atomic_is_lock_free(shared_loc_b_2+i)){
+                printf("Atomic is not lock free and was expected to be");
+                exit(1);
+            }
         }
 
         LatencyDualArrayKernelArgs* arg_a = new LatencyDualArrayKernelArgs();
@@ -805,24 +850,40 @@
         #endif
 
         //Initialize
-        size_t amountToAlloc = array_length*sizeof(int32_t);
+        size_t amountToAlloc = array_length*sizeof(std::atomic_int32_t);
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_loc_a_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
-        int32_t* shared_loc_b_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_c);
+        std::atomic_int32_t* shared_loc_a_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        std::atomic_int32_t* shared_loc_b_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_c);
 
-        int32_t* shared_loc_a_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
-        int32_t* shared_loc_b_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_c);
+        std::atomic_int32_t* shared_loc_a_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
+        std::atomic_int32_t* shared_loc_b_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_c);
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
         {
-            shared_loc_a_1[i] = 0;
-            shared_loc_b_1[i] = 0;
+            std::atomic_init(shared_loc_a_1+i, 0);
+            if(!std::atomic_is_lock_free(shared_loc_a_1+i)){
+                printf("Atomic is not lock free and was expected to be");
+                exit(1);
+            }
+            std::atomic_init(shared_loc_b_1+i, 0);
+            if(!std::atomic_is_lock_free(shared_loc_b_1+i)){
+                printf("Atomic is not lock free and was expected to be");
+                exit(1);
+            }
 
-            shared_loc_a_2[i] = 0;
-            shared_loc_b_2[i] = 0;
+            std::atomic_init(shared_loc_a_2+i, 0);
+            if(!std::atomic_is_lock_free(shared_loc_a_2+i)){
+                printf("Atomic is not lock free and was expected to be");
+                exit(1);
+            }
+            std::atomic_init(shared_loc_b_2+i, 0);
+            if(!std::atomic_is_lock_free(shared_loc_b_2+i)){
+                printf("Atomic is not lock free and was expected to be");
+                exit(1);
+            }
         }
 
         //2 Servers, 1 Client - Servers will measure
@@ -1071,22 +1132,31 @@
         #endif
 
         //Initialize
-        size_t amountToAlloc = array_length*sizeof(int32_t);
+        size_t amountToAlloc = array_length*sizeof(std::atomic_int32_t);
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_array_loc = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        std::atomic_int32_t* shared_array_loc = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
 
-        size_t amountToAllocCursors = sizeof(int32_t);
+        size_t amountToAllocCursors = sizeof(std::atomic_int32_t);
         if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
             amountToAllocCursors += (CACHE_LINE_SIZE - (amountToAllocCursors % CACHE_LINE_SIZE));
         }
-        int32_t* shared_ack_loc = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_b);
+        std::atomic_int32_t* shared_ack_loc = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_b);
+        std::atomic_init(shared_ack_loc, 0);
+        if(!std::atomic_is_lock_free(shared_ack_loc)){
+            printf("Atomic is not lock free and was expected to be");
+            exit(1);
+        }
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
         {
-            shared_array_loc[i] = 0;
+            std::atomic_init(shared_array_loc+i, 0);
+            if(!std::atomic_is_lock_free(shared_array_loc+i)){
+                printf("Atomic is not lock free and was expected to be");
+                exit(1);
+            }
         }
 
         LatencyFlowCtrlKernelArgs* args = new LatencyFlowCtrlKernelArgs();
@@ -1176,25 +1246,43 @@
         #endif
 
         //Initialize
-        size_t amountToAlloc = array_length*sizeof(int32_t);
+        size_t amountToAlloc = array_length*sizeof(std::atomic_int32_t);
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_array_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
-        int32_t* shared_array_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_c);
+        std::atomic_int32_t* shared_array_loc_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        std::atomic_int32_t* shared_array_loc_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_c);
 
-        size_t amountToAllocCursors = sizeof(int32_t);
+        size_t amountToAllocCursors = sizeof(std::atomic_int32_t);
         if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
             amountToAllocCursors += (CACHE_LINE_SIZE - (amountToAllocCursors % CACHE_LINE_SIZE));
         }
-        int32_t* shared_ack_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_b);
-        int32_t* shared_ack_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_d);
+        std::atomic_int32_t* shared_ack_loc_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_b);
+        std::atomic_int32_t* shared_ack_loc_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_d);
+        std::atomic_init(shared_ack_loc_1, 0);
+        if(!std::atomic_is_lock_free(shared_ack_loc_1)){
+            printf("Atomic is not lock free and was expected to be");
+            exit(1);
+        }
+        std::atomic_init(shared_ack_loc_2, 0);
+        if(!std::atomic_is_lock_free(shared_ack_loc_2)){
+            printf("Atomic is not lock free and was expected to be");
+            exit(1);
+        }
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
         {
-            shared_array_loc_1[i] = 0;
-            shared_array_loc_2[i] = 0;
+            std::atomic_init(shared_array_loc_1+i, 0);
+            if(!std::atomic_is_lock_free(shared_array_loc_1+i)){
+                printf("Atomic is not lock free and was expected to be");
+                exit(1);
+            }
+            std::atomic_init(shared_array_loc_2+i, 0);
+            if(!std::atomic_is_lock_free(shared_array_loc_2+i)){
+                printf("Atomic is not lock free and was expected to be");
+                exit(1);
+            }
         }
 
         LatencyFlowCtrlKernelArgs* args_1 = new LatencyFlowCtrlKernelArgs();
@@ -1306,25 +1394,43 @@
         #endif
 
         //Initialize
-        size_t amountToAlloc = array_length*sizeof(int32_t);
+        size_t amountToAlloc = array_length*sizeof(std::atomic_int32_t);
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_array_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
-        int32_t* shared_array_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
+        std::atomic_int32_t* shared_array_loc_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        std::atomic_int32_t* shared_array_loc_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
 
-        size_t amountToAllocCursors = sizeof(int32_t);
+        size_t amountToAllocCursors = sizeof(std::atomic_int32_t);
         if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
             amountToAllocCursors += (CACHE_LINE_SIZE - (amountToAllocCursors % CACHE_LINE_SIZE));
         }
-        int32_t* shared_ack_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_c);
-        int32_t* shared_ack_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_c);
+        std::atomic_int32_t* shared_ack_loc_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_c);
+        std::atomic_int32_t* shared_ack_loc_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_c);
+        std::atomic_init(shared_ack_loc_1, 0);
+        if(!std::atomic_is_lock_free(shared_ack_loc_1)){
+            printf("Atomic is not lock free and was expected to be");
+            exit(1);
+        }
+        std::atomic_init(shared_ack_loc_2, 0);
+        if(!std::atomic_is_lock_free(shared_ack_loc_2)){
+            printf("Atomic is not lock free and was expected to be");
+            exit(1);
+        }
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
         {
-            shared_array_loc_1[i] = 0;
-            shared_array_loc_2[i] = 0;
+            std::atomic_init(shared_array_loc_1+i, 0);
+            if(!std::atomic_is_lock_free(shared_array_loc_1+i)){
+                printf("Atomic is not lock free and was expected to be");
+                exit(1);
+            }
+            std::atomic_init(shared_array_loc_2+i, 0);
+            if(!std::atomic_is_lock_free(shared_array_loc_2+i)){
+                printf("Atomic is not lock free and was expected to be");
+                exit(1);
+            }
         }
 
         //2 Servers
@@ -1446,25 +1552,43 @@
         #endif
 
         //Initialize
-        size_t amountToAlloc = array_length*sizeof(int32_t);
+        size_t amountToAlloc = array_length*sizeof(std::atomic_int32_t);
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
-        int32_t* shared_array_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
-        int32_t* shared_array_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        std::atomic_int32_t* shared_array_loc_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+        std::atomic_int32_t* shared_array_loc_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
 
-        size_t amountToAllocCursors = sizeof(int32_t);
+        size_t amountToAllocCursors = sizeof(std::atomic_int32_t);
         if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
             amountToAllocCursors += (CACHE_LINE_SIZE - (amountToAllocCursors % CACHE_LINE_SIZE));
         }
-        int32_t* shared_ack_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_b);
-        int32_t* shared_ack_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_c);
+        std::atomic_int32_t* shared_ack_loc_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_b);
+        std::atomic_int32_t* shared_ack_loc_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_c);
+        std::atomic_init(shared_ack_loc_1, 0);
+        if(!std::atomic_is_lock_free(shared_ack_loc_1)){
+            printf("Atomic is not lock free and was expected to be");
+            exit(1);
+        }
+        std::atomic_init(shared_ack_loc_2, 0);
+        if(!std::atomic_is_lock_free(shared_ack_loc_2)){
+            printf("Atomic is not lock free and was expected to be");
+            exit(1);
+        }
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
         {
-            shared_array_loc_1[i] = 0;
-            shared_array_loc_2[i] = 0;
+            std::atomic_init(shared_array_loc_1+i, 0);
+            if(!std::atomic_is_lock_free(shared_array_loc_1+i)){
+                printf("Atomic is not lock free and was expected to be");
+                exit(1);
+            }
+            std::atomic_init(shared_array_loc_2+i, 0);
+            if(!std::atomic_is_lock_free(shared_array_loc_2+i)){
+                printf("Atomic is not lock free and was expected to be");
+                exit(1);
+            }
         }
 
         //1 Server
@@ -1748,12 +1872,22 @@
         }
         int32_t* shared_array_loc = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
 
-        size_t amountToAllocCursors = sizeof(int32_t);
+        size_t amountToAllocCursors = sizeof(std::atomic_int32_t);
         if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
             amountToAllocCursors += (CACHE_LINE_SIZE - (amountToAllocCursors % CACHE_LINE_SIZE));
         }
-        int32_t* shared_ack_loc = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_b);
-        int32_t* shared_valid_loc = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_a);
+        std::atomic_int32_t* shared_ack_loc = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_b);
+        std::atomic_int32_t* shared_valid_loc = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_a);
+        std::atomic_init(shared_ack_loc, 0);
+        if(!std::atomic_is_lock_free(shared_ack_loc)){
+            printf("Atomic is not lock free and was expected to be");
+            exit(1);
+        }
+        std::atomic_init(shared_valid_loc, 0);
+        if(!std::atomic_is_lock_free(shared_valid_loc)){
+            printf("Atomic is not lock free and was expected to be");
+            exit(1);
+        }
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
@@ -1857,14 +1991,34 @@
         int32_t* shared_array_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
         int32_t* shared_array_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_c);
 
-        size_t amountToAllocCursors = sizeof(int32_t);
+        size_t amountToAllocCursors = sizeof(std::atomic_int32_t);
         if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
             amountToAllocCursors += (CACHE_LINE_SIZE - (amountToAllocCursors % CACHE_LINE_SIZE));
         }
-        int32_t* shared_ack_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_b);
-        int32_t* shared_valid_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_a);
-        int32_t* shared_ack_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_d);
-        int32_t* shared_valid_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_c);
+        std::atomic_int32_t* shared_ack_loc_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_b);
+        std::atomic_int32_t* shared_valid_loc_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_a);
+        std::atomic_int32_t* shared_ack_loc_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_d);
+        std::atomic_int32_t* shared_valid_loc_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_c);
+        std::atomic_init(shared_ack_loc_1, 0);
+        if(!std::atomic_is_lock_free(shared_ack_loc_1)){
+            printf("Atomic is not lock free and was expected to be");
+            exit(1);
+        }
+        std::atomic_init(shared_valid_loc_1, 0);
+        if(!std::atomic_is_lock_free(shared_valid_loc_1)){
+            printf("Atomic is not lock free and was expected to be");
+            exit(1);
+        }
+        std::atomic_init(shared_ack_loc_2, 0);
+        if(!std::atomic_is_lock_free(shared_ack_loc_2)){
+            printf("Atomic is not lock free and was expected to be");
+            exit(1);
+        }
+        std::atomic_init(shared_valid_loc_2, 0);
+        if(!std::atomic_is_lock_free(shared_valid_loc_2)){
+            printf("Atomic is not lock free and was expected to be");
+            exit(1);
+        }
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
@@ -1989,14 +2143,34 @@
         int32_t* shared_array_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
         int32_t* shared_array_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
 
-        size_t amountToAllocCursors = sizeof(int32_t);
+        size_t amountToAllocCursors = sizeof(std::atomic_int32_t);
         if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
             amountToAllocCursors += (CACHE_LINE_SIZE - (amountToAllocCursors % CACHE_LINE_SIZE));
         }
-        int32_t* shared_ack_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_c);
-        int32_t* shared_valid_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_a);
-        int32_t* shared_ack_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_c);
-        int32_t* shared_valid_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_b);
+        std::atomic_int32_t* shared_ack_loc_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_c);
+        std::atomic_int32_t* shared_valid_loc_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_a);
+        std::atomic_int32_t* shared_ack_loc_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_c);
+        std::atomic_int32_t* shared_valid_loc_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_b);
+        std::atomic_init(shared_ack_loc_1, 0);
+        if(!std::atomic_is_lock_free(shared_ack_loc_1)){
+            printf("Atomic is not lock free and was expected to be");
+            exit(1);
+        }
+        std::atomic_init(shared_valid_loc_1, 0);
+        if(!std::atomic_is_lock_free(shared_valid_loc_1)){
+            printf("Atomic is not lock free and was expected to be");
+            exit(1);
+        }
+        std::atomic_init(shared_ack_loc_2, 0);
+        if(!std::atomic_is_lock_free(shared_ack_loc_2)){
+            printf("Atomic is not lock free and was expected to be");
+            exit(1);
+        }
+        std::atomic_init(shared_valid_loc_2, 0);
+        if(!std::atomic_is_lock_free(shared_valid_loc_2)){
+            printf("Atomic is not lock free and was expected to be");
+            exit(1);
+        }
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
@@ -2131,14 +2305,34 @@
         int32_t* shared_array_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
         int32_t* shared_array_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
 
-        size_t amountToAllocCursors = sizeof(int32_t);
+        size_t amountToAllocCursors = sizeof(std::atomic_int32_t);
         if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
             amountToAllocCursors += (CACHE_LINE_SIZE - (amountToAllocCursors % CACHE_LINE_SIZE));
         }
-        int32_t* shared_ack_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_b);
-        int32_t* shared_valid_loc_1 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_a);
-        int32_t* shared_ack_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_c);
-        int32_t* shared_valid_loc_2 = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_a);
+        std::atomic_int32_t* shared_ack_loc_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_b);
+        std::atomic_int32_t* shared_valid_loc_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_a);
+        std::atomic_int32_t* shared_ack_loc_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_c);
+        std::atomic_int32_t* shared_valid_loc_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_a);
+        std::atomic_init(shared_ack_loc_1, 0);
+        if(!std::atomic_is_lock_free(shared_ack_loc_1)){
+            printf("Atomic is not lock free and was expected to be");
+            exit(1);
+        }
+        std::atomic_init(shared_valid_loc_1, 0);
+        if(!std::atomic_is_lock_free(shared_valid_loc_1)){
+            printf("Atomic is not lock free and was expected to be");
+            exit(1);
+        }
+        std::atomic_init(shared_ack_loc_2, 0);
+        if(!std::atomic_is_lock_free(shared_ack_loc_2)){
+            printf("Atomic is not lock free and was expected to be");
+            exit(1);
+        }
+        std::atomic_init(shared_valid_loc_2, 0);
+        if(!std::atomic_is_lock_free(shared_valid_loc_2)){
+            printf("Atomic is not lock free and was expected to be");
+            exit(1);
+        }
 
         //Init to 0
         for(size_t i = 0; i < array_length; i++)

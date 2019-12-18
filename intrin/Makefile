@@ -6,6 +6,7 @@ SRC_DIR=.
 #Parameters that can be supplied to this makefile
 USE_PCM=1
 USE_AMDuPROF=1
+USE_SCHED_FIFO=0
 
 #Get Cache Sizes
 # L1D_CACHE_SIZE = $(shell ./get_l1d_cache_size.py)
@@ -61,6 +62,12 @@ else
 DEFINES+= -DUSE_AMDuPROF=0
 endif
 
+ifeq ($(USE_SCHED_FIFO), 1)
+DEFINES+= -DUSE_SCHED_FIFO=1
+else
+DEFINES+= -DUSE_SCHED_FIFO=0
+endif
+
 MAIN_FILE = benchmark_throughput_test.cpp
 LIB_SRCS = micro_bench.cpp #These files are not optomized. micro_bench it calls the kernel runner (which starts the timers by calling functions in the profilers).  Re-ordering code is not desired
 KERNEL_SRCS = store_kernel.cpp load_store_kernel.cpp load_add_store_kernel.cpp load_mult_store_kernel.cpp load_div_store_kernel.cpp load_fma_store_kernel.cpp load_add_store_unroll2_kernel.cpp load_add_store_nointrin_kernel.cpp add_kernel_asm.cpp add_kernel_asm_unroll2.cpp add_kernel_asm_unroll4.cpp add_kernel_asm_unroll8.cpp add_kernel_asm_unroll120.cpp div_kernel_asm.cpp div_kernel_asm_unroll2.cpp div_kernel_asm_unroll4.cpp div_kernel_asm_unroll120.cpp fma_kernel_asm.cpp fma_kernel_asm_unroll2.cpp fma_kernel_asm_unroll4.cpp fma_kernel_asm_unroll8.cpp fma_kernel_asm_unroll120.cpp mult_kernel_asm.cpp mult_kernel_asm_unroll2.cpp mult_kernel_asm_unroll4.cpp mult_kernel_asm_unroll8.cpp mult_kernel_asm_unroll120.cpp load_kernel_asm.cpp load_kernel_asm_local.cpp load_kernel_asm_unroll2.cpp load_kernel_asm_local_unroll2.cpp load_kernel_asm_local_unroll120.cpp store_kernel_asm.cpp store_kernel_asm_local.cpp add_kernel_scalar_asm.cpp mult_kernel_scalar_asm.cpp mult_kernel_scalar_asm_unroll2.cpp mult_kernel_scalar_asm_unroll4.cpp mult_kernel_scalar_asm_unroll120.cpp add_kernel_scalar_asm_unroll2.cpp add_kernel_scalar_asm_unroll4.cpp add_kernel_scalar_asm_unroll6.cpp add_kernel_scalar_asm_unroll120.cpp store_kernel_asm_unroll2.cpp store_kernel_asm_local_unroll2.cpp store_kernel_asm_local_unroll120.cpp div_kernel_scalar_asm.cpp div_kernel_scalar_asm_unroll2.cpp div_kernel_scalar_asm_unroll120.cpp fctn_call_kernel.cpp zero_arg_fctn.cpp load_kernel_scalar_asm.cpp load_kernel_scalar_asm_local.cpp store_kernel_scalar_asm.cpp store_kernel_scalar_asm_local.cpp
@@ -95,10 +102,10 @@ $(DEPENDS_DIR)/pcm/Makefile:
 	git submodule update --init --recursive $(DEPENDS_DIR)/pcm
 
 $(DEPENDS_DIR)/pcm/libPCM.a: $(DEPENDS_DIR)/pcm/Makefile
-	cd $(DEPENDS_DIR)/pcm; make libPCM.a
+	cd $(DEPENDS_DIR)/pcm; make CXX=$(CXX) CC=$(CC) libPCM.a
 
 $(COMMON_DIR)/libProfilerCommon.a:
-	cd $(COMMON_DIR); make USE_PCM=$(USE_PCM) USE_AMDuPROF=$(USE_AMDuPROF)
+	cd $(COMMON_DIR); make CXX=$(CXX) CC=$(CC) USE_PCM=$(USE_PCM) USE_AMDuPROF=$(USE_AMDuPROF) USE_SCHED_FIFO=${USE_SCHED_FIFO}
 	
 clean:
 	rm -f micro_bench_throughput_test

@@ -6,6 +6,7 @@ SRC_DIR=.
 #Parameters that can be supplied to this makefile
 USE_PCM=1
 USE_AMDuPROF=1
+USE_SCHED_FIFO=1
 
 #Get Cache Sizes
 # L1D_CACHE_SIZE = $(shell ./get_l1d_cache_size.py)
@@ -25,7 +26,7 @@ KERNEL_CFLAGS = -O3 -c -g -std=c++11 -march=native -masm=att
 KERNEL_NO_OPT_CFLAGS = -O0 -c -g -std=c++11 -march=native -masm=att
 INC=-I $(COMMON_DIR)
 LIB_DIRS=-L $(COMMON_DIR)
-LIB=-pthread -lrt -lProfilerCommon
+LIB=-pthread -lrt -lProfilerCommon -latomic
 
 TEST_CLASSES = -DTEST_SINGLE=1 -DTEST_FIFO=1 -DTEST_SIMULTANIOUS=1 -DTEST_FANIN_FANOUT=1
 
@@ -73,6 +74,12 @@ else
 DEFINES+= -DUSE_AMDuPROF=0
 endif
 
+ifeq ($(USE_SCHED_FIFO), 1)
+DEFINES+= -DUSE_SCHED_FIFO=1
+else
+DEFINES+= -DUSE_SCHED_FIFO=0
+endif
+
 MAIN_FILE = core-core.cpp
 KERNEL_SRCS = latency_single_kernel.cpp latency_dual_kernel.cpp latency_single_array_kernel.cpp latency_dual_array_kernel.cpp latency_flow_ctrl_kernel.cpp latency_flow_ctrl_blocked_read_kernel.cpp bandwidth_circular_fifo_kernel.cpp bandwidth_circular_fifo_blocked_kernel.cpp bandwidth_circular_fifo_read_limit_kernel.cpp bandwidth_circular_fifo_blocked_cachedptr_kernel.cpp
 
@@ -105,10 +112,10 @@ $(DEPENDS_DIR)/pcm/Makefile:
 	git submodule update --init --recursive $(DEPENDS_DIR)/pcm
 
 $(DEPENDS_DIR)/pcm/libPCM.a: $(DEPENDS_DIR)/pcm/Makefile
-	cd $(DEPENDS_DIR)/pcm; make libPCM.a
+	cd $(DEPENDS_DIR)/pcm; make CXX=$(CXX) CC=$(CC) libPCM.a
 
 $(COMMON_DIR)/libProfilerCommon.a:
-	cd $(COMMON_DIR); make USE_PCM=$(USE_PCM) USE_AMDuPROF=$(USE_AMDuPROF)
+	cd $(COMMON_DIR); make CXX=$(CXX) CC=$(CC) USE_PCM=$(USE_PCM) USE_AMDuPROF=$(USE_AMDuPROF) USE_SCHED_FIFO=${USE_SCHED_FIFO}
 	
 clean:
 	rm -f core-core

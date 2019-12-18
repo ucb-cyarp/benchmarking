@@ -1,11 +1,12 @@
 #ifndef _H_LATENCY_SINGLE_KERNEL
     #define _H_LATENCY_SINGLE_KERNEL
     #include <stdint.h>
+    #include <atomic>
 
     class LatencySingleKernelArgs
     {
         public:
-            int32_t* shared_ptr;
+            std::atomic_int32_t* shared_ptr;
             int32_t init_counter;
     };
 
