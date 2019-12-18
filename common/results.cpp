@@ -265,6 +265,10 @@ TrialResult* Results::add_trial_set_trialInd(TrialResult &trial)
     return &trial_results[trial_results.size()-1];
 }
 
+void Results::remove_last_trial(){
+    trial_results.pop_back();
+}
+
 double Results::avg_duration()
 {
     size_t trials = trial_results.size();

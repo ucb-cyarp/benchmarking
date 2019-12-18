@@ -38,6 +38,12 @@
             return freq_change_events_occured;
     }
 
+    inline void discardLastTrial(Results &results, int &trial, int &discard_count){
+        results.remove_last_trial();
+        trial--;
+        discard_count++;
+    }
+
     inline void printTrial(TrialResult &trial_result){
         #if PRINT_TRIALS_DONE == 1
         printf("---- Finished Trial %d ----\n", trial_result.trial);

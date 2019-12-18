@@ -228,3 +228,7 @@ bool PCM_Profiler::checkFreqChanged(std::vector<int> socketsOfInterest)
 std::string PCM_Profiler::profilerName(){
     return "OPCM";
 }
+
+bool PCM_Profiler::supportsMultipleInstances(){
+    return true;
+}

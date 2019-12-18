@@ -63,6 +63,7 @@
 
             TrialResult* add_trial_set_trialInd(TrialResult &trial);
             TrialResult* add_trial(TrialResult &trial);
+            void remove_last_trial();
 
             double avg_duration();
             double avg_duration_clock();

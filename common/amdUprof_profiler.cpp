@@ -616,3 +616,7 @@ bool AMDuProfProfiler::checkFreqChanged(std::vector<int> socketsOfInterest)
 std::string AMDuProfProfiler::profilerName(){
     return "AMD uProf";
 }
+
+bool AMDuProfProfiler::supportsMultipleInstances(){
+    return false;
+}
