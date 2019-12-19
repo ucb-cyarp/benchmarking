@@ -44,17 +44,30 @@
         //Init to 0
         *shared_loc = 0;
 
-        LatencySingleKernelArgs* arg_a = new LatencySingleKernelArgs();
-        arg_a->init_counter = -1; //(server)
-        arg_a->shared_ptr = shared_loc;
+        LatencySingleKernelArgs* arg_a_array = new LatencySingleKernelArgs[1];
+        LatencySingleKernelArgs* arg_b_array = new LatencySingleKernelArgs[1];
+        void** reset_arg_array = new void*[1];
 
-        LatencySingleKernelArgs* arg_b = new LatencySingleKernelArgs();
-        arg_b->init_counter = 0; //(client)
-        arg_b->shared_ptr = shared_loc;
+        arg_a_array[0].init_counter = -1; //(server)
+        arg_a_array[0].shared_ptr = shared_loc;
 
-        void* reset_arg = shared_loc; //Argument for reset function is shared location
+        LatencySingleKernelArgs arg_b;
+        arg_b_array[0].init_counter = 0; //(client)
+        arg_b_array[0].shared_ptr = shared_loc;
 
-        Results* results = execute_kernel(profiler, latency_single_kernel, latency_single_kernel_reset, arg_a, arg_b, reset_arg, cpu_a, cpu_b);
+        reset_arg_array[0] = shared_loc; //Argument for reset function is shared location
+
+        //This kernel has a single configuraton
+        //The client and server kernel are the same
+        std::vector<Results> results_vector = execute_client_server_kernel(profiler, latency_single_kernel, latency_single_kernel, latency_single_kernel_reset, arg_a_array, arg_b_array, reset_arg_array, cpu_a, cpu_b, 1);
+        if(results_vector.size() != 1){
+            std::cerr << "Error: Unexpected number of results" << std::endl;
+            exit(1);
+        }
+
+        //Copy result (for legacy result memory handling)
+        Results* results = new Results;
+        *results = results_vector[0];
 
         #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1
             if(!profiler->cpuTopology.empty()){
@@ -109,8 +122,10 @@
 
         //Clean Up
         free(shared_loc);
-        delete arg_a;
-        delete arg_b;
+
+        delete[] arg_a_array;
+        delete[] arg_b_array;
+        delete[] reset_arg_array;
 
         return results;
     }
@@ -147,21 +162,28 @@
         *shared_loc_a = 0;
         *shared_loc_b = 0;
 
-        LatencyDualKernelArgs* arg_a = new LatencyDualKernelArgs();
-        arg_a->init_counter = -1; //(server)
-        arg_a->my_shared_ptr = shared_loc_a;
-        arg_a->other_shared_ptr = shared_loc_b;
+        LatencyDualKernelArgs* arg_a_array = new LatencyDualKernelArgs[1];
+        LatencyDualKernelArgs* arg_b_array = new LatencyDualKernelArgs[1];
+        LatencyDualKernelResetArgs* reset_arg_array = new LatencyDualKernelResetArgs[1];
 
-        LatencyDualKernelArgs* arg_b = new LatencyDualKernelArgs();
-        arg_b->init_counter = 0; //(client)
-        arg_b->my_shared_ptr = shared_loc_b; //Swapped from above
-        arg_b->other_shared_ptr = shared_loc_a;
+        arg_a_array[0].init_counter = -1; //(server)
+        arg_a_array[0].my_shared_ptr = shared_loc_a;
+        arg_a_array[0].other_shared_ptr = shared_loc_b;
 
-        LatencyDualKernelResetArgs* reset_arg = new LatencyDualKernelResetArgs();
-        reset_arg->shared_ptr_a = shared_loc_a;
-        reset_arg->shared_ptr_b = shared_loc_b;
+        arg_b_array[0].init_counter = 0; //(client)
+        arg_b_array[0].my_shared_ptr = shared_loc_b; //Swapped from above
+        arg_b_array[0].other_shared_ptr = shared_loc_a;
 
-        Results* results = execute_kernel(profiler, latency_dual_kernel, latency_dual_kernel_reset, arg_a, arg_b, reset_arg, cpu_a, cpu_b);
+        reset_arg_array[0].shared_ptr_a = shared_loc_a;
+        reset_arg_array[0].shared_ptr_b = shared_loc_b;
+        
+        //This kernel has a single configuraton
+        //The client and server kernel are the same
+        std::vector<Results> results_vector = execute_client_server_kernel(profiler, latency_dual_kernel, latency_dual_kernel, latency_dual_kernel_reset, arg_a_array, arg_b_array, reset_arg_array, cpu_a, cpu_b, 1);
+
+        //Copy result (for legacy result memory handling)
+        Results* results = new Results;
+        *results = results_vector[0];
 
         #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1
             if(!profiler->cpuTopology.empty()){
@@ -217,9 +239,10 @@
         //Clean Up
         free(shared_loc_a);
         free(shared_loc_b);
-        delete arg_a;
-        delete arg_b;
-        delete reset_arg;
+
+        delete[] arg_a_array;
+        delete[] arg_b_array;
+        delete[] reset_arg_array;
 
         return results;
     }

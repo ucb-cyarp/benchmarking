@@ -16,8 +16,8 @@
             Profiler* profiler;
             void* (*kernel_fun)(void*);
             void* (*reset_fun)(void*);
-            void** kernel_args;
-            void** reset_args;
+            void* kernel_args;
+            void* reset_args;
             int num_args; //The number of kernel and reset args
             size_t kernel_arg_size; //The size per kernel arg
             size_t reset_arg_size; //The size per reset arg
@@ -39,7 +39,7 @@
     {
         public:
             void* (*kernel_fun)(void*);
-            void** kernel_args;
+            void* kernel_args;
             int num_args; //The number of kernel and reset args
             size_t kernel_arg_size; //The size per kernel arg
             std::atomic_flag* start_new_trial_signal;
@@ -51,8 +51,8 @@
     class SimultaniousResults
     {
         public:
-            Results* results_a;
-            Results* results_b;
+            Results results_a;
+            Results results_b;
     };
 
     //Returns a vector of results
@@ -333,7 +333,7 @@
      * The execute_kernel functionality is achieved by passing the same function as both the kernel_server and kernel_client
      */
     template <typename ServerArgType, typename ClientArgType, typename ResetArgType>
-    std::vector<Results> execute_client_server_kernel(Profiler* profiler, void* (*kernel_server)(void*), void* (*kernel_client)(void*), void* (*kernel_reset)(void*), ServerArgType** arg_server, ClientArgType** arg_client, ResetArgType** reset_arg, int cpu_a, int cpu_b, int num_args)
+    std::vector<Results> execute_client_server_kernel(Profiler* profiler, void* (*kernel_server)(void*), void* (*kernel_client)(void*), void* (*kernel_reset)(void*), ServerArgType* arg_server, ClientArgType* arg_client, ResetArgType* reset_arg, int cpu_a, int cpu_b, int num_args)
     {
         //=====Create a thread for the server and client on the specified cores=====
 
@@ -508,8 +508,8 @@
         resultVecCpy = *resultVec;
 
         //Delete temportary results
-        delete res_a;
-        delete res_b;
+        delete resultVec;
+        free(res_b);
 
         //Delete thread parameters
         delete start_new_trial_signal;
@@ -519,7 +519,7 @@
         delete client_args;
         delete server_args;
 
-        return resultVec;
+        return resultVecCpy;
     }
 
     /**
@@ -534,7 +534,7 @@
      * client_2 = cpu_d
      */
     template <typename ServerArgType, typename ClientArgType, typename ResetArgType>
-    std::vector<SimultaniousResults> execute_client_server_kernel(Profiler* profiler, void* (*kernel_server)(void*), void* (*kernel_client)(void*), void* (*kernel_reset)(void*), ServerArgType** arg_server_1, ClientArgType* arg_client_1, ServerArgType** arg_server_2, ClientArgType* arg_client_2, void* reset_arg_1, void* reset_arg_2, int cpu_a, int cpu_b, int cpu_c, int cpu_d, int num_args)
+    std::vector<SimultaniousResults> execute_client_server_kernel(Profiler* profiler, void* (*kernel_server)(void*), void* (*kernel_client)(void*), void* (*kernel_reset)(void*), ServerArgType* arg_server_1, ClientArgType* arg_client_1, ServerArgType* arg_server_2, ClientArgType* arg_client_2, ResetArgType* reset_arg_1, ResetArgType* reset_arg_2, int cpu_a, int cpu_b, int cpu_c, int cpu_d, int num_args)
     {
         //=====Create a thread for the server and client on the specified cores=====
 
@@ -852,8 +852,8 @@
 
         std::vector<SimultaniousResults> simultaniousResultVec;
 
-        std::vector<Results>* result_vec_a = (Results*) res_a;
-        std::vector<Results>* result_vec_c = (Results*) res_c;
+        std::vector<Results>* result_vec_a = (std::vector<Results>*) res_a;
+        std::vector<Results>* result_vec_c = (std::vector<Results>*) res_c;
 
         //Copy the results for returning
         if(result_vec_a->size() != result_vec_c->size()){
@@ -869,10 +869,10 @@
         }
 
         //Delete temportary results
-        delete res_a;
-        delete res_b;
-        delete res_c;
-        delete res_d;
+        delete result_vec_a;
+        free(res_b);
+        delete result_vec_c;
+        free(res_d);
 
         //Cleanup
         delete start_new_trial_signal_b;
@@ -902,7 +902,7 @@
      * Also, note that only the master performs the inter-trial reset
      */
     template <typename ServerArgType, typename ClientArgType, typename ResetArgType>
-    std::vector<SimultaniousResults> execute_kernel_fanin_server_measure(Profiler* profiler, void* (*srv_kernel_fun)(void*), void* (*cli_kernel_fun)(void*), void* (*kernel_reset)(void*), ServerArgType** arg_srv_a, ServerArgType** arg_srv_b, ClientArgType** arg_cli_c, ResetArgType** reset_arg, int cpu_srv_a, int cpu_srv_b, int cpu_cli_c, int num_args)
+    std::vector<SimultaniousResults> execute_kernel_fanin_server_measure(Profiler* profiler, void* (*srv_kernel_fun)(void*), void* (*cli_kernel_fun)(void*), void* (*kernel_reset)(void*), ServerArgType* arg_srv_a, ServerArgType* arg_srv_b, ClientArgType* arg_cli_c, ResetArgType* reset_arg, int cpu_srv_a, int cpu_srv_b, int cpu_cli_c, int num_args)
     {
         //=====Create a thread for the server and client on the specified cores=====
         cpu_set_t cpuset_srv_a, cpuset_srv_b, cpuset_cli_c;
@@ -1181,8 +1181,8 @@
         //Copy results
         std::vector<SimultaniousResults> simultaniousResultVec;
 
-        std::vector<Results>* result_vec_a = (Results*) res_srv_a;
-        std::vector<Results>* result_vec_b = (Results*) res_srv_b;
+        std::vector<Results>* result_vec_a = (std::vector<Results>*) res_srv_a;
+        std::vector<Results>* result_vec_b = (std::vector<Results>*) res_srv_b;
 
         //Copy the results for returning
         if(result_vec_a->size() != result_vec_b->size()){
@@ -1198,9 +1198,9 @@
         }
 
         //Delete temportary results
-        delete res_srv_a;
-        delete res_srv_b;
-        delete res_cli_c;
+        delete result_vec_a;
+        delete result_vec_b;
+        free(res_cli_c);
 
         delete start_new_trial_signal_client;
         delete restart_trial_signal_client;
@@ -1227,7 +1227,7 @@
     //srv_a gets control from cli_b
     //cli_b and cli_c get feedback from srv_a
     template <typename ServerArgType, typename ClientArgType, typename ResetArgType>
-    std::vector<SimultaniousResults> execute_kernel_fanout_client_measure(Profiler* profiler, void* (*srv_kernel_fun)(void*), void* (*cli_kernel_fun)(void*), void* (*kernel_reset)(void*), ServerArgType** arg_srv_a, ClientArgType** arg_cli_b, ClientArgType** arg_cli_c, ResetArgType** reset_arg, int cpu_srv_a, int cpu_cli_b, int cpu_cli_c, int num_args)
+    std::vector<SimultaniousResults> execute_kernel_fanout_client_measure(Profiler* profiler, void* (*srv_kernel_fun)(void*), void* (*cli_kernel_fun)(void*), void* (*kernel_reset)(void*), ServerArgType* arg_srv_a, ClientArgType* arg_cli_b, ClientArgType* arg_cli_c, ResetArgType* reset_arg, int cpu_srv_a, int cpu_cli_b, int cpu_cli_c, int num_args)
     {
         //=====Create a thread for the server and client on the specified cores=====
 
@@ -1506,8 +1506,8 @@
         //Copy results
         std::vector<SimultaniousResults> simultaniousResultVec;
 
-        std::vector<Results>* result_vec_b = (Results*) res_cli_b;
-        std::vector<Results>* result_vec_c = (Results*) res_cli_c;
+        std::vector<Results>* result_vec_b = (std::vector<Results>*) res_cli_b;
+        std::vector<Results>* result_vec_c = (std::vector<Results>*) res_cli_c;
 
         //Copy the results for returning
         if(result_vec_b->size() != result_vec_c->size()){
@@ -1523,9 +1523,9 @@
         }
 
         //Delete temportary results
-        delete res_srv_a;
-        delete res_cli_b;
-        delete res_cli_c;
+        free(res_srv_a);
+        delete result_vec_b;
+        delete result_vec_c;
 
         delete start_new_trial_signal_client;
         delete restart_trial_signal_client;
