@@ -19,7 +19,7 @@ UNAME:=$(shell uname)
 #CXX=g++
 #CXX = $(MPICXX)
 #Main Benchmark file is not optomized to avoid timing code being re-organized
-CFLAGS = -O0 -c -g -std=c++11 -march=native -masm=att
+CFLAGS = -O3 -c -g -std=c++11 -march=native -masm=att
 #Most kernels are allowed to be optomized.  Most assembly kernels use asm 'volitile' to force execution
 KERNEL_CFLAGS = -O3 -c -g -std=c++11 -march=native -masm=att
 #For kernels that should not be optimized, the following is used

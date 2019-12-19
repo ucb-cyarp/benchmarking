@@ -1,4 +1,5 @@
 #include "kernel_server_runner.h"
+#include <atomic>
 
 void* kernel_exe_primary_wrapper(void *arg)
 {
@@ -89,12 +90,18 @@ void* kernel_exe_primary_wrapper(void *arg)
 
             //Start the trial
             profiler->trialSetup();
+
+            //Note that atomic_signal_fence should only effect compiler re-ordering and will not cause CPU fence instructions to be generated (see https://en.cppreference.com/w/c/atomic/atomic_signal_fence)
+            std::atomic_signal_fence(std::memory_order_acq_rel); //Place barriers around the calls to the instrimentation functions (getting time, reading MSRs, etc...) to prevent re-ordering.  This should only be nesssasary if link time optimizations are used
             profiler->startTrial();
+            std::atomic_signal_fence(std::memory_order_acq_rel);
 
             //Run Kernel
             kernel_fun(kernel_arg);
 
+            std::atomic_signal_fence(std::memory_order_acq_rel); //Place barriers around the calls to the instrimentation functions (getting time, reading MSRs, etc...) to prevent re-ordering.  This should only be nesssasary if link time optimizations are used
             profiler->endTrial();
+            std::atomic_signal_fence(std::memory_order_acq_rel);
             
             //Compute the trial result
             TrialResult trial_result = computeTrialResultAndSetTrialNum(profiler, &results);
