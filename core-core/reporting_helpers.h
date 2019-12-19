@@ -20,10 +20,6 @@
 
     void tableFooter();
 
-    #define PRINT_STATS 1
-    #define PRINT_FULL_STATS 1
-    #define WRITE_CSV 1
-
     template <typename elementType>
     void exportResultsSingle2Core(Profiler* profiler, int cpu_a, int cpu_b, Results &results){
         #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1

@@ -22,10 +22,6 @@
 
     #include "reporting_helpers.h"
 
-    #define PRINT_STATS 1
-    #define PRINT_FULL_STATS 1
-    #define WRITE_CSV 1
-
     //==== Single Array ====
     void run_latency_single_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, FILE* file=NULL, std::ofstream* raw_file=NULL)
     {
