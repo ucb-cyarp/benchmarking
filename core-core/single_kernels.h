@@ -18,6 +18,8 @@
     #include <atomic>
     #include <ctime>
 
+    #include "reporting_helpers.h"
+
     Results* run_latency_single_kernel(Profiler* profiler, int cpu_a, int cpu_b)
     {
         //=====Test 1=====
@@ -69,56 +71,7 @@
         Results* results = new Results;
         *results = results_vector[0];
 
-        #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1
-            if(!profiler->cpuTopology.empty()){
-                std::vector<int> sockets;
-                int socket_a = profiler->cpuTopology[cpu_a].socket;
-                int socket_b = profiler->cpuTopology[cpu_b].socket;
-                sockets.push_back(socket_a);
-                if(socket_b != socket_a)
-                {
-                    sockets.push_back(socket_b);
-                }
-
-                std::vector<int> cores;
-                int core_a = profiler->cpuTopology[cpu_a].core;
-                int core_b = profiler->cpuTopology[cpu_b].core;
-                cores.push_back(core_a);
-                if(core_a != core_b){
-                    cores.push_back(core_b);
-                }
-
-                std::vector<int> dies;
-                int die_a = profiler->cpuTopology[cpu_a].die;
-                int die_b = profiler->cpuTopology[cpu_b].die;
-                dies.push_back(die_a);
-                if(die_a != die_b){
-                    dies.push_back(die_b);
-                }
-
-                std::vector<int> threads;
-                threads.push_back(cpu_a);
-                if(cpu_a != cpu_b){
-                    threads.push_back(cpu_b);
-                }
-        
-                #if PRINT_FULL_STATS == 1
-                    results->print_statistics(sockets, dies, cores, threads, STIM_LEN);
-                #endif
-
-                #if PRINT_STATS == 1
-                    print_results(results, sizeof(*shared_loc), STIM_LEN);
-                #endif
-            }else{
-                #if PRINT_FULL_STATS
-                    results->print_statistics(0, 0, 0, cpu_a, STIM_LEN);
-                #endif
-
-                #if PRINT_STATS == 1
-                    print_results(results, sizeof(*shared_loc), STIM_LEN);
-                #endif
-            }
-        #endif
+        exportResultsSingle2Core<std::atomic_int32_t>(profiler, cpu_a, cpu_b, *results);
 
         //Clean Up
         free(shared_loc);
@@ -185,56 +138,7 @@
         Results* results = new Results;
         *results = results_vector[0];
 
-        #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1
-            if(!profiler->cpuTopology.empty()){
-                std::vector<int> sockets;
-                int socket_a = profiler->cpuTopology[cpu_a].socket;
-                int socket_b = profiler->cpuTopology[cpu_b].socket;
-                sockets.push_back(socket_a);
-                if(socket_b != socket_a)
-                {
-                    sockets.push_back(socket_b);
-                }
-
-                std::vector<int> cores;
-                int core_a = profiler->cpuTopology[cpu_a].core;
-                int core_b = profiler->cpuTopology[cpu_b].core;
-                cores.push_back(core_a);
-                if(core_a != core_b){
-                    cores.push_back(core_b);
-                }
-
-                std::vector<int> dies;
-                int die_a = profiler->cpuTopology[cpu_a].die;
-                int die_b = profiler->cpuTopology[cpu_b].die;
-                dies.push_back(die_a);
-                if(die_a != die_b){
-                    dies.push_back(die_b);
-                }
-
-                std::vector<int> threads;
-                threads.push_back(cpu_a);
-                if(cpu_a != cpu_b){
-                    threads.push_back(cpu_b);
-                }
-            
-                #if PRINT_FULL_STATS == 1
-                    results->print_statistics(sockets, dies, cores, threads, STIM_LEN);
-                #endif
-
-                #if PRINT_STATS == 1
-                print_results(results, sizeof(*shared_loc_a), STIM_LEN);
-                #endif
-            }else{
-                #if PRINT_FULL_STATS
-                results->print_statistics(0, 0, 0, cpu_a, STIM_LEN);
-                #endif
-
-                #if PRINT_STATS == 1
-                print_results(results, sizeof(*shared_loc_a), STIM_LEN);
-                #endif
-            }
-        #endif
+        exportResultsSingle2Core<std::atomic_int32_t>(profiler, cpu_a, cpu_b, *results);
 
         //Clean Up
         free(shared_loc_a);
