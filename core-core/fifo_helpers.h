@@ -41,7 +41,7 @@
         //Init to 0
         for(size_t i = 0; i < array_length; i++)
         {
-            shared_array_loc[i] = 0;
+            (*shared_array_loc)[i] = 0;
         }
 
         return amountToAlloc;

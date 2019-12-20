@@ -45,9 +45,7 @@ void run_bandwidth_fifo_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::ve
     }
 
     //==== Run The Experiments ====
-    std::cout << "Executing FIFO Kernel" << std::endl;
     std::vector<Results> results_vec = execute_client_server_kernel(profiler, bandwidth_circular_fifo_server_kernel, bandwidth_circular_fifo_client_kernel, bandwidth_circular_fifo_kernel_reset, args, args, args, cpu_a, cpu_b, num_experiments);
-    std::cout << "Done Executing FIFO Kernel" << std::endl;
 
     //==== Process Results ====
     if(results_vec.size() != num_experiments){
