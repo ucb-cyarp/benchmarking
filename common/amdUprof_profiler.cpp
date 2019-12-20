@@ -416,7 +416,7 @@ void AMDuProfProfiler::endTrialPowerProfile() {
 
     bool dumping = true;
 
-    double trialDuration = (std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(stop_hrc-start_hrc)).count();
+    double trialDuration = (std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(stop_steady-start_steady)).count();
 
     while(dumping){
         do{
