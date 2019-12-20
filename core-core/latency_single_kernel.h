@@ -10,6 +10,12 @@
             int32_t init_counter;
     };
 
+    class LatencySingleKernelResetArgs
+    {
+        public:
+            std::atomic_int32_t* shared_ptr;
+    };
+
     void* latency_single_kernel(void* arg);
 
     void* latency_single_kernel_reset(void* shared_ptr);

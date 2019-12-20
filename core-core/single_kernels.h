@@ -43,12 +43,9 @@
             exit(1);
         }
 
-        //Init to 0
-        *shared_loc = 0;
-
         LatencySingleKernelArgs* arg_a_array = new LatencySingleKernelArgs[1];
         LatencySingleKernelArgs* arg_b_array = new LatencySingleKernelArgs[1];
-        void** reset_arg_array = new void*[1];
+        LatencySingleKernelResetArgs* reset_arg_array = new LatencySingleKernelResetArgs[1];
 
         arg_a_array[0].init_counter = -1; //(server)
         arg_a_array[0].shared_ptr = shared_loc;
@@ -57,7 +54,7 @@
         arg_b_array[0].init_counter = 0; //(client)
         arg_b_array[0].shared_ptr = shared_loc;
 
-        reset_arg_array[0] = shared_loc; //Argument for reset function is shared location
+        reset_arg_array[0].shared_ptr = shared_loc; //Argument for reset function is shared location
 
         //This kernel has a single configuraton
         //The client and server kernel are the same

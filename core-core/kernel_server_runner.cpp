@@ -210,7 +210,22 @@ void* kernel_exe_primary_wrapper(void *arg)
 
         resultVec->push_back(results);
     }
-    
+
+    //==== Send the Final Success Flags ====
+    //If the master, signal to the other primaries
+    if(args->interconnected_primaries && args->interconnected_master){
+        std::atomic_thread_fence(std::memory_order_acquire);
+        for(int i = 0; i<args->start_new_trial_signals_from_master.size(); i++){
+            std::atomic_flag_clear_explicit(args->start_new_trial_signals_from_master[i], std::memory_order_release);
+        }
+    }
+
+    //Send to the secondaries
+    std::atomic_thread_fence(std::memory_order_acquire);
+    for(unsigned long i = 0; i<args->start_new_trial_signals.size(); i++){
+        std::atomic_flag_clear_explicit(args->start_new_trial_signals[i], std::memory_order_release);
+    }
+
     return (void*) resultVec;
 }
 
@@ -223,7 +238,6 @@ void* kernel_exe_secondary_wrapper(void *arg){
     int numTrials = args->num_trials;
 
     //Wait for first trial (should always be signaled by start_new_trial_signal)
-
     bool execute = false;
     while(!execute){
         //Invert because the flag is effectivly active low (signaled by clearring)
