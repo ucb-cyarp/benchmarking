@@ -43,11 +43,11 @@ for i = 1:length(directoryList)
     dual_timeToCompletion_highResClk = dual_array_highResClk*1e6/STIM_LEN;
     dual_timeToCompletion_procTime = dual_array_procTime*1e6/STIM_LEN;
 
-    flow_ctrl_timeToCompletion_highResClk = flow_ctrl_array_highResClk*1e6/STIM_LEN;
-    flow_ctrl_timeToCompletion_procTime = flow_ctrl_array_procTime*1e6/STIM_LEN;
+    flow_ctrl_timeToCompletion_highResClk = flow_ctrl_array_highResClk*1e6/(STIM_LEN/2);
+    flow_ctrl_timeToCompletion_procTime = flow_ctrl_array_procTime*1e6/(STIM_LEN/2);
 
-    flow_ctrl_block_read_timeToCompletion_highResClk = flow_ctrl_block_read_array_highResClk*1e6/STIM_LEN;
-    flow_ctrl_block_read_timeToCompletion_procTime = flow_ctrl_block_read_array_procTime*1e6/STIM_LEN;
+    flow_ctrl_block_read_timeToCompletion_highResClk = flow_ctrl_block_read_array_highResClk*1e6/(STIM_LEN/2);
+    flow_ctrl_block_read_timeToCompletion_procTime = flow_ctrl_block_read_array_procTime*1e6/(STIM_LEN/2);
 
     %% Plot 1
     figure;
