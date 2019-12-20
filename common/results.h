@@ -19,7 +19,7 @@
     class TrialResult
     {
         public:
-            double duration; //high resolution clock duration (in ms)
+            double duration; //steady clock duration (in ms)
             double duration_clock; //clock duration (in ms)
             double duration_rdtsc;
 

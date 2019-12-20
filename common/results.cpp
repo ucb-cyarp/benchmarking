@@ -69,7 +69,7 @@ void TrialResult::print_trial(const std::vector<HW_Granularity> granularityToPri
     Unit timeTgtUnit(BaseUnit::SECOND, -3);
     std::string unitStr = MeasurementHelper::exponentAbrev(timeTgtUnit.exponent)+MeasurementHelper::BaseUnit_abrev(timeTgtUnit.baseUnit);
     printf("         ##### System Trial [%d] Statistics - Timing #####\n", trial);
-    printf("             High Precision Clock Duration (%s): %f\n", unitStr.c_str(), Unit::scale(timeOrigUnit, timeTgtUnit, duration));
+    printf("             Steady Clock Duration (%s): %f\n", unitStr.c_str(), Unit::scale(timeOrigUnit, timeTgtUnit, duration));
     printf("             Clock Duration (%s): %f\n", unitStr.c_str(), Unit::scale(timeOrigUnit, timeTgtUnit, duration_clock));
     //printf("             rdtsc Duration (%s): %f\n", unitStr.c_str(), Unit::scale(timeOrigUnit, timeTgtUnit, duration_rdtsc));
 
@@ -363,10 +363,10 @@ void Results::print_statistics(std::vector<int> sockets, std::vector<int> dies, 
 
     // printf("High Res Clock - Sample Mean (ms): %f, Sample Std Dev: %f\n", avg_duration, std_dev_duration);
 
-    printf("         ##### High Resolution Clock - Clock With Smallest Tick on System #####\n");
-    printf("             High Resolution Timer - Sample Mean (ms): %f, Sample Std Dev: %f\n", avg_duration_dbl, stddev_duration_dbl);
-    printf("             High Resolution Timer Normalized to Sample - Sample Mean (ns): %f, Sample Std Dev: %f\n", avg_duration_dbl*1000000/stim_len, stddev_duration_dbl*1000000/stim_len);
-    printf("             High Resolution Timer - Sample Mean (MS/s): %f\n", stim_len*1.0/(1000.0*avg_duration_dbl));
+    printf("         ##### Steady Clock - Monotonically Increasing Clock #####\n");
+    printf("             Steady Clock - Sample Mean (ms): %f, Sample Std Dev: %f\n", avg_duration_dbl, stddev_duration_dbl);
+    printf("             Steady Clock Normalized to Sample - Sample Mean (ns): %f, Sample Std Dev: %f\n", avg_duration_dbl*1000000/stim_len, stddev_duration_dbl*1000000/stim_len);
+    printf("             Steady Clock - Sample Mean (MS/s): %f\n", stim_len*1.0/(1000.0*avg_duration_dbl));
 
     printf("\n");
     printf("         ##### clock() Duration - Process CPU Time (May be Different from Wall Clock Time - Cumulative Time For All Threads) #####\n");
@@ -426,10 +426,10 @@ void Results::print_statistics(int stim_len, const std::vector<HW_Granularity> g
 
     // printf("High Res Clock - Sample Mean (ms): %f, Sample Std Dev: %f\n", avg_duration, std_dev_duration);
 
-    printf("         ##### High Resolution Clock - Clock With Smallest Tick on System #####\n");
-    printf("             High Resolution Timer - Sample Mean (ms): %f, Sample Std Dev: %f\n", avg_duration_dbl, stddev_duration_dbl);
-    printf("             High Resolution Timer Normalized to Sample - Sample Mean (ns): %f, Sample Std Dev: %f\n", avg_duration_dbl*1000000/stim_len, stddev_duration_dbl*1000000/stim_len);
-    printf("             High Resolution Timer - Sample Mean (MS/s): %f\n", stim_len*1.0/(1000.0*avg_duration_dbl));
+    printf("         ##### Steady Clock - Monotonically Increasing Clock #####\n");
+    printf("             Steady Clock - Sample Mean (ms): %f, Sample Std Dev: %f\n", avg_duration_dbl, stddev_duration_dbl);
+    printf("             Steady Clock Normalized to Sample - Sample Mean (ns): %f, Sample Std Dev: %f\n", avg_duration_dbl*1000000/stim_len, stddev_duration_dbl*1000000/stim_len);
+    printf("             Steady Clock - Sample Mean (MS/s): %f\n", stim_len*1.0/(1000.0*avg_duration_dbl));
 
     printf("\n");
     printf("         ##### clock() Duration - Process CPU Time (May be Different from Wall Clock Time - Cumulative Time For All Threads) #####\n");
@@ -503,7 +503,7 @@ void Results::write_csv(std::ofstream &csv_file, int socket, int core, int threa
     std::map<MeasurementType, std::map<HW_Granularity, std::map<int, Unit>>> avail = measurementsAvailUnion(granularityToPrint, measurementTypeToPrint); 
 
     //Print Header
-    csv_file << std::string(col0_name.empty() ? "" : "\"" + col0_name + "\",") << "\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"";
+    csv_file << std::string(col0_name.empty() ? "" : "\"" + col0_name + "\",") << "\"Steady Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"";
 
     for(unsigned long i = 0; i<measurementTypeToPrint.size(); i++){
         if(avail.find(measurementTypeToPrint[i]) != avail.end()){
@@ -590,7 +590,7 @@ void Results::write_durations(std::ofstream &csv_file, std::string col0_name, in
     //Print Header
     if(include_header)
     {
-        csv_file << "\"" << col0_name << "\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
+        csv_file << "\"" << col0_name << "\",\"Steady Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
     }
 
     size_t trials = trial_results.size();
@@ -605,7 +605,7 @@ void Results::write_durations(std::ofstream &csv_file, std::string col0_name, in
     //Print Header
     if(include_header)
     {
-        csv_file << "\"" << col0_name << "\",\"" << col1_name << "\",\"High Resolution Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
+        csv_file << "\"" << col0_name << "\",\"" << col1_name << "\",\"Steady Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
     }
 
     size_t trials = trial_results.size();
