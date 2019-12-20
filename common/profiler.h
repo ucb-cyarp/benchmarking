@@ -103,6 +103,8 @@
         virtual bool checkFreqChanged(std::vector<int> socketsOfInterest = {}) = 0; ///<Returns true if the profiler detected a frequency change event in the last trial.  Searches only the sockets specified if provided.  Searches all sockets if no vector provided.
 
         virtual bool supportsMultipleInstances() = 0; ///<Returns true if multiple instances of the underlying profiler driver can be running simultaniously.  Returns false if multiple simultanious instances would conflict or cause an error
+
+        virtual Profiler* clone() = 0;
     };
 
 #endif

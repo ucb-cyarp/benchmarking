@@ -620,3 +620,9 @@ std::string AMDuProfProfiler::profilerName(){
 bool AMDuProfProfiler::supportsMultipleInstances(){
     return false;
 }
+
+Profiler* AMDuProfProfiler::clone(){
+    AMDuProfProfiler* cpy = new AMDuProfProfiler;
+    *cpy = *this;
+    return cpy;
+}

@@ -519,7 +519,8 @@
         //Change to a generic profiler for server c if the profiler does not support multiple instances (ex. AMDuProf)
         Profiler* cProfiler;
         if(profiler->supportsMultipleInstances()){
-            cProfiler = profiler;
+            cProfiler = profiler->clone();
+            cProfiler->init();
         }else{
             cProfiler = new GenericProfiler();
         }
@@ -628,9 +629,7 @@
         delete client_args_1;
         delete client_args_2;
 
-        if(!profiler->supportsMultipleInstances()){
-            delete cProfiler;
-        }
+        delete cProfiler;
 
         return simultaniousResultVec;
     }
@@ -845,9 +844,11 @@
         server_args_a->restart_trial_signals_from_master.push_back(restart_trial_from_master);
 
         //Change to a generic profiler for server b if the profiler does not support multiple instances (ex. AMDuProf)
+        //If not, still need another profiler object so that each profiler maintains seperate state
         Profiler* bProfiler;
         if(profiler->supportsMultipleInstances()){
-            bProfiler = profiler;
+            bProfiler = profiler->clone();
+            bProfiler->init();
         }else{
             bProfiler = new GenericProfiler();
         }
@@ -956,9 +957,7 @@
         delete server_args_b;
         delete client_args;
 
-        if(!profiler->supportsMultipleInstances()){
-            delete bProfiler;
-        }
+        delete bProfiler;
 
         return simultaniousResultVec;
     }
@@ -1172,7 +1171,8 @@
         //Change to a generic profiler for primary b if the profiler does not support multiple instances (ex. AMDuProf)
         Profiler* cProfiler;
         if(profiler->supportsMultipleInstances()){
-            cProfiler = profiler;
+            cProfiler = profiler->clone();
+            cProfiler->init();
         }else{
             cProfiler = new GenericProfiler();
         }
@@ -1281,9 +1281,7 @@
         delete measure_args_c;
         delete server_args;
 
-        if(!profiler->supportsMultipleInstances()){
-            delete cProfiler;
-        }
+        delete cProfiler;
 
         return simultaniousResultVec;
     }

@@ -62,3 +62,9 @@ std::string GenericProfiler::profilerName(){
 bool GenericProfiler::supportsMultipleInstances(){
     return true;
 }
+
+Profiler* GenericProfiler::clone(){
+    GenericProfiler* cpy = new GenericProfiler;
+    *cpy = *this;
+    return cpy;
+}
