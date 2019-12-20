@@ -44,7 +44,7 @@
             size_t kernel_arg_size; //The size per kernel arg
             std::atomic_flag* start_new_trial_signal;
             std::atomic_flag* restart_trial_signal;
-            std::atomic_flag* done_signal;
+            std::vector<std::atomic_flag*> done_signals;
             int num_trials;
     };
 
@@ -188,7 +188,7 @@
         client_args->kernel_arg_size = sizeof(ClientArgType);
         client_args->start_new_trial_signal = start_new_trial_signal;
         client_args->restart_trial_signal = restart_trial_signal;
-        client_args->done_signal = done_signal;
+        client_args->done_signals.push_back(done_signal);
         client_args->num_trials = TRIALS;
 
         status = pthread_create(&thread_b, &attr_b, kernel_exe_secondary_wrapper, client_args);
@@ -469,7 +469,7 @@
         client_args_1->kernel_arg_size = sizeof(ClientArgType);
         client_args_1->start_new_trial_signal = start_new_trial_signal_b;
         client_args_1->restart_trial_signal = restart_trial_signal_b;
-        client_args_1->done_signal = done_signal_b;
+        client_args_1->done_signals.push_back(done_signal_b);
         client_args_1->num_trials = TRIALS;
 
         KernelExeSecondaryWrapperArgs* client_args_2 = new KernelExeSecondaryWrapperArgs;
@@ -479,7 +479,7 @@
         client_args_2->kernel_arg_size = sizeof(ClientArgType);
         client_args_2->start_new_trial_signal = start_new_trial_signal_d;
         client_args_2->restart_trial_signal = restart_trial_signal_d;
-        client_args_2->done_signal = done_signal_d;
+        client_args_2->done_signals.push_back(done_signal_d);
         client_args_2->num_trials = TRIALS;
 
         status = pthread_create(&thread_b, &attr_b, kernel_exe_secondary_wrapper, client_args_1);
@@ -776,7 +776,8 @@
         //Create the syncronization mechanisms shared between the client and server
         std::atomic_flag* start_new_trial_signal_client = new std::atomic_flag;
         std::atomic_flag* restart_trial_signal_client = new std::atomic_flag;
-        std::atomic_flag* done_signal_client = new std::atomic_flag;
+        std::atomic_flag* done_signal_client_1 = new std::atomic_flag;
+        std::atomic_flag* done_signal_client_2 = new std::atomic_flag;
 
         std::atomic_flag* start_new_trial_from_master = new std::atomic_flag;
         std::atomic_flag* restart_trial_from_master = new std::atomic_flag;
@@ -787,7 +788,8 @@
         //These flags are active low so are initialized to true
         std::atomic_flag_test_and_set_explicit(start_new_trial_signal_client, std::memory_order_acq_rel);
         std::atomic_flag_test_and_set_explicit(restart_trial_signal_client, std::memory_order_acq_rel);
-        std::atomic_flag_test_and_set_explicit(done_signal_client, std::memory_order_acq_rel);
+        std::atomic_flag_test_and_set_explicit(done_signal_client_1, std::memory_order_acq_rel);
+        std::atomic_flag_test_and_set_explicit(done_signal_client_2, std::memory_order_acq_rel);
 
         std::atomic_flag_test_and_set_explicit(start_new_trial_from_master, std::memory_order_acq_rel);
         std::atomic_flag_test_and_set_explicit(restart_trial_from_master, std::memory_order_acq_rel);
@@ -805,7 +807,8 @@
         client_args->kernel_arg_size = sizeof(ClientArgType);
         client_args->start_new_trial_signal = start_new_trial_signal_client;
         client_args->restart_trial_signal = restart_trial_signal_client;
-        client_args->done_signal = done_signal_client;
+        client_args->done_signals.push_back(done_signal_client_1);
+        client_args->done_signals.push_back(done_signal_client_2);
         client_args->num_trials = TRIALS;
 
         status = pthread_create(&thread_cli_c, &attr_cli_c, kernel_exe_secondary_wrapper, client_args);
@@ -833,7 +836,7 @@
         //This server gets control of the client
         server_args_a->start_new_trial_signals.push_back(start_new_trial_signal_client);
         server_args_a->restart_trial_signals.push_back(restart_trial_signal_client);
-        server_args_a->done_signals.push_back(done_signal_client);
+        server_args_a->done_signals.push_back(done_signal_client_1);
         server_args_a->num_trials = TRIALS;
         //Need to setup parameters for interdependent primaries
         server_args_a->interconnected_primaries = true;
@@ -865,7 +868,7 @@
         server_args_b->reset_arg_size = sizeof(ResetArgType);
         server_args_b->cpu_num = cpu_srv_b;
         //This server gets feedback from the client but does not send control
-        server_args_b->done_signals.push_back(done_signal_client);
+        server_args_b->done_signals.push_back(done_signal_client_2);
         server_args_b->num_trials = TRIALS;
         //Need to setup parameters for interdependent primaries
         server_args_b->interconnected_primaries = true;
@@ -946,7 +949,8 @@
 
         delete start_new_trial_signal_client;
         delete restart_trial_signal_client;
-        delete done_signal_client;
+        delete done_signal_client_1;
+        delete done_signal_client_2;
 
         delete start_new_trial_from_master;
         delete restart_trial_from_master;
@@ -1102,7 +1106,8 @@
         //Create the syncronization mechanisms shared between the client and server
         std::atomic_flag* start_new_trial_signal_client = new std::atomic_flag;
         std::atomic_flag* restart_trial_signal_client = new std::atomic_flag;
-        std::atomic_flag* done_signal_client = new std::atomic_flag;
+        std::atomic_flag* done_signal_client_1 = new std::atomic_flag;
+        std::atomic_flag* done_signal_client_2 = new std::atomic_flag;
 
         std::atomic_flag* start_new_trial_from_master = new std::atomic_flag;
         std::atomic_flag* restart_trial_from_master = new std::atomic_flag;
@@ -1113,7 +1118,8 @@
         //These flags are active low so are initialized to true
         std::atomic_flag_test_and_set_explicit(start_new_trial_signal_client, std::memory_order_acq_rel);
         std::atomic_flag_test_and_set_explicit(restart_trial_signal_client, std::memory_order_acq_rel);
-        std::atomic_flag_test_and_set_explicit(done_signal_client, std::memory_order_acq_rel);
+        std::atomic_flag_test_and_set_explicit(done_signal_client_1, std::memory_order_acq_rel);
+        std::atomic_flag_test_and_set_explicit(done_signal_client_2, std::memory_order_acq_rel);
 
         std::atomic_flag_test_and_set_explicit(start_new_trial_from_master, std::memory_order_acq_rel);
         std::atomic_flag_test_and_set_explicit(restart_trial_from_master, std::memory_order_acq_rel);
@@ -1131,7 +1137,8 @@
         server_args->kernel_arg_size = sizeof(ServerArgType);
         server_args->start_new_trial_signal = start_new_trial_signal_client;
         server_args->restart_trial_signal = restart_trial_signal_client;
-        server_args->done_signal = done_signal_client;
+        server_args->done_signals.push_back(done_signal_client_1);
+        server_args->done_signals.push_back(done_signal_client_2);
         server_args->num_trials = TRIALS;
 
         status = pthread_create(&thread_srv_a, &attr_srv_a, kernel_exe_secondary_wrapper, server_args);
@@ -1152,13 +1159,13 @@
         measure_args_b->kernel_args = arg_cli_b;
         measure_args_b->reset_args = reset_arg;
         measure_args_b->num_args = num_args;
-        measure_args_b->kernel_arg_size = sizeof(ServerArgType);
+        measure_args_b->kernel_arg_size = sizeof(ClientArgType);
         measure_args_b->reset_arg_size = sizeof(ResetArgType);
         measure_args_b->cpu_num = cpu_cli_b;
         //This gets control of the secondary
         measure_args_b->start_new_trial_signals.push_back(start_new_trial_signal_client);
         measure_args_b->restart_trial_signals.push_back(restart_trial_signal_client);
-        measure_args_b->done_signals.push_back(done_signal_client);
+        measure_args_b->done_signals.push_back(done_signal_client_1);
         measure_args_b->num_trials = TRIALS;
         //Need to setup parameters for interdependent primaries
         measure_args_b->interconnected_primaries = true;
@@ -1185,11 +1192,11 @@
         measure_args_c->kernel_args = arg_cli_c;
         measure_args_c->reset_args = reset_arg;
         measure_args_c->num_args = num_args;
-        measure_args_c->kernel_arg_size = sizeof(ServerArgType);
+        measure_args_c->kernel_arg_size = sizeof(ClientArgType);
         measure_args_c->reset_arg_size = sizeof(ResetArgType);
         measure_args_c->cpu_num = cpu_cli_c;
         //This gets feedback from the secondary but does not send control
-        measure_args_c->done_signals.push_back(done_signal_client);
+        measure_args_c->done_signals.push_back(done_signal_client_2);
         measure_args_c->num_trials = TRIALS;
         //Need to setup parameters for interdependent primaries
         measure_args_c->interconnected_primaries = true;
@@ -1270,7 +1277,8 @@
 
         delete start_new_trial_signal_client;
         delete restart_trial_signal_client;
-        delete done_signal_client;
+        delete done_signal_client_1;
+        delete done_signal_client_2;
 
         delete start_new_trial_from_master;
         delete restart_trial_from_master;

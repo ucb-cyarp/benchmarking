@@ -45,6 +45,26 @@ void* kernel_exe_primary_wrapper(void *arg)
 
     std::vector<Results> *resultVec = new std::vector<Results>;
 
+    //=== Logic for interconnected primaries ===
+    //Wait for initial signal from master
+    if(args->interconnected_primaries && !args->interconnected_master){
+        bool cont = false;
+        while (!cont){
+            bool start_new_trial = !(std::atomic_flag_test_and_set_explicit(args->start_new_trial_signals_from_master[0], std::memory_order_acq_rel)); 
+            bool restart_trial = !(std::atomic_flag_test_and_set_explicit(args->restart_trial_signals_from_master[0], std::memory_order_acq_rel)); 
+
+            if(restart_trial){
+                std::cerr << "Error: First signal recieved by secondary slave should be to start a new trial" << std::endl;
+                exit(1);
+            }else if(start_new_trial){
+                cont = true;
+            }//else, continue waiting
+        }
+
+        // std::cout << "Primary Slave Got the Initial Signal" << std::endl;
+    }
+    //=== End for interconnected primaries ===
+
     for(int experiment = 0; experiment < numExperiments; experiment++){
         void* kernel_arg = (void*) (((char*) args->kernel_args)+experiment*(args->kernel_arg_size));
         void* reset_arg = (void*) (((char*) args->reset_args)+experiment*(args->reset_arg_size));
@@ -259,7 +279,9 @@ void* kernel_exe_secondary_wrapper(void *arg){
             kernel_fun(kernel_arg);
 
             //Set the done flag
-            std::atomic_flag_clear_explicit(args->done_signal, std::memory_order_acq_rel);
+            for(int i = 0; i<args->done_signals.size(); i++){
+                std::atomic_flag_clear_explicit(args->done_signals[i], std::memory_order_acq_rel);
+            }
 
             //Wait for the start flag which will indicate if trial should be incremented or not
             bool cont = false;
