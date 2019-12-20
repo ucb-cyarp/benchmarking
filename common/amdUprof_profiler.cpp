@@ -508,7 +508,7 @@ TrialResult AMDuProfProfiler::computeTrialResult(){
     //and is therefore cumulative.
 
     //Emits a warning if the duration covered by the samples is < some percent of the duration measured
-    //by the high resolution timer for the trial.  This will effect the accuracy of the linear interpolation
+    //by the steady clock timer for the trial.  This will effect the accuracy of the linear interpolation
 
     //At the superclass level, we compute the durations
     TrialResult result = Profiler::computeTrialResult();

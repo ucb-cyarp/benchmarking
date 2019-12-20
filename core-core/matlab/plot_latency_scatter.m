@@ -70,11 +70,11 @@ for i = 1:length(directoryList)
     ylabel('Transaction Time to Completion - One Way (ns)')
     title({'Core-Core Transactions with Single Shared Array', directory}, 'Interpreter', 'none');
     if includeProcTime && includeWallTime
-        legend([s1, s2], {'High Resolution Clock', 'Thread Process Time'});
+        legend([s1, s2], {'Steady Clock', 'Thread Process Time'});
     elseif includeProcTime
         legend([s2], {'Thread Process Time'});
     elseif includeWallTime
-        legend([s1], {'High Resolution Clock'});
+        legend([s1], {'Steady Clock'});
     end
     grid on;
 
@@ -99,11 +99,11 @@ for i = 1:length(directoryList)
     title({'Core-Core Transactions with Dual Shared Arrays', directory}, 'Interpreter', 'none');
     hold off;
     if includeProcTime && includeWallTime
-        legend([s1, s2], {'High Resolution Clock', 'Thread Process Time'});
+        legend([s1, s2], {'Steady Clock', 'Thread Process Time'});
     elseif includeProcTime
         legend([s2], {'Thread Process Time'});
     elseif includeWallTime
-        legend([s1], {'High Resolution Clock'});
+        legend([s1], {'Steady Clock'});
     end
     grid on;
 
@@ -128,12 +128,12 @@ for i = 1:length(directoryList)
     title({'Core-Core Flow Control Transactions with Ack', directory}, 'Interpreter', 'none');
     hold off;
     if includeProcTime && includeWallTime
-        legend([s1, s2], {'High Resolution Clock', 'Thread Process Time'});
+        legend([s1, s2], {'Steady Clock', 'Thread Process Time'});
         hold off;
     elseif includeProcTime
         legend([s2], {'Thread Process Time'});
     elseif includeWallTime
-        legend([s1], {'High Resolution Clock'});
+        legend([s1], {'Steady Clock'});
     end
     grid on;
 
@@ -158,12 +158,12 @@ for i = 1:length(directoryList)
     title({'Core-Core Flow Control (Blocked Read) Transactions with Ack', directory}, 'Interpreter', 'none');
     hold off;
     if includeProcTime && includeWallTime
-        legend([s1, s2], {'High Resolution Clock', 'Thread Process Time'});
+        legend([s1, s2], {'Steady Clock', 'Thread Process Time'});
         hold off;
     elseif includeProcTime
         legend([s2], {'Thread Process Time'});
     elseif includeWallTime
-        legend([s1], {'High Resolution Clock'});
+        legend([s1], {'Steady Clock'});
     end
     grid on;
 

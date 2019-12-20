@@ -54,7 +54,7 @@ std::vector<std::string> getVarientsToReport();
 void initInput(void* ptr, unsigned long index);
 
 enum class TimerType{
-    HRC,
+    STEADY,
     CLOCK,
     RDTSC
 };

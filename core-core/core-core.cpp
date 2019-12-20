@@ -240,7 +240,7 @@ int main(int argc, char *argv[])
     std::ofstream parameters_csv;
     parameters_csv.open("report_parameters.csv", std::ofstream::out);
     parameters_csv << "STIM_LEN, TRIALS, CPUA, CPUB, CPUC, CPUD, profiler, methodology_version" << std::endl;
-    parameters_csv << STIM_LEN << ", " << TRIALS << ", " << cpu_a << ", " << cpu_b << ", " << cpu_c << "," << cpu_d << ", " << profiler->profilerName() << ", " << "2" << std::endl;
+    parameters_csv << STIM_LEN << ", " << TRIALS << ", " << cpu_a << ", " << cpu_b << ", " << cpu_c << "," << cpu_d << ", " << profiler->profilerName() << ", " << "3" << std::endl;
     parameters_csv.close();
     #endif
 
