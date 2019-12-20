@@ -30,8 +30,8 @@
     //This class describes a generic profiler which replaces calls to specific profiler libraries (such as PCM or AMDuProf)
     class Profiler{
         protected:
-        std::chrono::high_resolution_clock::time_point start_hrc;
-        std::chrono::high_resolution_clock::time_point stop_hrc;
+        std::chrono::steady_clock::time_point start_steady;
+        std::chrono::steady_clock::time_point stop_steady;
         clock_t start_clock;
         clock_t stop_clock;
         uint64_t start_rdtsc;
