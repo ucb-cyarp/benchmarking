@@ -130,7 +130,7 @@ for i = 1:length(directoryList)
         s1.MarkerFaceAlpha = alpha;
     end
     xlabel('Transaction Length (Bytes)', 'Interpreter', 'none');
-    ylabel('Transaction Time to Completion - One Way (ns)')
+    ylabel('Transaction Time to Completion - Round Trip (ns)')
     title({'Core-Core Flow Control Transactions with Ack', directory}, 'Interpreter', 'none');
     hold off;
     if includeProcTime && includeWallTime
@@ -160,7 +160,7 @@ for i = 1:length(directoryList)
         s1.MarkerFaceAlpha = alpha;
     end
     xlabel('Transaction Length (Bytes)', 'Interpreter', 'none');
-    ylabel('Transaction Time to Completion - One Way (ns)')
+    ylabel('Transaction Time to Completion - Round Trip (ns)')
     title({'Core-Core Flow Control (Blocked Read) Transactions with Ack', directory}, 'Interpreter', 'none');
     hold off;
     if includeProcTime && includeWallTime
