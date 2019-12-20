@@ -423,33 +423,33 @@ void run_latency_dual_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, int
     {
         size_t array_length = array_lengths[i];
 
-        arg_a->init_counter = -1; //(server)
-        arg_a->my_shared_ptr = shared_loc_a_1;
-        arg_a->other_shared_ptr = shared_loc_b_1;
-        arg_a->length = array_length;
+        arg_a[i].init_counter = -1; //(server)
+        arg_a[i].my_shared_ptr = shared_loc_a_1;
+        arg_a[i].other_shared_ptr = shared_loc_b_1;
+        arg_a[i].length = array_length;
 
-        arg_b->init_counter = 0; //(client)
-        arg_b->my_shared_ptr = shared_loc_b_1; //Swapped from server
-        arg_b->other_shared_ptr = shared_loc_a_1;
-        arg_b->length = array_length;
+        arg_b[i].init_counter = 0; //(client)
+        arg_b[i].my_shared_ptr = shared_loc_b_1; //Swapped from server
+        arg_b[i].other_shared_ptr = shared_loc_a_1;
+        arg_b[i].length = array_length;
 
-        arg_c->init_counter = -1; //(server)
-        arg_c->my_shared_ptr = shared_loc_a_2;
-        arg_c->other_shared_ptr = shared_loc_b_2;
-        arg_c->length = array_length;
+        arg_c[i].init_counter = -1; //(server)
+        arg_c[i].my_shared_ptr = shared_loc_a_2;
+        arg_c[i].other_shared_ptr = shared_loc_b_2;
+        arg_c[i].length = array_length;
 
-        arg_d->init_counter = 0; //(client)
-        arg_d->my_shared_ptr = shared_loc_b_2; //Swapped from server
-        arg_d->other_shared_ptr = shared_loc_a_2;
-        arg_d->length = array_length;
+        arg_d[i].init_counter = 0; //(client)
+        arg_d[i].my_shared_ptr = shared_loc_b_2; //Swapped from server
+        arg_d[i].other_shared_ptr = shared_loc_a_2;
+        arg_d[i].length = array_length;
 
-        reset_arg_1->shared_ptr_a = shared_loc_a_1;
-        reset_arg_1->shared_ptr_b = shared_loc_b_1;
-        reset_arg_1->length = array_length;
+        reset_arg_1[i].shared_ptr_a = shared_loc_a_1;
+        reset_arg_1[i].shared_ptr_b = shared_loc_b_1;
+        reset_arg_1[i].length = array_length;
 
-        reset_arg_2->shared_ptr_a = shared_loc_a_2;
-        reset_arg_2->shared_ptr_b = shared_loc_b_2;
-        reset_arg_2->length = array_length;
+        reset_arg_2[i].shared_ptr_a = shared_loc_a_2;
+        reset_arg_2[i].shared_ptr_b = shared_loc_b_2;
+        reset_arg_2[i].length = array_length;
     }
 
     //==== Run The Experiments ====
