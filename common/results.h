@@ -9,12 +9,39 @@
     #include <iostream>
     #include <set>
     #include <utility>
+    #include <memory>
 
     #include "measurement.h"
 
     double avg(double* arr, size_t len);
     double avg(const std::vector<double> arr);
     double std_dev(double* arr, size_t len);
+
+    /**
+     * This class allows benchmarks to return their own implementation specific results.
+     * For example, if the benchmark is measuring the number of times a certain failure condition
+     * occurs, the BenchmarkSpecificResult class would be overwritten for that benchmark and would
+     * provide reporting for failures
+     * 
+     * 
+     */
+    class BenchmarkSpecificResult{
+        public:
+            HW_Granularity resultGranularity = HW_Granularity::CORE;
+            int granularityIndex; //Ie. if the resultGranularity is CORE, this is the core it responds to
+            
+            //These are for individual trials
+            //The trial results header should not include the granularity information
+            virtual std::string getTrialResultsHeader();
+            virtual std::string getTrialResults();
+            //The CSV header should include granularity information if appropriate
+            //The CSV header should include quotes where appropriate and commas between elements
+            virtual std::string getTrialCSVHeader();
+            virtual std::string getTrialCSVData();
+
+            //TODO: Provide a function for a summary of multiple trials.  May include avg, stddev, max, min
+            //May require casting pointers to the derived class (and checking that cast succeeded)
+    };
 
     class TrialResult
     {
@@ -35,6 +62,16 @@
              * Each measurement can contain multiple samples if a sampling methodology was used.
              */
             std::map<MeasurementType, std::map<HW_Granularity, std::vector<Measurement>>> measurements;
+
+            /**
+             * These are benchmark (implementation) specific results which may not exist for every benchmark.
+             * The are ment to carry data which is of interest to a particular benchmark and is not one of the
+             * result types provided by the generic profiler.
+             * 
+             * Warning: If exporting to CSV or printing multiple trial results, the relative order of these 
+             * benchmark_specific_results should be consistent across the different TrialResult objects
+             */
+            std::vector<std::shared_ptr<BenchmarkSpecificResult>> benchmarkSpecificResults;
 
             TrialResult();
             TrialResult(bool sampled);

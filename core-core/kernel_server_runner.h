@@ -33,6 +33,7 @@
             std::vector<std::atomic_flag*> restart_trial_signals_to_master;
             std::vector<std::atomic_flag*> start_new_trial_signals_from_master;
             std::vector<std::atomic_flag*> restart_trial_signals_from_master;
+            std::vector<std::shared_ptr<BenchmarkSpecificResult>*> benchmarkSpecificResultPtrs;
     };
 
     class KernelExeSecondaryWrapperArgs
@@ -45,6 +46,7 @@
             std::atomic_flag* start_new_trial_signal;
             std::atomic_flag* restart_trial_signal;
             std::vector<std::atomic_flag*> done_signals;
+            std::shared_ptr<BenchmarkSpecificResult> *benchmarkSpecificResultPtr;
             int num_trials;
     };
 
@@ -177,6 +179,8 @@
         std::atomic_flag_test_and_set_explicit(restart_trial_signal, std::memory_order_acq_rel);
         std::atomic_flag_test_and_set_explicit(done_signal, std::memory_order_acq_rel);
 
+        std::shared_ptr<BenchmarkSpecificResult> *benchmarkSpecificResultPtrClient = new std::shared_ptr<BenchmarkSpecificResult>(nullptr);
+
         // --- Create threads ---
         //Create threads.  Create thread b (client) before thread a (server) which performs measurments
 
@@ -190,6 +194,7 @@
         client_args->restart_trial_signal = restart_trial_signal;
         client_args->done_signals.push_back(done_signal);
         client_args->num_trials = TRIALS;
+        client_args->benchmarkSpecificResultPtr = benchmarkSpecificResultPtrClient;
 
         status = pthread_create(&thread_b, &attr_b, kernel_exe_secondary_wrapper, client_args);
         if(status != 0)
@@ -215,6 +220,7 @@
         server_args->restart_trial_signals.push_back(restart_trial_signal);
         server_args->done_signals.push_back(done_signal);
         server_args->num_trials = TRIALS;
+        server_args->benchmarkSpecificResultPtrs.push_back(benchmarkSpecificResultPtrClient);
 
         status = pthread_create(&thread_a, &attr_a, kernel_exe_primary_wrapper, server_args);
         if(status != 0)
@@ -259,6 +265,8 @@
 
         delete client_args;
         delete server_args;
+
+        delete benchmarkSpecificResultPtrClient;
 
         return resultVecCpy;
     }
@@ -458,6 +466,9 @@
         std::atomic_flag_test_and_set_explicit(restart_trial_signal_d, std::memory_order_acq_rel);
         std::atomic_flag_test_and_set_explicit(done_signal_d, std::memory_order_acq_rel);
 
+        std::shared_ptr<BenchmarkSpecificResult> *benchmarkSpecificResultPtrClient_b = new std::shared_ptr<BenchmarkSpecificResult>(nullptr);
+        std::shared_ptr<BenchmarkSpecificResult> *benchmarkSpecificResultPtrClient_d = new std::shared_ptr<BenchmarkSpecificResult>(nullptr);
+
         // --- Create threads ---
         //Create threads.  Create thread b and d (clients) before thread a and c (servers) which performs measurments
 
@@ -471,6 +482,7 @@
         client_args_1->restart_trial_signal = restart_trial_signal_b;
         client_args_1->done_signals.push_back(done_signal_b);
         client_args_1->num_trials = TRIALS;
+        client_args_1->benchmarkSpecificResultPtr = benchmarkSpecificResultPtrClient_b;
 
         KernelExeSecondaryWrapperArgs* client_args_2 = new KernelExeSecondaryWrapperArgs;
         client_args_2->kernel_fun = kernel_client;
@@ -481,6 +493,7 @@
         client_args_2->restart_trial_signal = restart_trial_signal_d;
         client_args_2->done_signals.push_back(done_signal_d);
         client_args_2->num_trials = TRIALS;
+        client_args_2->benchmarkSpecificResultPtr = benchmarkSpecificResultPtrClient_d;
 
         status = pthread_create(&thread_b, &attr_b, kernel_exe_secondary_wrapper, client_args_1);
         if(status != 0)
@@ -515,6 +528,7 @@
         server_args_1->restart_trial_signals.push_back(restart_trial_signal_b);
         server_args_1->done_signals.push_back(done_signal_b);
         server_args_1->num_trials = TRIALS;
+        server_args_1->benchmarkSpecificResultPtrs.push_back(benchmarkSpecificResultPtrClient_b);
 
         //Change to a generic profiler for server c if the profiler does not support multiple instances (ex. AMDuProf)
         Profiler* cProfiler;
@@ -539,6 +553,7 @@
         server_args_2->restart_trial_signals.push_back(restart_trial_signal_d);
         server_args_2->done_signals.push_back(done_signal_d);
         server_args_2->num_trials = TRIALS;
+        server_args_2->benchmarkSpecificResultPtrs.push_back(benchmarkSpecificResultPtrClient_d);
 
         status = pthread_create(&thread_a, &attr_a, kernel_exe_primary_wrapper, server_args_1);
         if(status != 0)
@@ -630,6 +645,9 @@
         delete client_args_2;
 
         delete cProfiler;
+
+        delete benchmarkSpecificResultPtrClient_b;
+        delete benchmarkSpecificResultPtrClient_d;
 
         return simultaniousResultVec;
     }
@@ -796,6 +814,8 @@
         std::atomic_flag_test_and_set_explicit(start_new_trial_to_master, std::memory_order_acq_rel);
         std::atomic_flag_test_and_set_explicit(restart_trial_to_master, std::memory_order_acq_rel);
 
+        std::shared_ptr<BenchmarkSpecificResult> *benchmarkSpecificResultPtrClient = new std::shared_ptr<BenchmarkSpecificResult>(nullptr);
+
         // --- Create threads ---
         //Create threads.  Create thread c (client) before thread a and b (server) which perform measurments
 
@@ -810,6 +830,7 @@
         client_args->done_signals.push_back(done_signal_client_1);
         client_args->done_signals.push_back(done_signal_client_2);
         client_args->num_trials = TRIALS;
+        client_args->benchmarkSpecificResultPtr = benchmarkSpecificResultPtrClient;
 
         status = pthread_create(&thread_cli_c, &attr_cli_c, kernel_exe_secondary_wrapper, client_args);
         if(status != 0)
@@ -845,6 +866,7 @@
         server_args_a->restart_trial_signals_to_master.push_back(restart_trial_to_master);
         server_args_a->start_new_trial_signals_from_master.push_back(start_new_trial_from_master);
         server_args_a->restart_trial_signals_from_master.push_back(restart_trial_from_master);
+        server_args_a->benchmarkSpecificResultPtrs.push_back(benchmarkSpecificResultPtrClient); //Only server A gets the benchmark specific result from the client
 
         //Change to a generic profiler for server b if the profiler does not support multiple instances (ex. AMDuProf)
         //If not, still need another profiler object so that each profiler maintains seperate state
@@ -962,6 +984,8 @@
         delete client_args;
 
         delete bProfiler;
+
+        delete benchmarkSpecificResultPtrClient;
 
         return simultaniousResultVec;
     }
@@ -1114,6 +1138,8 @@
         std::atomic_flag* start_new_trial_to_master = new std::atomic_flag;
         std::atomic_flag* restart_trial_to_master = new std::atomic_flag;
 
+        std::shared_ptr<BenchmarkSpecificResult> *benchmarkSpecificResultPtrServer = new std::shared_ptr<BenchmarkSpecificResult>(nullptr);
+
         //Init these syncronization mechanisms before starting threads
         //These flags are active low so are initialized to true
         std::atomic_flag_test_and_set_explicit(start_new_trial_signal_client, std::memory_order_acq_rel);
@@ -1140,6 +1166,7 @@
         server_args->done_signals.push_back(done_signal_client_1);
         server_args->done_signals.push_back(done_signal_client_2);
         server_args->num_trials = TRIALS;
+        server_args->benchmarkSpecificResultPtr = benchmarkSpecificResultPtrServer;
 
         status = pthread_create(&thread_srv_a, &attr_srv_a, kernel_exe_secondary_wrapper, server_args);
         if(status != 0)
@@ -1174,6 +1201,7 @@
         measure_args_b->restart_trial_signals_to_master.push_back(restart_trial_to_master);
         measure_args_b->start_new_trial_signals_from_master.push_back(start_new_trial_from_master);
         measure_args_b->restart_trial_signals_from_master.push_back(restart_trial_from_master);
+        measure_args_b->benchmarkSpecificResultPtrs.push_back(benchmarkSpecificResultPtrServer); //Only server b gets the benchmarkSpecificResults from the server
 
         //Change to a generic profiler for primary b if the profiler does not support multiple instances (ex. AMDuProf)
         Profiler* cProfiler;
@@ -1290,6 +1318,8 @@
         delete server_args;
 
         delete cProfiler;
+
+        delete benchmarkSpecificResultPtrServer;
 
         return simultaniousResultVec;
     }

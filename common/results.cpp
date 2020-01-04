@@ -92,6 +92,17 @@ void TrialResult::print_trial(const std::vector<HW_Granularity> granularityToPri
             }
         }
     }
+
+    //Print benchmark specific results (if any)
+    if(benchmarkSpecificResults.size() > 0){
+        printf("\n");
+        std::string benchmarkSpecificResultsHeader = benchmarkSpecificResults[0]->getTrialResultsHeader();
+        printf("         ##### %s Trial [%d] Statistics #####\n", benchmarkSpecificResultsHeader.c_str(), trial);
+
+        for(int i = 0; i<benchmarkSpecificResults.size(); i++){
+            printf("             %s [%d] %s\n", MeasurementHelper::HW_Granularity_toString(benchmarkSpecificResults[i]->resultGranularity).c_str(), benchmarkSpecificResults[i]->granularityIndex, benchmarkSpecificResults[i]->getTrialResults().c_str());
+        }
+    }
 }
 
 Results::Results()
@@ -509,6 +520,14 @@ void Results::write_csv(std::ofstream &csv_file, int socket, int core, int threa
     //Print Header
     csv_file << std::string(col0_name.empty() ? "" : "\"" + col0_name + "\",") << "\"Steady Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"";
 
+    size_t trials = trial_results.size();
+
+    if(trials>0){
+        for(int i = 0; i<trial_results[0].benchmarkSpecificResults.size(); i++){
+            csv_file << "," << trial_results[0].benchmarkSpecificResults[i]->getTrialCSVHeader();
+        }
+    }
+
     for(unsigned long i = 0; i<measurementTypeToPrint.size(); i++){
         if(avail.find(measurementTypeToPrint[i]) != avail.end()){
             //Found the measurement
@@ -527,15 +546,19 @@ void Results::write_csv(std::ofstream &csv_file, int socket, int core, int threa
             }
         }
     }
+
     csv_file << std::endl;
 
-    size_t trials = trial_results.size();
     for(size_t trial = 0; trial < trials; trial++)
     {
         if(!col0_name.empty()){
             csv_file << col0_val;
         }
         csv_file << std::scientific << trial_results[trial].duration << "," << trial_results[trial].duration_clock << "," << trial_results[trial].duration_rdtsc;
+
+        for(int i = 0; i<trial_results[trial].benchmarkSpecificResults.size(); i++){
+            csv_file << "," << trial_results[trial].benchmarkSpecificResults[i]->getTrialCSVData();
+        }
         
         for(unsigned long i = 0; i<measurementTypeToPrint.size(); i++){
             if(avail.find(measurementTypeToPrint[i]) != avail.end()){
@@ -555,6 +578,7 @@ void Results::write_csv(std::ofstream &csv_file, int socket, int core, int threa
                 }
             }
         }
+
         csv_file << std::endl;
     }
 }
@@ -617,4 +641,20 @@ void Results::write_durations(std::ofstream &csv_file, std::string col0_name, in
     {
         csv_file << col0_val << "," << col1_val << "," << std::scientific <<  trial_results[i].duration << "," << trial_results[i].duration_clock << "," << trial_results[i].duration_rdtsc << std::endl;
     }
+}
+
+std::string BenchmarkSpecificResult::getTrialResultsHeader(){
+    return "";
+}
+
+std::string BenchmarkSpecificResult::getTrialResults(){
+    return "";
+}
+
+std::string BenchmarkSpecificResult::getTrialCSVHeader(){
+    return "";
+}
+
+std::string BenchmarkSpecificResult::getTrialCSVData(){
+    return "";
 }

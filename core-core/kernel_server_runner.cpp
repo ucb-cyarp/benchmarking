@@ -122,12 +122,17 @@ void* kernel_exe_primary_wrapper(void *arg)
             std::atomic_signal_fence(std::memory_order_acq_rel); //Place barriers around the calls to the instrimentation functions (getting time, reading MSRs, etc...) to prevent re-ordering.  This should only be nesssasary if link time optimizations are used
             profiler->endTrial();
             std::atomic_signal_fence(std::memory_order_acq_rel);
-
-            //Free the Kernel Result
-            free(kernel_result);
             
             //Compute the trial result
             TrialResult trial_result = computeTrialResultAndSetTrialNum(profiler, &results);
+
+            if(kernel_result != nullptr){
+                //The kernel returned an implementation specific result, add it to the trial result
+                std::shared_ptr<BenchmarkSpecificResult> *specificResultOrig = (std::shared_ptr<BenchmarkSpecificResult>*) kernel_result;
+                //Copy the smart pointer before destructing the origional.
+                trial_result.benchmarkSpecificResults.push_back(*specificResultOrig);
+                delete specificResultOrig; //Delete the dynamically allocated smart pointer created in the benchmark kernel (needs to be created there to support the polymophism we are looking for)
+            }//If nullptr, no result was returned
 
             #if PRINT_TRIALS == 1
                 trial_result->print_trial();
@@ -136,10 +141,6 @@ void* kernel_exe_primary_wrapper(void *arg)
             //Limit frequency change check to socket of interest (single socket for now)
             std::vector<int> sockets_of_interest;
             sockets_of_interest.push_back(profiler->cpuTopology[cpu_num].socket);
-
-            //This function adds the trial result if no frequency change event occured (if the profiler supports checking)
-            //Important: This function increments trial if no frequency change event occured.  It also increments discard_count if a discard occured
-            lastTrialWasDiscarded = processTrialAndPrepareForNextHelper(profiler, results, trial_result, trial, discard_count);
 
             //Wait for client threads to finish before next trial
             for(unsigned long i = 0; i<args->done_signals.size(); i++){
@@ -150,6 +151,11 @@ void* kernel_exe_primary_wrapper(void *arg)
                     val = std::atomic_flag_test_and_set_explicit(args->done_signals[i], std::memory_order_acq_rel); 
                 }
             }
+
+            //This function adds the trial result if no frequency change event occured (if the profiler supports checking)
+            //If the trial is kept, the benchmark specific results from the secondaries are added.  Otherwise, the smart pointer is deleted
+            //Important: This function increments trial if no frequency change event occured.  It also increments discard_count if a discard occured
+            lastTrialWasDiscarded = processTrialAndPrepareForNextHelper(profiler, results, trial_result, trial, discard_count, args->benchmarkSpecificResultPtrs);
 
             //=== Logic for interconnected primaries ===
             if(args->interconnected_primaries){
@@ -259,6 +265,7 @@ void* kernel_exe_secondary_wrapper(void *arg){
     void* (*kernel_fun)(void*) = args->kernel_fun;
     int numExperiments = args->num_args;
     int numTrials = args->num_trials;
+    std::shared_ptr<BenchmarkSpecificResult> *benchmarkSpecificResultPtr = args->benchmarkSpecificResultPtr;
 
     //Wait for first trial (should always be signaled by start_new_trial_signal)
     bool execute = false;
@@ -279,7 +286,19 @@ void* kernel_exe_secondary_wrapper(void *arg){
 
         for(int trial = 0; trial < numTrials; ){
             //Run the kernel
-            kernel_fun(kernel_arg);
+            void *kernel_result = kernel_fun(kernel_arg);
+
+            if(kernel_result != nullptr){
+                std::shared_ptr<BenchmarkSpecificResult> *kernel_result_as_smtptr = (std::shared_ptr<BenchmarkSpecificResult>*) kernel_result;
+                //Copy the smart pointer
+                *benchmarkSpecificResultPtr = *kernel_result_as_smtptr;
+                //Delete the origional dynamically allocated smartptr returned by the kernel function
+                delete kernel_result_as_smtptr;
+                //The primary will copy the smart pointer into the result if the trial was kept.  Otherwise, it will be deleted and the result
+                //object will be deleted allong with it
+            }else{
+                *benchmarkSpecificResultPtr = nullptr;
+            }
 
             //Set the done flag
             for(int i = 0; i<args->done_signals.size(); i++){
