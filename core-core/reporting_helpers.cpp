@@ -159,17 +159,18 @@ void printTitleFIFOPoint(bool report_standalone, std::string title, size_t array
 }
 
 //Because more than 2 axes are being considered, all of the reporting follows the same basic formatting with the parameters in the first colums and the results in the latter colums.  A trial or configuration is on each row
-std::string  printAndWriteHeadersOver3Params(std::vector<std::string> param_lbls, std::vector<std::string> reporting_lbls = {"Steady Clock - Walltime (ms)", "Clock - Cycles/Cycle Time (ms)", "Clock - rdtsc"}, int data_col_width, FILE* file, std::ofstream* raw_file){
+std::string  printAndWriteHeadersOver3Params(std::vector<std::string> param_lbls, std::vector<std::string> reporting_lbls, int data_col_width, FILE* file, std::ofstream* raw_file){
     #if PRINT_STATS == 1
         printf("        ");
+        std::string format = "|%" + std::to_string(data_col_width) +"s";
         for(int i = 0; i<param_lbls.size(); i++)
         {
-            printf("|%"+ std::to_string(data_col_width) +"s", param_lbls[i]);
+            printf(format.c_str(), param_lbls[i].c_str());
         }
 
         for(int i = 0; i<reporting_lbls.size(); i++)
         {
-            printf("|%"+ std::to_string(data_col_width) +"s", reporting_lbls[i]);
+            printf(format.c_str(), reporting_lbls[i].c_str());
         }
         printf("|\n");
         printf("        ");
@@ -188,13 +189,13 @@ std::string  printAndWriteHeadersOver3Params(std::vector<std::string> param_lbls
     #if WRITE_CSV == 1
         for(int i = 0; i<param_lbls.size(); i++)
         {
-            fprintf(file, (i>0 ? ",%s" : "%s"), param_lbls[i]);
+            fprintf(file, (i>0 ? ",%s" : "%s"), param_lbls[i].c_str());
             *raw_file << param_lbls[i] << (i>0 ? "," : "");
         }
 
         for(int i = 0; i<reporting_lbls.size(); i++)
         {
-            fprintf(file, (i>0 ? ",%s" : "%s"), reporting_lbls[i]);
+            fprintf(file, (i>0 ? ",%s" : "%s"), reporting_lbls[i].c_str());
             *raw_file << reporting_lbls[i] << (i>0 ? "," : "");
         }
 
@@ -203,15 +204,6 @@ std::string  printAndWriteHeadersOver3Params(std::vector<std::string> param_lbls
 
         fflush(file);
         raw_file->flush();
-
-        fprintf(file, "\"Array Len (Blocks) \\ %s (int32_t Elements)\"", secondary_label_printcsv.c_str());//Command inserted below
-        for(int i = 0; i<secondary_dimension_items.size(); i++)
-        {
-            fprintf(file, ",%d", secondary_dimension_items[i]);
-        }
-        //fprintf(file, "\n"); //Done below
-        fflush(file);
-        *raw_file << "\"Array Len (int32_t Elements)\",\"" << secondary_label_rawcsv << " (int32_t Elements)\",\"Steady Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
     #endif
 
     return "|%9.2f";
