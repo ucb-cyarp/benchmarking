@@ -117,11 +117,14 @@ void* kernel_exe_primary_wrapper(void *arg)
             std::atomic_signal_fence(std::memory_order_acq_rel);
 
             //Run Kernel
-            kernel_fun(kernel_arg);
+            void* kernel_result = kernel_fun(kernel_arg);
 
             std::atomic_signal_fence(std::memory_order_acq_rel); //Place barriers around the calls to the instrimentation functions (getting time, reading MSRs, etc...) to prevent re-ordering.  This should only be nesssasary if link time optimizations are used
             profiler->endTrial();
             std::atomic_signal_fence(std::memory_order_acq_rel);
+
+            //Free the Kernel Result
+            free(kernel_result);
             
             //Compute the trial result
             TrialResult trial_result = computeTrialResultAndSetTrialNum(profiler, &results);

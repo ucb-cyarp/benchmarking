@@ -495,7 +495,7 @@
         {
             size_t array_length = array_lengths[i];
 
-            //Print the newlinem indent and new array length
+            //Print the newline indent and new array length
             #if PRINT_STATS == 1
             printf("\n        %27lu", array_length);
             #endif
@@ -624,6 +624,10 @@
         printf("\n");
         #endif
     }
+
+    void printTitleOpenLoop(std::string title, int columns, int column_width);
+
+    std::string printAndWriteHeadersOver3Params(std::string secondary_label_printcsv, std::string secondary_label_rawcsv, std::vector<int32_t> secondary_dimension_items, int data_col_width, FILE* file, std::ofstream* raw_file);
 
 
 #endif
