@@ -58,7 +58,8 @@ void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<
     //The primary is the client (because it performs the measurment) and the secondary is the server
     std::vector<Results> results_vec = execute_client_server_kernel(profiler, open_loop_buffer_client<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, INT32_MAX>, 
                                                                     open_loop_buffer_server<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, INT32_MAX>,
-                                                                    open_loop_buffer_reset<int32_t, std::atomic_int32_t, std::atomic_int32_t>, 
+                                                                    open_loop_buffer_reset<int32_t, std::atomic_int32_t, std::atomic_int32_t>,
+                                                                    open_loop_buffer_cleanup<int32_t, std::atomic_int32_t, std::atomic_int32_t>, 
                                                                     args, args, args, cpus[0], cpus[1], num_experiments);
 
     //==== Process Results ====
@@ -84,6 +85,8 @@ void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<
     printWriteOpenLoop2CoreResults<int32_t>(false, profiler, cpus, "Open Loop - One Way", results_vec, array_lengths, block_lengths, balance_nops, format, file, raw_file);
 
     //==== Cleanup ====
+    destructSharedIDs(shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag);
+
     freeVectorContents(shared_array_locs);
     freeVectorContents(shared_write_id_locs);
     freeVectorContents(shared_read_id_locs);

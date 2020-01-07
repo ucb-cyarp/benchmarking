@@ -88,12 +88,14 @@
             }
             atomicIndexType *shared_write_id_loc = (atomicIndexType*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpus[buffer]);
             atomicIndexType *shared_read_id_loc = (atomicIndexType*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpus[buffer%num_buffers]);
-            std::atomic_init(shared_write_id_loc, 0);
+            atomicIndexType *shared_write_id_loc_constructed = new (shared_write_id_loc) atomicIndexType();
+            std::atomic_init(shared_write_id_loc, 0); //Init of the shared IDs occurs here
             if(!std::atomic_is_lock_free(shared_write_id_loc)){
                 printf("Atomic is not lock free and was expected to be");
                 exit(1);
             }
-            std::atomic_init(shared_read_id_loc, 0);
+            atomicIndexType *shared_read_id_loc_constructed = new (shared_read_id_loc) atomicIndexType();
+            std::atomic_init(shared_read_id_loc, 0); //Now Initialized in reset
             if(!std::atomic_is_lock_free(shared_read_id_loc)){
                 printf("Atomic is not lock free and was expected to be");
                 exit(1);
@@ -109,6 +111,7 @@
         //Allocate flags
         for(int i = include_dummy_flags ? 0 : 1; i<cpus.size(); i++){
             std::atomic_flag *ready_flag = (std::atomic_flag*) aligned_alloc_core(CACHE_LINE_SIZE, sizeof(std::atomic_flag), cpus[i]);
+            std::atomic_flag *ready_flag_constructed = new (ready_flag) std::atomic_flag();
             ready_flags.push_back(ready_flag);
         }
 
@@ -116,6 +119,7 @@
             for(int i = 1; i<cpus.size(); i++){
                 for(int j = 0; j<cpus.size()-1; j++){
                     std::atomic_flag *ready_flag = (std::atomic_flag*) aligned_alloc_core(CACHE_LINE_SIZE, sizeof(std::atomic_flag), cpus[i]);
+                    std::atomic_flag *ready_flag_constructed = new (ready_flag) std::atomic_flag();
                     ready_flags.push_back(ready_flag);
                 }
             }
@@ -123,12 +127,35 @@
 
         for(int i = 0; i < (include_dummy_flags ? cpus.size() : 1); i++){
             std::atomic_flag *start_flag = (std::atomic_flag*) aligned_alloc_core(CACHE_LINE_SIZE, sizeof(std::atomic_flag), cpus[i]);
+            std::atomic_flag *start_flag_constructed = new (start_flag) std::atomic_flag();
             start_flags.push_back(start_flag);
         }
 
         stop_flag = (std::atomic_flag*) aligned_alloc_core(CACHE_LINE_SIZE, sizeof(std::atomic_flag), cpus[0]);
+        std::atomic_flag *stop_flag_constructed = new (stop_flag) std::atomic_flag();
 
         return maxBufferSize;
+    }
+
+    template<typename atomicIndexType>
+    void destructSharedIDs(std::vector<atomicIndexType*> &shared_write_id_locs, std::vector<atomicIndexType*> &shared_read_id_locs, std::vector<std::atomic_flag*> &ready_flags, std::vector<std::atomic_flag*> &start_flags, std::atomic_flag* &stop_flag){
+        for(int i = 0; i<shared_write_id_locs.size(); i++){
+            shared_write_id_locs[i]->~atomicIndexType();
+        }
+
+        for(int i = 0; i<shared_read_id_locs.size(); i++){
+            shared_read_id_locs[i]->~atomicIndexType();
+        }
+
+        for(int i = 0; i<ready_flags.size(); i++){
+            ready_flags[i]->~atomic_flag();
+        }
+
+        for(int i = 0; i<start_flags.size(); i++){
+            start_flags[i]->~atomic_flag();
+        }
+
+        stop_flag->~atomic_flag();
     }
 
     template<typename T>

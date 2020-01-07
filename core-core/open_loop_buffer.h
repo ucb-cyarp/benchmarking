@@ -65,7 +65,7 @@ void* open_loop_buffer_reset(void* arg){
 
     int numberInitBlocks = args->array_length/2; //Initialize FIFO to be half full (round down if odd number)
 
-    //Reset the index pointers
+    //Reset the index pointers (they are initialized outside)
     std::atomic_store_explicit(args->read_offset_ptr, 0, std::memory_order_relaxed); //Initialized to 0.  This is the index last read.  Index 1 contains the first initial value
     std::atomic_store_explicit(args->write_offset_ptr, numberInitBlocks+1, std::memory_order_relaxed); //Initialized to index after that last initial value in the FIFO (note, the initial elements start at index 1)
 
@@ -73,6 +73,7 @@ void* open_loop_buffer_reset(void* arg){
     //Reset the block ids and data
     //Init ID Zero
     idType *block_id_start = (idType*) (((char*) args->array));
+    idType *block_id_start_constructed = new (block_id_start) idType();
     std::atomic_init(block_id_start, 0);
     std::atomic_store_explicit(block_id_start, 0, std::memory_order_relaxed);
 
@@ -82,12 +83,14 @@ void* open_loop_buffer_reset(void* arg){
     }
 
     idType *block_id_end = (idType*) (((char*) args->array) + idCombinedBytes + blockArrayCombinedBytes);
+    idType *block_id_end_constructed = new (block_id_end) idType();
     std::atomic_init(block_id_end, 0);
     std::atomic_store_explicit(block_id_end, 0, std::memory_order_relaxed);
 
     //Initial Conditions
     for(int i = 1; i<numberInitBlocks+1; i++){
         idType *block_id_start = (idType*) (((char*) args->array) + i*blockSizeBytes);
+        idType *block_id_start_constructed = new (block_id_start) idType();
         std::atomic_init(block_id_start, i);
         std::atomic_store_explicit(block_id_start, i, std::memory_order_relaxed);
 
@@ -97,6 +100,7 @@ void* open_loop_buffer_reset(void* arg){
         }
         
         idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        idType *block_id_end_constructed = new (block_id_end) idType();
         std::atomic_init(block_id_end, i);
         std::atomic_store_explicit(block_id_end, i, std::memory_order_relaxed);
     }
@@ -104,6 +108,7 @@ void* open_loop_buffer_reset(void* arg){
     //Init After
     for(int i = numberInitBlocks+1; i <= args->array_length; i++){ //Note, there is an extra element in the array
         idType *block_id_start = (idType*) (((char*) args->array) + i*blockSizeBytes);
+        idType *block_id_start_constructed = new (block_id_start) idType();
         std::atomic_init(block_id_start, 0);
         std::atomic_store_explicit(block_id_start, 0, std::memory_order_relaxed);
 
@@ -113,10 +118,12 @@ void* open_loop_buffer_reset(void* arg){
         }
         
         idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        idType *block_id_end_constructed = new (block_id_end) idType();
         std::atomic_init(block_id_end, 0);
         std::atomic_store_explicit(block_id_end, 0, std::memory_order_relaxed);
     }
     
+    //Flags are initialized and destructed outside
     std::atomic_flag_test_and_set_explicit(args->start_flag, std::memory_order_relaxed);
     std::atomic_flag_test_and_set_explicit(args->stop_flag, std::memory_order_relaxed);
     std::atomic_flag_test_and_set_explicit(args->ready_flag, std::memory_order_relaxed);
@@ -124,6 +131,56 @@ void* open_loop_buffer_reset(void* arg){
     std::atomic_thread_fence(std::memory_order_release);
 }
 
+template<typename elementType, typename idType = std::atomic_int32_t, typename indexType = std::atomic_int32_t>
+void* open_loop_buffer_cleanup(void* arg){
+    OpenLoopBufferArgs<elementType, idType, indexType> *args = (OpenLoopBufferArgs<elementType, idType, indexType>*) arg;
+
+    int blockArrayBytes;
+    int blockArrayPaddingBytes;
+    int blockArrayCombinedBytes;
+    int idBytes;
+    int idPaddingBytes;
+    int idCombinedBytes;
+    int blockSizeBytes;
+
+    getBlockSizing<elementType, indexType>(args->blockSize, args->alignment, blockArrayBytes, blockArrayPaddingBytes, 
+    blockArrayCombinedBytes, idBytes, idPaddingBytes, idCombinedBytes, blockSizeBytes);
+
+    std::atomic_thread_fence(std::memory_order_acquire);
+
+    int numberInitBlocks = args->array_length/2; //Initialize FIFO to be half full (round down if odd number)
+
+    std::atomic_thread_fence(std::memory_order_acquire);
+
+    //=== Init ===
+    //Reset the block ids and data
+    //Init ID Zero
+    idType *block_id_start = (idType*) (((char*) args->array));
+    block_id_start->~idType();
+
+    idType *block_id_end = (idType*) (((char*) args->array) + idCombinedBytes + blockArrayCombinedBytes);
+    block_id_end->~idType();
+
+    //Initial Conditions
+    for(int i = 1; i<numberInitBlocks+1; i++){
+        idType *block_id_start = (idType*) (((char*) args->array) + i*blockSizeBytes);
+        block_id_start->~idType();
+        
+        idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        block_id_end->~idType();
+    }
+
+    //Init After
+    for(int i = numberInitBlocks+1; i <= args->array_length; i++){ //Note, there is an extra element in the array
+        idType *block_id_start = (idType*) (((char*) args->array) + i*blockSizeBytes);
+        block_id_start->~idType();
+        
+        idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        block_id_end->~idType();
+    }
+
+    std::atomic_thread_fence(std::memory_order_release);
+}
 
 //This thread is the writer.  It will recieve a start signal from the client when it is ready (the client is the primary thread)
 template<typename elementType, typename idType = std::atomic_int32_t, typename indexType = std::atomic_int32_t, typename idLocalType = int32_t, typename indexLocalType = int32_t, int idMax = INT32_MAX>
