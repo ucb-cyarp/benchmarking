@@ -7,7 +7,7 @@ std::string OpenLoopBufferEndCondition::getTrialResultsHeader(){
 std::string OpenLoopBufferEndCondition::getTrialResults(){
     char tmp[120];
     std::string wasErrorSrcStr = wasErrorSrc ? "Yes" : "No";
-    snprintf(tmp, 120, "%18d|%19d|%14d|%13s", expectedBlockID, startBlockID, endBlockID, wasErrorSrcStr.c_str());
+    snprintf(tmp, 120, "%18ld|%19ld|%14ld|%13s", expectedBlockID, startBlockID, endBlockID, wasErrorSrcStr.c_str());
     std::string str = tmp;
     return str;
 }

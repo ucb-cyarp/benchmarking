@@ -198,11 +198,11 @@ void print_results_open_loop(Results &results, size_t array_length, int32_t bloc
     double stddev_duration_ms = results.stddev_duration();
 
     #if PRINT_STATS == 1
-    printf(format.c_str(), avg_duration_ms);
+    printf(format.c_str(), array_length, block_length, nops, avg_duration_ms, stddev_duration_ms);
     #endif
 
     #if WRITE_CSV == 1
-    fprintf(file, "%f", avg_duration_ms);
+    fprintf(file, "%ld,%d,%d,%f,%f\n", array_length, block_length, nops, avg_duration_ms, stddev_duration_ms);
     results.write_durations_and_benchmark_specific_results(*raw_file, {"", ""}, {std::to_string(array_length), std::to_string(block_length), std::to_string(nops)}, false);
     #endif
 }

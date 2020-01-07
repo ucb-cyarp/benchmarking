@@ -644,7 +644,7 @@ void Results::write_durations_and_benchmark_specific_results(std::ofstream &csv_
         }
         csv_file << "\"Steady Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"";
 
-        if(trial_results.size>0){
+        if(trial_results.size()>0){
             for(int i = 0; i<trial_results[0].benchmarkSpecificResults.size(); i++){
                 csv_file << "," << trial_results[0].benchmarkSpecificResults[i]->getTrialCSVHeader();
             }

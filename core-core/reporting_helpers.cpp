@@ -116,7 +116,7 @@ void printTitleFIFO(std::string title, int columns, int column_width){
  */
 void writeCSVSummaryHeaderOpenLoop(FILE* file){
     #if WRITE_CSV == 1
-    fprintf(file, "\"Array Length (Blocks)\",\"Block Size (int32_t Elements)\",\"Balancing NOPs\",\"One Way Latency (ns) - Avg\",\"One Way Latency (ns) - StdDev\"\n");
+    fprintf(file, "\"Array Length (Blocks)\",\"Block Size (int32_t Elements)\",\"Balancing NOPs\",\"Time To Failure (ns) - Avg\",\"Time to Failure (ns) - StdDev\"\n");
     fflush(file);
     #endif
 }

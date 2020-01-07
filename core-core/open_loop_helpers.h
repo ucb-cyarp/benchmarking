@@ -1,7 +1,9 @@
 #ifndef _H_OPEN_LOOP_HELPERS
     #define _H_OPEN_LOOP_HELPERS
 
+    #include "intrin_bench_default_defines.h"
     #include "results.h"
+    #include "mallocHelpers.h"
 
     #include <vector>
     #include <atomic>
@@ -20,13 +22,13 @@
         std::string getTrialCSVData() override;
     };
 
-    template<typename elementType, typename atomicIndexType>
-    void getBlockSizing(int blockLength, int allignement, int &blockArrayBytes, int &blockArrayPaddingBytes, int &blockArrayCombinedBytes,
+    template<typename elementType, typename atomicIdType>
+    void getBlockSizing(int blockLength, int alignment, int &blockArrayBytes, int &blockArrayPaddingBytes, int &blockArrayCombinedBytes,
                         int &idBytes, int &idPaddingBytes, int &idCombinedBytes, int &blockSizeBytes){
-        blockArrayBytes = sizeof(elementType)*blockLenth;
+        blockArrayBytes = sizeof(elementType)*blockLength;
         blockArrayPaddingBytes = (blockArrayBytes % alignment == 0) ? 0 : alignment - blockArrayBytes % alignment;
         blockArrayCombinedBytes = blockArrayBytes+blockArrayPaddingBytes;
-        idBytes = sizeof(idType);
+        idBytes = sizeof(atomicIdType);
         idPaddingBytes = (idBytes % alignment == 0) ? 0 : alignment - idBytes % alignment;
         idCombinedBytes = idBytes+idPaddingBytes;
         blockSizeBytes = blockArrayCombinedBytes+idCombinedBytes*2;
@@ -40,7 +42,7 @@
     //start_flags:          The first flag is for the primary and is real.  The next num_buffers flags are dummies.
     //stop_flag:            There is a single stop flag shared by all threads which is real
 
-    template<typename elementType, typename atomicIndexType>
+    template<typename elementType, typename atomicIdType, typename atomicIndexType>
     size_t openLoopAllocate(std::vector<elementType*> &shared_array_locs, std::vector<atomicIndexType*> &shared_write_id_locs, std::vector<atomicIndexType*> &shared_read_id_locs, std::vector<std::atomic_flag*> ready_flags, std::vector<std::atomic_flag*> start_flags, std::atomic_flag* &stop_flag, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int> cpus, int alignment, bool circular, bool include_dummy_flags){
         //Find the largest array to allocate
         int maxBufferSize = 0;
@@ -55,7 +57,7 @@
                     int idCombinedBytes;
                     int blockSizeBytes;
 
-                    getBlockSizing<elementType, atomicIndexType>(block_length, alignement, blockArrayBytes, blockArrayPaddingBytes, 
+                    getBlockSizing<elementType, atomicIdType>(block_length, alignment, blockArrayBytes, blockArrayPaddingBytes, 
                     blockArrayCombinedBytes, idBytes, idPaddingBytes, idCombinedBytes, blockSizeBytes);
 
                     //Note that there is 1 additional block allocated in the array
@@ -81,15 +83,15 @@
             if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
                 amountToAllocCursors += (CACHE_LINE_SIZE - (amountToAllocCursors % CACHE_LINE_SIZE));
             }
-            elementType *shared_write_id_loc = (atomicIndexType*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpus[buffer]);
-            elementType *shared_read_id_loc = (atomicIndexType*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpus[buffer%num_buffers]);
-            std::atomic_init(*shared_write_id_loc, 0);
-            if(!std::atomic_is_lock_free(*shared_write_id_loc)){
+            atomicIndexType *shared_write_id_loc = (atomicIndexType*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpus[buffer]);
+            atomicIndexType *shared_read_id_loc = (atomicIndexType*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpus[buffer%num_buffers]);
+            std::atomic_init(shared_write_id_loc, 0);
+            if(!std::atomic_is_lock_free(shared_write_id_loc)){
                 printf("Atomic is not lock free and was expected to be");
                 exit(1);
             }
-            std::atomic_init(*shared_read_id_loc, 0);
-            if(!std::atomic_is_lock_free(*shared_read_id_loc)){
+            std::atomic_init(shared_read_id_loc, 0);
+            if(!std::atomic_is_lock_free(shared_read_id_loc)){
                 printf("Atomic is not lock free and was expected to be");
                 exit(1);
             }
@@ -117,13 +119,13 @@
         }
 
         for(int i = 0; i < (include_dummy_flags ? cpus.size() : 1); i++){
-            std::atomic_flag start_flag = (std::atomic_flag*) aligned_alloc_core(CACHE_LINE_SIZE, sizeof(std::atomic_flag), cpus[i]);
+            std::atomic_flag *start_flag = (std::atomic_flag*) aligned_alloc_core(CACHE_LINE_SIZE, sizeof(std::atomic_flag), cpus[i]);
             start_flags.push_back(start_flag);
         }
 
-        stop_flag = (std::atomic_flag*) aligned_alloc_core(CACHE_LINE_SIZE, sizeof(std::atomic_flag), cpus[i]);
+        stop_flag = (std::atomic_flag*) aligned_alloc_core(CACHE_LINE_SIZE, sizeof(std::atomic_flag), cpus[0]);
 
-        return amountToAlloc;
+        return maxBufferSize;
     }
 
     template<typename T>

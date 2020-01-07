@@ -9,10 +9,6 @@
     #include "print_results.h"
     #include "intrin_bench_default_defines_and_imports_cpp.h"
 
-    #define  PRINT_STATS 1
-    #define PRINT_FULL_STATS 1
-    #define WRITE_CSV 1
-
     void printTitle(std::string title);
     
     void printTitleArray(bool report_standalone, std::string title, size_t array_length);
@@ -708,6 +704,7 @@
     
     void writeCSVSummaryHeaderOpenLoop(FILE* file);
     std::string tableHeaderOpenLoop(std::string title, FILE* file);
+    void printTitleOpenLoopPoint(bool report_standalone, std::string title, size_t array_length, size_t block_length, int nops);
 
     void writeRawHeaderOpenLoop(std::shared_ptr<BenchmarkSpecificResult> implSpecificResult, std::ofstream* raw_file);
 
@@ -779,7 +776,7 @@
             }
             else
             {
-                print_results_open_loop(results, sizeof(elementType), STIM_LEN*array_length, array_length, block_size, balance_nops, format, file, raw_file);
+                print_results_open_loop(results, array_length, block_size, balance_nops, format, file, raw_file);
             }
         #endif
     }

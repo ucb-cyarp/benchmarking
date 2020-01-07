@@ -91,6 +91,7 @@
 #include "bandwidth_circular_fifo_blocked_kernel.h"
 #include "bandwidth_circular_fifo_read_limit_kernel.h"
 #include "bandwidth_circular_fifo_blocked_cachedptr_kernel.h"
+#include "open_loop_kernels.h"
 
 #ifndef PRINT_FULL_STATS
     #define PRINT_FULL_STATS 0
@@ -385,6 +386,53 @@ int main(int argc, char *argv[])
 
     printf("\n");
 
+    #endif
+
+    #if TEST_OPEN_LOOP == 1
+    //=====Test 5 - Open Loop=====
+    size_t open_loop_array_length_start = 1;
+    size_t open_loop_array_length_end = 513;
+
+    int32_t open_loop_block_size_start = 1;
+    int32_t open_loop_block_size_end = 1;
+
+    int32_t open_loop_balancing_nops_start = -100;
+    int32_t open_loop_balancing_nops_end = 101;
+
+    int open_loop_alignment = CACHE_LINE_SIZE;
+    int open_loop_max_block_transfers = 2000000000;
+
+    std::vector<size_t> open_loop_array_lengths;
+    for(int i = open_loop_array_length_start; i < open_loop_array_length_end; i++)
+    {
+        open_loop_array_lengths.push_back(i);
+    }
+
+    std::vector<int32_t> open_loop_block_sizes;
+    for(int i = open_loop_block_size_start; i < open_loop_block_size_end; i++)
+    {
+        open_loop_block_sizes.push_back(i);
+    }
+
+    std::vector<int32_t> open_loop_balancing_nops;
+    for(int i = open_loop_balancing_nops_start; i < open_loop_balancing_nops_end; i++)
+    {
+        open_loop_balancing_nops.push_back(i);
+    }
+
+    FILE* open_loop_csv_file = NULL;
+    std::ofstream open_loop_raw_csv_file;
+    #if WRITE_CSV == 1
+    open_loop_csv_file = fopen("report_open_loop.csv", "w");
+    open_loop_raw_csv_file.open("report_open_loop_raw.csv", std::ofstream::out);
+    #endif
+
+    run_open_loop_kernel(profiler, cpu_a, cpu_b, open_loop_array_lengths, open_loop_block_sizes, open_loop_balancing_nops, open_loop_alignment, open_loop_max_block_transfers, open_loop_csv_file, &open_loop_raw_csv_file);
+
+    fclose(fifo_array_csv_file);
+    fifo_array_raw_csv_file.close();
+
+    printf("\n");
     #endif
 
     //########## Parallel Runs ##########
