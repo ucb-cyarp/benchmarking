@@ -391,15 +391,15 @@ int main(int argc, char *argv[])
     #if TEST_OPEN_LOOP == 1
     //=====Test 5 - Open Loop=====
     size_t open_loop_array_length_start = 1;
-    size_t open_loop_array_length_end = 513;
+    size_t open_loop_array_length_end = 129;
 
     int32_t open_loop_block_size_start = 1;
-    int32_t open_loop_block_size_end = 1;
+    int32_t open_loop_block_size_end = 129;
 
-    int32_t open_loop_balancing_nops_start = -100;
-    int32_t open_loop_balancing_nops_end = 101;
+    int32_t open_loop_balancing_nops_start = -50;
+    int32_t open_loop_balancing_nops_end = 51;
 
-    int open_loop_alignment = CACHE_LINE_SIZE;
+    int open_loop_alignment = 4; //Align to 4 byte (32 bit) words
     int open_loop_max_block_transfers = 2000000000;
 
     std::vector<size_t> open_loop_array_lengths;
@@ -429,8 +429,8 @@ int main(int argc, char *argv[])
 
     run_open_loop_kernel(profiler, cpu_a, cpu_b, open_loop_array_lengths, open_loop_block_sizes, open_loop_balancing_nops, open_loop_alignment, open_loop_max_block_transfers, open_loop_csv_file, &open_loop_raw_csv_file);
 
-    fclose(fifo_array_csv_file);
-    fifo_array_raw_csv_file.close();
+    fclose(open_loop_csv_file);
+    open_loop_raw_csv_file.close();
 
     printf("\n");
     #endif

@@ -15,7 +15,7 @@
             {
                 //Copy the benchmark specific results from the secondaries (if not nullptrs)
                 for(int i = 0; i< secondaryBenchmarkSpecificResults.size(); i++){
-                    if(secondaryBenchmarkSpecificResults[i] != nullptr){
+                    if(*secondaryBenchmarkSpecificResults[i] != nullptr){
                         trial_result.benchmarkSpecificResults.push_back(*secondaryBenchmarkSpecificResults[i]); //Copies the smart pointer
                     }
                 }

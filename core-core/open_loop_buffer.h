@@ -194,7 +194,7 @@ void* open_loop_buffer_server(void* arg){
 //Make the client the primary (ie. in the client server runner, swap the functions given as the client and the server)
 template<typename elementType, typename idType = std::atomic_int32_t, typename indexType = std::atomic_int32_t, typename idLocalType = int32_t, typename indexLocalType = int32_t, int idMax = INT32_MAX>
 void* open_loop_buffer_client(void* arg){
-    OpenLoopBufferArgs<elementType, idType, indexType>* args = (OpenLoopBufferArgs<elementType, idType, indexType>*) args;
+    OpenLoopBufferArgs<elementType, idType, indexType>* args = (OpenLoopBufferArgs<elementType, idType, indexType>*) arg;
     indexType *read_offset_ptr = args->read_offset_ptr;
     void *array = args->array;
     int array_length = args->array_length;
@@ -207,7 +207,7 @@ void* open_loop_buffer_client(void* arg){
     int ballancing_nops = args->ballancing_nops;
     int numNops = ballancing_nops > 0 ? ballancing_nops : 0;
 
-    elementType expectedSampleVals = 1;
+    elementType expectedSampleVals = 0;
     idLocalType readBlockInd = 0;
 
     idLocalType newBlockIDStart = -1;

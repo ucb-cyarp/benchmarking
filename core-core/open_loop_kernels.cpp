@@ -64,7 +64,10 @@ void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<
         std::cerr << "Error: The number of results did not match the number of experiments" << std::endl;
     }
 
-    //TODO: Print Header using result
+    if(results_vec.size() == 0){
+        printf("No Experiments!");
+        exit(2);
+    }
 
     //==== Write Raw Headers (Done after the experiment is run because we need the benchmark specific results to get the header information) ====
     std::shared_ptr<BenchmarkSpecificResult> implSpecificResultExample = nullptr;
