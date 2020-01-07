@@ -27,7 +27,7 @@
      */
     class BenchmarkSpecificResult{
         public:
-            HW_Granularity resultGranularity = HW_Granularity::CORE;
+            HW_Granularity resultGranularity;
             int granularityIndex; //Ie. if the resultGranularity is CORE, this is the core it responds to
             virtual std::string getGranularityStr();
             
@@ -42,6 +42,8 @@
 
             //TODO: Provide a function for a summary of multiple trials.  May include avg, stddev, max, min
             //May require casting pointers to the derived class (and checking that cast succeeded)
+
+            BenchmarkSpecificResult();
     };
 
     class TrialResult

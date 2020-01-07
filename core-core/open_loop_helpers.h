@@ -15,11 +15,14 @@
         int64_t startBlockID;
         int64_t endBlockID;
         bool wasErrorSrc;
+        bool errored;
 
         std::string getTrialResultsHeader() override;
         std::string getTrialResults() override;
         std::string getTrialCSVHeader() override;
         std::string getTrialCSVData() override;
+
+        OpenLoopBufferEndCondition();
     };
 
     template<typename elementType, typename atomicIdType>

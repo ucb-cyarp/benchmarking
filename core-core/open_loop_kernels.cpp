@@ -49,13 +49,15 @@ void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<
                 args[idx].ballancing_nops = balance_nop;
                 args[idx].blockSize = block_length;
                 args[idx].alignment = alignment;
+                args[idx].core = cpus[0]; //This is the client CPU since the server does not report benchmark specific results
             }
         }
     }
 
     //==== Run The Experiments ====
-    std::vector<Results> results_vec = execute_client_server_kernel(profiler, open_loop_buffer_server<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, INT32_MAX>, 
-                                                                    open_loop_buffer_client<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, INT32_MAX>, 
+    //The primary is the client (because it performs the measurment) and the secondary is the server
+    std::vector<Results> results_vec = execute_client_server_kernel(profiler, open_loop_buffer_client<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, INT32_MAX>, 
+                                                                    open_loop_buffer_server<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, INT32_MAX>,
                                                                     open_loop_buffer_reset<int32_t, std::atomic_int32_t, std::atomic_int32_t>, 
                                                                     args, args, args, cpus[0], cpus[1], num_experiments);
 

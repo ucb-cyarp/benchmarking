@@ -688,3 +688,7 @@ std::string BenchmarkSpecificResult::getTrialCSVData(){
 std::string BenchmarkSpecificResult::getGranularityStr(){
     return MeasurementHelper::HW_Granularity_toString(resultGranularity) + " " + std::to_string(granularityIndex);
 }
+
+BenchmarkSpecificResult::BenchmarkSpecificResult() : resultGranularity(HW_Granularity::CORE), granularityIndex(-1){
+
+}

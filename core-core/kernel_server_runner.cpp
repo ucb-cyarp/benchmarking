@@ -126,12 +126,15 @@ void* kernel_exe_primary_wrapper(void *arg)
             //Compute the trial result
             TrialResult trial_result = computeTrialResultAndSetTrialNum(profiler, &results);
 
+            //Note, the kernel is returning a pointer.  It can return a NULL ptr in which case no action is taken.
+            //Otherwise, it still returns a raw pointer which is converted to a shared_ptr here
+            //The object is not deleted here and it's lifetime is governed by the smart ptr.
             if(kernel_result != nullptr){
                 //The kernel returned an implementation specific result, add it to the trial result
-                std::shared_ptr<BenchmarkSpecificResult> *specificResultOrig = (std::shared_ptr<BenchmarkSpecificResult>*) kernel_result;
+                BenchmarkSpecificResult *specificResultOrig = (BenchmarkSpecificResult*) kernel_result;
+                std::shared_ptr<BenchmarkSpecificResult> specificResult(specificResultOrig);
                 //Copy the smart pointer before destructing the origional.
-                trial_result.benchmarkSpecificResults.push_back(*specificResultOrig);
-                delete specificResultOrig; //Delete the dynamically allocated smart pointer created in the benchmark kernel (needs to be created there to support the polymophism we are looking for)
+                trial_result.benchmarkSpecificResults.push_back(specificResult);
             }//If nullptr, no result was returned
 
             #if PRINT_TRIALS == 1
@@ -288,14 +291,15 @@ void* kernel_exe_secondary_wrapper(void *arg){
             //Run the kernel
             void *kernel_result = kernel_fun(kernel_arg);
 
+            //Note, the kernel is returning a pointer.  It can return a NULL ptr in which case no action is taken.
+            //Otherwise, it still returns a raw pointer which is converted to a shared_ptr here
+            //The object is not deleted here and it's lifetime is governed by the smart ptr.
             if(kernel_result != nullptr){
-                std::shared_ptr<BenchmarkSpecificResult> *kernel_result_as_smtptr = (std::shared_ptr<BenchmarkSpecificResult>*) kernel_result;
+                BenchmarkSpecificResult *benchmarkSpecificResult = (BenchmarkSpecificResult*) kernel_result;
+                //Create a smart pointer to this raw ptr
+                std::shared_ptr<BenchmarkSpecificResult> benchmarkSpecificResultSmartPtr(benchmarkSpecificResult);
                 //Copy the smart pointer
-                *benchmarkSpecificResultPtr = *kernel_result_as_smtptr;
-                //Delete the origional dynamically allocated smartptr returned by the kernel function
-                delete kernel_result_as_smtptr;
-                //The primary will copy the smart pointer into the result if the trial was kept.  Otherwise, it will be deleted and the result
-                //object will be deleted allong with it
+                *benchmarkSpecificResultPtr = benchmarkSpecificResultSmartPtr;
             }else{
                 *benchmarkSpecificResultPtr = nullptr;
             }

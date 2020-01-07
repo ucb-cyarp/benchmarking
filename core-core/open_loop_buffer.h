@@ -34,8 +34,9 @@ struct OpenLoopBufferArgs{
     int array_length; //In Blocks  //Note: The FIFO Array has an additional block allocated to resolve the Empty/Full Ambiguity
     int max_block_transfers; //The maximum number of blocks to transfer in this test
     int ballancing_nops; //The number of NOPs to use for balancing services.  If negative, the server has NOPS, if positive, the client has NOPS
-    int blockSize;
-    int alignment;
+    int blockSize; //The block size (in elementType elements)
+    int alignment; //The alignment in bytes of the components within the block (the IDs and the Buffer)
+    int core; //The core this is executing on
 };
 
 //Note: The server and client threads are different instruction streams.  One writes while the other reads and needs to check the block ids (and the block data).
@@ -68,9 +69,26 @@ void* open_loop_buffer_reset(void* arg){
     std::atomic_store_explicit(args->read_offset_ptr, 0, std::memory_order_relaxed); //Initialized to 0.  This is the index last read.  Index 1 contains the first initial value
     std::atomic_store_explicit(args->write_offset_ptr, numberInitBlocks+1, std::memory_order_relaxed); //Initialized to index after that last initial value in the FIFO (note, the initial elements start at index 1)
 
+    //=== Init ===
     //Reset the block ids and data
+    //Init ID Zero
+    idType *block_id_start = (idType*) (((char*) args->array));
+    std::atomic_init(block_id_start, 0);
+    std::atomic_store_explicit(block_id_start, 0, std::memory_order_relaxed);
+
+    elementType *data_array = (elementType*) (((char*) args->array) + idCombinedBytes);
+    for(int j = 0; j<args->blockSize; j++){
+        data_array[j] = -1;
+    }
+
+    idType *block_id_end = (idType*) (((char*) args->array) + idCombinedBytes + blockArrayCombinedBytes);
+    std::atomic_init(block_id_end, 0);
+    std::atomic_store_explicit(block_id_end, 0, std::memory_order_relaxed);
+
+    //Initial Conditions
     for(int i = 1; i<numberInitBlocks+1; i++){
         idType *block_id_start = (idType*) (((char*) args->array) + i*blockSizeBytes);
+        std::atomic_init(block_id_start, i);
         std::atomic_store_explicit(block_id_start, i, std::memory_order_relaxed);
 
         elementType *data_array = (elementType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes);
@@ -79,11 +97,29 @@ void* open_loop_buffer_reset(void* arg){
         }
         
         idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        std::atomic_init(block_id_end, i);
         std::atomic_store_explicit(block_id_end, i, std::memory_order_relaxed);
+    }
+
+    //Init After
+    for(int i = numberInitBlocks+1; i <= args->array_length; i++){ //Note, there is an extra element in the array
+        idType *block_id_start = (idType*) (((char*) args->array) + i*blockSizeBytes);
+        std::atomic_init(block_id_start, 0);
+        std::atomic_store_explicit(block_id_start, 0, std::memory_order_relaxed);
+
+        elementType *data_array = (elementType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes);
+        for(int j = 0; j<args->blockSize; j++){
+            data_array[j] = -1;
+        }
+        
+        idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        std::atomic_init(block_id_end, 0);
+        std::atomic_store_explicit(block_id_end, 0, std::memory_order_relaxed);
     }
     
     std::atomic_flag_test_and_set_explicit(args->start_flag, std::memory_order_relaxed);
     std::atomic_flag_test_and_set_explicit(args->stop_flag, std::memory_order_relaxed);
+    std::atomic_flag_test_and_set_explicit(args->ready_flag, std::memory_order_relaxed);
 
     std::atomic_thread_fence(std::memory_order_release);
 }
@@ -107,6 +143,8 @@ void* open_loop_buffer_server(void* arg){
     int ballancing_nops = args->ballancing_nops;
     int numNops = ballancing_nops < 0 ? -ballancing_nops : 0;
 
+    //printf("Config: Array Len: %d, Block Size: %d, NOPs %d\n", array_length, blockSize, ballancing_nops);
+
     int numberInitBlocks = array_length/2; //Initialize FIFO to be half full (round down if odd number)
 
     int blockArrayBytes;
@@ -117,7 +155,7 @@ void* open_loop_buffer_server(void* arg){
     int idCombinedBytes;
     int blockSizeBytes;
 
-    getBlockSizing<elementType, idType>(args->blockSize, args->alignment, blockArrayBytes, blockArrayPaddingBytes, 
+    getBlockSizing<elementType, idType>(blockSize, args->alignment, blockArrayBytes, blockArrayPaddingBytes, 
     blockArrayCombinedBytes, idBytes, idPaddingBytes, idCombinedBytes, blockSizeBytes);
 
     //Load initial write offset
@@ -158,7 +196,7 @@ void* open_loop_buffer_server(void* arg){
         std::atomic_store_explicit(block_id_end, writeBlockInd, std::memory_order_release); //Prevents memory access from being reordered after this
         //+++ End write into array +++
 
-        //Check for index wrap arround
+        //Check for index wrap arround (note, there is an extra array element)
         if (writeOffset >= array_length)
         {
             writeOffset = 0;
@@ -241,10 +279,12 @@ void* open_loop_buffer_client(void* arg){
     std::atomic_thread_fence(std::memory_order_acquire);
     std::atomic_flag_clear_explicit(start_flag, std::memory_order_release);
 
+    bool failureDetected = false;
+
     for(int transfer = 0; transfer<max_block_transfers; transfer++){
         //---- Read from Input Buffer Unconditionally ----
         //Load Read Ptr
-        if (readOffset >= array_length)
+        if (readOffset >= array_length) //(note, there is an extra array element)
         {
             readOffset = 0;
         }
@@ -278,6 +318,7 @@ void* open_loop_buffer_client(void* arg){
         expectedBlockID = readBlockInd == UINT32_MAX ? 0 : readBlockInd+1;
         if(expectedBlockID != newBlockIDStart || expectedBlockID != newBlockIDEnd){
             //Will signal failure outside of loop
+            failureDetected = true;
             break;
         }
         readBlockInd = expectedBlockID;
@@ -302,11 +343,14 @@ void* open_loop_buffer_client(void* arg){
     std::atomic_thread_fence(std::memory_order_acquire);
     std::atomic_flag_clear_explicit(stop_flag, std::memory_order_release);
 
-    OpenLoopBufferEndCondition *rtn = (OpenLoopBufferEndCondition*) malloc(sizeof(OpenLoopBufferEndCondition));
+    OpenLoopBufferEndCondition *rtn = new OpenLoopBufferEndCondition;
     rtn->expectedBlockID = readBlockInd;
     rtn->startBlockID = newBlockIDStart;
     rtn->startBlockID = newBlockIDEnd;
     rtn->wasErrorSrc = true;
+    rtn->errored = failureDetected;
+    rtn->resultGranularity = HW_Granularity::CORE;
+    rtn->granularityIndex = args->core;
 
     return (void*) rtn;
 }
