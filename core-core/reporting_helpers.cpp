@@ -224,7 +224,8 @@ void writeRawHeaderOpenLoop(std::shared_ptr<BenchmarkSpecificResult> implSpecifi
                   << "\"Clock - rdtsc\"";
 
         if(implSpecificResult != nullptr){
-            *raw_file << implSpecificResult->getTrialCSVHeader();
+            std::string trialCSVHeader = implSpecificResult->getTrialCSVHeader();
+            *raw_file << trialCSVHeader;
         }
 
         *raw_file << std::endl;

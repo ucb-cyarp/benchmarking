@@ -1,6 +1,10 @@
 #include "kernel_server_runner.h"
 #include <atomic>
 
+void* noCleanupFctn(void*){
+
+}
+
 void* kernel_exe_primary_wrapper(void *arg)
 {
     KernelExePrimaryWrapperArgs* args = (KernelExePrimaryWrapperArgs*) arg;
@@ -9,6 +13,7 @@ void* kernel_exe_primary_wrapper(void *arg)
     Profiler* profiler = args->profiler;
     void* (*kernel_fun)(void*) = args->kernel_fun;
     void* (*reset_fun)(void*) = args->reset_fun;
+    void* (*cleanup_fun)(void*) = args->cleanup_fun;
     int numExperiments = args->num_args;
     int numTrials = args->num_trials;
 
@@ -238,6 +243,10 @@ void* kernel_exe_primary_wrapper(void *arg)
             }
             //=== End Logic for interconnected primaries ===
 
+            //Cleanup the run before the next reset
+            if(!(args->interconnected_primaries) || (args->interconnected_primaries && args->interconnected_master)){
+                cleanup_fun(reset_arg);
+            }
         }
 
         resultVec->push_back(results);

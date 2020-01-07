@@ -10,12 +10,15 @@
 
     #include "intrin_bench_default_defines_and_imports_cpp.h"
 
+    void* noCleanupFctn(void*);
+
     class KernelExePrimaryWrapperArgs //The instance of the kernel that performs the measurement
     {
         public:
             Profiler* profiler;
             void* (*kernel_fun)(void*);
             void* (*reset_fun)(void*);
+            void* (*cleanup_fun)(void*);
             void* kernel_args;
             void* reset_args;
             int num_args; //The number of kernel and reset args
@@ -76,7 +79,7 @@
      * The execute_kernel functionality is achieved by passing the same function as both the kernel_server and kernel_client
      */
     template <typename ServerArgType, typename ClientArgType, typename ResetArgType>
-    std::vector<Results> execute_client_server_kernel(Profiler* profiler, void* (*kernel_server)(void*), void* (*kernel_client)(void*), void* (*kernel_reset)(void*), ServerArgType* arg_server, ClientArgType* arg_client, ResetArgType* reset_arg, int cpu_a, int cpu_b, int num_args)
+    std::vector<Results> execute_client_server_kernel(Profiler* profiler, void* (*kernel_server)(void*), void* (*kernel_client)(void*), void* (*kernel_reset)(void*), void* (*kernel_cleanup)(void*), ServerArgType* arg_server, ClientArgType* arg_client, ResetArgType* reset_arg, int cpu_a, int cpu_b, int num_args)
     {
         //=====Create a thread for the server and client on the specified cores=====
 
@@ -210,6 +213,7 @@
         server_args->profiler = profiler;
         server_args->kernel_fun = kernel_server;
         server_args->reset_fun = kernel_reset;
+        server_args->cleanup_fun = kernel_cleanup;
         server_args->kernel_args = arg_server;
         server_args->reset_args = reset_arg;
         server_args->num_args = num_args;
@@ -283,7 +287,7 @@
      * client_2 = cpu_d
      */
     template <typename ServerArgType, typename ClientArgType, typename ResetArgType>
-    std::vector<SimultaniousResults> execute_client_server_kernel(Profiler* profiler, void* (*kernel_server)(void*), void* (*kernel_client)(void*), void* (*kernel_reset)(void*), ServerArgType* arg_server_1, ClientArgType* arg_client_1, ServerArgType* arg_server_2, ClientArgType* arg_client_2, ResetArgType* reset_arg_1, ResetArgType* reset_arg_2, int cpu_a, int cpu_b, int cpu_c, int cpu_d, int num_args)
+    std::vector<SimultaniousResults> execute_client_server_kernel(Profiler* profiler, void* (*kernel_server)(void*), void* (*kernel_client)(void*), void* (*kernel_reset)(void*), void* (*kernel_cleanup)(void*), ServerArgType* arg_server_1, ClientArgType* arg_client_1, ServerArgType* arg_server_2, ClientArgType* arg_client_2, ResetArgType* reset_arg_1, ResetArgType* reset_arg_2, int cpu_a, int cpu_b, int cpu_c, int cpu_d, int num_args)
     {
         //=====Create a thread for the server and client on the specified cores=====
 
@@ -518,6 +522,7 @@
         server_args_1->profiler = profiler;
         server_args_1->kernel_fun = kernel_server;
         server_args_1->reset_fun = kernel_reset;
+        server_args_1->cleanup_fun = kernel_cleanup;
         server_args_1->kernel_args = arg_server_1;
         server_args_1->reset_args = reset_arg_1;
         server_args_1->num_args = num_args;
@@ -543,6 +548,7 @@
         server_args_2->profiler = cProfiler;
         server_args_2->kernel_fun = kernel_server;
         server_args_2->reset_fun = kernel_reset;
+        server_args_2->cleanup_fun = kernel_cleanup;
         server_args_2->kernel_args = arg_server_2;
         server_args_2->reset_args = reset_arg_2;
         server_args_2->num_args = num_args;
@@ -660,7 +666,7 @@
      * Also, note that only the master performs the inter-trial reset
      */
     template <typename ServerArgType, typename ClientArgType, typename ResetArgType>
-    std::vector<SimultaniousResults> execute_kernel_fanin_server_measure(Profiler* profiler, void* (*srv_kernel_fun)(void*), void* (*cli_kernel_fun)(void*), void* (*kernel_reset)(void*), ServerArgType* arg_srv_a, ServerArgType* arg_srv_b, ClientArgType* arg_cli_c, ResetArgType* reset_arg, int cpu_srv_a, int cpu_srv_b, int cpu_cli_c, int num_args)
+    std::vector<SimultaniousResults> execute_kernel_fanin_server_measure(Profiler* profiler, void* (*srv_kernel_fun)(void*), void* (*cli_kernel_fun)(void*), void* (*kernel_reset)(void*), void* (*kernel_cleanup)(void*), ServerArgType* arg_srv_a, ServerArgType* arg_srv_b, ClientArgType* arg_cli_c, ResetArgType* reset_arg, int cpu_srv_a, int cpu_srv_b, int cpu_cli_c, int num_args)
     {
         //=====Create a thread for the server and client on the specified cores=====
         cpu_set_t cpuset_srv_a, cpuset_srv_b, cpuset_cli_c;
@@ -848,6 +854,7 @@
         server_args_a->profiler = profiler;
         server_args_a->kernel_fun = srv_kernel_fun;
         server_args_a->reset_fun = kernel_reset;
+        server_args_a->cleanup_fun = kernel_cleanup;
         server_args_a->kernel_args = arg_srv_a;
         server_args_a->reset_args = reset_arg;
         server_args_a->num_args = num_args;
@@ -883,6 +890,7 @@
         server_args_b->profiler = bProfiler;
         server_args_b->kernel_fun = srv_kernel_fun;
         server_args_b->reset_fun = kernel_reset;
+        server_args_b->cleanup_fun = kernel_cleanup;
         server_args_b->kernel_args = arg_srv_b;
         server_args_b->reset_args = reset_arg;
         server_args_b->num_args = num_args;
@@ -995,7 +1003,7 @@
     //srv_a gets control from cli_b
     //cli_b and cli_c get feedback from srv_a
     template <typename ServerArgType, typename ClientArgType, typename ResetArgType>
-    std::vector<SimultaniousResults> execute_kernel_fanout_client_measure(Profiler* profiler, void* (*srv_kernel_fun)(void*), void* (*cli_kernel_fun)(void*), void* (*kernel_reset)(void*), ServerArgType* arg_srv_a, ClientArgType* arg_cli_b, ClientArgType* arg_cli_c, ResetArgType* reset_arg, int cpu_srv_a, int cpu_cli_b, int cpu_cli_c, int num_args)
+    std::vector<SimultaniousResults> execute_kernel_fanout_client_measure(Profiler* profiler, void* (*srv_kernel_fun)(void*), void* (*cli_kernel_fun)(void*), void* (*kernel_reset)(void*), void* (*kernel_cleanup)(void*), ServerArgType* arg_srv_a, ClientArgType* arg_cli_b, ClientArgType* arg_cli_c, ResetArgType* reset_arg, int cpu_srv_a, int cpu_cli_b, int cpu_cli_c, int num_args)
     {
         //=====Create a thread for the server and client on the specified cores=====
 
@@ -1183,6 +1191,7 @@
         measure_args_b->profiler = profiler;
         measure_args_b->kernel_fun = cli_kernel_fun;
         measure_args_b->reset_fun = kernel_reset;
+        measure_args_b->cleanup_fun = kernel_cleanup;
         measure_args_b->kernel_args = arg_cli_b;
         measure_args_b->reset_args = reset_arg;
         measure_args_b->num_args = num_args;
@@ -1217,6 +1226,7 @@
         measure_args_c->profiler = cProfiler;
         measure_args_c->kernel_fun = cli_kernel_fun;
         measure_args_c->reset_fun = kernel_reset;
+        measure_args_c->cleanup_fun = kernel_cleanup;
         measure_args_c->kernel_args = arg_cli_c;
         measure_args_c->reset_args = reset_arg;
         measure_args_c->num_args = num_args;

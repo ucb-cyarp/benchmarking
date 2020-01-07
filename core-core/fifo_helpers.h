@@ -27,11 +27,13 @@
         }
         *shared_write_id_loc = (atomicIndexType*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_a);
         *shared_read_id_loc = (atomicIndexType*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_b);
+        std::atomic_int32_t* shared_write_id_loc_constructed = new (shared_write_id_loc) std::atomic_int32_t();
         std::atomic_init(*shared_write_id_loc, 0);
         if(!std::atomic_is_lock_free(*shared_write_id_loc)){
             printf("Atomic is not lock free and was expected to be");
             exit(1);
         }
+        std::atomic_int32_t* shared_read_id_loc_constructed = new (shared_read_id_loc) std::atomic_int32_t();
         std::atomic_init(*shared_read_id_loc, 0);
         if(!std::atomic_is_lock_free(*shared_read_id_loc)){
             printf("Atomic is not lock free and was expected to be");

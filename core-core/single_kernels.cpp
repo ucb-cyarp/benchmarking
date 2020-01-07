@@ -17,6 +17,7 @@ Results* run_latency_single_kernel(Profiler* profiler, int cpu_a, int cpu_b)
         amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
     }
     std::atomic_int32_t* shared_loc = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
+    std::atomic_int32_t* shared_loc_constructed = new (shared_loc) std::atomic_int32_t();
     std::atomic_init(shared_loc, 0);
     if(!std::atomic_is_lock_free(shared_loc)){
         printf("Atomic is not lock free and was expected to be");
@@ -38,7 +39,7 @@ Results* run_latency_single_kernel(Profiler* profiler, int cpu_a, int cpu_b)
 
     //This kernel has a single configuraton
     //The client and server kernel are the same
-    std::vector<Results> results_vector = execute_client_server_kernel(profiler, latency_single_kernel, latency_single_kernel, latency_single_kernel_reset, arg_a_array, arg_b_array, reset_arg_array, cpu_a, cpu_b, 1);
+    std::vector<Results> results_vector = execute_client_server_kernel(profiler, latency_single_kernel, latency_single_kernel, latency_single_kernel_reset, noCleanupFctn, arg_a_array, arg_b_array, reset_arg_array, cpu_a, cpu_b, 1);
     if(results_vector.size() != 1){
         std::cerr << "Error: Unexpected number of results" << std::endl;
         exit(1);
@@ -51,6 +52,7 @@ Results* run_latency_single_kernel(Profiler* profiler, int cpu_a, int cpu_b)
     exportResultsSingle2Core<std::atomic_int32_t>(profiler, cpu_a, cpu_b, *results);
 
     //Clean Up
+    shared_loc->~atomic();
     free(shared_loc);
 
     delete[] arg_a_array;
@@ -77,11 +79,13 @@ Results* run_latency_dual_kernel(Profiler* profiler, int cpu_a, int cpu_b)
     }
     std::atomic_int32_t* shared_loc_a = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
     std::atomic_int32_t* shared_loc_b = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
+    std::atomic_int32_t* shared_loc_a_constructed = new (shared_loc_a) std::atomic_int32_t();
     std::atomic_init(shared_loc_a, 0);
     if(!std::atomic_is_lock_free(shared_loc_a)){
         printf("Atomic is not lock free and was expected to be");
         exit(1);
     }
+    std::atomic_int32_t* shared_loc_b_constructed = new (shared_loc_b) std::atomic_int32_t();
     std::atomic_init(shared_loc_b, 0);
     if(!std::atomic_is_lock_free(shared_loc_b)){
         printf("Atomic is not lock free and was expected to be");
@@ -109,7 +113,7 @@ Results* run_latency_dual_kernel(Profiler* profiler, int cpu_a, int cpu_b)
     
     //This kernel has a single configuraton
     //The client and server kernel are the same
-    std::vector<Results> results_vector = execute_client_server_kernel(profiler, latency_dual_kernel, latency_dual_kernel, latency_dual_kernel_reset, arg_a_array, arg_b_array, reset_arg_array, cpu_a, cpu_b, 1);
+    std::vector<Results> results_vector = execute_client_server_kernel(profiler, latency_dual_kernel, latency_dual_kernel, latency_dual_kernel_reset, noCleanupFctn, arg_a_array, arg_b_array, reset_arg_array, cpu_a, cpu_b, 1);
 
     //Copy result (for legacy result memory handling)
     Results* results = new Results;
@@ -118,6 +122,8 @@ Results* run_latency_dual_kernel(Profiler* profiler, int cpu_a, int cpu_b)
     exportResultsSingle2Core<std::atomic_int32_t>(profiler, cpu_a, cpu_b, *results);
 
     //Clean Up
+    shared_loc_a->~atomic();
+    shared_loc_b->~atomic();
     free(shared_loc_a);
     free(shared_loc_b);
 

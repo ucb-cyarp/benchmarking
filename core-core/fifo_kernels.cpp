@@ -45,7 +45,7 @@ void run_bandwidth_fifo_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::ve
     }
 
     //==== Run The Experiments ====
-    std::vector<Results> results_vec = execute_client_server_kernel(profiler, bandwidth_circular_fifo_server_kernel, bandwidth_circular_fifo_client_kernel, bandwidth_circular_fifo_kernel_reset, args, args, args, cpu_a, cpu_b, num_experiments);
+    std::vector<Results> results_vec = execute_client_server_kernel(profiler, bandwidth_circular_fifo_server_kernel, bandwidth_circular_fifo_client_kernel, bandwidth_circular_fifo_kernel_reset, noCleanupFctn, args, args, args, cpu_a, cpu_b, num_experiments);
 
     //==== Process Results ====
     if(results_vec.size() != num_experiments){
@@ -55,6 +55,8 @@ void run_bandwidth_fifo_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::ve
     printWriteFIFOTable2Core<int32_t>(false, profiler, cpu_a, cpu_b, "FIFO - Array", "Max Write Per Transaction", results_vec, array_lengths, max_writes_per_transaction, data_col_width, format, file, raw_file);
 
     //==== Cleanup ====
+    shared_write_id_loc->~atomic();
+    shared_read_id_loc->~atomic();
     free(shared_array_loc);
     free(shared_write_id_loc);
     free(shared_read_id_loc);
@@ -106,7 +108,7 @@ void run_bandwidth_fifo_blocked_kernel(Profiler* profiler, int cpu_a, int cpu_b,
     }
 
     //==== Run The Experiments ====
-    std::vector<Results> results_vec = execute_client_server_kernel(profiler, bandwidth_circular_fifo_blocked_server_kernel, bandwidth_circular_fifo_blocked_client_kernel, bandwidth_circular_fifo_blocked_kernel_reset, args, args, args, cpu_a, cpu_b, num_experiments);
+    std::vector<Results> results_vec = execute_client_server_kernel(profiler, bandwidth_circular_fifo_blocked_server_kernel, bandwidth_circular_fifo_blocked_client_kernel, bandwidth_circular_fifo_blocked_kernel_reset, noCleanupFctn, args, args, args, cpu_a, cpu_b, num_experiments);
 
     //==== Process Results ====
     if(results_vec.size() != num_experiments){
@@ -116,6 +118,8 @@ void run_bandwidth_fifo_blocked_kernel(Profiler* profiler, int cpu_a, int cpu_b,
     printWriteBlockedFIFOTable2Core<int32_t>(false, profiler, cpu_a, cpu_b, "FIFO - Array - Blocked Transfers", "Block Length Transaction", results_vec, array_lengths, block_lengths, data_col_width, format, file, raw_file);
     
     //==== Cleanup ====
+    shared_write_id_loc->~atomic();
+    shared_read_id_loc->~atomic();
     free(shared_array_loc);
     free(shared_write_id_loc);
     free(shared_read_id_loc);
@@ -167,7 +171,7 @@ void run_bandwidth_fifo_read_limit_kernel(Profiler* profiler, int cpu_a, int cpu
     }
 
     //==== Run The Experiments ====
-    std::vector<Results> results_vec = execute_client_server_kernel(profiler, bandwidth_circular_fifo_read_limit_server_kernel, bandwidth_circular_fifo_read_limit_client_kernel, bandwidth_circular_fifo_read_limit_kernel_reset, args, args, args, cpu_a, cpu_b, num_experiments);
+    std::vector<Results> results_vec = execute_client_server_kernel(profiler, bandwidth_circular_fifo_read_limit_server_kernel, bandwidth_circular_fifo_read_limit_client_kernel, bandwidth_circular_fifo_read_limit_kernel_reset, noCleanupFctn, args, args, args, cpu_a, cpu_b, num_experiments);
 
     //==== Process Results ====
     if(results_vec.size() != num_experiments){
@@ -177,6 +181,8 @@ void run_bandwidth_fifo_read_limit_kernel(Profiler* profiler, int cpu_a, int cpu
     printWriteFIFOTable2Core<int32_t>(false, profiler, cpu_a, cpu_b, "FIFO - Array - Read and Write Limit", "Max Read|Write Per Transaction", results_vec, array_lengths, max_elements_per_transaction, data_col_width, format, file, raw_file);
 
     //==== Cleanup ====
+    shared_write_id_loc->~atomic();
+    shared_read_id_loc->~atomic();
     free(shared_array_loc);
     free(shared_write_id_loc);
     free(shared_read_id_loc);
@@ -228,7 +234,7 @@ void run_bandwidth_fifo_blocked_cachedptr_kernel(Profiler* profiler, int cpu_a, 
     }
 
     //==== Run The Experiments ====
-    std::vector<Results> results_vec = execute_client_server_kernel(profiler, bandwidth_circular_fifo_blocked_cachedptr_server_kernel, bandwidth_circular_fifo_blocked_cachedptr_client_kernel, bandwidth_circular_fifo_blocked_cachedptr_kernel_reset, args, args, args, cpu_a, cpu_b, num_experiments);
+    std::vector<Results> results_vec = execute_client_server_kernel(profiler, bandwidth_circular_fifo_blocked_cachedptr_server_kernel, bandwidth_circular_fifo_blocked_cachedptr_client_kernel, bandwidth_circular_fifo_blocked_cachedptr_kernel_reset, noCleanupFctn, args, args, args, cpu_a, cpu_b, num_experiments);
 
     //==== Process Results ====
     if(results_vec.size() != num_experiments){
@@ -238,6 +244,8 @@ void run_bandwidth_fifo_blocked_cachedptr_kernel(Profiler* profiler, int cpu_a, 
     printWriteBlockedFIFOTable2Core<int32_t>(false, profiler, cpu_a, cpu_b, "FIFO - Array - Blocked Transfers Cached Indexes", "Block Length Transaction", results_vec, array_lengths, block_lengths, data_col_width, format, file, raw_file);
     
     //==== Cleanup ====
+    shared_write_id_loc->~atomic();
+    shared_read_id_loc->~atomic();
     free(shared_array_loc);
     free(shared_write_id_loc);
     free(shared_read_id_loc);

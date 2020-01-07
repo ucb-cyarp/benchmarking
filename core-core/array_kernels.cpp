@@ -18,6 +18,7 @@ void run_latency_single_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, s
     //Init to 0
     for(size_t i = 0; i < max_length; i++)
     {
+        std::atomic_int32_t* shared_loc_constructed = new (shared_loc+i) std::atomic_int32_t();
         std::atomic_init(shared_loc+i, 0);
         if(!std::atomic_is_lock_free(shared_loc+i)){
             printf("Atomic is not lock free and was expected to be");
@@ -48,7 +49,7 @@ void run_latency_single_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, s
     }
 
     //==== Run The Experiments ====
-    std::vector<Results> results_vec = execute_client_server_kernel(profiler, latency_single_array_kernel, latency_single_array_kernel, latency_single_array_kernel_reset, arg_a, arg_b, reset_arg, cpu_a, cpu_b, num_experiments);
+    std::vector<Results> results_vec = execute_client_server_kernel(profiler, latency_single_array_kernel, latency_single_array_kernel, latency_single_array_kernel_reset, noCleanupFctn, arg_a, arg_b, reset_arg, cpu_a, cpu_b, num_experiments);
 
     //==== Process Results ====
     if(results_vec.size() != num_experiments){
@@ -68,6 +69,10 @@ void run_latency_single_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, s
     tableFooter();
 
     //==== Cleanup ====
+    for(size_t i = 0; i < max_length; i++)
+    {
+        (shared_loc+i)->~atomic();
+    }
     free(shared_loc);
     delete[] arg_a;
     delete[] arg_b;
@@ -89,16 +94,19 @@ void run_latency_single_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, i
     }
     std::atomic_int32_t* shared_loc_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
     std::atomic_int32_t* shared_loc_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
+    
 
     //Init to 0
     for(size_t i = 0; i < max_length; i++)
     {
+        std::atomic_int32_t* shared_loc_1_constructed = new (shared_loc_1+i) std::atomic_int32_t();
         std::atomic_init(shared_loc_1+i, 0);
         if(!std::atomic_is_lock_free(shared_loc_1+i)){
             printf("Atomic is not lock free and was expected to be");
             exit(1);
         }
 
+        std::atomic_int32_t* shared_loc_2_constructed = new (shared_loc_2+i) std::atomic_int32_t();
         std::atomic_init(shared_loc_2+i, 0);
         if(!std::atomic_is_lock_free(shared_loc_2+i)){
             printf("Atomic is not lock free and was expected to be");
@@ -144,7 +152,7 @@ void run_latency_single_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, i
     }
 
     //==== Run The Experiments ====
-    std::vector<SimultaniousResults> results_vec = execute_client_server_kernel(profiler, latency_single_array_kernel, latency_single_array_kernel, latency_single_array_kernel_reset, arg_a, arg_b, arg_c, arg_d, reset_arg_1, reset_arg_2, cpu_a, cpu_b, cpu_c, cpu_d, num_experiments);
+    std::vector<SimultaniousResults> results_vec = execute_client_server_kernel(profiler, latency_single_array_kernel, latency_single_array_kernel, latency_single_array_kernel_reset, noCleanupFctn, arg_a, arg_b, arg_c, arg_d, reset_arg_1, reset_arg_2, cpu_a, cpu_b, cpu_c, cpu_d, num_experiments);
 
     //==== Process Results ====
     if(results_vec.size() != num_experiments){
@@ -165,6 +173,11 @@ void run_latency_single_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, i
     tableFooter();
 
     //==== Cleanup ====
+    for(size_t i = 0; i < max_length; i++)
+    {
+        (shared_loc_1+i)->~atomic();
+        (shared_loc_2+i)->~atomic();
+    }
     free(shared_loc_1);
     free(shared_loc_2);
     delete[] arg_a;
@@ -200,12 +213,14 @@ void run_latency_single_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, i
     //Init to 0
     for(size_t i = 0; i < max_length; i++)
     {
+        std::atomic_int32_t* shared_loc_1_constructed = new (shared_loc_1+i) std::atomic_int32_t();
         std::atomic_init(shared_loc_1+i, 0);
         if(!std::atomic_is_lock_free(shared_loc_1+i)){
             printf("Atomic is not lock free and was expected to be");
             exit(1);
         }
 
+        std::atomic_int32_t* shared_loc_2_constructed = new (shared_loc_2+i) std::atomic_int32_t();
         std::atomic_init(shared_loc_2+i, 0);
         if(!std::atomic_is_lock_free(shared_loc_2+i)){
             printf("Atomic is not lock free and was expected to be");
@@ -249,7 +264,7 @@ void run_latency_single_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, i
     }
 
     //==== Run The Experiments ====
-    std::vector<SimultaniousResults> results_vec = execute_kernel_fanin_server_measure(profiler, latency_single_array_kernel, latency_single_array_join_kernel, latency_single_array_join_kernel_reset, arg_a, arg_b, arg_c, reset_arg_1, cpu_a, cpu_b, cpu_c, num_experiments);
+    std::vector<SimultaniousResults> results_vec = execute_kernel_fanin_server_measure(profiler, latency_single_array_kernel, latency_single_array_join_kernel, latency_single_array_join_kernel_reset, noCleanupFctn, arg_a, arg_b, arg_c, reset_arg_1, cpu_a, cpu_b, cpu_c, num_experiments);
 
     //==== Process Results ====
     if(results_vec.size() != num_experiments){
@@ -270,6 +285,11 @@ void run_latency_single_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, i
     tableFooter();
 
     //==== Cleanup ====
+    for(size_t i = 0; i < max_length; i++)
+    {
+        (shared_loc_1+i)->~atomic();
+        (shared_loc_2+i)->~atomic();
+    }
     free(shared_loc_1);
     free(shared_loc_2);
     delete[] arg_a;
@@ -298,11 +318,14 @@ void run_latency_dual_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, std
     //Init to 0
     for(size_t i = 0; i < max_length; i++)
     {
+        std::atomic_int32_t* shared_loc_a_constructed = new (shared_loc_a+i) std::atomic_int32_t();
         std::atomic_init(shared_loc_a+i, 0);
         if(!std::atomic_is_lock_free(shared_loc_a+i)){
             printf("Atomic is not lock free and was expected to be");
             exit(1);
         }
+
+        std::atomic_int32_t* shared_loc_b_constructed = new (shared_loc_b+i) std::atomic_int32_t();
         std::atomic_init(shared_loc_b+i, 0);
         if(!std::atomic_is_lock_free(shared_loc_b+i)){
             printf("Atomic is not lock free and was expected to be");
@@ -337,7 +360,7 @@ void run_latency_dual_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, std
     }
 
     //==== Run The Experiments ====
-    std::vector<Results> results_vec = execute_client_server_kernel(profiler, latency_dual_array_kernel, latency_dual_array_kernel, latency_dual_array_kernel_reset, arg_a, arg_b, reset_arg, cpu_a, cpu_b, num_experiments);
+    std::vector<Results> results_vec = execute_client_server_kernel(profiler, latency_dual_array_kernel, latency_dual_array_kernel, latency_dual_array_kernel_reset, noCleanupFctn, arg_a, arg_b, reset_arg, cpu_a, cpu_b, num_experiments);
 
     //==== Process Results ====
     if(results_vec.size() != num_experiments){
@@ -357,6 +380,11 @@ void run_latency_dual_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, std
     tableFooter();
 
     //==== Cleanup ====
+    for(size_t i = 0; i < max_length; i++)
+    {
+        (shared_loc_a+i)->~atomic();
+        (shared_loc_b+i)->~atomic();
+    }
     free(shared_loc_a);
     free(shared_loc_b);
     delete[] arg_a;
@@ -386,22 +414,28 @@ void run_latency_dual_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, int
     //Init to 0
     for(size_t i = 0; i < max_length; i++)
     {
+        std::atomic_int32_t* shared_loc_a_1_constructed = new (shared_loc_a_1+i) std::atomic_int32_t();
         std::atomic_init(shared_loc_a_1+i, 0);
         if(!std::atomic_is_lock_free(shared_loc_a_1+i)){
             printf("Atomic is not lock free and was expected to be");
             exit(1);
         }
+
+        std::atomic_int32_t* shared_loc_b_1_constructed = new (shared_loc_b_1+i) std::atomic_int32_t();
         std::atomic_init(shared_loc_b_1+i, 0);
         if(!std::atomic_is_lock_free(shared_loc_b_1+i)){
             printf("Atomic is not lock free and was expected to be");
             exit(1);
         }
 
+        std::atomic_int32_t* shared_loc_a_2_constructed = new (shared_loc_a_2+i) std::atomic_int32_t();
         std::atomic_init(shared_loc_a_2+i, 0);
         if(!std::atomic_is_lock_free(shared_loc_a_2+i)){
             printf("Atomic is not lock free and was expected to be");
             exit(1);
         }
+
+        std::atomic_int32_t* shared_loc_b_2_constructed = new (shared_loc_b_2+i) std::atomic_int32_t();
         std::atomic_init(shared_loc_b_2+i, 0);
         if(!std::atomic_is_lock_free(shared_loc_b_2+i)){
             printf("Atomic is not lock free and was expected to be");
@@ -453,7 +487,7 @@ void run_latency_dual_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, int
     }
 
     //==== Run The Experiments ====
-    std::vector<SimultaniousResults> results_vec = execute_client_server_kernel(profiler, latency_dual_array_kernel, latency_dual_array_kernel, latency_dual_array_kernel_reset, arg_a, arg_b, arg_c, arg_d, reset_arg_1, reset_arg_2, cpu_a, cpu_b, cpu_c, cpu_d, num_experiments);
+    std::vector<SimultaniousResults> results_vec = execute_client_server_kernel(profiler, latency_dual_array_kernel, latency_dual_array_kernel, latency_dual_array_kernel_reset, noCleanupFctn, arg_a, arg_b, arg_c, arg_d, reset_arg_1, reset_arg_2, cpu_a, cpu_b, cpu_c, cpu_d, num_experiments);
 
     //==== Process Results ====
     if(results_vec.size() != num_experiments){
@@ -474,6 +508,13 @@ void run_latency_dual_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, int
     tableFooter();
 
     //==== Cleanup ====
+    for(size_t i = 0; i < max_length; i++)
+    {
+        (shared_loc_a_1+i)->~atomic();
+        (shared_loc_b_1+i)->~atomic();
+        (shared_loc_a_2+i)->~atomic();
+        (shared_loc_b_2+i)->~atomic();
+    }
     free(shared_loc_a_1);
     free(shared_loc_b_1);
     free(shared_loc_a_2);
@@ -501,6 +542,7 @@ void run_latency_dual_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, int
     }
     std::atomic_int32_t* shared_loc_a_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_a);
     std::atomic_int32_t* shared_loc_b_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_c);
+    
 
     std::atomic_int32_t* shared_loc_a_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_b);
     std::atomic_int32_t* shared_loc_b_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpu_c);
@@ -508,22 +550,28 @@ void run_latency_dual_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, int
     //Init to 0
     for(size_t i = 0; i < max_length; i++)
     {
+        std::atomic_int32_t* shared_loc_a_1_constructed = new (shared_loc_a_1+i) std::atomic_int32_t();
         std::atomic_init(shared_loc_a_1+i, 0);
         if(!std::atomic_is_lock_free(shared_loc_a_1+i)){
             printf("Atomic is not lock free and was expected to be");
             exit(1);
         }
+
+        std::atomic_int32_t* shared_loc_b_1_constructed = new (shared_loc_b_1+i) std::atomic_int32_t();
         std::atomic_init(shared_loc_b_1+i, 0);
         if(!std::atomic_is_lock_free(shared_loc_b_1+i)){
             printf("Atomic is not lock free and was expected to be");
             exit(1);
         }
 
+        std::atomic_int32_t* shared_loc_a_2_constructed = new (shared_loc_a_2+i) std::atomic_int32_t();
         std::atomic_init(shared_loc_a_2+i, 0);
         if(!std::atomic_is_lock_free(shared_loc_a_2+i)){
             printf("Atomic is not lock free and was expected to be");
             exit(1);
         }
+
+        std::atomic_int32_t* shared_loc_b_2_constructed = new (shared_loc_b_2+i) std::atomic_int32_t();
         std::atomic_init(shared_loc_b_2+i, 0);
         if(!std::atomic_is_lock_free(shared_loc_b_2+i)){
             printf("Atomic is not lock free and was expected to be");
@@ -574,7 +622,7 @@ void run_latency_dual_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, int
     }
 
     //==== Run The Experiments ====
-    std::vector<SimultaniousResults> results_vec = execute_kernel_fanin_server_measure(profiler, latency_dual_array_kernel, latency_dual_array_join_kernel, latency_dual_array_join_kernel_reset, arg_a, arg_b, arg_c, reset_arg_1, cpu_a, cpu_b, cpu_c, num_experiments);
+    std::vector<SimultaniousResults> results_vec = execute_kernel_fanin_server_measure(profiler, latency_dual_array_kernel, latency_dual_array_join_kernel, latency_dual_array_join_kernel_reset, noCleanupFctn, arg_a, arg_b, arg_c, reset_arg_1, cpu_a, cpu_b, cpu_c, num_experiments);
 
     //==== Process Results ====
     if(results_vec.size() != num_experiments){
@@ -595,6 +643,13 @@ void run_latency_dual_array_kernel(Profiler* profiler, int cpu_a, int cpu_b, int
     tableFooter();
 
     //==== Cleanup ====
+    for(size_t i = 0; i < max_length; i++)
+    {
+        (shared_loc_a_1+i)->~atomic();
+        (shared_loc_b_1+i)->~atomic();
+        (shared_loc_a_2+i)->~atomic();
+        (shared_loc_b_2+i)->~atomic();
+    }
     free(shared_loc_a_1);
     free(shared_loc_b_1);
     free(shared_loc_a_2);
@@ -625,6 +680,7 @@ void run_latency_flow_ctrl_kernel(Profiler* profiler, int cpu_a, int cpu_b, std:
         amountToAllocCursors += (CACHE_LINE_SIZE - (amountToAllocCursors % CACHE_LINE_SIZE));
     }
     std::atomic_int32_t* shared_ack_loc = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_b);
+    std::atomic_int32_t* shared_ack_loc_constructed = new (shared_ack_loc) std::atomic_int32_t();
     std::atomic_init(shared_ack_loc, 0);
     if(!std::atomic_is_lock_free(shared_ack_loc)){
         printf("Atomic is not lock free and was expected to be");
@@ -634,6 +690,7 @@ void run_latency_flow_ctrl_kernel(Profiler* profiler, int cpu_a, int cpu_b, std:
     //Init to 0
     for(size_t i = 0; i < max_length; i++)
     {
+        std::atomic_int32_t* shared_array_loc_constructed = new (shared_array_loc+i) std::atomic_int32_t();
         std::atomic_init(shared_array_loc+i, 0);
         if(!std::atomic_is_lock_free(shared_array_loc+i)){
             printf("Atomic is not lock free and was expected to be");
@@ -656,7 +713,7 @@ void run_latency_flow_ctrl_kernel(Profiler* profiler, int cpu_a, int cpu_b, std:
     }
 
     //==== Run The Experiments ====
-    std::vector<Results> results_vec = execute_client_server_kernel(profiler, latency_flow_ctrl_server_kernel, latency_flow_ctrl_client_kernel, latency_flow_ctrl_kernel_reset, args, args, args, cpu_a, cpu_b, num_experiments);
+    std::vector<Results> results_vec = execute_client_server_kernel(profiler, latency_flow_ctrl_server_kernel, latency_flow_ctrl_client_kernel, latency_flow_ctrl_kernel_reset, noCleanupFctn, args, args, args, cpu_a, cpu_b, num_experiments);
 
     //==== Process Results ====
     if(results_vec.size() != num_experiments){
@@ -676,6 +733,11 @@ void run_latency_flow_ctrl_kernel(Profiler* profiler, int cpu_a, int cpu_b, std:
     tableFooter();
 
     //==== Cleanup ====
+    shared_ack_loc_constructed->~atomic();
+    for(size_t i = 0; i < max_length; i++)
+    {
+        (shared_array_loc+i)->~atomic();
+    }
     free(shared_array_loc);
     free(shared_ack_loc);
     delete[] args;
@@ -703,11 +765,13 @@ void run_latency_flow_ctrl_kernel(Profiler* profiler, int cpu_a, int cpu_b, int 
     }
     std::atomic_int32_t* shared_ack_loc_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_b);
     std::atomic_int32_t* shared_ack_loc_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_d);
+    std::atomic_int32_t* shared_ack_loc_1_constructed = new (shared_ack_loc_1) std::atomic_int32_t();
     std::atomic_init(shared_ack_loc_1, 0);
     if(!std::atomic_is_lock_free(shared_ack_loc_1)){
         printf("Atomic is not lock free and was expected to be");
         exit(1);
     }
+    std::atomic_int32_t* shared_ack_loc_2_constructed = new (shared_ack_loc_2) std::atomic_int32_t();
     std::atomic_init(shared_ack_loc_2, 0);
     if(!std::atomic_is_lock_free(shared_ack_loc_2)){
         printf("Atomic is not lock free and was expected to be");
@@ -717,11 +781,13 @@ void run_latency_flow_ctrl_kernel(Profiler* profiler, int cpu_a, int cpu_b, int 
     //Init to 0
     for(size_t i = 0; i < max_length; i++)
     {
+        std::atomic_int32_t* shared_array_loc_1_constructed = new (shared_array_loc_1+i) std::atomic_int32_t();
         std::atomic_init(shared_array_loc_1+i, 0);
         if(!std::atomic_is_lock_free(shared_array_loc_1+i)){
             printf("Atomic is not lock free and was expected to be");
             exit(1);
         }
+        std::atomic_int32_t* shared_array_loc_2_constructed = new (shared_array_loc_2+i) std::atomic_int32_t();
         std::atomic_init(shared_array_loc_2+i, 0);
         if(!std::atomic_is_lock_free(shared_array_loc_2+i)){
             printf("Atomic is not lock free and was expected to be");
@@ -749,7 +815,7 @@ void run_latency_flow_ctrl_kernel(Profiler* profiler, int cpu_a, int cpu_b, int 
     }
 
     //==== Run The Experiments ====
-    std::vector<SimultaniousResults> results_vec = execute_client_server_kernel(profiler, latency_flow_ctrl_server_kernel, latency_flow_ctrl_client_kernel, latency_flow_ctrl_kernel_reset, args_1, args_1, args_2, args_2, args_1, args_2, cpu_a, cpu_b, cpu_c, cpu_d, num_experiments);
+    std::vector<SimultaniousResults> results_vec = execute_client_server_kernel(profiler, latency_flow_ctrl_server_kernel, latency_flow_ctrl_client_kernel, latency_flow_ctrl_kernel_reset, noCleanupFctn, args_1, args_1, args_2, args_2, args_1, args_2, cpu_a, cpu_b, cpu_c, cpu_d, num_experiments);
 
     //==== Process Results ====
     if(results_vec.size() != num_experiments){
@@ -770,6 +836,13 @@ void run_latency_flow_ctrl_kernel(Profiler* profiler, int cpu_a, int cpu_b, int 
     tableFooter();
 
     //==== Cleanup ====
+    shared_ack_loc_1->~atomic();
+    shared_ack_loc_2->~atomic();
+    for(size_t i = 0; i < max_length; i++)
+    {
+        (shared_array_loc_1+i)->~atomic();
+        (shared_array_loc_2+i)->~atomic();
+    }
     free(shared_array_loc_1);
     free(shared_array_loc_2);
     free(shared_ack_loc_1);
@@ -804,11 +877,13 @@ void run_latency_flow_ctrl_fanin_kernel(Profiler* profiler, int cpu_a, int cpu_b
     }
     std::atomic_int32_t* shared_ack_loc_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_c);
     std::atomic_int32_t* shared_ack_loc_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_c);
+    std::atomic_int32_t* shared_ack_loc_1_constructed = new (shared_ack_loc_1) std::atomic_int32_t();
     std::atomic_init(shared_ack_loc_1, 0);
     if(!std::atomic_is_lock_free(shared_ack_loc_1)){
         printf("Atomic is not lock free and was expected to be");
         exit(1);
     }
+    std::atomic_int32_t* shared_ack_loc_2_constructed = new (shared_ack_loc_2) std::atomic_int32_t();
     std::atomic_init(shared_ack_loc_2, 0);
     if(!std::atomic_is_lock_free(shared_ack_loc_2)){
         printf("Atomic is not lock free and was expected to be");
@@ -818,11 +893,13 @@ void run_latency_flow_ctrl_fanin_kernel(Profiler* profiler, int cpu_a, int cpu_b
     //Init to 0
     for(size_t i = 0; i < max_length; i++)
     {
+        std::atomic_int32_t* shared_array_loc_1_constructed = new (shared_array_loc_1+i) std::atomic_int32_t();
         std::atomic_init(shared_array_loc_1+i, 0);
         if(!std::atomic_is_lock_free(shared_array_loc_1+i)){
             printf("Atomic is not lock free and was expected to be");
             exit(1);
         }
+        std::atomic_int32_t* shared_array_loc_2_constructed = new (shared_array_loc_2+i) std::atomic_int32_t();
         std::atomic_init(shared_array_loc_2+i, 0);
         if(!std::atomic_is_lock_free(shared_array_loc_2+i)){
             printf("Atomic is not lock free and was expected to be");
@@ -861,7 +938,7 @@ void run_latency_flow_ctrl_fanin_kernel(Profiler* profiler, int cpu_a, int cpu_b
     }
 
     //==== Run The Experiments ====
-    std::vector<SimultaniousResults> results_vec = execute_kernel_fanin_server_measure(profiler, latency_flow_ctrl_server_kernel, latency_flow_ctrl_client_join_kernel, latency_flow_ctrl_join_kernel_reset, args_a, args_b, args_c, args_c, cpu_a, cpu_b, cpu_c, num_experiments); //Reset args are same as client join args
+    std::vector<SimultaniousResults> results_vec = execute_kernel_fanin_server_measure(profiler, latency_flow_ctrl_server_kernel, latency_flow_ctrl_client_join_kernel, latency_flow_ctrl_join_kernel_reset, noCleanupFctn, args_a, args_b, args_c, args_c, cpu_a, cpu_b, cpu_c, num_experiments); //Reset args are same as client join args
 
     //==== Process Results ====
     if(results_vec.size() != num_experiments){
@@ -882,6 +959,13 @@ void run_latency_flow_ctrl_fanin_kernel(Profiler* profiler, int cpu_a, int cpu_b
     tableFooter();
 
     //==== Cleanup ====
+    shared_ack_loc_1->~atomic();
+    shared_ack_loc_2->~atomic();
+    for(size_t i = 0; i < max_length; i++)
+    {
+        (shared_array_loc_1+i)->~atomic();
+        (shared_array_loc_2+i)->~atomic();
+    }
     free(shared_array_loc_1);
     free(shared_array_loc_2);
     free(shared_ack_loc_1);
@@ -919,11 +1003,13 @@ void run_latency_flow_ctrl_fanout_kernel(Profiler* profiler, int cpu_a, int cpu_
     }
     std::atomic_int32_t* shared_ack_loc_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_b);
     std::atomic_int32_t* shared_ack_loc_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_c);
+    std::atomic_int32_t* shared_ack_loc_1_constructed = new (shared_ack_loc_1) std::atomic_int32_t();
     std::atomic_init(shared_ack_loc_1, 0);
     if(!std::atomic_is_lock_free(shared_ack_loc_1)){
         printf("Atomic is not lock free and was expected to be");
         exit(1);
     }
+    std::atomic_int32_t* shared_ack_loc_2_constructed = new (shared_ack_loc_2) std::atomic_int32_t();
     std::atomic_init(shared_ack_loc_2, 0);
     if(!std::atomic_is_lock_free(shared_ack_loc_2)){
         printf("Atomic is not lock free and was expected to be");
@@ -933,11 +1019,13 @@ void run_latency_flow_ctrl_fanout_kernel(Profiler* profiler, int cpu_a, int cpu_
     //Init to 0
     for(size_t i = 0; i < max_length; i++)
     {
+        std::atomic_int32_t* shared_array_loc_1_constructed = new (shared_array_loc_1+i) std::atomic_int32_t();
         std::atomic_init(shared_array_loc_1+i, 0);
         if(!std::atomic_is_lock_free(shared_array_loc_1+i)){
             printf("Atomic is not lock free and was expected to be");
             exit(1);
         }
+        std::atomic_int32_t* shared_array_loc_2_constructed = new (shared_array_loc_2+i) std::atomic_int32_t();
         std::atomic_init(shared_array_loc_2+i, 0);
         if(!std::atomic_is_lock_free(shared_array_loc_2+i)){
             printf("Atomic is not lock free and was expected to be");
@@ -976,7 +1064,7 @@ void run_latency_flow_ctrl_fanout_kernel(Profiler* profiler, int cpu_a, int cpu_
     }
 
     //==== Run The Experiments ====
-    std::vector<SimultaniousResults> results_vec = execute_kernel_fanout_client_measure(profiler, latency_flow_ctrl_server_join_kernel, latency_flow_ctrl_client_kernel, latency_flow_ctrl_join_kernel_reset, args_a, args_b, args_c, args_a, cpu_a, cpu_b, cpu_c, num_experiments); //Reset args are same as server join args
+    std::vector<SimultaniousResults> results_vec = execute_kernel_fanout_client_measure(profiler, latency_flow_ctrl_server_join_kernel, latency_flow_ctrl_client_kernel, latency_flow_ctrl_join_kernel_reset, noCleanupFctn, args_a, args_b, args_c, args_a, cpu_a, cpu_b, cpu_c, num_experiments); //Reset args are same as server join args
 
     //==== Process Results ====
     if(results_vec.size() != num_experiments){
@@ -997,6 +1085,13 @@ void run_latency_flow_ctrl_fanout_kernel(Profiler* profiler, int cpu_a, int cpu_
     tableFooter();
 
     //==== Cleanup ====
+    shared_ack_loc_1->~atomic();
+    shared_ack_loc_2->~atomic();
+    for(size_t i = 0; i < max_length; i++)
+    {
+        (shared_array_loc_1+i)->~atomic();
+        (shared_array_loc_2+i)->~atomic();
+    }
     free(shared_array_loc_1);
     free(shared_array_loc_2);
     free(shared_ack_loc_1);
@@ -1027,11 +1122,13 @@ void run_latency_flow_ctrl_blocked_read_kernel(Profiler* profiler, int cpu_a, in
     }
     std::atomic_int32_t* shared_ack_loc = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_b);
     std::atomic_int32_t* shared_valid_loc = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_a);
+    std::atomic_int32_t* shared_ack_loc_constructed = new (shared_ack_loc) std::atomic_int32_t();
     std::atomic_init(shared_ack_loc, 0);
     if(!std::atomic_is_lock_free(shared_ack_loc)){
         printf("Atomic is not lock free and was expected to be");
         exit(1);
     }
+    std::atomic_int32_t* shared_valid_loc_constructed = new (shared_valid_loc) std::atomic_int32_t();
     std::atomic_init(shared_valid_loc, 0);
     if(!std::atomic_is_lock_free(shared_valid_loc)){
         printf("Atomic is not lock free and was expected to be");
@@ -1060,7 +1157,7 @@ void run_latency_flow_ctrl_blocked_read_kernel(Profiler* profiler, int cpu_a, in
     }
 
     //==== Run The Experiments ====
-    std::vector<Results> results_vec = execute_client_server_kernel(profiler, latency_flow_ctrl_blocked_read_server_kernel, latency_flow_ctrl_blocked_read_client_kernel, latency_flow_ctrl_blocked_read_kernel_reset, args, args, args, cpu_a, cpu_b, num_experiments);
+    std::vector<Results> results_vec = execute_client_server_kernel(profiler, latency_flow_ctrl_blocked_read_server_kernel, latency_flow_ctrl_blocked_read_client_kernel, latency_flow_ctrl_blocked_read_kernel_reset, noCleanupFctn, args, args, args, cpu_a, cpu_b, num_experiments);
 
     //==== Process Results ====
     if(results_vec.size() != num_experiments){
@@ -1080,6 +1177,8 @@ void run_latency_flow_ctrl_blocked_read_kernel(Profiler* profiler, int cpu_a, in
     tableFooter();
 
     //==== Cleanup ====
+    shared_ack_loc->~atomic();
+    shared_valid_loc->~atomic();
     free(shared_array_loc);
     free(shared_ack_loc);
     free(shared_valid_loc);
@@ -1110,21 +1209,25 @@ void run_latency_flow_ctrl_blocked_read_kernel(Profiler* profiler, int cpu_a, in
     std::atomic_int32_t* shared_valid_loc_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_a);
     std::atomic_int32_t* shared_ack_loc_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_d);
     std::atomic_int32_t* shared_valid_loc_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_c);
+    std::atomic_int32_t* shared_ack_loc_1_constructed = new (shared_ack_loc_1) std::atomic_int32_t();
     std::atomic_init(shared_ack_loc_1, 0);
     if(!std::atomic_is_lock_free(shared_ack_loc_1)){
         printf("Atomic is not lock free and was expected to be");
         exit(1);
     }
+    std::atomic_int32_t* shared_valid_loc_1_constructed = new (shared_valid_loc_1) std::atomic_int32_t();
     std::atomic_init(shared_valid_loc_1, 0);
     if(!std::atomic_is_lock_free(shared_valid_loc_1)){
         printf("Atomic is not lock free and was expected to be");
         exit(1);
     }
+    std::atomic_int32_t* shared_ack_loc_2_constructed = new (shared_ack_loc_2) std::atomic_int32_t();
     std::atomic_init(shared_ack_loc_2, 0);
     if(!std::atomic_is_lock_free(shared_ack_loc_2)){
         printf("Atomic is not lock free and was expected to be");
         exit(1);
     }
+    std::atomic_int32_t* shared_valid_loc_2_constructed = new (shared_valid_loc_2) std::atomic_int32_t();
     std::atomic_init(shared_valid_loc_2, 0);
     if(!std::atomic_is_lock_free(shared_valid_loc_2)){
         printf("Atomic is not lock free and was expected to be");
@@ -1160,7 +1263,7 @@ void run_latency_flow_ctrl_blocked_read_kernel(Profiler* profiler, int cpu_a, in
     }
 
     //==== Run The Experiments ====
-    std::vector<SimultaniousResults> results_vec = execute_client_server_kernel(profiler, latency_flow_ctrl_blocked_read_server_kernel, latency_flow_ctrl_blocked_read_client_kernel, latency_flow_ctrl_blocked_read_kernel_reset, args_1, args_1, args_2, args_2, args_1, args_2, cpu_a, cpu_b, cpu_c, cpu_d, num_experiments);
+    std::vector<SimultaniousResults> results_vec = execute_client_server_kernel(profiler, latency_flow_ctrl_blocked_read_server_kernel, latency_flow_ctrl_blocked_read_client_kernel, latency_flow_ctrl_blocked_read_kernel_reset, noCleanupFctn, args_1, args_1, args_2, args_2, args_1, args_2, cpu_a, cpu_b, cpu_c, cpu_d, num_experiments);
 
     //==== Process Results ====
     if(results_vec.size() != num_experiments){
@@ -1181,6 +1284,10 @@ void run_latency_flow_ctrl_blocked_read_kernel(Profiler* profiler, int cpu_a, in
     tableFooter();
 
     //==== Cleanup ====
+    shared_ack_loc_1->~atomic();
+    shared_valid_loc_1->~atomic();
+    shared_ack_loc_2->~atomic();
+    shared_valid_loc_2->~atomic();
     free(shared_array_loc_1);
     free(shared_array_loc_2);
     free(shared_ack_loc_1);
@@ -1215,21 +1322,25 @@ void run_latency_flow_ctrl_blocked_read_fanin_kernel(Profiler* profiler, int cpu
     std::atomic_int32_t* shared_valid_loc_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_a);
     std::atomic_int32_t* shared_ack_loc_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_c);
     std::atomic_int32_t* shared_valid_loc_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_b);
+    std::atomic_int32_t* shared_ack_loc_1_constructed = new (shared_ack_loc_1) std::atomic_int32_t();
     std::atomic_init(shared_ack_loc_1, 0);
     if(!std::atomic_is_lock_free(shared_ack_loc_1)){
         printf("Atomic is not lock free and was expected to be");
         exit(1);
     }
+    std::atomic_int32_t* shared_valid_loc_1_constructed = new (shared_valid_loc_1) std::atomic_int32_t();
     std::atomic_init(shared_valid_loc_1, 0);
     if(!std::atomic_is_lock_free(shared_valid_loc_1)){
         printf("Atomic is not lock free and was expected to be");
         exit(1);
     }
+    std::atomic_int32_t* shared_ack_loc_2_constructed = new (shared_ack_loc_2) std::atomic_int32_t();
     std::atomic_init(shared_ack_loc_2, 0);
     if(!std::atomic_is_lock_free(shared_ack_loc_2)){
         printf("Atomic is not lock free and was expected to be");
         exit(1);
     }
+    std::atomic_int32_t* shared_valid_loc_2_constructed = new (shared_valid_loc_2) std::atomic_int32_t();
     std::atomic_init(shared_valid_loc_2, 0);
     if(!std::atomic_is_lock_free(shared_valid_loc_2)){
         printf("Atomic is not lock free and was expected to be");
@@ -1277,7 +1388,7 @@ void run_latency_flow_ctrl_blocked_read_fanin_kernel(Profiler* profiler, int cpu
     }
 
     //==== Run The Experiments ====
-    std::vector<SimultaniousResults> results_vec = execute_kernel_fanin_server_measure(profiler, latency_flow_ctrl_blocked_read_server_kernel, latency_flow_ctrl_blocked_read_client_join_kernel, latency_flow_ctrl_blocked_read_join_kernel_reset, srv_args_1, srv_args_2, cli_args_1, cli_args_1, cpu_a, cpu_b, cpu_c, num_experiments); //Reset arg is cli args
+    std::vector<SimultaniousResults> results_vec = execute_kernel_fanin_server_measure(profiler, latency_flow_ctrl_blocked_read_server_kernel, latency_flow_ctrl_blocked_read_client_join_kernel, latency_flow_ctrl_blocked_read_join_kernel_reset, noCleanupFctn, srv_args_1, srv_args_2, cli_args_1, cli_args_1, cpu_a, cpu_b, cpu_c, num_experiments); //Reset arg is cli args
 
     //==== Process Results ====
     if(results_vec.size() != num_experiments){
@@ -1298,6 +1409,10 @@ void run_latency_flow_ctrl_blocked_read_fanin_kernel(Profiler* profiler, int cpu
     tableFooter();
 
     //==== Cleanup ====
+    shared_ack_loc_1->~atomic();
+    shared_ack_loc_2->~atomic();
+    shared_valid_loc_1->~atomic();
+    shared_valid_loc_2->~atomic();
     free(shared_array_loc_1);
     free(shared_array_loc_2);
     free(shared_ack_loc_1);
@@ -1333,21 +1448,25 @@ void run_latency_flow_ctrl_blocked_read_fanout_kernel(Profiler* profiler, int cp
     std::atomic_int32_t* shared_valid_loc_1 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_a);
     std::atomic_int32_t* shared_ack_loc_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_c);
     std::atomic_int32_t* shared_valid_loc_2 = (std::atomic_int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpu_a);
+    std::atomic_int32_t* shared_ack_loc_1_constructed = new (shared_ack_loc_1) std::atomic_int32_t();
     std::atomic_init(shared_ack_loc_1, 0);
     if(!std::atomic_is_lock_free(shared_ack_loc_1)){
         printf("Atomic is not lock free and was expected to be");
         exit(1);
     }
+    std::atomic_int32_t* shared_valid_loc_1_constructed = new (shared_valid_loc_1) std::atomic_int32_t();
     std::atomic_init(shared_valid_loc_1, 0);
     if(!std::atomic_is_lock_free(shared_valid_loc_1)){
         printf("Atomic is not lock free and was expected to be");
         exit(1);
     }
+    std::atomic_int32_t* shared_ack_loc_2_constructed = new (shared_ack_loc_2) std::atomic_int32_t();
     std::atomic_init(shared_ack_loc_2, 0);
     if(!std::atomic_is_lock_free(shared_ack_loc_2)){
         printf("Atomic is not lock free and was expected to be");
         exit(1);
     }
+    std::atomic_int32_t* shared_valid_loc_2_constructed = new (shared_valid_loc_2) std::atomic_int32_t();
     std::atomic_init(shared_valid_loc_2, 0);
     if(!std::atomic_is_lock_free(shared_valid_loc_2)){
         printf("Atomic is not lock free and was expected to be");
@@ -1395,7 +1514,7 @@ void run_latency_flow_ctrl_blocked_read_fanout_kernel(Profiler* profiler, int cp
     }
 
     //==== Run The Experiments ====
-    std::vector<SimultaniousResults> results_vec = execute_kernel_fanout_client_measure(profiler, latency_flow_ctrl_blocked_read_server_join_kernel, latency_flow_ctrl_blocked_read_client_kernel, latency_flow_ctrl_blocked_read_join_kernel_reset, srv_args_1, cli_args_1, cli_args_2, srv_args_1, cpu_a, cpu_b, cpu_c, num_experiments); //Reset arg is srv args
+    std::vector<SimultaniousResults> results_vec = execute_kernel_fanout_client_measure(profiler, latency_flow_ctrl_blocked_read_server_join_kernel, latency_flow_ctrl_blocked_read_client_kernel, latency_flow_ctrl_blocked_read_join_kernel_reset, noCleanupFctn, srv_args_1, cli_args_1, cli_args_2, srv_args_1, cpu_a, cpu_b, cpu_c, num_experiments); //Reset arg is srv args
 
     //==== Process Results ====
     if(results_vec.size() != num_experiments){
@@ -1416,6 +1535,10 @@ void run_latency_flow_ctrl_blocked_read_fanout_kernel(Profiler* profiler, int cp
     tableFooter();
 
     //==== Cleanup ====
+    shared_ack_loc_1->~atomic();
+    shared_ack_loc_2->~atomic();
+    shared_valid_loc_1->~atomic();
+    shared_valid_loc_2->~atomic();
     free(shared_array_loc_1);
     free(shared_array_loc_2);
     free(shared_ack_loc_1);
