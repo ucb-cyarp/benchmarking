@@ -29,6 +29,7 @@
         public:
             HW_Granularity resultGranularity = HW_Granularity::CORE;
             int granularityIndex; //Ie. if the resultGranularity is CORE, this is the core it responds to
+            virtual std::string getGranularityStr();
             
             //These are for individual trials
             //The trial results header should not include the granularity information
@@ -119,8 +120,8 @@
             void print_statistics(int stim_len, const std::vector<HW_Granularity> granularityToPrint = DEFAULT_GRANULARITY_LIST, const std::vector<MeasurementType> measurementTypeToPrint = DEFAULT_REPORT_TYPE_LIST);
             void write_csv(std::ofstream &csv_file, int socket, int core, int thread, const std::vector<HW_Granularity> granularityToPrint = DEFAULT_GRANULARITY_LIST, const std::vector<MeasurementType> measurementTypeToPrint = DEFAULT_REPORT_TYPE_LIST);
             void write_csv(std::ofstream &csv_file, int socket, int core, int thread, std::string col0_name, int col0_val, const std::vector<HW_Granularity> granularityToPrint = DEFAULT_GRANULARITY_LIST, const std::vector<MeasurementType> measurementTypeToPrint = DEFAULT_REPORT_TYPE_LIST);
-            void write_durations(std::ofstream &csv_file, std::string col0_name, int col0_val, bool include_header);
-            void write_durations(std::ofstream &csv_file, std::string col0_name, int col0_val, std::string col1_name, int col1_val, bool include_header);
+            void write_durations(std::ofstream &csv_file, std::vector<std::string> col_names, std::vector<std::string> col_vals, bool include_header);
+            void write_durations_and_benchmark_specific_results(std::ofstream &csv_file, std::vector<std::string> col_names, std::vector<std::string> col_vals, bool include_header);
 
             std::map<MeasurementType, std::map<HW_Granularity, std::map<int, Unit>>> measurementsAvailUnion(const std::vector<HW_Granularity> granularityToInspect = DEFAULT_GRANULARITY_LIST, const std::vector<MeasurementType> measurementTypeToInspect = DEFAULT_REPORT_TYPE_LIST);
     };

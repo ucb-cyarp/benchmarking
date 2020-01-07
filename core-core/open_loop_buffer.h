@@ -1,5 +1,5 @@
-#ifndef _OPEN_LOOP_BUFFER_TEMPLATED_H
-#define _OPEN_LOOP_BUFFER_TEMPLATED_H
+#ifndef _OPEN_LOOP_BUFFER_H
+#define _OPEN_LOOP_BUFFER_H
 
 #include <atomic>
 
@@ -35,14 +35,6 @@ struct OpenLoopBufferArgs{
     int ballancing_nops; //The number of NOPs to use for balancing services.  If negative, the server has NOPS, if positive, the client has NOPS
     int blockSize;
     int alignment;
-};
-
-template<typename idLocalType = int32_t>
-struct OpenLoopBufferEndCondition{
-    idLocalType expectedBlockID;
-    idLocalType startBlockID;
-    idLocalType endBlockID;
-    bool wasErrorSrc;
 };
 
 //Note: The server and client threads are different instruction streams.  One writes while the other reads and needs to check the block ids (and the block data).
@@ -97,7 +89,7 @@ void* open_loop_buffer_reset(void* arg){
 
 
 //This thread is the writer.  It will recieve a start signal from the client when it is ready (the client is the primary thread)
-template<typename elementType, typename idType = std::atomic_int32_t, typename indexType = std::atomic_int32_t, typename idLocalType = int32_t, typename indexLocalType, int idMax>
+template<typename elementType, typename idType = std::atomic_int32_t, typename indexType = std::atomic_int32_t, typename idLocalType = int32_t, typename indexLocalType = int32_t, int idMax = INT32_MAX>
 void* open_loop_buffer_server(void* arg){
     OpenLoopBufferArgs<blockSize, elementType, idType, indexType>* args = (OpenLoopBufferArgs<blockSize, elementType, idType, indexType>*) arg;
 
@@ -199,9 +191,9 @@ void* open_loop_buffer_server(void* arg){
 
 //The client is the one that should be measuring time since it is what detects errors
 //Make the client the primary (ie. in the client server runner, swap the functions given as the client and the server)
-template<int blockSize, typename elementType, typename idType = std::atomic_int32_t, typename indexType = std::atomic_int32_t, typename idLocalType = int32_t, typename indexLocalType, int idMax>
+template<typename elementType, typename idType = std::atomic_int32_t, typename indexType = std::atomic_int32_t, typename idLocalType = int32_t, typename indexLocalType = int32_t, int idMax = INT32_MAX>
 void* open_loop_buffer_client(void* arg){
-    OpenLoopBufferArgs<blockSize, elementType, idType, indexType>* args = (OpenLoopBufferArgs<blockSize, elementType, idType, indexType>*) args;
+    OpenLoopBufferArgs<elementType, idType, indexType>* args = (OpenLoopBufferArgs<elementType, idType, indexType>*) args;
     indexType *read_offset_ptr = args->read_offset_ptr;
     block<blockSize, elementType, idType> *array = args->array;
     int array_length = args->array_length;
@@ -209,6 +201,7 @@ void* open_loop_buffer_client(void* arg){
     std::atomic_flag *start_flag = args->start_flag;
     std::atomic_flag *stop_flag = args->stop_flag;
     std::atomic_flag *ready_flag = args->ready_flag;
+    int blockSize = args->blockSize;
 
     int ballancing_nops = args->ballancing_nops;
     int numNops = ballancing_nops > 0 ? ballancing_nops : 0;

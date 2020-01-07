@@ -1,20 +1,33 @@
 #include "reporting_helpers.h"
 
+/**
+ * Prints the title of the given test case to the console)
+ */
+void printTitle(std::string title){
+    time_t currentTime = time(NULL);
+    struct tm * localT;
+    localT = localtime(&currentTime);
+    printf("%s | Start Time: %s", title.c_str(), asctime(localT));
+}
+
+/**
+ * Prints the title of an array test case
+ */
 void printTitleArray(bool report_standalone, std::string title, size_t array_length){
     #if PRINT_TITLE == 1
     if(report_standalone)
     {
         printf("\n");
-        time_t currentTime = time(NULL);
-        struct tm * localT;
-        localT = localtime(&currentTime);
-        printf("%s | Start Time: %s", title.c_str(), asctime(localT));
+        printTitle(title);
         printf("Array Length: %lu int32_t Elements\n", array_length);
         fflush(stdout);
     }
     #endif
 }
 
+/**
+ * Writes the CSV headers for a typical benchmark
+ */
 void writeCSVHeader(FILE* file, std::ofstream* raw_file){
     #if WRITE_CSV == 1
     fprintf(file, "\"Transfer Length (int32_t Elements)\", \"One Way Latency (ns) - Avg\", \"One Way Latency (ns) - StdDev\", \"Transaction Rate (MT/s)\", \"Data Rate (Mbps)\"\n");
@@ -24,16 +37,21 @@ void writeCSVHeader(FILE* file, std::ofstream* raw_file){
     #endif
 }
 
-//Return format
+/**
+ * Prints the title and a table header for a typical benchmark measuring latency and data rate from one thread to another (one stream)
+ * Also writes the CSV headers
+ * 
+ * Return a format string used to format results when printing to the console
+ */
 std::string tableHeaderArray1Stream(std::string title, FILE* file, std::ofstream* raw_file){
-    time_t currentTime = time(NULL);
-    struct tm * localT;
-    localT = localtime(&currentTime);
-    printf("%s | Start Time: %s", title.c_str(), asctime(localT));
+    #if PRINT_TITLE == 1
+    printf("\n");
+    printTitle(title);
     printf("        ==========================================================================================\n");
     printf("          Transfer Length  |   One Way Latency (ns)   | Transaction Rate (MT/s) | Data Rate (Mbps)\n");
     printf("        (int32_t Elements) |       Avg, StdDev        |                         |                 \n");
     printf("        ==========================================================================================\n");
+    #endif
 
     writeCSVHeader(file, raw_file);
 
@@ -43,7 +61,12 @@ std::string tableHeaderArray1Stream(std::string title, FILE* file, std::ofstream
     return format;
 }
 
-//Return format
+/**
+ * Prints the title and a table header for a typical benchmark measuring latency and data rate when two streams of data are in flight
+ * Also writes the CSV headers
+ * 
+ * Return a format string used to format results when printing to the console
+ */
 std::string tableHeaderArray2Streams(std::string title, FILE* file_a, FILE* file_b, std::ofstream* raw_file_a, std::ofstream* raw_file_b, bool bidirectional){
     //The printed header is the same as the 1 stream version
     tableHeaderArray1Stream(title, file_a, raw_file_a);
@@ -66,12 +89,14 @@ void tableFooter(){
     fflush(stdout);
 }
 
+/**
+ * Prints the title for a FIFO benchmark allong with the header for a table of results writen to the console.
+ * The results are in a 2D table with parameters being swept in the 2 axes of the table
+ */
 void printTitleFIFO(std::string title, int columns, int column_width){
     #if PRINT_TITLE == 1
-        time_t currentTime = time(NULL);
-        struct tm * localT;
-        localT = localtime(&currentTime);
-        printf("%s | Start Time: %s", title.c_str(), asctime(localT));
+        printf("\n");
+        printTitle(title);
         printf("        Lengths in int32_t Elements, Data Rates in Mbps\n");
         printf("        ===========================");
         for(int i = 0; i<columns; i++)
@@ -86,29 +111,45 @@ void printTitleFIFO(std::string title, int columns, int column_width){
     #endif
 }
 
-void printTitleOpenLoop(std::string title, int columns, int column_width){
-    #if PRINT_TITLE == 1
-        time_t currentTime = time(NULL);
-        struct tm * localT;
-        localT = localtime(&currentTime);
-        printf("%s | Start Time: %s", title.c_str(), asctime(localT));
-        printf("        Array Sizes in Blocks, Blocks in int32_t elements, Time in ns\n");
-        printf("        ===========================");
-        for(int i = 0; i<columns; i++)
-        {
-            for(int j = 0; j<column_width; j++)
-            {
-                printf("=");
-            }
-        }
-        printf("\n");
-
-        fflush(stdout);
+/**
+ * Writes the summary csv file header for the open loop benchmarks.
+ */
+void writeCSVSummaryHeaderOpenLoop(FILE* file){
+    #if WRITE_CSV == 1
+    fprintf(file, "\"Array Length (Blocks)\",\"Block Size (int32_t Elements)\",\"Balancing NOPs\",\"One Way Latency (ns) - Avg\",\"One Way Latency (ns) - StdDev\"\n");
+    fflush(file);
     #endif
 }
 
+/**
+ * Prints the table header to the consile for the open loop benchmarks.  Also writes the summary csv file header.
+ */
+std::string tableHeaderOpenLoop(std::string title, FILE* file){
+    #if PRINT_TITLE == 1
+        printf("\n");
+        printTitle(title);
+        printf("        ====================================================================================\n");
+        printf("          Array Length  |      Block Size      |  Balancing NOPs  |  Time to Failure (ns)   \n");
+        printf("            (Blocks)    |  (int32_t Elements)  |                  |      Avg, StdDev        \n");
+        printf("        ====================================================================================\n");
 
-//Returns format
+        fflush(stdout);
+    #endif
+
+    writeCSVSummaryHeaderOpenLoop(file);
+
+    return "%16d|%22d|%18d|%12.6f, %12.6f\n";
+}
+
+/**
+ * Prints the table headers (to the console, the summary CSV file, and the raw CSV file) for FIFO benchmark
+ * 
+ * The console and summary CSV tables are 2D table with parameters being swept in the 2 axes of the table.
+ * 
+ * The raw CSV file contains a row for each trial and is not in the same 2D style as the console or summary CSV file
+ * 
+ * Returns a format string to be used when printing the data to the console
+ */
 std::string printAndWriteHeadersFIFO(std::string secondary_label_printcsv, std::string secondary_label_rawcsv, std::vector<int32_t> secondary_dimension_items, int data_col_width, FILE* file, std::ofstream* raw_file){
     #if PRINT_STATS == 1
         printf("        Array Len \\ %s ", secondary_label_printcsv.c_str());
@@ -143,68 +184,51 @@ std::string printAndWriteHeadersFIFO(std::string secondary_label_printcsv, std::
     return "|%9.2f";
 }
 
+/**
+ * Prints information about a proceeding FIFO data point to the console if reporting in standalone mode.
+ */
 void printTitleFIFOPoint(bool report_standalone, std::string title, size_t array_length, std::string second_param_label, int32_t second_param){
     #if PRINT_TITLE == 1
     if(report_standalone)
     {
         printf("\n");
-        time_t currentTime = time(NULL);
-        struct tm * localT;
-        localT = localtime(&currentTime);
-        printf("%s | Start Time: %s", title.c_str(), asctime(localT));
+        printTitle(title);
         printf("Array Length: %lu int32_t Elements, %s: %d\n", array_length, second_param_label.c_str(), second_param);
         fflush(stdout);
     }
     #endif
 }
 
-//Because more than 2 axes are being considered, all of the reporting follows the same basic formatting with the parameters in the first colums and the results in the latter colums.  A trial or configuration is on each row
-std::string  printAndWriteHeadersOver3Params(std::vector<std::string> param_lbls, std::vector<std::string> reporting_lbls, int data_col_width, FILE* file, std::ofstream* raw_file){
-    #if PRINT_STATS == 1
-        printf("        ");
-        std::string format = "|%" + std::to_string(data_col_width) +"s";
-        for(int i = 0; i<param_lbls.size(); i++)
-        {
-            printf(format.c_str(), param_lbls[i].c_str());
-        }
-
-        for(int i = 0; i<reporting_lbls.size(); i++)
-        {
-            printf(format.c_str(), reporting_lbls[i].c_str());
-        }
-        printf("|\n");
-        printf("        ");
-        for(int i = 0; i<(param_lbls.size()+reporting_lbls.size()); i++)
-        {
-            for(int j = 0; j<data_col_width; j++) 
-            {
-                printf("=");
-            }
-        }
-
+/**
+ * Prints information about a proceeding open loop data point to the console if reporting in standalone mode.
+ */
+void printTitleOpenLoopPoint(bool report_standalone, std::string title, size_t array_length, size_t block_length, int nops){
+    #if PRINT_TITLE == 1
+    if(report_standalone)
+    {
         printf("\n");
+        printTitle(title);
+        printf("Array Length: %lu Blocks, Block Length: %lu int32_t Elements, Balancing NOPs: %d\n", array_length, block_length, nops);
         fflush(stdout);
+    }
     #endif
+}
 
+void writeRawHeaderOpenLoop(std::shared_ptr<BenchmarkSpecificResult> implSpecificResult, std::ofstream* raw_file){
     #if WRITE_CSV == 1
-        for(int i = 0; i<param_lbls.size(); i++)
-        {
-            fprintf(file, (i>0 ? ",%s" : "%s"), param_lbls[i].c_str());
-            *raw_file << param_lbls[i] << (i>0 ? "," : "");
+        *raw_file << "\"Array Length (Blocks)\","
+                  << "\"Block Size (int32_t Elements)\","
+                  << "\"Balancing NOPs\","
+                  << "\"Steady Clock - Walltime (ms)\","
+                  << "\"Clock - Cycles/Cycle Time (ms)\","
+                  << "\"Clock - rdtsc\"";
+
+        if(implSpecificResult != nullptr){
+            *raw_file << implSpecificResult->getTrialCSVHeader();
         }
 
-        for(int i = 0; i<reporting_lbls.size(); i++)
-        {
-            fprintf(file, (i>0 ? ",%s" : "%s"), reporting_lbls[i].c_str());
-            *raw_file << reporting_lbls[i] << (i>0 ? "," : "");
-        }
-
-        fprintf(file, "\n");
         *raw_file << std::endl;
 
-        fflush(file);
         raw_file->flush();
     #endif
-
-    return "|%9.2f";
 }

@@ -1,6 +1,11 @@
 #include "print_results.h"
 
-void print_results(Results &results, int bytes_per_element, int stim_len)
+/**
+ * Prints a single result for most benchmarks which focus on latency and data rate.
+ * Results across parameters not printed in a single table, each result (configuration)
+ * has its own mini table.
+ */
+void print_results_standalone(Results &results, int bytes_per_element, int stim_len)
 {
     double avg_duration_ms = results.avg_duration();
     double stddev_duration_ms = results.stddev_duration();
@@ -21,6 +26,11 @@ void print_results(Results &results, int bytes_per_element, int stim_len)
     printf("        =======================================================\n");
 }
 
+/**
+ * Prints a result for most benchmarks which focus on latency and data rate.
+ * Results are printed as a row in a table which contains results for other configurations
+ * Results are also written to the summary CSV file and the raw CSV file
+ */
 void print_results(Results &results, int bytes_per_element, int stim_len, int length, std::string format, FILE* file, std::ofstream* raw_file)
 {
     double avg_duration_ms = results.avg_duration();
@@ -38,10 +48,19 @@ void print_results(Results &results, int bytes_per_element, int stim_len, int le
 
     #if WRITE_CSV == 1
     fprintf(file, "%d, %f, %f, %f, %f\n", length, avg_latency_ns, stddev_latency_ns, transactions_rate_msps, data_rate_mbps);
-    results.write_durations(*raw_file, "", length, false);
+    results.write_durations_and_benchmark_specific_results(*raw_file, {""}, {std::to_string(length)}, false);
     #endif
 }
 
+/**
+ * Prints a result for most benchmarks which focus on latency and data rate.
+ * 
+ * This version includes the cores involved in the transfer and is used when multiple communication streams are occuring and the performance
+ * of each must be distinctly reported
+ * 
+ * Results are printed as a row in a table which contains results for other configurations
+ * Results are also written to the summary CSV file and the raw CSV file
+ */
 void print_results(Results &results, int core0, int core1, int bytes_per_element, int stim_len, int length, std::string format, FILE* file, std::ofstream* raw_file)
 {
     double avg_duration_ms = results.avg_duration();
@@ -59,10 +78,15 @@ void print_results(Results &results, int core0, int core1, int bytes_per_element
 
     #if WRITE_CSV == 1
     fprintf(file, "%d, %f, %f, %f, %f\n", length, avg_latency_ns, stddev_latency_ns, transactions_rate_msps, data_rate_mbps);
-    results.write_durations(*raw_file, "", length, false);
+    results.write_durations_and_benchmark_specific_results(*raw_file, {""}, {std::to_string(length)}, false);
     #endif
 }
 
+/**
+ * Prints a result for most benchmarks which focus on latency and data rate.
+ * Results are printed as a row in a table which contains results for other configurations
+ * Results are also written to the summary CSV file and the raw CSV file
+ */
 void print_results(Results &results, int bytes_per_element, int stim_len, int length, int max_write_per_transaction, std::string format, FILE* file, std::ofstream* raw_file)
 {
     double avg_duration_ms = results.avg_duration();
@@ -80,11 +104,16 @@ void print_results(Results &results, int bytes_per_element, int stim_len, int le
 
     #if WRITE_CSV == 1
     fprintf(file, "%f", data_rate_mbps);
-    results.write_durations(*raw_file, "", length, "", max_write_per_transaction, false);
+    results.write_durations_and_benchmark_specific_results(*raw_file, {"", ""}, {std::to_string(length), std::to_string(max_write_per_transaction)}, false);
     #endif
 }
 
-void print_results_blocked_fifo(Results &results, int elements_per_trial, int block_length, int bytes_per_element)
+/**
+ * Prints a single result for a blocked FIFO benchmark.
+ * Results across parameters not printed in a single table, each result (configuration)
+ * has its own mini table.
+ */
+void print_results_blocked_fifo_standalone(Results &results, int elements_per_trial, int block_length, int bytes_per_element)
 {
     //The actual bytes per trial length will actually be larger if the block length does not equally divide the bytes per trial.
     //Does one more block in this case which fills the remaining slots and adds a few more.
@@ -115,6 +144,11 @@ void print_results_blocked_fifo(Results &results, int elements_per_trial, int bl
     printf("        =======================================================\n");
 }
 
+/**
+ * Prints a result for the blocked FIFO benchmark
+ * Results are printed as a row in a table which contains results for other configurations
+ * Results are also written to the summary CSV file and the raw CSV file
+ */
 void print_results_blocked_fifo(Results &results, int elements_per_trial, int length, int block_length, int bytes_per_element, std::string format, FILE* file, std::ofstream* raw_file)
 {
     //The actual stim length will actually be larger if the block length does not equally divide the stim length.
@@ -142,6 +176,33 @@ void print_results_blocked_fifo(Results &results, int elements_per_trial, int le
 
     #if WRITE_CSV == 1
     fprintf(file, "%f", data_rate_mbps);
-    results.write_durations(*raw_file, "", length, "", block_length, false);
+    results.write_durations_and_benchmark_specific_results(*raw_file, {"", ""}, {std::to_string(length), std::to_string(block_length)}, false);
+    #endif
+}
+
+void print_results_open_loop_standalone(Results &results)
+{
+    double avg_duration_ms = results.avg_duration();
+    double stddev_duration_ms = results.stddev_duration();
+
+    printf("        =======================================================\n");
+    printf("        Metric                   |     Avg      |    StdDev    \n");
+    printf("        =======================================================\n");
+    printf("        Duration (ms)            |%14.6f|%14.6f\n", avg_duration_ms, stddev_duration_ms);
+    printf("        =======================================================\n");
+}
+
+void print_results_open_loop(Results &results, size_t array_length, int32_t block_length, int32_t nops, std::string format, FILE* file, std::ofstream* raw_file)
+{
+    double avg_duration_ms = results.avg_duration();
+    double stddev_duration_ms = results.stddev_duration();
+
+    #if PRINT_STATS == 1
+    printf(format.c_str(), avg_duration_ms);
+    #endif
+
+    #if WRITE_CSV == 1
+    fprintf(file, "%f", avg_duration_ms);
+    results.write_durations_and_benchmark_specific_results(*raw_file, {"", ""}, {std::to_string(array_length), std::to_string(block_length), std::to_string(nops)}, false);
     #endif
 }

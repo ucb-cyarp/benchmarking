@@ -613,33 +613,59 @@ std::map<MeasurementType, std::map<HW_Granularity, std::map<int, Unit>>> Results
     return avail;
 }
 
-void Results::write_durations(std::ofstream &csv_file, std::string col0_name, int col0_val, bool include_header)
+void Results::write_durations(std::ofstream &csv_file, std::vector<std::string> col_names, std::vector<std::string> col_vals, bool include_header)
 {
     //Print Header
     if(include_header)
     {
-        csv_file << "\"" << col0_name << "\",\"Steady Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
+        for(int i = 0; i<col_names.size(); i++){
+            csv_file << "\"" << col_names[i] << "\",";
+        }
+        csv_file << "\"Steady Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
     }
 
     size_t trials = trial_results.size();
     for(size_t i = 0; i < trials; i++)
     {
-        csv_file << col0_val << "," << std::scientific <<  trial_results[i].duration << "," << trial_results[i].duration_clock << "," << trial_results[i].duration_rdtsc << std::endl;
+        for(int i = 0; i<col_vals.size(); i++){
+            csv_file << "\"" << col_vals[i] << "\",";
+        }
+        csv_file << std::scientific <<  trial_results[i].duration << "," << trial_results[i].duration_clock << "," << trial_results[i].duration_rdtsc << std::endl;
     }
 }
 
-void Results::write_durations(std::ofstream &csv_file, std::string col0_name, int col0_val, std::string col1_name, int col1_val, bool include_header)
+void Results::write_durations_and_benchmark_specific_results(std::ofstream &csv_file, std::vector<std::string> col_names, std::vector<std::string> col_vals, bool include_header)
 {
     //Print Header
     if(include_header)
     {
-        csv_file << "\"" << col0_name << "\",\"" << col1_name << "\",\"Steady Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"" << std::endl;
+        for(int i = 0; i<col_names.size(); i++){
+            csv_file << "\"" << col_names[i] << "\",";
+        }
+        csv_file << "\"Steady Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"";
+
+        if(trial_results.size>0){
+            for(int i = 0; i<trial_results[0].benchmarkSpecificResults.size(); i++){
+                csv_file << "," << trial_results[0].benchmarkSpecificResults[i]->getTrialCSVHeader();
+            }
+        }
+
+        csv_file << std::endl;
     }
 
     size_t trials = trial_results.size();
     for(size_t i = 0; i < trials; i++)
     {
-        csv_file << col0_val << "," << col1_val << "," << std::scientific <<  trial_results[i].duration << "," << trial_results[i].duration_clock << "," << trial_results[i].duration_rdtsc << std::endl;
+        for(int j = 0; j<col_vals.size(); j++){
+            csv_file << "\"" << col_vals[j] << "\",";
+        }
+        csv_file << std::scientific <<  trial_results[i].duration << "," << trial_results[i].duration_clock << "," << trial_results[i].duration_rdtsc;
+
+        for(int j = 0; j<trial_results[i].benchmarkSpecificResults.size(); j++){
+            csv_file << "," << trial_results[i].benchmarkSpecificResults[j]->getTrialCSVData();
+        }
+
+        csv_file << std::endl;
     }
 }
 
@@ -657,4 +683,8 @@ std::string BenchmarkSpecificResult::getTrialCSVHeader(){
 
 std::string BenchmarkSpecificResult::getTrialCSVData(){
     return "";
+}
+
+std::string BenchmarkSpecificResult::getGranularityStr(){
+    return MeasurementHelper::HW_Granularity_toString(resultGranularity) + " " + std::to_string(granularityIndex);
 }
