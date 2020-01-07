@@ -26,7 +26,7 @@
             
             TrialResult trial_result = computeTrialResultAndSetTrialNum(profiler, results);
             printTrial(trial_result);
-            processTrialAndPrepareForNextHelper(profiler, *results, trial_result, trial, discard_count);
+            processTrialAndPrepareForNextHelper(profiler, *results, trial_result, trial, discard_count, {});
         }
 
         printStats(profiler, results, cpu_num);
@@ -62,7 +62,7 @@
             
             TrialResult trial_result = computeTrialResultAndSetTrialNum(profiler, results);
             printTrial(trial_result);
-            processTrialAndPrepareForNextHelper(profiler, *results, trial_result, trial, discard_count);
+            processTrialAndPrepareForNextHelper(profiler, *results, trial_result, trial, discard_count, {});
 
             _mm_free(a);
         }
@@ -102,7 +102,7 @@
             
             TrialResult trial_result = computeTrialResultAndSetTrialNum(profiler, results);
             printTrial(trial_result);
-            processTrialAndPrepareForNextHelper(profiler, *results, trial_result, trial, discard_count);
+            processTrialAndPrepareForNextHelper(profiler, *results, trial_result, trial, discard_count, {});
 
             _mm_free(a);
             _mm_free(b);
@@ -145,7 +145,7 @@
             
             TrialResult trial_result = computeTrialResultAndSetTrialNum(profiler, results);
             printTrial(trial_result);
-            processTrialAndPrepareForNextHelper(profiler, *results, trial_result, trial, discard_count);
+            processTrialAndPrepareForNextHelper(profiler, *results, trial_result, trial, discard_count, {});
 
             _mm_free(a);
             _mm_free(b);
@@ -191,7 +191,7 @@
             
             TrialResult trial_result = computeTrialResultAndSetTrialNum(profiler, results);
             printTrial(trial_result);
-            processTrialAndPrepareForNextHelper(profiler, *results, trial_result, trial, discard_count);
+            processTrialAndPrepareForNextHelper(profiler, *results, trial_result, trial, discard_count, {});
 
             _mm_free(a);
             _mm_free(b);
@@ -235,7 +235,7 @@
             
             TrialResult trial_result = computeTrialResultAndSetTrialNum(profiler, results);
             printTrial(trial_result);
-            processTrialAndPrepareForNextHelper(profiler, *results, trial_result, trial, discard_count);
+            processTrialAndPrepareForNextHelper(profiler, *results, trial_result, trial, discard_count, {});
 
             free(a);
             free(b);
@@ -283,7 +283,7 @@
             
             TrialResult trial_result = computeTrialResultAndSetTrialNum(profiler, results);
             printTrial(trial_result);
-            processTrialAndPrepareForNextHelper(profiler, *results, trial_result, trial, discard_count);
+            processTrialAndPrepareForNextHelper(profiler, *results, trial_result, trial, discard_count, {});
 
             _mm_free(in_mem);
             _mm_free(out_mem);
@@ -342,7 +342,7 @@
             
             TrialResult trial_result = computeTrialResultAndSetTrialNum(profiler, results);
             printTrial(trial_result);
-            processTrialAndPrepareForNextHelper(profiler, *results, trial_result, trial, discard_count);
+            processTrialAndPrepareForNextHelper(profiler, *results, trial_result, trial, discard_count, {});
 
             for(unsigned long i = 0; i<inSizes.size(); i++){
                 _mm_free(input_arrays[i]);
