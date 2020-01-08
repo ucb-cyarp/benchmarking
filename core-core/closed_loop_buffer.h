@@ -261,6 +261,9 @@ void* closed_loop_buffer_bang_control_server(void* arg){
     bool stop = false;
     int64_t transfer;
     int32_t controlCheckCounter = 0;
+    int64_t controlCheckHist = 0;
+    int64_t speedUpCount = 0;
+    int64_t slowDownCount = 0;
     for(transfer = 0; transfer<max_block_transfers; transfer++){
         std::atomic_signal_fence(std::memory_order_acquire); //Do not want an actual fence but do not want the write to the initial block ID to re-ordered before the write to the write ptr
         //---- Write to output buffer unconditionally (order of writing the IDs is important as they are used by the reader to detect partially valid blocks)
@@ -309,6 +312,7 @@ void* closed_loop_buffer_bang_control_server(void* arg){
             controlCheckCounter++;
         }else{
             controlCheckCounter = 0;
+            controlCheckHist++;
 
             //Check Fullness
             //writeOffset is the local copy of the write offset
@@ -319,6 +323,7 @@ void* closed_loop_buffer_bang_control_server(void* arg){
             //Check if the number of entries is above or below the half occupancy point
             if(numEntries>halfFilledPoint){
                 //Above the set point, speed up the client or slow down the server
+                slowDownCount++;
 
                 //First check if the client can be speed up
                 if(nops_client_local>0){
@@ -330,6 +335,7 @@ void* closed_loop_buffer_bang_control_server(void* arg){
                 }
             }else if(numEntries<halfFilledPoint){
                 //Below the set point, speed up the server or slow down the client
+                speedUpCount++;
 
                 //First, check if the server can be sped up
                 if(nops_server > 0){
@@ -347,14 +353,16 @@ void* closed_loop_buffer_bang_control_server(void* arg){
         }
     }
 
-    FifolessBufferEndCondition *rtn = new FifolessBufferEndCondition;
-    rtn->expectedBlockID = -1;
-    rtn->startBlockID = -1;
-    rtn->startBlockID = -1;
-    rtn->wasErrorSrc = false;
-    rtn->errored = stop;
+    ClosedLoopServerEndCondition *rtn = new ClosedLoopServerEndCondition;
     rtn->resultGranularity = HW_Granularity::CORE;
     rtn->granularityIndex = core;
+
+    rtn->controlChecks = controlCheckHist;
+    rtn->speed_up_count = speedUpCount;
+    rtn->slow_down_count = slowDownCount;
+    rtn->serverNops = nops_server;
+    rtn->clientNops = nops_client_local;
+    rtn->errored = stop;
     rtn->transaction = transfer;
 
     return (void*) rtn;

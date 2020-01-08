@@ -41,6 +41,24 @@ inline T getNumItemsInBuffer(T readOffset, T writeOffset, T fifoLength){
     return (readOffset < writeOffset) ? writeOffset - readOffset - 1 : arrayLength - readOffset + writeOffset - 1;
 }
 
+class ClosedLoopServerEndCondition : public BenchmarkSpecificResult{
+public:
+    int64_t controlChecks;
+    int64_t speed_up_count;
+    int64_t slow_down_count;
+    int64_t serverNops;
+    int64_t clientNops;
+    bool errored;
+    int64_t transaction;
+
+    std::string getTrialResultsHeader() override;
+    std::string getTrialResults() override;
+    std::string getTrialCSVHeader() override;
+    std::string getTrialCSVData() override;
+
+    ClosedLoopServerEndCondition();
+};
+
 template<typename elementType, typename atomicIdType, typename atomicIndexType, typename nopCountType>
 size_t closedLoopAllocate(std::vector<elementType*> &shared_array_locs, std::vector<atomicIndexType*> &shared_write_id_locs, std::vector<atomicIndexType*> &shared_read_id_locs, std::vector<std::atomic_flag*> &ready_flags, std::vector<std::atomic_flag*> &start_flags, std::atomic_flag* &stop_flag, std::vector<nopCountType*> &nopControls, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int> cpus, int alignment, bool circular, bool include_dummy_flags){
     int maxBufferSize = openLoopAllocate<elementType, atomicIdType, atomicIndexType>(shared_array_locs, shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, array_lengths, block_lengths, cpus, alignment, circular, include_dummy_flags);
