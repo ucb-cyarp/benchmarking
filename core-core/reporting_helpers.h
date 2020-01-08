@@ -790,8 +790,6 @@
      */
     template <typename elementType>
     void printWriteOpenLoop2CoreResults(bool report_standalone, Profiler* profiler, std::vector<int> cpus, std::string title, std::vector<Results> results_vec, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int32_t> balance_nops, std::string format, FILE* file, std::ofstream* raw_file){
-        int result_idx = 0;
-
         for(int i = 0; i<array_lengths.size(); i++)
         {
             size_t array_length = array_lengths[i];
@@ -806,7 +804,7 @@
 
                     //Print/Write individual results
                     printTitleOpenLoopPoint(report_standalone, title, array_length, block_length, balance_nop);
-                    exportResultsOpenLoop<elementType>(report_standalone, profiler, cpus, results_vec[result_idx], array_length, block_length, balance_nop, format, file, raw_file);
+                    exportResultsOpenLoop<elementType>(report_standalone, profiler, cpus, results_vec[idx], array_length, block_length, balance_nop, format, file, raw_file);
                 }
             }
         }
