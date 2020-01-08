@@ -17,7 +17,7 @@ void run_bandwidth_fifo_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::ve
     std::atomic_int32_t* shared_write_id_loc;
     std::atomic_int32_t* shared_read_id_loc;
 
-    fifoAllocate(&shared_array_loc, &shared_write_id_loc, &shared_read_id_loc, max_array_length, cpu_a, cpu_b);
+    fifoAllocate(shared_array_loc, shared_write_id_loc, shared_read_id_loc, max_array_length, cpu_a, cpu_b);
 
     //==== Create Configurations for each experiment ====
     int num_experiments = countNumberOfFIFOExperiments(array_lengths, max_writes_per_transaction);
@@ -80,7 +80,7 @@ void run_bandwidth_fifo_blocked_kernel(Profiler* profiler, int cpu_a, int cpu_b,
     std::atomic_int32_t* shared_write_id_loc;
     std::atomic_int32_t* shared_read_id_loc;
 
-    fifoAllocate(&shared_array_loc, &shared_write_id_loc, &shared_read_id_loc, max_array_length, cpu_a, cpu_b);
+    fifoAllocate(shared_array_loc, shared_write_id_loc, shared_read_id_loc, max_array_length, cpu_a, cpu_b);
 
     //==== Create Configurations for each experiment ====
     int num_experiments = countNumberOfFIFOExperiments(array_lengths, block_lengths);
@@ -143,7 +143,7 @@ void run_bandwidth_fifo_read_limit_kernel(Profiler* profiler, int cpu_a, int cpu
     std::atomic_int32_t* shared_write_id_loc;
     std::atomic_int32_t* shared_read_id_loc;
 
-    fifoAllocate(&shared_array_loc, &shared_write_id_loc, &shared_read_id_loc, max_array_length, cpu_a, cpu_b);
+    fifoAllocate(shared_array_loc, shared_write_id_loc, shared_read_id_loc, max_array_length, cpu_a, cpu_b);
 
     //==== Create Configurations for each experiment ====
     int num_experiments = countNumberOfFIFOExperiments(array_lengths, max_elements_per_transaction);
@@ -206,7 +206,7 @@ void run_bandwidth_fifo_blocked_cachedptr_kernel(Profiler* profiler, int cpu_a, 
     std::atomic_int32_t* shared_write_id_loc;
     std::atomic_int32_t* shared_read_id_loc;
 
-    fifoAllocate(&shared_array_loc, &shared_write_id_loc, &shared_read_id_loc, max_array_length, cpu_a, cpu_b);
+    fifoAllocate(shared_array_loc, shared_write_id_loc, shared_read_id_loc, max_array_length, cpu_a, cpu_b);
 
     //==== Create Configurations for each experiment ====
     int num_experiments = countNumberOfFIFOExperiments(array_lengths, block_lengths);
