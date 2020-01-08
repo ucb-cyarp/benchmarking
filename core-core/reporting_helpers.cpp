@@ -38,6 +38,46 @@ void writeCSVHeader(FILE* file, std::ofstream* raw_file){
 }
 
 /**
+ * Given a vector of CPUs, get a list of sockets, cores, and dies that encompas those CPUs
+ */
+void getGranularityIndexsOfInterest(std::vector<int> cpus, Profiler *profiler, std::vector<int> &sockets, std::vector<int> &cores, std::vector<int> &dies, std::vector<int> &threads){
+    std::set<int> socketSet;
+    for(int i = 0; i<cpus.size(); i++){
+        int socket = profiler->cpuTopology[cpus[i]].socket;
+        if(socketSet.find(socket) == socketSet.end()){
+            socketSet.insert(socket);
+            sockets.push_back(socket);
+        }
+    }
+
+    std::set<int> coreSet;
+    for(int i = 0; i<cpus.size(); i++){
+        int core = profiler->cpuTopology[cpus[i]].core;
+        if(coreSet.find(core) == coreSet.end()){
+            coreSet.insert(core);
+            cores.push_back(core);
+        }
+    }
+
+    std::set<int> dieSet;
+    for(int i = 0; i<cpus.size(); i++){
+        int die = profiler->cpuTopology[cpus[i]].die;
+        if(dieSet.find(die) == dieSet.end()){
+            dieSet.insert(die);
+            dies.push_back(die);
+        }
+    }
+
+    std::set<int> threadSet;
+    for(int i = 0; i<cpus.size(); i++){
+        if(threadSet.find(cpus[i]) == threadSet.end()){
+            threadSet.insert(cpus[i]);
+            threads.push_back(cpus[i]);
+        }
+    }
+}
+
+/**
  * Prints the title and a table header for a typical benchmark measuring latency and data rate from one thread to another (one stream)
  * Also writes the CSV headers
  * 
@@ -233,5 +273,64 @@ void writeRawHeaderOpenLoop(std::vector<std::shared_ptr<BenchmarkSpecificResult>
         *raw_file << std::endl;
 
         raw_file->flush();
+    #endif
+}
+
+/**
+ * Prints the table header to the consile for the closed loop benchmarks.  Also writes the summary csv file header.
+ */
+std::string tableHeaderClosedLoop(std::string title, FILE* file){
+    #if PRINT_TITLE == 1
+        printf("\n");
+        printTitle(title);
+        printf("        ==========================================================================================================================\n");
+        printf("          Array Length  |      Block Size      | Server Control      | Client Control      | Control Gain |  Time to Failure (ms) \n");
+        printf("            (Blocks)    |  (int32_t Elements)  | Period (Iterations) | Period (Iterations) |    (NOPs)    |      Avg, StdDev      \n");
+        printf("        ==========================================================================================================================\n");
+
+        fflush(stdout);
+    #endif
+
+    writeCSVSummaryHeaderOpenLoop(file);
+
+    return "         %14d | %20d | %19d | %19d | %12d | %10.4e, %10.4e\n";
+}
+
+void writeRawHeaderClosedLoop(std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResults, std::ofstream* raw_file){
+    #if WRITE_CSV == 1
+        *raw_file << "\"Array Length (Blocks)\","
+                  << "\"Block Size (int32_t Elements)\","
+                  << "\"Server Control Period (Iterations)\","
+                  << "\"Client Control Period (Iterations)\","
+                  << "\"Control Gain (NOPs)\","
+                  << "\"Steady Clock - Walltime (ms)\","
+                  << "\"Clock - Cycles/Cycle Time (ms)\","
+                  << "\"Clock - rdtsc\"";
+
+        for(int i = 0; i<implSpecificResults.size(); i++){
+            if(implSpecificResults[i] != nullptr){
+                std::string trialCSVHeader = implSpecificResults[i]->getTrialCSVHeader();
+                *raw_file << "," << trialCSVHeader;
+            }
+        }
+
+        *raw_file << std::endl;
+
+        raw_file->flush();
+    #endif
+}
+
+/**
+ * Prints information about a proceeding open loop data point to the console if reporting in standalone mode.
+ */
+void printTitleClosedLoopPoint(bool report_standalone, std::string title, size_t array_length, size_t block_length, int32_t server_control_period, int32_t client_control_period, int32_t control_gain){
+    #if PRINT_TITLE == 1
+    if(report_standalone)
+    {
+        printf("\n");
+        printTitle(title);
+        printf("Array Length (Blocks): %lu, Block Length (int32_t Elements): %lu, Server Control Period (Iterations): %d, Client Control Period (Iterations): %d, Control Gain (NOPs): %d\n", array_length, block_length, server_control_period, client_control_period, control_gain);
+        fflush(stdout);
+    }
     #endif
 }

@@ -1,11 +1,9 @@
-#ifndef _OPEN_LOOP_BUFFER_H
-#define _OPEN_LOOP_BUFFER_H
+#ifndef _CLOSED_LOOP_BUFFER_H
+#define _CLOSED_LOOP_BUFFER_H
 
 #include <atomic>
 #include "open_loop_helpers.h"
-
-//Note: This benchmark has the potential for asemytric load on the reader and writer threads.  Ballancing in the form of NOPs is required
-//to remove this imballance's impact on the measurement of how long the benchmark can run before failing.
+#include "closed_loop_helpers.h"
 
 //This version does not use a structure for the blocks.  This allos the block size to be changed at runtime.
 //There is a catch which is that the blocks must be naturally alligned.
@@ -23,8 +21,11 @@
 
 //The IDs are padded to be multiples of the provided alignment.  The buffer is also padded to be a multiple of the alignment.
 
-template<typename elementType, typename idType = std::atomic_int32_t, typename indexType = std::atomic_int32_t>
-struct OpenLoopBufferArgs{
+template<typename elementType, 
+         typename idType = std::atomic_int32_t, 
+         typename indexType = std::atomic_int32_t, 
+         typename nopsClient = std::atomic_int32_t>
+struct ClosedLoopBufferArgs{
     indexType *read_offset_ptr;
     indexType *write_offset_ptr;
     void *array;
@@ -33,8 +34,11 @@ struct OpenLoopBufferArgs{
     std::atomic_flag *ready_flag; //Used by the server to signal to the client that it is ready to begin
     int array_length; //In Blocks  //Note: The FIFO Array has an additional block allocated to resolve the Empty/Full Ambiguity
     int64_t max_block_transfers; //The maximum number of blocks to transfer in this test
-    int ballancing_nops; //The number of NOPs to use for balancing services.  If negative, the server has NOPS, if positive, the client has NOPS
     int blockSize; //The block size (in elementType elements)
+    nopsClient *clientNops; //A pointer to a shared integer which controls how many nops per loop itteration the client uses
+    int32_t control_check_period; //The number of itterations of the main loop between control checks on the controller side
+    int32_t control_client_check_period; //The number of itterations of the main loop before the client checks for a new control signal
+    int32_t control_gain; //The gain of the control system
     int alignment; //The alignment in bytes of the components within the block (the IDs and the Buffer)
     int core_client; //The core the client is executing on
     int core_server; //The core the server is executing on
@@ -44,12 +48,12 @@ struct OpenLoopBufferArgs{
 //The writer needs to periodically check the error condition flag provided by the reader.  This can result in the two functions having different
 //execution times.  To compensate, nop loops are placed in each thread
 
-//A better compensation mechanism is to force all threads to be both a reader and a writer.  Both threads would experience the same code.
-//The start stop flags could be augmented with dummy flags, allowing all of the threads to use the same function.
-
-template<typename elementType, typename idType = std::atomic_int32_t, typename indexType = std::atomic_int32_t>
-void* open_loop_buffer_reset(void* arg){
-    OpenLoopBufferArgs<elementType, idType, indexType> *args = (OpenLoopBufferArgs<elementType, idType, indexType>*) arg;
+template<typename elementType, 
+         typename idType = std::atomic_int32_t, 
+         typename indexType = std::atomic_int32_t, 
+         typename nopsClientType = std::atomic_int32_t>
+void* closed_loop_buffer_reset(void* arg){
+    ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType> *args = (ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType>*) arg;
 
     int blockArrayBytes;
     int blockArrayPaddingBytes;
@@ -65,6 +69,9 @@ void* open_loop_buffer_reset(void* arg){
     std::atomic_thread_fence(std::memory_order_acquire);
 
     int numberInitBlocks = args->array_length/2; //Initialize FIFO to be half full (round down if odd number)
+
+    //Reset the clientNops control
+    std::atomic_store_explicit(args->clientNops, 0, std::memory_order_relaxed);
 
     //Reset the index pointers (they are initialized outside)
     std::atomic_store_explicit(args->read_offset_ptr, 0, std::memory_order_relaxed); //Initialized to 0.  This is the index last read.  Index 1 contains the first initial value
@@ -132,9 +139,12 @@ void* open_loop_buffer_reset(void* arg){
     std::atomic_thread_fence(std::memory_order_release);
 }
 
-template<typename elementType, typename idType = std::atomic_int32_t, typename indexType = std::atomic_int32_t>
-void* open_loop_buffer_cleanup(void* arg){
-    OpenLoopBufferArgs<elementType, idType, indexType> *args = (OpenLoopBufferArgs<elementType, idType, indexType>*) arg;
+template<typename elementType, 
+         typename idType = std::atomic_int32_t, 
+         typename indexType = std::atomic_int32_t, 
+         typename nopsClientType = std::atomic_int32_t>
+void* closed_loop_buffer_cleanup(void* arg){
+    ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType> *args = (ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType>*) arg;
 
     int blockArrayBytes;
     int blockArrayPaddingBytes;
@@ -184,11 +194,21 @@ void* open_loop_buffer_cleanup(void* arg){
 }
 
 //This thread is the writer.  It will recieve a start signal from the client when it is ready (the client is the primary thread)
-template<typename elementType, typename idType = std::atomic_int32_t, typename indexType = std::atomic_int32_t, typename idLocalType = int32_t, typename indexLocalType = int32_t, int idMax = INT32_MAX>
-void* open_loop_buffer_server(void* arg){
-    OpenLoopBufferArgs<elementType, idType, indexType>* args = (OpenLoopBufferArgs<elementType, idType, indexType>*) arg;
+//The server also acts as the controller in this case.  It is capable of slowing itself down and can command the reciever to slow down if
+//nessasary via a shared ptr
+template<typename elementType, 
+         typename idType = std::atomic_int32_t, 
+         typename indexType = std::atomic_int32_t, 
+         typename idLocalType = int32_t, 
+         typename indexLocalType = int32_t, 
+         typename nopsClientType = std::atomic_int32_t,
+         typename nopsClientLocalType = int32_t, 
+         int idMax = INT32_MAX>
+void* closed_loop_buffer_bang_control_server(void* arg){
+    ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType>* args = (ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType>*) arg;
 
     indexType *write_offset_ptr = args->write_offset_ptr;
+    indexType *read_offset_ptr = args->read_offset_ptr;
     void *array = args->array;
     int array_length = args->array_length;
     int64_t max_block_transfers = args->max_block_transfers;
@@ -199,12 +219,15 @@ void* open_loop_buffer_server(void* arg){
     int allignment = args->alignment;
     int core = args->core_server;
 
-    int ballancing_nops = args->ballancing_nops;
-    int numNops = ballancing_nops < 0 ? -ballancing_nops : 0;
+    nopsClientType *clientNops = args->clientNops;
+    int32_t control_check_period = args->control_check_period;
+    int32_t control_gain = args->control_gain;
 
-    //printf("Config: Array Len: %d, Block Size: %d, NOPs %d\n", array_length, blockSize, ballancing_nops);
+    nopsClientLocalType nops_server = 0;
+    nopsClientLocalType nops_client_local = std::atomic_load_explicit(clientNops, std::memory_order_acquire);
 
-    int numberInitBlocks = array_length/2; //Initialize FIFO to be half full (round down if odd number)
+    int halfFilledPoint = array_length/2; //Initialize FIFO to be half full (round down if odd number)
+    int numberInitBlocks = halfFilledPoint;
 
     int blockArrayBytes;
     int blockArrayPaddingBytes;
@@ -237,6 +260,7 @@ void* open_loop_buffer_server(void* arg){
 
     bool stop = false;
     int64_t transfer;
+    int32_t controlCheckCounter = 0;
     for(transfer = 0; transfer<max_block_transfers; transfer++){
         std::atomic_signal_fence(std::memory_order_acquire); //Do not want an actual fence but do not want the write to the initial block ID to re-ordered before the write to the write ptr
         //---- Write to output buffer unconditionally (order of writing the IDs is important as they are used by the reader to detect partially valid blocks)
@@ -280,8 +304,45 @@ void* open_loop_buffer_server(void* arg){
             break;
         }
 
+        //==== Control ====
+        if(controlCheckCounter < control_check_period){
+            controlCheckCounter++;
+        }else{
+            controlCheckCounter = 0;
+
+            //Check Fullness
+            //writeOffset is the local copy of the write offset
+            //Load the 
+            indexLocalType readOffset = std::atomic_load_explicit(read_offset_ptr, std::memory_order_acquire);
+            indexLocalType numEntries = getNumItemsInBuffer(readOffset, writeOffset, array_length);
+
+            //Check if the number of entries is above or below the half occupancy point
+            if(numEntries>halfFilledPoint){
+                //Above the set point, speed up the client or slow down the server
+
+                //First check if the client can be speed up
+                if(nops_client_local>0){
+                    nops_client_local -= control_gain; //The client nops should not drop below 0 because they are initialized to 0 and the gain never changes over a single trial
+                    std::atomic_store_explicit(clientNops, nops_client_local, std::memory_order_release);
+                }else{
+                    //Slow down the server
+                    nops_server += control_gain;
+                }
+            }else if(numEntries<halfFilledPoint){
+                //Below the set point, speed up the server or slow down the client
+
+                //First, check if the server can be sped up
+                if(nops_server > 0){
+                    nops_server -= control_gain; //The server nops should not drop below 0 because they are initialized to 0 and the gain never changes over a single trial
+                }else{
+                    nops_client_local += control_gain;
+                    std::atomic_store_explicit(clientNops, nops_client_local, std::memory_order_release);
+                }
+            }
+        }
+
         //Perform NOPs
-        for(int nop = 0; nop<numNops; nop++){
+        for(nopsClientLocalType nop = 0; nop<nops_server; nop++){
             asm volatile ("nop" : : :);
         }
     }
@@ -303,9 +364,16 @@ void* open_loop_buffer_server(void* arg){
 
 //The client is the one that should be measuring time since it is what detects errors
 //Make the client the primary (ie. in the client server runner, swap the functions given as the client and the server)
-template<typename elementType, typename idType = std::atomic_int32_t, typename indexType = std::atomic_int32_t, typename idLocalType = int32_t, typename indexLocalType = int32_t, int idMax = INT32_MAX>
-void* open_loop_buffer_client(void* arg){
-    OpenLoopBufferArgs<elementType, idType, indexType>* args = (OpenLoopBufferArgs<elementType, idType, indexType>*) arg;
+template<typename elementType, 
+         typename idType = std::atomic_int32_t, 
+         typename indexType = std::atomic_int32_t, 
+         typename idLocalType = int32_t, 
+         typename indexLocalType = int32_t, 
+         typename nopsClientType = std::atomic_int32_t, 
+         typename nopsClientLocalType = int32_t, 
+         int idMax = INT32_MAX>
+void* closed_loop_buffer_client(void* arg){
+    ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType>* args = (ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType>*) arg;
     indexType *read_offset_ptr = args->read_offset_ptr;
     void *array = args->array;
     int array_length = args->array_length;
@@ -317,9 +385,10 @@ void* open_loop_buffer_client(void* arg){
 
     int core = args->core_client;
 
-    int ballancing_nops = args->ballancing_nops;
-    int numNops = ballancing_nops > 0 ? ballancing_nops : 0;
-
+    int32_t control_client_check_period = args->control_client_check_period;
+    nopsClientType *clientNops = args->clientNops;
+    nopsClientLocalType clientNopsLocal = std::atomic_load_explicit(clientNops, std::memory_order_acquire);
+    
     elementType expectedSampleVals = 0;
     idLocalType readBlockInd = 0;
 
@@ -358,6 +427,7 @@ void* open_loop_buffer_client(void* arg){
 
     bool failureDetected = false;
     int64_t transfer;
+    int32_t controlCounter = 0;
     for(transfer = 0; transfer<(max_block_transfers+numberInitBlocks); transfer++){ //Need to do numberInitBlocks extra reads
         //---- Read from Input Buffer Unconditionally ----
         //Load Read Ptr
@@ -411,11 +481,19 @@ void* open_loop_buffer_client(void* arg){
 
         expectedSampleVals = (expectedSampleVals+1)%2;
 
-        //Perform NOPs
-        for(int nop = 0; nop<numNops; nop++){
-            asm volatile ("nop" : : :);
+        //Check for new control
+        if(controlCounter < control_client_check_period){
+            controlCounter++;
+        }else{
+            controlCounter = 0;
+
+            clientNopsLocal = std::atomic_load_explicit(clientNops, std::memory_order_acquire);
         }
 
+        //Perform NOPs
+        for(nopsClientLocalType nop = 0; nop<clientNopsLocal; nop++){
+            asm volatile ("nop" : : :);
+        }
     }
 
     std::atomic_thread_fence(std::memory_order_acquire);

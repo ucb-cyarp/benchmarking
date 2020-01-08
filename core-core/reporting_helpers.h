@@ -23,6 +23,8 @@
 
     void tableFooter();
 
+    void getGranularityIndexsOfInterest(std::vector<int> cpus, Profiler *profiler, std::vector<int> &sockets, std::vector<int> &cores, std::vector<int> &dies, std::vector<int> &threads);
+
     /**
      * Prints a result of a "single" address transaction benchmark.
      * 
@@ -33,35 +35,11 @@
         #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1
             if(!profiler->cpuTopology.empty()){
                 std::vector<int> sockets;
-                int socket_a = profiler->cpuTopology[cpu_a].socket;
-                int socket_b = profiler->cpuTopology[cpu_b].socket;
-                sockets.push_back(socket_a);
-                if(socket_b != socket_a)
-                {
-                    sockets.push_back(socket_b);
-                }
-
                 std::vector<int> cores;
-                int core_a = profiler->cpuTopology[cpu_a].core;
-                int core_b = profiler->cpuTopology[cpu_b].core;
-                cores.push_back(core_a);
-                if(core_a != core_b){
-                    cores.push_back(core_b);
-                }
-
                 std::vector<int> dies;
-                int die_a = profiler->cpuTopology[cpu_a].die;
-                int die_b = profiler->cpuTopology[cpu_b].die;
-                dies.push_back(die_a);
-                if(die_a != die_b){
-                    dies.push_back(die_b);
-                }
-
                 std::vector<int> threads;
-                threads.push_back(cpu_a);
-                if(cpu_a != cpu_b){
-                    threads.push_back(cpu_b);
-                }
+
+                getGranularityIndexsOfInterest({cpu_a, cpu_b}, profiler, sockets, cores, dies, threads);
         
                 #if PRINT_FULL_STATS == 1
                     results.print_statistics(sockets, dies, cores, threads, STIM_LEN);
@@ -110,35 +88,11 @@
             {
                 if(!profiler->cpuTopology.empty()){
                     std::vector<int> sockets;
-                    int socket_a = profiler->cpuTopology[cpu_a].socket;
-                    int socket_b = profiler->cpuTopology[cpu_b].socket;
-                    sockets.push_back(socket_a);
-                    if(socket_b != socket_a)
-                    {
-                        sockets.push_back(socket_b);
-                    }
-
                     std::vector<int> cores;
-                    int core_a = profiler->cpuTopology[cpu_a].core;
-                    int core_b = profiler->cpuTopology[cpu_b].core;
-                    cores.push_back(core_a);
-                    if(core_a != core_b){
-                        cores.push_back(core_b);
-                    }
-
                     std::vector<int> dies;
-                    int die_a = profiler->cpuTopology[cpu_a].die;
-                    int die_b = profiler->cpuTopology[cpu_b].die;
-                    dies.push_back(die_a);
-                    if(die_a != die_b){
-                        dies.push_back(die_b);
-                    }
-
                     std::vector<int> threads;
-                    threads.push_back(cpu_a);
-                    if(cpu_a != cpu_b){
-                        threads.push_back(cpu_b);
-                    }
+
+                    getGranularityIndexsOfInterest({cpu_a, cpu_b}, profiler, sockets, cores, dies, threads);
                     
                     #if PRINT_FULL_STATS == 1
                         results.print_statistics(sockets, dies, cores, threads, divBy2 ? STIM_LEN/2 : STIM_LEN);
@@ -178,33 +132,12 @@
             if(report_standalone)
             {
                 if(!profiler->cpuTopology.empty()){
-                    std::set<int> sockets_set;
-                    sockets_set.insert(profiler->cpuTopology[cpu_a].socket);
-                    sockets_set.insert(profiler->cpuTopology[cpu_b].socket);
-                    sockets_set.insert(profiler->cpuTopology[cpu_c].socket);
-                    sockets_set.insert(profiler->cpuTopology[cpu_d].socket);
-                    std::vector<int> sockets(sockets_set.begin(), sockets_set.end());
+                    std::vector<int> sockets;
+                    std::vector<int> cores;
+                    std::vector<int> dies;
+                    std::vector<int> threads;
 
-                    std::set<int> cores_set;
-                    cores_set.insert(profiler->cpuTopology[cpu_a].core);
-                    cores_set.insert(profiler->cpuTopology[cpu_b].core);
-                    cores_set.insert(profiler->cpuTopology[cpu_c].core);
-                    cores_set.insert(profiler->cpuTopology[cpu_d].core);
-                    std::vector<int> cores(cores_set.begin(), cores_set.end());
-
-                    std::set<int> dies_set;
-                    dies_set.insert(profiler->cpuTopology[cpu_a].die);
-                    dies_set.insert(profiler->cpuTopology[cpu_b].die);
-                    dies_set.insert(profiler->cpuTopology[cpu_c].die);
-                    dies_set.insert(profiler->cpuTopology[cpu_d].die);
-                    std::vector<int> dies(dies_set.begin(), dies_set.end());
-
-                    std::set<int> threads_set;
-                    threads_set.insert(cpu_a);
-                    threads_set.insert(cpu_b);
-                    threads_set.insert(cpu_c);
-                    threads_set.insert(cpu_d);
-                    std::vector<int> threads(threads_set.begin(), threads_set.end());
+                    getGranularityIndexsOfInterest({cpu_a, cpu_b, cpu_c, cpu_d}, profiler, sockets, cores, dies, threads);
                 
                     #if PRINT_FULL_STATS == 1
                         printf("Thread Pair 1 (A/B)\n");
@@ -258,29 +191,12 @@
             if(report_standalone)
             {
                 if(!profiler->cpuTopology.empty()){
-                    std::set<int> sockets_set;
-                    sockets_set.insert(profiler->cpuTopology[cpu_a].socket);
-                    sockets_set.insert(profiler->cpuTopology[cpu_b].socket);
-                    sockets_set.insert(profiler->cpuTopology[cpu_c].socket);
-                    std::vector<int> sockets(sockets_set.begin(), sockets_set.end());
+                    std::vector<int> sockets;
+                    std::vector<int> cores;
+                    std::vector<int> dies;
+                    std::vector<int> threads;
 
-                    std::set<int> cores_set;
-                    cores_set.insert(profiler->cpuTopology[cpu_a].core);
-                    cores_set.insert(profiler->cpuTopology[cpu_b].core);
-                    cores_set.insert(profiler->cpuTopology[cpu_c].core);
-                    std::vector<int> cores(cores_set.begin(), cores_set.end());
-
-                    std::set<int> dies_set;
-                    dies_set.insert(profiler->cpuTopology[cpu_a].die);
-                    dies_set.insert(profiler->cpuTopology[cpu_b].die);
-                    dies_set.insert(profiler->cpuTopology[cpu_c].die);
-                    std::vector<int> dies(dies_set.begin(), dies_set.end());
-
-                    std::set<int> threads_set;
-                    threads_set.insert(cpu_a);
-                    threads_set.insert(cpu_b);
-                    threads_set.insert(cpu_c);
-                    std::vector<int> threads(threads_set.begin(), threads_set.end());
+                    getGranularityIndexsOfInterest({cpu_a, cpu_b, cpu_c}, profiler, sockets, cores, dies, threads);
             
                     #if PRINT_FULL_STATS == 1
                         printf("Thread Pair 1 (A/C)\n");
@@ -334,29 +250,12 @@
             if(report_standalone)
             {
                 if(!profiler->cpuTopology.empty()){
-                    std::set<int> sockets_set;
-                    sockets_set.insert(profiler->cpuTopology[cpu_a].socket);
-                    sockets_set.insert(profiler->cpuTopology[cpu_b].socket);
-                    sockets_set.insert(profiler->cpuTopology[cpu_c].socket);
-                    std::vector<int> sockets(sockets_set.begin(), sockets_set.end());
+                    std::vector<int> sockets;
+                    std::vector<int> cores;
+                    std::vector<int> dies;
+                    std::vector<int> threads;
 
-                    std::set<int> cores_set;
-                    cores_set.insert(profiler->cpuTopology[cpu_a].core);
-                    cores_set.insert(profiler->cpuTopology[cpu_b].core);
-                    cores_set.insert(profiler->cpuTopology[cpu_c].core);
-                    std::vector<int> cores(cores_set.begin(), cores_set.end());
-
-                    std::set<int> dies_set;
-                    dies_set.insert(profiler->cpuTopology[cpu_a].die);
-                    dies_set.insert(profiler->cpuTopology[cpu_b].die);
-                    dies_set.insert(profiler->cpuTopology[cpu_c].die);
-                    std::vector<int> dies(dies_set.begin(), dies_set.end());
-
-                    std::set<int> threads_set;
-                    threads_set.insert(cpu_a);
-                    threads_set.insert(cpu_b);
-                    threads_set.insert(cpu_c);
-                    std::vector<int> threads(threads_set.begin(), threads_set.end());
+                    getGranularityIndexsOfInterest({cpu_a, cpu_b, cpu_c}, profiler, sockets, cores, dies, threads);
             
                     #if PRINT_FULL_STATS == 1
                         printf("Thread Pair 1 (A/B)\n");
@@ -418,35 +317,11 @@
             {
                 if(!profiler->cpuTopology.empty()){
                     std::vector<int> sockets;
-                    int socket_a = profiler->cpuTopology[cpu_a].socket;
-                    int socket_b = profiler->cpuTopology[cpu_b].socket;
-                    sockets.push_back(socket_a);
-                    if(socket_b != socket_a)
-                    {
-                        sockets.push_back(socket_b);
-                    }
-
                     std::vector<int> cores;
-                    int core_a = profiler->cpuTopology[cpu_a].core;
-                    int core_b = profiler->cpuTopology[cpu_b].core;
-                    cores.push_back(core_a);
-                    if(core_a != core_b){
-                        cores.push_back(core_b);
-                    }
-
                     std::vector<int> dies;
-                    int die_a = profiler->cpuTopology[cpu_a].die;
-                    int die_b = profiler->cpuTopology[cpu_b].die;
-                    dies.push_back(die_a);
-                    if(die_a != die_b){
-                        dies.push_back(die_b);
-                    }
-
                     std::vector<int> threads;
-                    threads.push_back(cpu_a);
-                    if(cpu_a != cpu_b){
-                        threads.push_back(cpu_b);
-                    }
+
+                    getGranularityIndexsOfInterest({cpu_a, cpu_b}, profiler, sockets, cores, dies, threads);
 
                     #if PRINT_FULL_STATS == 1
                         results.print_statistics(sockets, dies, cores, threads, STIM_LEN);
@@ -487,35 +362,11 @@
             {
                 if(!profiler->cpuTopology.empty()){
                     std::vector<int> sockets;
-                    int socket_a = profiler->cpuTopology[cpu_a].socket;
-                    int socket_b = profiler->cpuTopology[cpu_b].socket;
-                    sockets.push_back(socket_a);
-                    if(socket_b != socket_a)
-                    {
-                        sockets.push_back(socket_b);
-                    }
-
                     std::vector<int> cores;
-                    int core_a = profiler->cpuTopology[cpu_a].core;
-                    int core_b = profiler->cpuTopology[cpu_b].core;
-                    cores.push_back(core_a);
-                    if(core_a != core_b){
-                        cores.push_back(core_b);
-                    }
-
                     std::vector<int> dies;
-                    int die_a = profiler->cpuTopology[cpu_a].die;
-                    int die_b = profiler->cpuTopology[cpu_b].die;
-                    dies.push_back(die_a);
-                    if(die_a != die_b){
-                        dies.push_back(die_b);
-                    }
-
                     std::vector<int> threads;
-                    threads.push_back(cpu_a);
-                    if(cpu_a != cpu_b){
-                        threads.push_back(cpu_b);
-                    }
+
+                    getGranularityIndexsOfInterest({cpu_a, cpu_b}, profiler, sockets, cores, dies, threads);
 
                     #if PRINT_FULL_STATS == 1
                         results.print_statistics(sockets, dies, cores, threads, STIM_LEN);
@@ -723,46 +574,18 @@
             {
                 if(!profiler->cpuTopology.empty()){
                     std::vector<int> sockets;
-                    std::set<int> socketSet;
-                    for(int i = 0; i<cpus.size(); i++){
-                        int socket = profiler->cpuTopology[cpus[i]].socket;
-                        if(socketSet.find(socket) == socketSet.end()){
-                            sockets.push_back(socket);
-                        }
-                    }
-
                     std::vector<int> cores;
-                    std::set<int> coreSet;
-                    for(int i = 0; i<cpus.size(); i++){
-                        int core = profiler->cpuTopology[cpus[i]].core;
-                        if(coreSet.find(core) == coreSet.end()){
-                            cores.push_back(core);
-                        }
-                    }
-
                     std::vector<int> dies;
-                    std::set<int> dieSet;
-                    for(int i = 0; i<cpus.size(); i++){
-                        int die = profiler->cpuTopology[cpus[i]].die;
-                        if(dieSet.find(die) == dieSet.end()){
-                            dies.push_back(die);
-                        }
-                    }
-
                     std::vector<int> threads;
-                    std::set<int> threadSet;
-                    for(int i = 0; i<cpus.size(); i++){
-                        if(threadSet.find(cpus[i]) == threadSet.end()){
-                            threads.push_back(cpus[i]);
-                        }
-                    }
+
+                    getGranularityIndexsOfInterest(cpus, profiler, sockets, cores, dies, threads);
 
                     #if PRINT_FULL_STATS == 1
                         results.print_statistics(sockets, dies, cores, threads, STIM_LEN);
                     #endif
 
                     #if PRINT_STATS == 1
-                        print_results_open_loop_standalone(results);
+                        print_results_fifoless_standalone(results);
                     #endif
                 }else{
                     #if PRINT_FULL_STATS == 1
@@ -770,7 +593,7 @@
                     #endif
 
                     #if PRINT_STATS == 1
-                    print_results_open_loop_standalone(results);
+                        print_results_fifoless_standalone(results);
                     #endif
                 }
             }
@@ -805,6 +628,110 @@
                     //Print/Write individual results
                     printTitleOpenLoopPoint(report_standalone, title, array_length, block_length, balance_nop);
                     exportResultsOpenLoop<elementType>(report_standalone, profiler, cpus, results_vec[idx], array_length, block_length, balance_nop, format, file, raw_file);
+                }
+            }
+        }
+
+        //Print the newline
+        #if WRITE_CSV == 1
+        fprintf(file, "\n");
+        fflush(file);
+        #endif
+
+        #if PRINT_TITLE == 1
+        tableFooter();
+        #endif
+    }
+
+    std::string tableHeaderClosedLoop(std::string title, FILE* file);
+
+    void writeRawHeaderClosedLoop(std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResults, std::ofstream* raw_file);
+
+    void printTitleClosedLoopPoint(bool report_standalone, std::string title, size_t array_length, size_t block_length, int32_t server_control_period, int32_t client_control_period, int32_t control_gain);
+
+    /**
+     * Prints a result of a 2 core open loop benchmark as well as writing it to the summary and raw CSV files.
+     * 
+     * The amount of reporting is configured using compile and runtime parameters (report_standalone, PRINT_STATS, ...).
+     * 
+     * This function is typically called in a loop to print/export all of the results (all of the configurations) of
+     * a particular benchmark run.
+     */
+    template <typename elementType>
+    void exportResultsClosedLoop(bool report_standalone, Profiler* profiler, std::vector<int> cpus, Results &results, size_t array_length, int32_t block_size, int32_t server_control_period, int32_t client_control_period, int32_t control_gain, std::string format, FILE* file, std::ofstream* raw_file){
+        #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
+            if(report_standalone)
+            {
+                if(!profiler->cpuTopology.empty()){
+                    std::vector<int> sockets;
+                    std::vector<int> cores;
+                    std::vector<int> dies;
+                    std::vector<int> threads;
+
+                    getGranularityIndexsOfInterest(cpus, profiler, sockets, cores, dies, threads);
+
+                    #if PRINT_FULL_STATS == 1
+                        results.print_statistics(sockets, dies, cores, threads, STIM_LEN);
+                    #endif
+
+                    #if PRINT_STATS == 1
+                        print_results_fifoless_standalone(results);
+                    #endif
+                }else{
+                    #if PRINT_FULL_STATS == 1
+                        results.print_statistics(0, 0, 0, cpu_a, STIM_LEN);
+                    #endif
+
+                    #if PRINT_STATS == 1
+                        print_results_fifoless_standalone(results);
+                    #endif
+                }
+            }
+            else
+            {
+                print_results_closed_loop(results, array_length, block_size, server_control_period, client_control_period, control_gain, format, file, raw_file);
+            }
+        #endif
+    }
+
+    /**
+     * Prints (and writes to the summary CSV file) a table of the results for a closed loop benchmark.
+     * 
+     * Also populates the raw CSV file with results from the benchmark
+     * 
+     * Accompishes this by repeatedly calling the exportResults function
+     */
+    template <typename elementType>
+    void printWriteClosedLoop2CoreResults(bool report_standalone, Profiler* profiler, std::vector<int> cpus, std::string title, std::vector<Results> results_vec, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int32_t> server_control_periods, std::vector<int32_t> client_control_periods, std::vector<int32_t> control_gains, std::string format, FILE* file, std::ofstream* raw_file){
+        for(int i = 0; i<array_lengths.size(); i++)
+        {
+            size_t array_length = array_lengths[i];
+            for(int j = 0; j<block_lengths.size(); j++)
+            {
+                int32_t block_length = block_lengths[j];
+                for(int k = 0; k<server_control_periods.size(); k++)
+                {
+                    int32_t server_control_period = server_control_periods[k];
+                    for(int n = 0; n<client_control_periods.size(); n++)
+                    {
+                        int32_t client_control_period = client_control_periods[n];
+                        for(int m = 0; m<control_gains.size(); m++)
+                        {
+                            int32_t control_gain = control_gains[m];
+
+                            int idx = m + 
+                                      n*control_gains.size() +
+                                      k*control_gains.size()*client_control_periods.size() + 
+                                      j*control_gains.size()*client_control_periods.size()*server_control_periods.size() +
+                                      i*control_gains.size()*client_control_periods.size()*server_control_periods.size()*block_lengths.size();
+
+                            //In this version, a row is created for each configuration (>2 dimensions)
+
+                            //Print/Write individual results
+                            printTitleClosedLoopPoint(report_standalone, title, array_length, block_length, server_control_period, client_control_period, control_gain);
+                            exportResultsClosedLoop<elementType>(report_standalone, profiler, cpus, results_vec[idx], array_length, block_length, server_control_period, client_control_period, control_gain, format, file, raw_file);
+                        }
+                    }
                 }
             }
         }

@@ -9,7 +9,7 @@
     #include <atomic>
     #include <stdlib.h>
 
-    class OpenLoopBufferEndCondition : public BenchmarkSpecificResult{
+    class FifolessBufferEndCondition : public BenchmarkSpecificResult{
     public:
         int64_t expectedBlockID;
         int64_t startBlockID;
@@ -23,7 +23,7 @@
         std::string getTrialCSVHeader() override;
         std::string getTrialCSVData() override;
 
-        OpenLoopBufferEndCondition();
+        FifolessBufferEndCondition();
     };
 
     template<typename elementType, typename atomicIdType>
