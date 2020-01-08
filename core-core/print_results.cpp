@@ -188,7 +188,7 @@ void print_results_open_loop_standalone(Results &results)
     printf("        =======================================================\n");
     printf("        Metric                   |     Avg      |    StdDev    \n");
     printf("        =======================================================\n");
-    printf("        Duration (ms)            |%14.6f|%14.6f\n", avg_duration_ms, stddev_duration_ms);
+    printf("        Duration (ms)            |%14.6e|%14.6e\n", avg_duration_ms, stddev_duration_ms);
     printf("        =======================================================\n");
 }
 

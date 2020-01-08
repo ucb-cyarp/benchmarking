@@ -15,15 +15,16 @@ std::string OpenLoopBufferEndCondition::getTrialResults(){
 
 std::string OpenLoopBufferEndCondition::getTrialCSVHeader(){
     std::string granularityStr = getGranularityStr();
-    return "\"Expected Block ID [" + granularityStr + "]\",\"Start Block ID [" + granularityStr + "]\",\"End Block ID [" + granularityStr + "]\",\"Errored [" + granularityStr + "]\",\"Error Source [" + granularityStr + "]\"";
+    return "\"Expected Block ID [" + granularityStr + "]\",\"Start Block ID [" + granularityStr + "]\",\"End Block ID [" + granularityStr + "]\",\"Errored [" + granularityStr + "]\",\"Error Source [" + granularityStr + "]\",\"Transaction [" + granularityStr + "]\"";
 }
 
 std::string OpenLoopBufferEndCondition::getTrialCSVData(){
     std::string str = std::to_string(expectedBlockID) + "," +
                       std::to_string(startBlockID) + "," +
                       std::to_string(endBlockID) + "," +
-                      (errored ? "\"Yes\"" : "\"No\"") +
-                      (wasErrorSrc ? "\"Yes\"" : "\"No\"");
+                      (errored ? "\"Yes\"" : "\"No\"") + "," +
+                      (wasErrorSrc ? "\"Yes\"" : "\"No\"") + "," +
+                      std::to_string(transaction);
     return str;
 }
 

@@ -32,11 +32,12 @@ struct OpenLoopBufferArgs{
     std::atomic_flag *stop_flag; //Used by the client to signal to the server that an error occured and that it should stop
     std::atomic_flag *ready_flag; //Used by the server to signal to the client that it is ready to begin
     int array_length; //In Blocks  //Note: The FIFO Array has an additional block allocated to resolve the Empty/Full Ambiguity
-    int max_block_transfers; //The maximum number of blocks to transfer in this test
+    int64_t max_block_transfers; //The maximum number of blocks to transfer in this test
     int ballancing_nops; //The number of NOPs to use for balancing services.  If negative, the server has NOPS, if positive, the client has NOPS
     int blockSize; //The block size (in elementType elements)
     int alignment; //The alignment in bytes of the components within the block (the IDs and the Buffer)
-    int core; //The core this is executing on
+    int core_client; //The core the client is executing on
+    int core_server; //The core the server is executing on
 };
 
 //Note: The server and client threads are different instruction streams.  One writes while the other reads and needs to check the block ids (and the block data).
@@ -190,12 +191,13 @@ void* open_loop_buffer_server(void* arg){
     indexType *write_offset_ptr = args->write_offset_ptr;
     void *array = args->array;
     int array_length = args->array_length;
-    int max_block_transfers = args->max_block_transfers;
+    int64_t max_block_transfers = args->max_block_transfers;
     std::atomic_flag *start_flag = args->start_flag;
     std::atomic_flag *stop_flag = args->stop_flag;
     std::atomic_flag *ready_flag = args->ready_flag;
     int blockSize = args->blockSize;
     int allignment = args->alignment;
+    int core = args->core_server;
 
     int ballancing_nops = args->ballancing_nops;
     int numNops = ballancing_nops < 0 ? -ballancing_nops : 0;
@@ -233,7 +235,9 @@ void* open_loop_buffer_server(void* arg){
         start = !std::atomic_flag_test_and_set_explicit(start_flag, std::memory_order_acq_rel); //Start signal is active low
     }
 
-    for(int transfer = 0; transfer<max_block_transfers; transfer++){
+    bool stop = false;
+    int64_t transfer;
+    for(transfer = 0; transfer<max_block_transfers; transfer++){
         std::atomic_signal_fence(std::memory_order_acquire); //Do not want an actual fence but do not want the write to the initial block ID to re-ordered before the write to the write ptr
         //---- Write to output buffer unconditionally (order of writing the IDs is important as they are used by the reader to detect partially valid blocks)
         //+++ Write into array +++
@@ -271,7 +275,7 @@ void* open_loop_buffer_server(void* arg){
         sampleVals = (sampleVals+1)%2;
 
         //Check stop flag
-        bool stop = !std::atomic_flag_test_and_set_explicit(stop_flag, std::memory_order_acq_rel);
+        stop = !std::atomic_flag_test_and_set_explicit(stop_flag, std::memory_order_acq_rel);
         if(stop){
             break;
         }
@@ -282,7 +286,19 @@ void* open_loop_buffer_server(void* arg){
         }
     }
 
-    return nullptr;
+    OpenLoopBufferEndCondition *rtn = new OpenLoopBufferEndCondition;
+    rtn->expectedBlockID = -1;
+    rtn->startBlockID = -1;
+    rtn->startBlockID = -1;
+    rtn->wasErrorSrc = false;
+    rtn->errored = stop;
+    rtn->resultGranularity = HW_Granularity::CORE;
+    rtn->granularityIndex = core;
+    rtn->transaction = transfer;
+
+    return (void*) rtn;
+
+    // return nullptr;
 }
 
 //The client is the one that should be measuring time since it is what detects errors
@@ -293,11 +309,13 @@ void* open_loop_buffer_client(void* arg){
     indexType *read_offset_ptr = args->read_offset_ptr;
     void *array = args->array;
     int array_length = args->array_length;
-    int max_block_transfers = args->max_block_transfers;
+    int64_t max_block_transfers = args->max_block_transfers;
     std::atomic_flag *start_flag = args->start_flag;
     std::atomic_flag *stop_flag = args->stop_flag;
     std::atomic_flag *ready_flag = args->ready_flag;
     int blockSize = args->blockSize;
+
+    int core = args->core_client;
 
     int ballancing_nops = args->ballancing_nops;
     int numNops = ballancing_nops > 0 ? ballancing_nops : 0;
@@ -326,6 +344,8 @@ void* open_loop_buffer_client(void* arg){
     //Load the initial read offset
     indexLocalType readOffset = std::atomic_load_explicit(read_offset_ptr, std::memory_order_acquire);
 
+    int numberInitBlocks = array_length/2; //Initialize FIFO to be half full (round down if odd number)
+
     //Wait for ready
     bool ready = false;
     while(!ready){
@@ -337,8 +357,8 @@ void* open_loop_buffer_client(void* arg){
     std::atomic_flag_clear_explicit(start_flag, std::memory_order_release);
 
     bool failureDetected = false;
-
-    for(int transfer = 0; transfer<max_block_transfers; transfer++){
+    int64_t transfer;
+    for(transfer = 0; transfer<(max_block_transfers+numberInitBlocks); transfer++){ //Need to do numberInitBlocks extra reads
         //---- Read from Input Buffer Unconditionally ----
         //Load Read Ptr
         if (readOffset >= array_length) //(note, there is an extra array element)
@@ -376,6 +396,7 @@ void* open_loop_buffer_client(void* arg){
         if(expectedBlockID != newBlockIDStart || expectedBlockID != newBlockIDEnd){
             //Will signal failure outside of loop
             failureDetected = true;
+            readBlockInd = expectedBlockID;
             break;
         }
         readBlockInd = expectedBlockID;
@@ -403,11 +424,12 @@ void* open_loop_buffer_client(void* arg){
     OpenLoopBufferEndCondition *rtn = new OpenLoopBufferEndCondition;
     rtn->expectedBlockID = readBlockInd;
     rtn->startBlockID = newBlockIDStart;
-    rtn->startBlockID = newBlockIDEnd;
+    rtn->endBlockID = newBlockIDEnd;
     rtn->wasErrorSrc = true;
     rtn->errored = failureDetected;
     rtn->resultGranularity = HW_Granularity::CORE;
-    rtn->granularityIndex = args->core;
+    rtn->granularityIndex = core;
+    rtn->transaction = transfer;
 
     return (void*) rtn;
 }

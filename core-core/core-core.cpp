@@ -390,14 +390,14 @@ int main(int argc, char *argv[])
 
     #if TEST_OPEN_LOOP == 1
     //=====Test 5 - Open Loop=====
-    size_t open_loop_array_length_start = 1;
-    size_t open_loop_array_length_end = 129;
+    size_t open_loop_array_length_start = 60;
+    size_t open_loop_array_length_end = 69;
 
-    int32_t open_loop_block_size_start = 1;
-    int32_t open_loop_block_size_end = 129;
+    int32_t open_loop_block_size_start = 28;
+    int32_t open_loop_block_size_end = 35;
 
-    int32_t open_loop_balancing_nops_start = -50;
-    int32_t open_loop_balancing_nops_end = 51;
+    int32_t open_loop_balancing_nops_start = -10;
+    int32_t open_loop_balancing_nops_end = 10;
 
     int open_loop_alignment = 4; //Align to 4 byte (32 bit) words
     int open_loop_max_block_transfers = 2000000000;

@@ -706,7 +706,7 @@
     std::string tableHeaderOpenLoop(std::string title, FILE* file);
     void printTitleOpenLoopPoint(bool report_standalone, std::string title, size_t array_length, size_t block_length, int nops);
 
-    void writeRawHeaderOpenLoop(std::shared_ptr<BenchmarkSpecificResult> implSpecificResult, std::ofstream* raw_file);
+    void writeRawHeaderOpenLoop(std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResults, std::ofstream* raw_file);
 
     /**
      * Prints a result of a 2 core open loop benchmark as well as writing it to the summary and raw CSV files.

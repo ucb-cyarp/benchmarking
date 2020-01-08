@@ -3,7 +3,7 @@
 #include "open_loop_helpers.h"
 
 //MAKE A 2D Table
-void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int32_t> balance_nops, int alignment, int max_block_transfers, FILE* file, std::ofstream* raw_file)
+void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int32_t> balance_nops, int alignment, int64_t max_block_transfers, FILE* file, std::ofstream* raw_file)
 {
     int32_t data_col_width = 10;
 
@@ -49,7 +49,8 @@ void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<
                 args[idx].ballancing_nops = balance_nop;
                 args[idx].blockSize = block_length;
                 args[idx].alignment = alignment;
-                args[idx].core = cpus[0]; //This is the client CPU since the server does not report benchmark specific results
+                args[idx].core_server = cpus[0]; //The server is the secondary but is placed on cpu a to have the typical transfer from cpu_a -> cpu_b
+                args[idx].core_client = cpus[1]; //The client is the primary but is placed on cpu b
             }
         }
     }
@@ -60,7 +61,7 @@ void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<
                                                                     open_loop_buffer_server<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, INT32_MAX>,
                                                                     open_loop_buffer_reset<int32_t, std::atomic_int32_t, std::atomic_int32_t>,
                                                                     open_loop_buffer_cleanup<int32_t, std::atomic_int32_t, std::atomic_int32_t>, 
-                                                                    args, args, args, cpus[0], cpus[1], num_experiments);
+                                                                    args, args, args, cpus[1], cpus[0], num_experiments);
 
     //==== Process Results ====
     if(results_vec.size() != num_experiments){
@@ -73,13 +74,13 @@ void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<
     }
 
     //==== Write Raw Headers (Done after the experiment is run because we need the benchmark specific results to get the header information) ====
-    std::shared_ptr<BenchmarkSpecificResult> implSpecificResultExample = nullptr;
+    std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResultExamples;
     if(results_vec[0].trial_results.size() > 0){
         if(results_vec[0].trial_results[0].benchmarkSpecificResults.size() > 0){
-            implSpecificResultExample = results_vec[0].trial_results[0].benchmarkSpecificResults[0];
+            implSpecificResultExamples = results_vec[0].trial_results[0].benchmarkSpecificResults;
         }
     }
-    writeRawHeaderOpenLoop(implSpecificResultExample, raw_file);
+    writeRawHeaderOpenLoop(implSpecificResultExamples, raw_file);
 
     //Print results
     printWriteOpenLoop2CoreResults<int32_t>(false, profiler, cpus, "Open Loop - One Way", results_vec, array_lengths, block_lengths, balance_nops, format, file, raw_file);

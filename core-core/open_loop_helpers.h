@@ -16,6 +16,7 @@
         int64_t endBlockID;
         bool wasErrorSrc;
         bool errored;
+        int64_t transaction;
 
         std::string getTrialResultsHeader() override;
         std::string getTrialResults() override;

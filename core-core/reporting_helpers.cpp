@@ -116,7 +116,7 @@ void printTitleFIFO(std::string title, int columns, int column_width){
  */
 void writeCSVSummaryHeaderOpenLoop(FILE* file){
     #if WRITE_CSV == 1
-    fprintf(file, "\"Array Length (Blocks)\",\"Block Size (int32_t Elements)\",\"Balancing NOPs\",\"Time To Failure (ns) - Avg\",\"Time to Failure (ns) - StdDev\"\n");
+    fprintf(file, "\"Array Length (Blocks)\",\"Block Size (int32_t Elements)\",\"Balancing NOPs\",\"Time To Failure (ns) - Avg\",\"Time to Failure (ms) - StdDev\"\n");
     fflush(file);
     #endif
 }
@@ -129,7 +129,7 @@ std::string tableHeaderOpenLoop(std::string title, FILE* file){
         printf("\n");
         printTitle(title);
         printf("        ====================================================================================\n");
-        printf("          Array Length  |      Block Size      |  Balancing NOPs  |  Time to Failure (ns)   \n");
+        printf("          Array Length  |      Block Size      |  Balancing NOPs  |  Time to Failure (ms)   \n");
         printf("            (Blocks)    |  (int32_t Elements)  |                  |      Avg, StdDev        \n");
         printf("        ====================================================================================\n");
 
@@ -138,7 +138,7 @@ std::string tableHeaderOpenLoop(std::string title, FILE* file){
 
     writeCSVSummaryHeaderOpenLoop(file);
 
-    return "%16d|%22d|%18d|%12.6f, %12.6f\n";
+    return "        %15d | %20d | %16d | %10.4e, %10.4e\n";
 }
 
 /**
@@ -214,7 +214,7 @@ void printTitleOpenLoopPoint(bool report_standalone, std::string title, size_t a
     #endif
 }
 
-void writeRawHeaderOpenLoop(std::shared_ptr<BenchmarkSpecificResult> implSpecificResult, std::ofstream* raw_file){
+void writeRawHeaderOpenLoop(std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResults, std::ofstream* raw_file){
     #if WRITE_CSV == 1
         *raw_file << "\"Array Length (Blocks)\","
                   << "\"Block Size (int32_t Elements)\","
@@ -223,9 +223,11 @@ void writeRawHeaderOpenLoop(std::shared_ptr<BenchmarkSpecificResult> implSpecifi
                   << "\"Clock - Cycles/Cycle Time (ms)\","
                   << "\"Clock - rdtsc\"";
 
-        if(implSpecificResult != nullptr){
-            std::string trialCSVHeader = implSpecificResult->getTrialCSVHeader();
-            *raw_file << trialCSVHeader;
+        for(int i = 0; i<implSpecificResults.size(); i++){
+            if(implSpecificResults[i] != nullptr){
+                std::string trialCSVHeader = implSpecificResults[i]->getTrialCSVHeader();
+                *raw_file << "," << trialCSVHeader;
+            }
         }
 
         *raw_file << std::endl;
