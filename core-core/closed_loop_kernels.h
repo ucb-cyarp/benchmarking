@@ -16,5 +16,5 @@
 
     #include <algorithm>
 
-    void run_closed_loop_bang_control_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int32_t> server_control_period, std::vector<int32_t> client_control_period, std::vector<int32_t> control_gain, int alignment, int64_t max_block_transfers, FILE* file, std::ofstream* raw_file);
+    void run_closed_loop_bang_control_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int32_t> server_control_period, std::vector<int32_t> client_control_period, std::vector<int32_t> control_gain, std::vector<int> initial_nops, int alignment, int64_t max_block_transfers, FILE* file, std::ofstream* raw_file);
 #endif

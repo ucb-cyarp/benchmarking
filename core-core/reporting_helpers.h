@@ -555,7 +555,7 @@
     
     void writeCSVSummaryHeaderOpenLoop(FILE* file);
     std::string tableHeaderOpenLoop(std::string title, FILE* file);
-    void printTitleOpenLoopPoint(bool report_standalone, std::string title, size_t array_length, size_t block_length, int nops);
+    void printTitleOpenLoopPoint(bool report_standalone, std::string title, size_t array_length, size_t block_length, int balancing_nops, int initial_nops);
 
     void writeRawHeaderOpenLoop(std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResults, std::ofstream* raw_file);
 
@@ -568,7 +568,7 @@
      * a particular benchmark run.
      */
     template <typename elementType>
-    void exportResultsOpenLoop(bool report_standalone, Profiler* profiler, std::vector<int> cpus, Results &results, size_t array_length, int32_t block_size, int32_t balance_nops, std::string format, FILE* file, std::ofstream* raw_file){
+    void exportResultsOpenLoop(bool report_standalone, Profiler* profiler, std::vector<int> cpus, Results &results, size_t array_length, int32_t block_size, int32_t balance_nops, int initial_nops, std::string format, FILE* file, std::ofstream* raw_file){
         #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
             if(report_standalone)
             {
@@ -599,7 +599,7 @@
             }
             else
             {
-                print_results_open_loop(results, array_length, block_size, balance_nops, format, file, raw_file);
+                print_results_open_loop(results, array_length, block_size, balance_nops, initial_nops, format, file, raw_file);
             }
         #endif
     }
@@ -612,7 +612,7 @@
      * Accompishes this by repeatedly calling the exportResults function
      */
     template <typename elementType>
-    void printWriteOpenLoop2CoreResults(bool report_standalone, Profiler* profiler, std::vector<int> cpus, std::string title, std::vector<Results> results_vec, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int32_t> balance_nops, std::string format, FILE* file, std::ofstream* raw_file){
+    void printWriteOpenLoop2CoreResults(bool report_standalone, Profiler* profiler, std::vector<int> cpus, std::string title, std::vector<Results> results_vec, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int32_t> balance_nops, std::vector<int> initial_nops, std::string format, FILE* file, std::ofstream* raw_file){
         for(int i = 0; i<array_lengths.size(); i++)
         {
             size_t array_length = array_lengths[i];
@@ -621,13 +621,19 @@
                 int32_t block_length = block_lengths[j];
                 for(int k = 0; k<balance_nops.size(); k++){
                     int32_t balance_nop = balance_nops[k];
-                    int idx = k+j*balance_nops.size()+i*block_lengths.size()*balance_nops.size();
+                    for(int l = 0; l<initial_nops.size(); l++){
+                        int initial_nop = initial_nops[l];
+                        int idx = l+
+                                k*initial_nops.size()+
+                                j*initial_nops.size()*balance_nops.size()+
+                                i*initial_nops.size()*balance_nops.size()*block_lengths.size();
 
-                    //In this version, a row is created for each configuration (>2 dimensions)
+                        //In this version, a row is created for each configuration (>2 dimensions)
 
-                    //Print/Write individual results
-                    printTitleOpenLoopPoint(report_standalone, title, array_length, block_length, balance_nop);
-                    exportResultsOpenLoop<elementType>(report_standalone, profiler, cpus, results_vec[idx], array_length, block_length, balance_nop, format, file, raw_file);
+                        //Print/Write individual results
+                        printTitleOpenLoopPoint(report_standalone, title, array_length, block_length, balance_nop, initial_nop);
+                        exportResultsOpenLoop<elementType>(report_standalone, profiler, cpus, results_vec[idx], array_length, block_length, balance_nop, initial_nop, format, file, raw_file);
+                    }
                 }
             }
         }
@@ -647,7 +653,7 @@
 
     void writeRawHeaderClosedLoop(std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResults, std::ofstream* raw_file);
 
-    void printTitleClosedLoopPoint(bool report_standalone, std::string title, size_t array_length, size_t block_length, int32_t server_control_period, int32_t client_control_period, int32_t control_gain);
+    void printTitleClosedLoopPoint(bool report_standalone, std::string title, size_t array_length, size_t block_length, int32_t server_control_period, int32_t client_control_period, int32_t control_gain, int initial_nop);
 
     /**
      * Prints a result of a 2 core open loop benchmark as well as writing it to the summary and raw CSV files.
@@ -658,7 +664,7 @@
      * a particular benchmark run.
      */
     template <typename elementType>
-    void exportResultsClosedLoop(bool report_standalone, Profiler* profiler, std::vector<int> cpus, Results &results, size_t array_length, int32_t block_size, int32_t server_control_period, int32_t client_control_period, int32_t control_gain, std::string format, FILE* file, std::ofstream* raw_file){
+    void exportResultsClosedLoop(bool report_standalone, Profiler* profiler, std::vector<int> cpus, Results &results, size_t array_length, int32_t block_size, int32_t server_control_period, int32_t client_control_period, int32_t control_gain, int initial_nop, std::string format, FILE* file, std::ofstream* raw_file){
         #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
             if(report_standalone)
             {
@@ -689,7 +695,7 @@
             }
             else
             {
-                print_results_closed_loop(results, array_length, block_size, server_control_period, client_control_period, control_gain, format, file, raw_file);
+                print_results_closed_loop(results, array_length, block_size, server_control_period, client_control_period, control_gain, initial_nop, format, file, raw_file);
             }
         #endif
     }
@@ -702,39 +708,43 @@
      * Accompishes this by repeatedly calling the exportResults function
      */
     template <typename elementType>
-    void printWriteClosedLoop2CoreResults(bool report_standalone, Profiler* profiler, std::vector<int> cpus, std::string title, std::vector<Results> results_vec, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int32_t> server_control_periods, std::vector<int32_t> client_control_periods, std::vector<int32_t> control_gains, std::string format, FILE* file, std::ofstream* raw_file){
-        for(int i = 0; i<array_lengths.size(); i++)
+    void printWriteClosedLoop2CoreResults(bool report_standalone, Profiler* profiler, std::vector<int> cpus, std::string title, std::vector<Results> results_vec, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int32_t> server_control_periods, std::vector<int32_t> client_control_periods, std::vector<int32_t> control_gains, std::vector<int> initial_nops, std::string format, FILE* file, std::ofstream* raw_file){
+    for(int i = 0; i<array_lengths.size(); i++)
+    {
+        size_t array_length = array_lengths[i];
+        for(int j = 0; j<block_lengths.size(); j++)
         {
-            size_t array_length = array_lengths[i];
-            for(int j = 0; j<block_lengths.size(); j++)
+            int32_t block_length = block_lengths[j];
+            for(int k = 0; k<server_control_periods.size(); k++)
             {
-                int32_t block_length = block_lengths[j];
-                for(int k = 0; k<server_control_periods.size(); k++)
+                int32_t server_control_period = server_control_periods[k];
+                for(int n = 0; n<client_control_periods.size(); n++)
                 {
-                    int32_t server_control_period = server_control_periods[k];
-                    for(int n = 0; n<client_control_periods.size(); n++)
+                    int32_t client_control_period = client_control_periods[n];
+                    for(int m = 0; m<control_gains.size(); m++)
                     {
-                        int32_t client_control_period = client_control_periods[n];
-                        for(int m = 0; m<control_gains.size(); m++)
-                        {
-                            int32_t control_gain = control_gains[m];
+                        int32_t control_gain = control_gains[m];
+                        for(int l = 0; l<initial_nops.size(); l++){
+                            int initial_nop = initial_nops[l];
 
-                            int idx = m + 
-                                      n*control_gains.size() +
-                                      k*control_gains.size()*client_control_periods.size() + 
-                                      j*control_gains.size()*client_control_periods.size()*server_control_periods.size() +
-                                      i*control_gains.size()*client_control_periods.size()*server_control_periods.size()*block_lengths.size();
+                            int idx = l + 
+                                    m*initial_nops.size() + 
+                                    n*initial_nops.size()*control_gains.size() +
+                                    k*initial_nops.size()*control_gains.size()*client_control_periods.size() + 
+                                    j*initial_nops.size()*control_gains.size()*client_control_periods.size()*server_control_periods.size() +
+                                    i*initial_nops.size()*control_gains.size()*client_control_periods.size()*server_control_periods.size()*block_lengths.size();
 
                             //In this version, a row is created for each configuration (>2 dimensions)
 
                             //Print/Write individual results
-                            printTitleClosedLoopPoint(report_standalone, title, array_length, block_length, server_control_period, client_control_period, control_gain);
-                            exportResultsClosedLoop<elementType>(report_standalone, profiler, cpus, results_vec[idx], array_length, block_length, server_control_period, client_control_period, control_gain, format, file, raw_file);
+                            printTitleClosedLoopPoint(report_standalone, title, array_length, block_length, server_control_period, client_control_period, control_gain, initial_nop);
+                            exportResultsClosedLoop<elementType>(report_standalone, profiler, cpus, results_vec[idx], array_length, block_length, server_control_period, client_control_period, control_gain, initial_nop, format, file, raw_file);
                         }
                     }
                 }
             }
         }
+    }
 
         //Print the newline
         #if WRITE_CSV == 1

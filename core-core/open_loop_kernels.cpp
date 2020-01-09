@@ -3,7 +3,7 @@
 #include "open_loop_helpers.h"
 
 //MAKE A 2D Table
-void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int32_t> balance_nops, int alignment, int64_t max_block_transfers, FILE* file, std::ofstream* raw_file)
+void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int32_t> balance_nops, std::vector<int> initial_nops, int alignment, int64_t max_block_transfers, FILE* file, std::ofstream* raw_file)
 {
     int32_t data_col_width = 10;
 
@@ -36,21 +36,28 @@ void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<
             int32_t block_length = block_lengths[j];
             for(int k = 0; k<balance_nops.size(); k++){
                 int32_t balance_nop = balance_nops[k];
-                int idx = k+j*balance_nops.size()+i*block_lengths.size()*balance_nops.size();
+                for(int l = 0; l<initial_nops.size(); l++){
+                    int initial_nop = initial_nops[l];
+                    int idx = l+
+                              k*initial_nops.size()+
+                              j*initial_nops.size()*balance_nops.size()+
+                              i*initial_nops.size()*balance_nops.size()*block_lengths.size();
 
-                args[idx].read_offset_ptr = shared_read_id_locs[0];
-                args[idx].write_offset_ptr = shared_write_id_locs[0];
-                args[idx].array = shared_array_locs[0];
-                args[idx].start_flag = start_flags[0];
-                args[idx].stop_flag = stop_flag;
-                args[idx].ready_flag = ready_flags[0];
-                args[idx].array_length = array_length;
-                args[idx].max_block_transfers = max_block_transfers;
-                args[idx].ballancing_nops = balance_nop;
-                args[idx].blockSize = block_length;
-                args[idx].alignment = alignment;
-                args[idx].core_server = cpus[0]; //The server is the secondary but is placed on cpu a to have the typical transfer from cpu_a -> cpu_b
-                args[idx].core_client = cpus[1]; //The client is the primary but is placed on cpu b
+                    args[idx].read_offset_ptr = shared_read_id_locs[0];
+                    args[idx].write_offset_ptr = shared_write_id_locs[0];
+                    args[idx].array = shared_array_locs[0];
+                    args[idx].start_flag = start_flags[0];
+                    args[idx].stop_flag = stop_flag;
+                    args[idx].ready_flag = ready_flags[0];
+                    args[idx].array_length = array_length;
+                    args[idx].max_block_transfers = max_block_transfers;
+                    args[idx].ballancing_nops = balance_nop;
+                    args[idx].blockSize = block_length;
+                    args[idx].alignment = alignment;
+                    args[idx].core_server = cpus[0]; //The server is the secondary but is placed on cpu a to have the typical transfer from cpu_a -> cpu_b
+                    args[idx].core_client = cpus[1]; //The client is the primary but is placed on cpu b
+                    args[idx].initialNOPs = initial_nop;
+                }
             }
         }
     }
@@ -83,7 +90,7 @@ void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<
     writeRawHeaderOpenLoop(implSpecificResultExamples, raw_file);
 
     //Print results
-    printWriteOpenLoop2CoreResults<int32_t>(false, profiler, cpus, "Open Loop - One Way", results_vec, array_lengths, block_lengths, balance_nops, format, file, raw_file);
+    printWriteOpenLoop2CoreResults<int32_t>(false, profiler, cpus, "Open Loop - One Way", results_vec, array_lengths, block_lengths, balance_nops, initial_nops, format, file, raw_file);
 
     //==== Cleanup ====
     destructSharedIDs(shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag);

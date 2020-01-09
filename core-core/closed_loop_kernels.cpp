@@ -3,7 +3,7 @@
 #include "closed_loop_helpers.h"
 
 //MAKE A 2D Table
-void run_closed_loop_bang_control_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int32_t> server_control_periods, std::vector<int32_t> client_control_periods, std::vector<int32_t> control_gains, int alignment, int64_t max_block_transfers, FILE* file, std::ofstream* raw_file)
+void run_closed_loop_bang_control_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int32_t> server_control_periods, std::vector<int32_t> client_control_periods, std::vector<int32_t> control_gains, std::vector<int> initial_nops, int alignment, int64_t max_block_transfers, FILE* file, std::ofstream* raw_file)
 {
     int32_t data_col_width = 10;
 
@@ -45,29 +45,34 @@ void run_closed_loop_bang_control_kernel(Profiler* profiler, int cpu_a, int cpu_
                     for(int m = 0; m<control_gains.size(); m++)
                     {
                         int32_t control_gain = control_gains[m];
+                        for(int l = 0; l<initial_nops.size(); l++){
+                            int initial_nop = initial_nops[l];
 
-                        int idx = m + 
-                                  n*control_gains.size() +
-                                  k*control_gains.size()*client_control_periods.size() + 
-                                  j*control_gains.size()*client_control_periods.size()*server_control_periods.size() +
-                                  i*control_gains.size()*client_control_periods.size()*server_control_periods.size()*block_lengths.size();
+                            int idx = l + 
+                                    m*initial_nops.size() + 
+                                    n*initial_nops.size()*control_gains.size() +
+                                    k*initial_nops.size()*control_gains.size()*client_control_periods.size() + 
+                                    j*initial_nops.size()*control_gains.size()*client_control_periods.size()*server_control_periods.size() +
+                                    i*initial_nops.size()*control_gains.size()*client_control_periods.size()*server_control_periods.size()*block_lengths.size();
 
-                        args[idx].read_offset_ptr = shared_read_id_locs[0];
-                        args[idx].write_offset_ptr = shared_write_id_locs[0];
-                        args[idx].array = shared_array_locs[0];
-                        args[idx].start_flag = start_flags[0];
-                        args[idx].stop_flag = stop_flag;
-                        args[idx].ready_flag = ready_flags[0];
-                        args[idx].array_length = array_length;
-                        args[idx].max_block_transfers = max_block_transfers;
-                        args[idx].blockSize = block_length;
-                        args[idx].control_check_period = server_control_period;
-                        args[idx].control_client_check_period = client_control_period;
-                        args[idx].control_gain = control_gain;
-                        args[idx].clientNops = nopsControl[0];
-                        args[idx].alignment = alignment;
-                        args[idx].core_server = cpus[0]; //The server is the secondary but is placed on cpu a to have the typical transfer from cpu_a -> cpu_b
-                        args[idx].core_client = cpus[1]; //The client is the primary but is placed on cpu b
+                            args[idx].read_offset_ptr = shared_read_id_locs[0];
+                            args[idx].write_offset_ptr = shared_write_id_locs[0];
+                            args[idx].array = shared_array_locs[0];
+                            args[idx].start_flag = start_flags[0];
+                            args[idx].stop_flag = stop_flag;
+                            args[idx].ready_flag = ready_flags[0];
+                            args[idx].array_length = array_length;
+                            args[idx].max_block_transfers = max_block_transfers;
+                            args[idx].blockSize = block_length;
+                            args[idx].control_check_period = server_control_period;
+                            args[idx].control_client_check_period = client_control_period;
+                            args[idx].control_gain = control_gain;
+                            args[idx].clientNops = nopsControl[0];
+                            args[idx].alignment = alignment;
+                            args[idx].core_server = cpus[0]; //The server is the secondary but is placed on cpu a to have the typical transfer from cpu_a -> cpu_b
+                            args[idx].core_client = cpus[1]; //The client is the primary but is placed on cpu b
+                            args[idx].initialNops = initial_nop;
+                        }
                     }
                 }
             }
@@ -102,7 +107,7 @@ void run_closed_loop_bang_control_kernel(Profiler* profiler, int cpu_a, int cpu_
     writeRawHeaderClosedLoop(implSpecificResultExamples, raw_file);
 
     //Print results
-    printWriteClosedLoop2CoreResults<int32_t>(false, profiler, cpus, "Closed Loop (Bang Control) - One Way", results_vec, array_lengths, block_lengths, server_control_periods, client_control_periods, control_gains, format, file, raw_file);
+    printWriteClosedLoop2CoreResults<int32_t>(false, profiler, cpus, "Closed Loop (Bang Control) - One Way", results_vec, array_lengths, block_lengths, server_control_periods, client_control_periods, control_gains, initial_nops, format, file, raw_file);
 
     //==== Cleanup ====
     destructSharedIDs(shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, nopsControl);

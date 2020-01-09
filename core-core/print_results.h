@@ -15,6 +15,6 @@
     void print_results_blocked_fifo_standalone(Results &results, int elements_per_trial, int block_length, int bytes_per_element);
     void print_results_blocked_fifo(Results &results, int elements_per_trial, int length, int block_length, int bytes_per_element, std::string format, FILE* file=NULL, std::ofstream* raw_file=NULL);
     void print_results_fifoless_standalone(Results &results);
-    void print_results_open_loop(Results &results, size_t array_length, int32_t block_length, int32_t nops, std::string format, FILE* file, std::ofstream* raw_file);
-    void print_results_closed_loop(Results &results, size_t array_length, int32_t block_length, int32_t server_control_period, int32_t client_control_period, int32_t control_gain, std::string format, FILE* file, std::ofstream* raw_file);
+    void print_results_open_loop(Results &results, size_t array_length, int32_t block_length, int32_t balancing_nops, int initial_nops, std::string format, FILE* file, std::ofstream* raw_file);
+    void print_results_closed_loop(Results &results, size_t array_length, int32_t block_length, int32_t server_control_period, int32_t client_control_period, int32_t control_gain, int initial_nop, std::string format, FILE* file, std::ofstream* raw_file);
 #endif

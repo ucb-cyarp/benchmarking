@@ -42,6 +42,7 @@ struct ClosedLoopBufferArgs{
     int alignment; //The alignment in bytes of the components within the block (the IDs and the Buffer)
     int core_client; //The core the client is executing on
     int core_server; //The core the server is executing on
+    int initialNops; //The initial NOPs for the client and server
 };
 
 //Note: The server and client threads are different instruction streams.  One writes while the other reads and needs to check the block ids (and the block data).
@@ -71,7 +72,7 @@ void* closed_loop_buffer_reset(void* arg){
     int numberInitBlocks = args->array_length/2; //Initialize FIFO to be half full (round down if odd number)
 
     //Reset the clientNops control
-    std::atomic_store_explicit(args->clientNops, 0, std::memory_order_relaxed);
+    std::atomic_store_explicit(args->clientNops, args->initialNops, std::memory_order_relaxed);
 
     //Reset the index pointers (they are initialized outside)
     std::atomic_store_explicit(args->read_offset_ptr, 0, std::memory_order_relaxed); //Initialized to 0.  This is the index last read.  Index 1 contains the first initial value
@@ -223,7 +224,7 @@ void* closed_loop_buffer_bang_control_server(void* arg){
     int32_t control_check_period = args->control_check_period;
     int32_t control_gain = args->control_gain;
 
-    nopsClientLocalType nops_server = 0;
+    nopsClientLocalType nops_server = args->initialNops;
     nopsClientLocalType nops_client_local = std::atomic_load_explicit(clientNops, std::memory_order_acquire);
 
     int halfFilledPoint = array_length/2; //Initialize FIFO to be half full (round down if odd number)
@@ -327,7 +328,11 @@ void* closed_loop_buffer_bang_control_server(void* arg){
 
                 //First check if the client can be speed up
                 if(nops_client_local>0){
-                    nops_client_local -= control_gain; //The client nops should not drop below 0 because they are initialized to 0 and the gain never changes over a single trial
+                    nops_client_local -= control_gain; 
+                    if(nops_client_local<0){ //If the number of NOPS went negative, shift the difference to the server
+                        nops_server-=nops_client_local;
+                        nops_client_local=0;
+                    }
                     std::atomic_store_explicit(clientNops, nops_client_local, std::memory_order_release);
                 }else{
                     //Slow down the server
@@ -339,7 +344,12 @@ void* closed_loop_buffer_bang_control_server(void* arg){
 
                 //First, check if the server can be sped up
                 if(nops_server > 0){
-                    nops_server -= control_gain; //The server nops should not drop below 0 because they are initialized to 0 and the gain never changes over a single trial
+                    nops_server -= control_gain;
+                    if(nops_server<0){ //If the number of NOPS went negative, shift the difference to the client
+                        nops_client_local-=nops_server;
+                        nops_server=0;
+                        std::atomic_store_explicit(clientNops, nops_client_local, std::memory_order_release);
+                    }
                 }else{
                     nops_client_local += control_gain;
                     std::atomic_store_explicit(clientNops, nops_client_local, std::memory_order_release);

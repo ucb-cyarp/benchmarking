@@ -400,6 +400,8 @@ int main(int argc, char *argv[])
     int32_t open_loop_balancing_nops_start = -10;
     int32_t open_loop_balancing_nops_end = 10;
 
+    std::vector<int> open_loop_initial_nops = {0, 100, 500, 1000};
+
     int open_loop_alignment = 4; //Align to 4 byte (32 bit) words
     int open_loop_max_block_transfers = 2000000000;
 
@@ -428,7 +430,7 @@ int main(int argc, char *argv[])
     open_loop_raw_csv_file.open("report_open_loop_raw.csv", std::ofstream::out);
     #endif
 
-    run_open_loop_kernel(profiler, cpu_a, cpu_b, open_loop_array_lengths, open_loop_block_sizes, open_loop_balancing_nops, open_loop_alignment, open_loop_max_block_transfers, open_loop_csv_file, &open_loop_raw_csv_file);
+    run_open_loop_kernel(profiler, cpu_a, cpu_b, open_loop_array_lengths, open_loop_block_sizes, open_loop_balancing_nops, open_loop_initial_nops, open_loop_alignment, open_loop_max_block_transfers, open_loop_csv_file, &open_loop_raw_csv_file);
 
     fclose(open_loop_csv_file);
     open_loop_raw_csv_file.close();
@@ -453,6 +455,8 @@ int main(int argc, char *argv[])
     int32_t closed_loop_control_gain_start = 0;
     int32_t closed_loop_control_gain_step = 1;
     int32_t closed_loop_control_gain_end = 2000;
+
+    std::vector<int> closed_loop_initial_nops = {0, 100, 500, 1000};
 
     int closed_loop_alignment = 4; //Align to 4 byte (32 bit) words
     int closed_loop_max_block_transfers = 200000;
@@ -487,6 +491,7 @@ int main(int argc, char *argv[])
         closed_loop_control_gains.push_back(i);
     }
 
+
     FILE* closed_loop_bang_control_csv_file = NULL;
     std::ofstream closed_loop_bang_control_raw_csv_file;
     #if WRITE_CSV == 1
@@ -494,7 +499,7 @@ int main(int argc, char *argv[])
     closed_loop_bang_control_raw_csv_file.open("report_closed_loop_bang_control_raw.csv", std::ofstream::out);
     #endif
 
-    run_closed_loop_bang_control_kernel(profiler, cpu_a, cpu_b, closed_loop_array_lengths, closed_loop_block_sizes, closed_loop_control_periods, closed_loop_client_control_periods, closed_loop_control_gains, closed_loop_alignment, closed_loop_max_block_transfers, closed_loop_bang_control_csv_file, &closed_loop_bang_control_raw_csv_file);
+    run_closed_loop_bang_control_kernel(profiler, cpu_a, cpu_b, closed_loop_array_lengths, closed_loop_block_sizes, closed_loop_control_periods, closed_loop_client_control_periods, closed_loop_control_gains, closed_loop_initial_nops, closed_loop_alignment, closed_loop_max_block_transfers, closed_loop_bang_control_csv_file, &closed_loop_bang_control_raw_csv_file);
 
     fclose(closed_loop_bang_control_csv_file);
     closed_loop_bang_control_raw_csv_file.close();

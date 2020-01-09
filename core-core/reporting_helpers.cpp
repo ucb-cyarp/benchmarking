@@ -168,17 +168,17 @@ std::string tableHeaderOpenLoop(std::string title, FILE* file){
     #if PRINT_TITLE == 1
         printf("\n");
         printTitle(title);
-        printf("        ====================================================================================\n");
-        printf("          Array Length  |      Block Size      |  Balancing NOPs  |  Time to Failure (ms)   \n");
-        printf("            (Blocks)    |  (int32_t Elements)  |                  |      Avg, StdDev        \n");
-        printf("        ====================================================================================\n");
+        printf("        ==================================================================================================\n");
+        printf("          Array Length  |      Block Size      |  Balancing NOPs  | Initial NOPs | Time to Failure (ms)   \n");
+        printf("            (Blocks)    |  (int32_t Elements)  |                  |              | Avg, StdDev            \n");
+        printf("        ==================================================================================================\n");
 
         fflush(stdout);
     #endif
 
     writeCSVSummaryHeaderOpenLoop(file);
 
-    return "        %15d | %20d | %16d | %10.4e, %10.4e\n";
+    return "        %15d | %20d | %16d | %12d | %10.4e, %10.4e\n";
 }
 
 /**
@@ -242,13 +242,13 @@ void printTitleFIFOPoint(bool report_standalone, std::string title, size_t array
 /**
  * Prints information about a proceeding open loop data point to the console if reporting in standalone mode.
  */
-void printTitleOpenLoopPoint(bool report_standalone, std::string title, size_t array_length, size_t block_length, int nops){
+void printTitleOpenLoopPoint(bool report_standalone, std::string title, size_t array_length, size_t block_length, int balancing_nops, int initial_nops){
     #if PRINT_TITLE == 1
     if(report_standalone)
     {
         printf("\n");
         printTitle(title);
-        printf("Array Length: %lu Blocks, Block Length: %lu int32_t Elements, Balancing NOPs: %d\n", array_length, block_length, nops);
+        printf("Array Length: %lu Blocks, Block Length: %lu int32_t Elements, Balancing NOPs: %d, Initial NOPs: %d\n", array_length, block_length, balancing_nops, initial_nops);
         fflush(stdout);
     }
     #endif
@@ -259,6 +259,7 @@ void writeRawHeaderOpenLoop(std::vector<std::shared_ptr<BenchmarkSpecificResult>
         *raw_file << "\"Array Length (Blocks)\","
                   << "\"Block Size (int32_t Elements)\","
                   << "\"Balancing NOPs\","
+                  << "\"Initial NOPs\","
                   << "\"Steady Clock - Walltime (ms)\","
                   << "\"Clock - Cycles/Cycle Time (ms)\","
                   << "\"Clock - rdtsc\"";
@@ -283,17 +284,17 @@ std::string tableHeaderClosedLoop(std::string title, FILE* file){
     #if PRINT_TITLE == 1
         printf("\n");
         printTitle(title);
-        printf("        ==========================================================================================================================\n");
-        printf("          Array Length  |      Block Size      | Server Control      | Client Control      | Control Gain |  Time to Failure (ms) \n");
-        printf("            (Blocks)    |  (int32_t Elements)  | Period (Iterations) | Period (Iterations) |    (NOPs)    |      Avg, StdDev      \n");
-        printf("        ==========================================================================================================================\n");
+        printf("        ====================================================================================================================================\n");
+        printf("          Array Length  |      Block Size      | Server Control      | Client Control      | Control Gain | Initial |  Time to Failure (ms) \n");
+        printf("            (Blocks)    |  (int32_t Elements)  | Period (Iterations) | Period (Iterations) |    (NOPs)    |   NOPs  |      Avg, StdDev      \n");
+        printf("        ====================================================================================================================================\n");
 
         fflush(stdout);
     #endif
 
     writeCSVSummaryHeaderOpenLoop(file);
 
-    return "         %14d | %20d | %19d | %19d | %12d | %10.4e, %10.4e\n";
+    return "         %14d | %20d | %19d | %19d | %12d | %7d | %10.4e, %10.4e\n";
 }
 
 void writeRawHeaderClosedLoop(std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResults, std::ofstream* raw_file){
@@ -303,6 +304,7 @@ void writeRawHeaderClosedLoop(std::vector<std::shared_ptr<BenchmarkSpecificResul
                   << "\"Server Control Period (Iterations)\","
                   << "\"Client Control Period (Iterations)\","
                   << "\"Control Gain (NOPs)\","
+                  << "\"Initial NOPs\","
                   << "\"Steady Clock - Walltime (ms)\","
                   << "\"Clock - Cycles/Cycle Time (ms)\","
                   << "\"Clock - rdtsc\"";
@@ -323,13 +325,13 @@ void writeRawHeaderClosedLoop(std::vector<std::shared_ptr<BenchmarkSpecificResul
 /**
  * Prints information about a proceeding open loop data point to the console if reporting in standalone mode.
  */
-void printTitleClosedLoopPoint(bool report_standalone, std::string title, size_t array_length, size_t block_length, int32_t server_control_period, int32_t client_control_period, int32_t control_gain){
+void printTitleClosedLoopPoint(bool report_standalone, std::string title, size_t array_length, size_t block_length, int32_t server_control_period, int32_t client_control_period, int32_t control_gain, int initial_nop){
     #if PRINT_TITLE == 1
     if(report_standalone)
     {
         printf("\n");
         printTitle(title);
-        printf("Array Length (Blocks): %lu, Block Length (int32_t Elements): %lu, Server Control Period (Iterations): %d, Client Control Period (Iterations): %d, Control Gain (NOPs): %d\n", array_length, block_length, server_control_period, client_control_period, control_gain);
+        printf("Array Length (Blocks): %lu, Block Length (int32_t Elements): %lu, Server Control Period (Iterations): %d, Client Control Period (Iterations): %d, Control Gain (NOPs): %d, Initial NOPs: %d\n", array_length, block_length, server_control_period, client_control_period, control_gain, initial_nop);
         fflush(stdout);
     }
     #endif

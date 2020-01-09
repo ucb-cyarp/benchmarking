@@ -38,6 +38,7 @@ struct OpenLoopBufferArgs{
     int alignment; //The alignment in bytes of the components within the block (the IDs and the Buffer)
     int core_client; //The core the client is executing on
     int core_server; //The core the server is executing on
+    int initialNOPs; //The initial NOPs in the reader and writer.
 };
 
 //Note: The server and client threads are different instruction streams.  One writes while the other reads and needs to check the block ids (and the block data).
@@ -201,6 +202,7 @@ void* open_loop_buffer_server(void* arg){
 
     int ballancing_nops = args->ballancing_nops;
     int numNops = ballancing_nops < 0 ? -ballancing_nops : 0;
+    numNops += args->initialNOPs;
 
     //printf("Config: Array Len: %d, Block Size: %d, NOPs %d\n", array_length, blockSize, ballancing_nops);
 
@@ -319,6 +321,7 @@ void* open_loop_buffer_client(void* arg){
 
     int ballancing_nops = args->ballancing_nops;
     int numNops = ballancing_nops > 0 ? ballancing_nops : 0;
+    numNops += args->initialNOPs;
 
     elementType expectedSampleVals = 0;
     idLocalType readBlockInd = 0;
