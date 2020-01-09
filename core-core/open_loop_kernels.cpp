@@ -24,7 +24,7 @@ void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<
     openLoopAllocate<int32_t, std::atomic_int32_t, std::atomic_int32_t>(shared_array_locs, shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, array_lengths, block_lengths, cpus, alignment, false, false);
 
     //==== Create Configurations for each experiment ====
-    int num_experiments = array_lengths.size() * block_lengths.size() * balance_nops.size();
+    int num_experiments = array_lengths.size() * block_lengths.size() * balance_nops.size() * initial_nops.size();
 
     OpenLoopBufferArgs<int32_t, std::atomic_int32_t, std::atomic_int32_t>* args = new OpenLoopBufferArgs<int32_t, std::atomic_int32_t, std::atomic_int32_t>[num_experiments];
 

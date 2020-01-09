@@ -26,7 +26,7 @@ void run_closed_loop_bang_control_kernel(Profiler* profiler, int cpu_a, int cpu_
     closedLoopAllocate<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic_int32_t>(shared_array_locs, shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, nopsControl, array_lengths, block_lengths, cpus, alignment, false, false);
 
     //==== Create Configurations for each experiment ====
-    int num_experiments = array_lengths.size() * block_lengths.size() * server_control_periods.size() * client_control_periods.size() * control_gains.size();
+    int num_experiments = array_lengths.size() * block_lengths.size() * server_control_periods.size() * client_control_periods.size() * control_gains.size() * initial_nops.size();
 
     ClosedLoopBufferArgs<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic_int32_t>* args = new ClosedLoopBufferArgs<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic_int32_t>[num_experiments];
 
