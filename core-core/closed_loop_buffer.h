@@ -326,18 +326,8 @@ void* closed_loop_buffer_bang_control_server(void* arg){
                 //Above the set point, speed up the client or slow down the server
                 slowDownCount++;
 
-                //First check if the client can be speed up
-                if(nops_client_local>0){
-                    nops_client_local -= control_gain; 
-                    if(nops_client_local<0){ //If the number of NOPS went negative, shift the difference to the server
-                        nops_server-=nops_client_local;
-                        nops_client_local=0;
-                    }
-                    std::atomic_store_explicit(clientNops, nops_client_local, std::memory_order_release);
-                }else{
-                    //Slow down the server
-                    nops_server += control_gain;
-                }
+                //Slow down the server
+                nops_server += control_gain;
             }else if(numEntries<halfFilledPoint){
                 //Below the set point, speed up the server or slow down the client
                 speedUpCount++;
