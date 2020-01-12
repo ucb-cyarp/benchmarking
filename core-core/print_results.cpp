@@ -206,18 +206,3 @@ void print_results_open_loop(Results &results, size_t array_length, int32_t bloc
     results.write_durations_and_benchmark_specific_results(*raw_file, {"", "", ""}, {std::to_string(array_length), std::to_string(block_length), std::to_string(balancing_nops), std::to_string(initial_nops)}, false);
     #endif
 }
-
-void print_results_closed_loop(Results &results, size_t array_length, int32_t block_length, int32_t server_control_period, int32_t client_control_period, int32_t control_gain, int initial_nop, std::string format, FILE* file, std::ofstream* raw_file)
-{
-    double avg_duration_ms = results.avg_duration();
-    double stddev_duration_ms = results.stddev_duration();
-
-    #if PRINT_STATS == 1
-    printf(format.c_str(), array_length, block_length, server_control_period, client_control_period, control_gain, initial_nop, avg_duration_ms, stddev_duration_ms);
-    #endif
-
-    #if WRITE_CSV == 1
-    fprintf(file, "%ld,%d,%d,%d,%d,%d,%f,%f\n", array_length, block_length, server_control_period, client_control_period, control_gain, initial_nop, avg_duration_ms, stddev_duration_ms);
-    results.write_durations_and_benchmark_specific_results(*raw_file, {"", "", "", "", "", ""}, {std::to_string(array_length), std::to_string(block_length), std::to_string(server_control_period), std::to_string(client_control_period), std::to_string(control_gain), std::to_string(initial_nop)}, false);
-    #endif
-}

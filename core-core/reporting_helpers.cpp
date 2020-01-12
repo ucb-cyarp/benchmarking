@@ -280,7 +280,7 @@ void writeRawHeaderOpenLoop(std::vector<std::shared_ptr<BenchmarkSpecificResult>
 /**
  * Prints the table header to the consile for the closed loop benchmarks.  Also writes the summary csv file header.
  */
-std::string tableHeaderClosedLoop(std::string title, FILE* file){
+std::string tableHeaderClosedLoopBang(std::string title, FILE* file){
     #if PRINT_TITLE == 1
         printf("\n");
         printTitle(title);
@@ -297,7 +297,7 @@ std::string tableHeaderClosedLoop(std::string title, FILE* file){
     return "         %14d | %20d | %19d | %19d | %12d | %7d | %10.4e, %10.4e\n";
 }
 
-void writeRawHeaderClosedLoop(std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResults, std::ofstream* raw_file){
+void writeRawHeaderClosedLoopBang(std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResults, std::ofstream* raw_file){
     #if WRITE_CSV == 1
         *raw_file << "\"Array Length (Blocks)\","
                   << "\"Block Size (int32_t Elements)\","
@@ -323,16 +323,59 @@ void writeRawHeaderClosedLoop(std::vector<std::shared_ptr<BenchmarkSpecificResul
 }
 
 /**
- * Prints information about a proceeding open loop data point to the console if reporting in standalone mode.
+ * Prints the table header to the consile for the closed loop benchmarks.  Also writes the summary csv file header.
  */
-void printTitleClosedLoopPoint(bool report_standalone, std::string title, size_t array_length, size_t block_length, int32_t server_control_period, int32_t client_control_period, int32_t control_gain, int initial_nop){
+std::string tableHeaderClosedLoopPI(std::string title, FILE* file){
     #if PRINT_TITLE == 1
-    if(report_standalone)
-    {
         printf("\n");
         printTitle(title);
-        printf("Array Length (Blocks): %lu, Block Length (int32_t Elements): %lu, Server Control Period (Iterations): %d, Client Control Period (Iterations): %d, Control Gain (NOPs): %d, Initial NOPs: %d\n", array_length, block_length, server_control_period, client_control_period, control_gain, initial_nop);
+        printf("        =======================================================================================================================================================\n");
+        printf("          Array Length  |      Block Size      | Server Control      | Client Control      | Control Gain P | Control Gain I | Initial |  Time to Failure (ms) \n");
+        printf("            (Blocks)    |  (int32_t Elements)  | Period (Iterations) | Period (Iterations) |    (NOPs)      |    (NOPs)      |  NOPs   |      Avg, StdDev      \n");
+        printf("        =======================================================================================================================================================\n");
+
         fflush(stdout);
-    }
+    #endif
+
+    writeCSVSummaryHeaderOpenLoop(file);
+
+    return "         %14d | %20d | %19d | %19d | %14d | %14d | %7d | %10.4e, %10.4e\n";
+}
+
+void writeRawHeaderClosedLoopPI(std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResults, std::ofstream* raw_file){
+    #if WRITE_CSV == 1
+        *raw_file << "\"Array Length (Blocks)\","
+                  << "\"Block Size (int32_t Elements)\","
+                  << "\"Server Control Period (Iterations)\","
+                  << "\"Client Control Period (Iterations)\","
+                  << "\"Control Gain P (NOPs)\","
+                  << "\"Control Gain I (NOPs)\","
+                  << "\"Initial NOPs\","
+                  << "\"Steady Clock - Walltime (ms)\","
+                  << "\"Clock - Cycles/Cycle Time (ms)\","
+                  << "\"Clock - rdtsc\"";
+
+        for(int i = 0; i<implSpecificResults.size(); i++){
+            if(implSpecificResults[i] != nullptr){
+                std::string trialCSVHeader = implSpecificResults[i]->getTrialCSVHeader();
+                *raw_file << "," << trialCSVHeader;
+            }
+        }
+
+        *raw_file << std::endl;
+
+        raw_file->flush();
+    #endif
+}
+
+void closeEntry(FILE* file, std::ofstream* raw_file){
+    //Print the newline
+    #if WRITE_CSV == 1
+    fprintf(file, "\n");
+    fflush(file);
+    #endif
+
+    #if PRINT_TITLE == 1
+    tableFooter();
     #endif
 }

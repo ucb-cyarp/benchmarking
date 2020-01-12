@@ -4,12 +4,86 @@
 #include "intrin_bench_default_defines.h"
 #include "results.h"
 #include "mallocHelpers.h"
+#include "reporting_helpers.h"
 #include "open_loop_helpers.h"
 
 #include <vector>
 #include <atomic>
 #include <stdlib.h>
 #include <stdint.h>
+
+template<typename elementType, 
+         typename idType = std::atomic_int32_t, 
+         typename indexType = std::atomic_int32_t, 
+         typename nopsClient = std::atomic_int32_t> //Note, this can be changed to a float for PI controllers
+class ClosedLoopBufferArgs : public Config{
+public:
+    indexType *read_offset_ptr;
+    indexType *write_offset_ptr;
+    void *array;
+    std::atomic_flag *start_flag; //Used by the client to signal to the server that it should start writing
+    std::atomic_flag *stop_flag; //Used by the client to signal to the server that an error occured and that it should stop
+    std::atomic_flag *ready_flag; //Used by the server to signal to the client that it is ready to begin
+    int array_length; //In Blocks  //Note: The FIFO Array has an additional block allocated to resolve the Empty/Full Ambiguity
+    int64_t max_block_transfers; //The maximum number of blocks to transfer in this test
+    int blockSize; //The block size (in elementType elements)
+    nopsClient *clientNops; //A pointer to a shared integer which controls how many nops per loop itteration the client uses
+    int32_t control_check_period; //The number of itterations of the main loop between control checks on the controller side
+    int32_t control_client_check_period; //The number of itterations of the main loop before the client checks for a new control signal
+    int alignment; //The alignment in bytes of the components within the block (the IDs and the Buffer)
+    int core_client; //The core the client is executing on
+    int core_server; //The core the server is executing on
+    int initialNops; //The initial NOPs for the client and server
+
+    void printStandaloneTitle(bool report_standalone, std::string title) = 0; //Prints the standalone title block if standalone results are requested
+    void printExportCorrespondingResult(Results &result, bool report_standalone, std::string title, Profiler* profiler, std::vector<int> cpus, std::string resultPrintFormatStr, FILE* file, std::ofstream* raw_file);
+protected:
+    virtual void printExportNonStandaloneResults(Results &result, bool report_standalone, std::string resultPrintFormatStr, FILE* file, std::ofstream* raw_file) = 0;
+};
+
+template<typename elementType, 
+         typename idType, 
+         typename indexType, 
+         typename nopsClient>
+void ClosedLoopBufferArgs<elementType, idType, indexType, nopsClient>::printExportCorrespondingResult(Results &result, bool report_standalone, std::string title, Profiler* profiler, std::vector<int> cpus, std::string resultPrintFormatStr, FILE* file, std::ofstream* raw_file){
+    printStandaloneTitle(report_standalone, title); //This can be overridden by subclasses to report more information
+
+    //Report the results
+    #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
+        if(report_standalone)
+        {
+            if(!profiler->cpuTopology.empty()){
+                std::vector<int> sockets;
+                std::vector<int> cores;
+                std::vector<int> dies;
+                std::vector<int> threads;
+
+                getGranularityIndexsOfInterest(cpus, profiler, sockets, cores, dies, threads);
+
+                #if PRINT_FULL_STATS == 1
+                    results.print_statistics(sockets, dies, cores, threads, STIM_LEN);
+                #endif
+
+                #if PRINT_STATS == 1
+                    print_results_fifoless_standalone(result);
+                #endif
+            }else{
+                #if PRINT_FULL_STATS == 1
+                    results.print_statistics(0, 0, 0, cpu_a, STIM_LEN);
+                #endif
+
+                #if PRINT_STATS == 1
+                    print_results_fifoless_standalone(result);
+                #endif
+            }
+        }
+        else
+        {
+            printExportNonStandaloneResults(result, report_standalone, resultPrintFormatStr, file, raw_file); //This can be overridden by subclasses to report more information
+        }
+    #endif
+
+}
 
 //See ==== Entries Available to read ==== In Lockless Thread Crossing FIFO (coppied here for convenience):
 /*
@@ -65,8 +139,8 @@ size_t closedLoopAllocate(std::vector<elementType*> &shared_array_locs, std::vec
 
     for(int i = 1; i<cpus.size(); i++){//Do not need one for the controller
         nopCountType *nopControl = (nopCountType*) aligned_alloc_core(CACHE_LINE_SIZE, sizeof(nopCountType), cpus[i]);
-        nopCountType *nopControlConstructed = new (nopControl) nopCountType();
-        std::atomic_init(nopControl, 0); //Init of the shared ptrs
+        nopCountType *nopControlConstructed = new (nopControl) nopCountType(0);
+        //std::atomic_init(nopControl, 0); //Init of the shared ptrs
         nopControls.push_back(nopControl);
     }
 
@@ -80,6 +154,302 @@ void destructSharedIDs(std::vector<atomicIndexType*> &shared_write_id_locs, std:
     for(int i = 0; i<nopControl.size(); i++){
         nopControl[i]->~nopCountType();
     }
+}
+
+template<typename elementType, 
+         typename idType = std::atomic_int32_t, 
+         typename indexType = std::atomic_int32_t, 
+         typename nopsClientType = std::atomic_int32_t,
+         typename nopsClientTypeLocal = int32_t>
+void* closed_loop_buffer_reset(void* arg){
+    ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType> *args = (ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType>*) arg;
+
+    int blockArrayBytes;
+    int blockArrayPaddingBytes;
+    int blockArrayCombinedBytes;
+    int idBytes;
+    int idPaddingBytes;
+    int idCombinedBytes;
+    int blockSizeBytes;
+
+    getBlockSizing<elementType, indexType>(args->blockSize, args->alignment, blockArrayBytes, blockArrayPaddingBytes, 
+    blockArrayCombinedBytes, idBytes, idPaddingBytes, idCombinedBytes, blockSizeBytes);
+
+    std::atomic_thread_fence(std::memory_order_acquire);
+
+    int numberInitBlocks = args->array_length/2; //Initialize FIFO to be half full (round down if odd number)
+
+    //Reset the clientNops control
+    std::atomic_store_explicit(args->clientNops, (nopsClientTypeLocal) args->initialNops, std::memory_order_relaxed);
+
+    //Reset the index pointers (they are initialized outside)
+    std::atomic_store_explicit(args->read_offset_ptr, 0, std::memory_order_relaxed); //Initialized to 0.  This is the index last read.  Index 1 contains the first initial value
+    std::atomic_store_explicit(args->write_offset_ptr, numberInitBlocks+1, std::memory_order_relaxed); //Initialized to index after that last initial value in the FIFO (note, the initial elements start at index 1)
+
+    //=== Init ===
+    //Reset the block ids and data
+    //Init ID Zero
+    idType *block_id_start = (idType*) (((char*) args->array));
+    idType *block_id_start_constructed = new (block_id_start) idType();
+    std::atomic_init(block_id_start, 0);
+    std::atomic_store_explicit(block_id_start, 0, std::memory_order_relaxed);
+
+    elementType *data_array = (elementType*) (((char*) args->array) + idCombinedBytes);
+    for(int j = 0; j<args->blockSize; j++){
+        data_array[j] = -1;
+    }
+
+    idType *block_id_end = (idType*) (((char*) args->array) + idCombinedBytes + blockArrayCombinedBytes);
+    idType *block_id_end_constructed = new (block_id_end) idType();
+    std::atomic_init(block_id_end, 0);
+    std::atomic_store_explicit(block_id_end, 0, std::memory_order_relaxed);
+
+    //Initial Conditions
+    for(int i = 1; i<numberInitBlocks+1; i++){
+        idType *block_id_start = (idType*) (((char*) args->array) + i*blockSizeBytes);
+        idType *block_id_start_constructed = new (block_id_start) idType();
+        std::atomic_init(block_id_start, i);
+        std::atomic_store_explicit(block_id_start, i, std::memory_order_relaxed);
+
+        elementType *data_array = (elementType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes);
+        for(int j = 0; j<args->blockSize; j++){
+            data_array[j] = (i+1)%2;
+        }
+        
+        idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        idType *block_id_end_constructed = new (block_id_end) idType();
+        std::atomic_init(block_id_end, i);
+        std::atomic_store_explicit(block_id_end, i, std::memory_order_relaxed);
+    }
+
+    //Init After
+    for(int i = numberInitBlocks+1; i <= args->array_length; i++){ //Note, there is an extra element in the array
+        idType *block_id_start = (idType*) (((char*) args->array) + i*blockSizeBytes);
+        idType *block_id_start_constructed = new (block_id_start) idType();
+        std::atomic_init(block_id_start, 0);
+        std::atomic_store_explicit(block_id_start, 0, std::memory_order_relaxed);
+
+        elementType *data_array = (elementType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes);
+        for(int j = 0; j<args->blockSize; j++){
+            data_array[j] = -1;
+        }
+        
+        idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        idType *block_id_end_constructed = new (block_id_end) idType();
+        std::atomic_init(block_id_end, 0);
+        std::atomic_store_explicit(block_id_end, 0, std::memory_order_relaxed);
+    }
+    
+    //Flags are initialized and destructed outside
+    std::atomic_flag_test_and_set_explicit(args->start_flag, std::memory_order_relaxed);
+    std::atomic_flag_test_and_set_explicit(args->stop_flag, std::memory_order_relaxed);
+    std::atomic_flag_test_and_set_explicit(args->ready_flag, std::memory_order_relaxed);
+
+    std::atomic_thread_fence(std::memory_order_release);
+}
+
+template<typename elementType, 
+         typename idType = std::atomic_int32_t, 
+         typename indexType = std::atomic_int32_t, 
+         typename nopsClientType = std::atomic_int32_t>
+void* closed_loop_buffer_cleanup(void* arg){
+    ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType> *args = (ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType>*) arg;
+
+    int blockArrayBytes;
+    int blockArrayPaddingBytes;
+    int blockArrayCombinedBytes;
+    int idBytes;
+    int idPaddingBytes;
+    int idCombinedBytes;
+    int blockSizeBytes;
+
+    getBlockSizing<elementType, indexType>(args->blockSize, args->alignment, blockArrayBytes, blockArrayPaddingBytes, 
+    blockArrayCombinedBytes, idBytes, idPaddingBytes, idCombinedBytes, blockSizeBytes);
+
+    std::atomic_thread_fence(std::memory_order_acquire);
+
+    int numberInitBlocks = args->array_length/2; //Initialize FIFO to be half full (round down if odd number)
+
+    std::atomic_thread_fence(std::memory_order_acquire);
+
+    //=== Init ===
+    //Reset the block ids and data
+    //Init ID Zero
+    idType *block_id_start = (idType*) (((char*) args->array));
+    block_id_start->~idType();
+
+    idType *block_id_end = (idType*) (((char*) args->array) + idCombinedBytes + blockArrayCombinedBytes);
+    block_id_end->~idType();
+
+    //Initial Conditions
+    for(int i = 1; i<numberInitBlocks+1; i++){
+        idType *block_id_start = (idType*) (((char*) args->array) + i*blockSizeBytes);
+        block_id_start->~idType();
+        
+        idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        block_id_end->~idType();
+    }
+
+    //Init After
+    for(int i = numberInitBlocks+1; i <= args->array_length; i++){ //Note, there is an extra element in the array
+        idType *block_id_start = (idType*) (((char*) args->array) + i*blockSizeBytes);
+        block_id_start->~idType();
+        
+        idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        block_id_end->~idType();
+    }
+
+    std::atomic_thread_fence(std::memory_order_release);
+}
+
+//The client is the one that should be measuring time since it is what detects errors
+//Make the client the primary (ie. in the client server runner, swap the functions given as the client and the server)
+template<typename elementType, 
+         typename idType = std::atomic_int32_t, 
+         typename indexType = std::atomic_int32_t, 
+         typename idLocalType = int32_t, 
+         typename indexLocalType = int32_t, 
+         typename nopsClientType = std::atomic_int32_t, 
+         typename nopsClientLocalType = int32_t, 
+         int idMax = INT32_MAX>
+void* closed_loop_buffer_client(void* arg){
+    ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType>* args = (ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType>*) arg;
+    indexType *read_offset_ptr = args->read_offset_ptr;
+    void *array = args->array;
+    int array_length = args->array_length;
+    int64_t max_block_transfers = args->max_block_transfers;
+    std::atomic_flag *start_flag = args->start_flag;
+    std::atomic_flag *stop_flag = args->stop_flag;
+    std::atomic_flag *ready_flag = args->ready_flag;
+    int blockSize = args->blockSize;
+
+    int core = args->core_client;
+
+    int32_t control_client_check_period = args->control_client_check_period;
+    nopsClientType *clientNops = args->clientNops;
+    nopsClientLocalType clientNopsLocal = std::atomic_load_explicit(clientNops, std::memory_order_acquire);
+    
+    elementType expectedSampleVals = 0;
+    idLocalType readBlockInd = 0;
+
+    idLocalType newBlockIDStart = -1;
+    idLocalType newBlockIDEnd = -1;
+
+    idLocalType expectedBlockID = -1;
+
+    elementType localBuffer[blockSize];
+
+    int blockArrayBytes;
+    int blockArrayPaddingBytes;
+    int blockArrayCombinedBytes;
+    int idBytes;
+    int idPaddingBytes;
+    int idCombinedBytes;
+    int blockSizeBytes;
+
+    getBlockSizing<elementType, idType>(args->blockSize, args->alignment, blockArrayBytes, blockArrayPaddingBytes, 
+    blockArrayCombinedBytes, idBytes, idPaddingBytes, idCombinedBytes, blockSizeBytes);
+
+    //Load the initial read offset
+    indexLocalType readOffset = std::atomic_load_explicit(read_offset_ptr, std::memory_order_acquire);
+
+    int numberInitBlocks = array_length/2; //Initialize FIFO to be half full (round down if odd number)
+
+    //Wait for ready
+    bool ready = false;
+    while(!ready){
+        ready = !std::atomic_flag_test_and_set_explicit(ready_flag, std::memory_order_acq_rel);
+    }
+
+    //Singal start
+    std::atomic_thread_fence(std::memory_order_acquire);
+    std::atomic_flag_clear_explicit(start_flag, std::memory_order_release);
+
+    bool failureDetected = false;
+    int64_t transfer;
+    int32_t controlCounter = 0;
+    for(transfer = 0; transfer<(max_block_transfers+numberInitBlocks); transfer++){ //Need to do numberInitBlocks extra reads
+        //---- Read from Input Buffer Unconditionally ----
+        //Load Read Ptr
+        if (readOffset >= array_length) //(note, there is an extra array element)
+        {
+            readOffset = 0;
+        }
+        else
+        {
+            readOffset++;
+        }
+
+        //+++ Read from array +++
+        //The end ID is read first to check that the values being read from the array were completly written before this thread started reading.
+        idType *block_id_end = (idType*) (((char*) array) + readOffset*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        newBlockIDEnd = std::atomic_load_explicit(block_id_end, std::memory_order_acquire);
+        
+        //Read elements
+        //Read backwards to avoid cache thrashing
+        elementType *data_array = (elementType*) (((char*) array) + readOffset*blockSizeBytes + idCombinedBytes);
+        for(int sample = blockSize-1; sample>=0; sample--){
+            localBuffer[sample] = data_array[sample];
+        }
+
+        //The start ID is read last to check that the block was not being overwritten while the data was being read
+        std::atomic_signal_fence(std::memory_order_release); //Do not want an actual fence but do not want sample reading to be re-ordered before the end block ID read
+        idType *block_id_start = (idType*) (((char*) array) + readOffset*blockSizeBytes);
+        newBlockIDStart = std::atomic_load_explicit(block_id_start, std::memory_order_acquire);
+        //+++ End read from array +++
+
+        //Update Read Ptr
+        std::atomic_store_explicit(read_offset_ptr, readOffset, std::memory_order_release);
+
+        //Check the read block IDs
+        expectedBlockID = readBlockInd == UINT32_MAX ? 0 : readBlockInd+1;
+        if(expectedBlockID != newBlockIDStart || expectedBlockID != newBlockIDEnd){
+            //Will signal failure outside of loop
+            failureDetected = true;
+            readBlockInd = expectedBlockID;
+            break;
+        }
+        readBlockInd = expectedBlockID;
+
+        //Check elements
+        for(int sample = 0; sample<blockSize; sample++){
+            if(localBuffer[sample] != expectedSampleVals){
+                std::cerr << "Unexpected array data!" << std::endl;
+                exit(1);
+            }
+        }
+
+        expectedSampleVals = (expectedSampleVals+1)%2;
+
+        //Check for new control
+        if(controlCounter < control_client_check_period){
+            controlCounter++;
+        }else{
+            controlCounter = 0;
+
+            clientNopsLocal = std::atomic_load_explicit(clientNops, std::memory_order_acquire);
+        }
+
+        //Perform NOPs
+        for(nopsClientLocalType nop = 0; nop<clientNopsLocal; nop++){
+            asm volatile ("nop" : : :);
+        }
+    }
+
+    std::atomic_thread_fence(std::memory_order_acquire);
+    std::atomic_flag_clear_explicit(stop_flag, std::memory_order_release);
+
+    FifolessBufferEndCondition *rtn = new FifolessBufferEndCondition;
+    rtn->expectedBlockID = readBlockInd;
+    rtn->startBlockID = newBlockIDStart;
+    rtn->endBlockID = newBlockIDEnd;
+    rtn->wasErrorSrc = true;
+    rtn->errored = failureDetected;
+    rtn->resultGranularity = HW_Granularity::CORE;
+    rtn->granularityIndex = core;
+    rtn->transaction = transfer;
+
+    return (void*) rtn;
 }
 
 #endif

@@ -9,6 +9,13 @@
     #include "print_results.h"
     #include "intrin_bench_default_defines_and_imports_cpp.h"
 
+    //A base class for configurations which allows us to write generic reporting functions
+    class Config{
+    public:
+        virtual void printStandaloneTitle(bool report_standalone, std::string title) = 0; //Prints the standalone title block if standalone results are requested
+        virtual void printExportCorrespondingResult(Results &result, bool report_standalone, std::string title, Profiler* profiler, std::vector<int> cpus, std::string resultPrintFormatStr, FILE* file, std::ofstream* raw_file) = 0; //Prints the results to the console and writes to CSV files  Does not close the entry in the CSV files to allow more information to be written by dubclasses
+    };
+
     void printTitle(std::string title);
     
     void printTitleArray(bool report_standalone, std::string title, size_t array_length);
@@ -649,112 +656,12 @@
         #endif
     }
 
-    std::string tableHeaderClosedLoop(std::string title, FILE* file);
+    std::string tableHeaderClosedLoopBang(std::string title, FILE* file);
+    void writeRawHeaderClosedLoopBang(std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResults, std::ofstream* raw_file);
 
-    void writeRawHeaderClosedLoop(std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResults, std::ofstream* raw_file);
+    std::string tableHeaderClosedLoopPI(std::string title, FILE* file);
+    void writeRawHeaderClosedLoopPI(std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResults, std::ofstream* raw_file);
 
-    void printTitleClosedLoopPoint(bool report_standalone, std::string title, size_t array_length, size_t block_length, int32_t server_control_period, int32_t client_control_period, int32_t control_gain, int initial_nop);
-
-    /**
-     * Prints a result of a 2 core open loop benchmark as well as writing it to the summary and raw CSV files.
-     * 
-     * The amount of reporting is configured using compile and runtime parameters (report_standalone, PRINT_STATS, ...).
-     * 
-     * This function is typically called in a loop to print/export all of the results (all of the configurations) of
-     * a particular benchmark run.
-     */
-    template <typename elementType>
-    void exportResultsClosedLoop(bool report_standalone, Profiler* profiler, std::vector<int> cpus, Results &results, size_t array_length, int32_t block_size, int32_t server_control_period, int32_t client_control_period, int32_t control_gain, int initial_nop, std::string format, FILE* file, std::ofstream* raw_file){
-        #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
-            if(report_standalone)
-            {
-                if(!profiler->cpuTopology.empty()){
-                    std::vector<int> sockets;
-                    std::vector<int> cores;
-                    std::vector<int> dies;
-                    std::vector<int> threads;
-
-                    getGranularityIndexsOfInterest(cpus, profiler, sockets, cores, dies, threads);
-
-                    #if PRINT_FULL_STATS == 1
-                        results.print_statistics(sockets, dies, cores, threads, STIM_LEN);
-                    #endif
-
-                    #if PRINT_STATS == 1
-                        print_results_fifoless_standalone(results);
-                    #endif
-                }else{
-                    #if PRINT_FULL_STATS == 1
-                        results.print_statistics(0, 0, 0, cpu_a, STIM_LEN);
-                    #endif
-
-                    #if PRINT_STATS == 1
-                        print_results_fifoless_standalone(results);
-                    #endif
-                }
-            }
-            else
-            {
-                print_results_closed_loop(results, array_length, block_size, server_control_period, client_control_period, control_gain, initial_nop, format, file, raw_file);
-            }
-        #endif
-    }
-
-    /**
-     * Prints (and writes to the summary CSV file) a table of the results for a closed loop benchmark.
-     * 
-     * Also populates the raw CSV file with results from the benchmark
-     * 
-     * Accompishes this by repeatedly calling the exportResults function
-     */
-    template <typename elementType>
-    void printWriteClosedLoop2CoreResults(bool report_standalone, Profiler* profiler, std::vector<int> cpus, std::string title, std::vector<Results> results_vec, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int32_t> server_control_periods, std::vector<int32_t> client_control_periods, std::vector<int32_t> control_gains, std::vector<int> initial_nops, std::string format, FILE* file, std::ofstream* raw_file){
-    for(int i = 0; i<array_lengths.size(); i++)
-    {
-        size_t array_length = array_lengths[i];
-        for(int j = 0; j<block_lengths.size(); j++)
-        {
-            int32_t block_length = block_lengths[j];
-            for(int k = 0; k<server_control_periods.size(); k++)
-            {
-                int32_t server_control_period = server_control_periods[k];
-                for(int n = 0; n<client_control_periods.size(); n++)
-                {
-                    int32_t client_control_period = client_control_periods[n];
-                    for(int m = 0; m<control_gains.size(); m++)
-                    {
-                        int32_t control_gain = control_gains[m];
-                        for(int l = 0; l<initial_nops.size(); l++){
-                            int initial_nop = initial_nops[l];
-
-                            int idx = l + 
-                                    m*initial_nops.size() + 
-                                    n*initial_nops.size()*control_gains.size() +
-                                    k*initial_nops.size()*control_gains.size()*client_control_periods.size() + 
-                                    j*initial_nops.size()*control_gains.size()*client_control_periods.size()*server_control_periods.size() +
-                                    i*initial_nops.size()*control_gains.size()*client_control_periods.size()*server_control_periods.size()*block_lengths.size();
-
-                            //In this version, a row is created for each configuration (>2 dimensions)
-
-                            //Print/Write individual results
-                            printTitleClosedLoopPoint(report_standalone, title, array_length, block_length, server_control_period, client_control_period, control_gain, initial_nop);
-                            exportResultsClosedLoop<elementType>(report_standalone, profiler, cpus, results_vec[idx], array_length, block_length, server_control_period, client_control_period, control_gain, initial_nop, format, file, raw_file);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-        //Print the newline
-        #if WRITE_CSV == 1
-        fprintf(file, "\n");
-        fflush(file);
-        #endif
-
-        #if PRINT_TITLE == 1
-        tableFooter();
-        #endif
-    }
+    void closeEntry(FILE* file, std::ofstream* raw_file);
 
 #endif

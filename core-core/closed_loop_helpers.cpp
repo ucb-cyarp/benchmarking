@@ -1,4 +1,6 @@
 #include "closed_loop_helpers.h"
+#include "profiler.h"
+#include "print_results.h"
 
 // int64_t controlChecks;
 // int64_t speed_up_count;
