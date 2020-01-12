@@ -51,7 +51,7 @@ void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<
                     args[idx].ready_flag = ready_flags[0];
                     args[idx].array_length = array_length;
                     args[idx].max_block_transfers = max_block_transfers;
-                    args[idx].ballancing_nops = balance_nop;
+                    args[idx].balancing_nops = balance_nop;
                     args[idx].blockSize = block_length;
                     args[idx].alignment = alignment;
                     args[idx].core_server = cpus[0]; //The server is the secondary but is placed on cpu a to have the typical transfer from cpu_a -> cpu_b
@@ -90,7 +90,11 @@ void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<
     writeRawHeaderOpenLoop(implSpecificResultExamples, raw_file);
 
     //Print results
-    printWriteOpenLoop2CoreResults<int32_t>(false, profiler, cpus, "Open Loop - One Way", results_vec, array_lengths, block_lengths, balance_nops, initial_nops, format, file, raw_file);
+    for(int i = 0; i<results_vec.size(); i++){
+        args[i].printExportCorrespondingResult(results_vec[i], false, "Open Loop - One Way", profiler, cpus, format, file, raw_file);
+    }
+
+    closeEntry(file, raw_file);
 
     //==== Cleanup ====
     destructSharedIDs(shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag);

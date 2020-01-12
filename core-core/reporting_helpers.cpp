@@ -239,21 +239,6 @@ void printTitleFIFOPoint(bool report_standalone, std::string title, size_t array
     #endif
 }
 
-/**
- * Prints information about a proceeding open loop data point to the console if reporting in standalone mode.
- */
-void printTitleOpenLoopPoint(bool report_standalone, std::string title, size_t array_length, size_t block_length, int balancing_nops, int initial_nops){
-    #if PRINT_TITLE == 1
-    if(report_standalone)
-    {
-        printf("\n");
-        printTitle(title);
-        printf("Array Length: %lu Blocks, Block Length: %lu int32_t Elements, Balancing NOPs: %d, Initial NOPs: %d\n", array_length, block_length, balancing_nops, initial_nops);
-        fflush(stdout);
-    }
-    #endif
-}
-
 void writeRawHeaderOpenLoop(std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResults, std::ofstream* raw_file){
     #if WRITE_CSV == 1
         *raw_file << "\"Array Length (Blocks)\","

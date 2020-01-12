@@ -6,6 +6,7 @@
 #include "mallocHelpers.h"
 #include "reporting_helpers.h"
 #include "open_loop_helpers.h"
+#include "fifoless_helpers.h"
 
 #include <vector>
 #include <atomic>
@@ -16,7 +17,7 @@ template<typename elementType,
          typename idType = std::atomic_int32_t, 
          typename indexType = std::atomic_int32_t, 
          typename nopsClient = std::atomic_int32_t> //Note, this can be changed to a float for PI controllers
-class ClosedLoopBufferArgs : public Config{
+class ClosedLoopBufferArgs : public FifolessConfig{
 public:
     indexType *read_offset_ptr;
     indexType *write_offset_ptr;
@@ -35,55 +36,9 @@ public:
     int core_server; //The core the server is executing on
     int initialNops; //The initial NOPs for the client and server
 
-    void printStandaloneTitle(bool report_standalone, std::string title) = 0; //Prints the standalone title block if standalone results are requested
-    void printExportCorrespondingResult(Results &result, bool report_standalone, std::string title, Profiler* profiler, std::vector<int> cpus, std::string resultPrintFormatStr, FILE* file, std::ofstream* raw_file);
 protected:
     virtual void printExportNonStandaloneResults(Results &result, bool report_standalone, std::string resultPrintFormatStr, FILE* file, std::ofstream* raw_file) = 0;
 };
-
-template<typename elementType, 
-         typename idType, 
-         typename indexType, 
-         typename nopsClient>
-void ClosedLoopBufferArgs<elementType, idType, indexType, nopsClient>::printExportCorrespondingResult(Results &result, bool report_standalone, std::string title, Profiler* profiler, std::vector<int> cpus, std::string resultPrintFormatStr, FILE* file, std::ofstream* raw_file){
-    printStandaloneTitle(report_standalone, title); //This can be overridden by subclasses to report more information
-
-    //Report the results
-    #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
-        if(report_standalone)
-        {
-            if(!profiler->cpuTopology.empty()){
-                std::vector<int> sockets;
-                std::vector<int> cores;
-                std::vector<int> dies;
-                std::vector<int> threads;
-
-                getGranularityIndexsOfInterest(cpus, profiler, sockets, cores, dies, threads);
-
-                #if PRINT_FULL_STATS == 1
-                    results.print_statistics(sockets, dies, cores, threads, STIM_LEN);
-                #endif
-
-                #if PRINT_STATS == 1
-                    print_results_fifoless_standalone(result);
-                #endif
-            }else{
-                #if PRINT_FULL_STATS == 1
-                    results.print_statistics(0, 0, 0, cpu_a, STIM_LEN);
-                #endif
-
-                #if PRINT_STATS == 1
-                    print_results_fifoless_standalone(result);
-                #endif
-            }
-        }
-        else
-        {
-            printExportNonStandaloneResults(result, report_standalone, resultPrintFormatStr, file, raw_file); //This can be overridden by subclasses to report more information
-        }
-    #endif
-
-}
 
 //See ==== Entries Available to read ==== In Lockless Thread Crossing FIFO (coppied here for convenience):
 /*

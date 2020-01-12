@@ -4,10 +4,71 @@
     #include "intrin_bench_default_defines.h"
     #include "results.h"
     #include "mallocHelpers.h"
+    #include "reporting_helpers.h"
+    #include "fifoless_helpers.h"
 
     #include <vector>
     #include <atomic>
     #include <stdlib.h>
+
+    template<typename elementType, typename idType = std::atomic_int32_t, typename indexType = std::atomic_int32_t>
+    class OpenLoopBufferArgs : public FifolessConfig{
+    public:
+        indexType *read_offset_ptr;
+        indexType *write_offset_ptr;
+        void *array;
+        std::atomic_flag *start_flag; //Used by the client to signal to the server that it should start writing
+        std::atomic_flag *stop_flag; //Used by the client to signal to the server that an error occured and that it should stop
+        std::atomic_flag *ready_flag; //Used by the server to signal to the client that it is ready to begin
+        int array_length; //In Blocks  //Note: The FIFO Array has an additional block allocated to resolve the Empty/Full Ambiguity
+        int64_t max_block_transfers; //The maximum number of blocks to transfer in this test
+        int balancing_nops; //The number of NOPs to use for balancing services.  If negative, the server has NOPS, if positive, the client has NOPS
+        int blockSize; //The block size (in elementType elements)
+        int alignment; //The alignment in bytes of the components within the block (the IDs and the Buffer)
+        int core_client; //The core the client is executing on
+        int core_server; //The core the server is executing on
+        int initialNOPs; //The initial NOPs in the reader and writer.
+
+        void printStandaloneTitle(bool report_standalone, std::string title) override; //Prints the standalone title block if standalone results are requested
+    protected:
+        virtual void printExportNonStandaloneResults(Results &result, bool report_standalone, std::string resultPrintFormatStr, FILE* file, std::ofstream* raw_file) override;
+    };
+
+    template<typename elementType, 
+         typename idType, 
+         typename indexType>
+    void OpenLoopBufferArgs<elementType, idType, indexType>::printStandaloneTitle(bool report_standalone, std::string title){
+        //Print the title if a standalone report
+        #if PRINT_TITLE == 1
+        if(report_standalone)
+        {
+            printf("\n");
+            printTitle(title);
+            printf("Array Length: %d Blocks, Block Length: %d int32_t Elements, Balancing NOPs: %d, Initial NOPs: %d\n", this->array_length, this->blockSize, this->balancing_nops, this->initialNOPs);
+            fflush(stdout);
+        }
+        #endif
+    }
+
+    template<typename elementType, 
+         typename idType, 
+         typename indexType>
+    void OpenLoopBufferArgs<elementType, idType, indexType>::printExportNonStandaloneResults(Results &result, bool report_standalone, std::string resultPrintFormatStr, FILE* file, std::ofstream* raw_file){
+            if(!report_standalone){
+                //Print the complete results
+            double avg_duration_ms = result.avg_duration();
+            double stddev_duration_ms = result.stddev_duration();
+
+            #if PRINT_STATS == 1
+            printf(resultPrintFormatStr.c_str(), this->array_length, this->blockSize, this->balancing_nops, this->initialNOPs, avg_duration_ms, stddev_duration_ms);
+            #endif
+
+            #if WRITE_CSV == 1
+            fprintf(file, "%d,%d,%d,%d,%f,%f\n", this->array_length, this->blockSize, this->balancing_nops, this->initialNOPs, avg_duration_ms, stddev_duration_ms);
+            result.write_durations_and_benchmark_specific_results(*raw_file, {"", "", ""}, {std::to_string(this->array_length), std::to_string(this->blockSize), std::to_string(this->balancing_nops), std::to_string(this->initialNOPs)}, false);
+            #endif
+        }
+    }
 
     class FifolessBufferEndCondition : public BenchmarkSpecificResult{
     public:

@@ -23,24 +23,6 @@
 
 //The IDs are padded to be multiples of the provided alignment.  The buffer is also padded to be a multiple of the alignment.
 
-template<typename elementType, typename idType = std::atomic_int32_t, typename indexType = std::atomic_int32_t>
-struct OpenLoopBufferArgs{
-    indexType *read_offset_ptr;
-    indexType *write_offset_ptr;
-    void *array;
-    std::atomic_flag *start_flag; //Used by the client to signal to the server that it should start writing
-    std::atomic_flag *stop_flag; //Used by the client to signal to the server that an error occured and that it should stop
-    std::atomic_flag *ready_flag; //Used by the server to signal to the client that it is ready to begin
-    int array_length; //In Blocks  //Note: The FIFO Array has an additional block allocated to resolve the Empty/Full Ambiguity
-    int64_t max_block_transfers; //The maximum number of blocks to transfer in this test
-    int ballancing_nops; //The number of NOPs to use for balancing services.  If negative, the server has NOPS, if positive, the client has NOPS
-    int blockSize; //The block size (in elementType elements)
-    int alignment; //The alignment in bytes of the components within the block (the IDs and the Buffer)
-    int core_client; //The core the client is executing on
-    int core_server; //The core the server is executing on
-    int initialNOPs; //The initial NOPs in the reader and writer.
-};
-
 //Note: The server and client threads are different instruction streams.  One writes while the other reads and needs to check the block ids (and the block data).
 //The writer needs to periodically check the error condition flag provided by the reader.  This can result in the two functions having different
 //execution times.  To compensate, nop loops are placed in each thread
@@ -200,11 +182,11 @@ void* open_loop_buffer_server(void* arg){
     int allignment = args->alignment;
     int core = args->core_server;
 
-    int ballancing_nops = args->ballancing_nops;
-    int numNops = ballancing_nops < 0 ? -ballancing_nops : 0;
+    int balancing_nops = args->balancing_nops;
+    int numNops = balancing_nops < 0 ? -balancing_nops : 0;
     numNops += args->initialNOPs;
 
-    //printf("Config: Array Len: %d, Block Size: %d, NOPs %d\n", array_length, blockSize, ballancing_nops);
+    //printf("Config: Array Len: %d, Block Size: %d, NOPs %d\n", array_length, blockSize, balancing_nops);
 
     int numberInitBlocks = array_length/2; //Initialize FIFO to be half full (round down if odd number)
 
@@ -319,8 +301,8 @@ void* open_loop_buffer_client(void* arg){
 
     int core = args->core_client;
 
-    int ballancing_nops = args->ballancing_nops;
-    int numNops = ballancing_nops > 0 ? ballancing_nops : 0;
+    int balancing_nops = args->balancing_nops;
+    int numNops = balancing_nops > 0 ? balancing_nops : 0;
     numNops += args->initialNOPs;
 
     elementType expectedSampleVals = 0;
