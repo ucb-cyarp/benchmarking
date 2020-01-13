@@ -179,30 +179,3 @@ void print_results_blocked_fifo(Results &results, int elements_per_trial, int le
     results.write_durations_and_benchmark_specific_results(*raw_file, {"", ""}, {std::to_string(length), std::to_string(block_length)}, false);
     #endif
 }
-
-void print_results_fifoless_standalone(Results &results)
-{
-    double avg_duration_ms = results.avg_duration();
-    double stddev_duration_ms = results.stddev_duration();
-
-    printf("        =======================================================\n");
-    printf("        Metric                   |     Avg      |    StdDev    \n");
-    printf("        =======================================================\n");
-    printf("        Duration (ms)            |%14.6e|%14.6e\n", avg_duration_ms, stddev_duration_ms);
-    printf("        =======================================================\n");
-}
-
-void print_results_open_loop(Results &results, size_t array_length, int32_t block_length, int32_t balancing_nops, int initial_nops, std::string format, FILE* file, std::ofstream* raw_file)
-{
-    double avg_duration_ms = results.avg_duration();
-    double stddev_duration_ms = results.stddev_duration();
-
-    #if PRINT_STATS == 1
-    printf(format.c_str(), array_length, block_length, balancing_nops, initial_nops, avg_duration_ms, stddev_duration_ms);
-    #endif
-
-    #if WRITE_CSV == 1
-    fprintf(file, "%ld,%d,%d,%d,%f,%f\n", array_length, block_length, balancing_nops, initial_nops, avg_duration_ms, stddev_duration_ms);
-    results.write_durations_and_benchmark_specific_results(*raw_file, {"", "", ""}, {std::to_string(array_length), std::to_string(block_length), std::to_string(balancing_nops), std::to_string(initial_nops)}, false);
-    #endif
-}

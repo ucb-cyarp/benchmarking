@@ -31,9 +31,7 @@
 //The start stop flags could be augmented with dummy flags, allowing all of the threads to use the same function.
 
 template<typename elementType, typename idType = std::atomic_int32_t, typename indexType = std::atomic_int32_t>
-void* open_loop_buffer_reset(void* arg){
-    OpenLoopBufferArgs<elementType, idType, indexType> *args = (OpenLoopBufferArgs<elementType, idType, indexType>*) arg;
-
+void open_loop_buffer_reset_internal(OpenLoopBufferArgs<elementType, idType, indexType> *args){
     int blockArrayBytes;
     int blockArrayPaddingBytes;
     int blockArrayCombinedBytes;
@@ -113,6 +111,14 @@ void* open_loop_buffer_reset(void* arg){
     std::atomic_flag_test_and_set_explicit(args->ready_flag, std::memory_order_relaxed);
 
     std::atomic_thread_fence(std::memory_order_release);
+}
+
+template<typename elementType, typename idType = std::atomic_int32_t, typename indexType = std::atomic_int32_t>
+void* open_loop_buffer_reset(void* arg){
+    OpenLoopBufferArgs<elementType, idType, indexType> *args = (OpenLoopBufferArgs<elementType, idType, indexType>*) arg;
+    open_loop_buffer_reset_internal(args);
+
+    return nullptr;
 }
 
 template<typename elementType, typename idType = std::atomic_int32_t, typename indexType = std::atomic_int32_t>
