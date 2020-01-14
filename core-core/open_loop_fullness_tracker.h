@@ -188,10 +188,26 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
 
     int numberInitBlocks = array_length/2; //Initialize FIFO to be half full (round down if odd number)
 
+    //Begin reading entry (prime access to cache line)
+    idType *block_id_end = (idType*) (((char*) array) + readOffset*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+    int dummyBlockIDEnd = std::atomic_load_explicit(block_id_end, std::memory_order_acquire);
+    asm volatile(""
+    : "=r" (dummyBlockIDEnd)
+    : "r" (dummyBlockIDEnd)
+    : );
+
     //Wait for ready
     bool ready = false;
     while(!ready){
         ready = !std::atomic_flag_test_and_set_explicit(ready_flag, std::memory_order_acq_rel);
+
+        //Begin reading entry (prime access to cache line)
+        idType *block_id_end = (idType*) (((char*) array) + readOffset*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        int dummyBlockIDEnd = std::atomic_load_explicit(block_id_end, std::memory_order_acquire);
+        asm volatile(""
+        : "=r" (dummyBlockIDEnd)
+        : "r" (dummyBlockIDEnd)
+        : );
     }
 
     //Singal start

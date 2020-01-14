@@ -218,11 +218,19 @@ void* open_loop_buffer_server(void* arg){
     //Signal Ready
     std::atomic_thread_fence(std::memory_order_acquire);
     std::atomic_flag_clear_explicit(ready_flag, std::memory_order_release);
+
+    //Begin writing entry (prime access to cache line)
+    idType *block_id_start = (idType*) (((char*) array) + writeOffset*blockSizeBytes);
+    std::atomic_store_explicit(block_id_start, writeBlockInd, std::memory_order_release); //Prevents memory access from being reordered after this
     
     //Wait for start signal
     bool start = false;
     while(!start){
         start = !std::atomic_flag_test_and_set_explicit(start_flag, std::memory_order_acq_rel); //Start signal is active low
+        
+        //Begin writing entry (prime access to cache line)
+        idType *block_id_start = (idType*) (((char*) array) + writeOffset*blockSizeBytes);
+        std::atomic_store_explicit(block_id_start, writeBlockInd, std::memory_order_release); //Prevents memory access from being reordered after this
     }
 
     bool stop = false;
@@ -337,10 +345,26 @@ void* open_loop_buffer_client(void* arg){
 
     int numberInitBlocks = array_length/2; //Initialize FIFO to be half full (round down if odd number)
 
+    //Begin reading entry (prime access to cache line)
+    idType *block_id_end = (idType*) (((char*) array) + readOffset*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+    int dummyBlockIDEnd = std::atomic_load_explicit(block_id_end, std::memory_order_acquire);
+    asm volatile(""
+    : "=r" (dummyBlockIDEnd)
+    : "r" (dummyBlockIDEnd)
+    : );
+
     //Wait for ready
     bool ready = false;
     while(!ready){
         ready = !std::atomic_flag_test_and_set_explicit(ready_flag, std::memory_order_acq_rel);
+
+        //Begin reading entry (prime access to cache line)
+        idType *block_id_end = (idType*) (((char*) array) + readOffset*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        int dummyBlockIDEnd = std::atomic_load_explicit(block_id_end, std::memory_order_acquire);
+        asm volatile(""
+        : "=r" (dummyBlockIDEnd)
+        : "r" (dummyBlockIDEnd)
+        : );
     }
 
     //Singal start
