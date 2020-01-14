@@ -420,8 +420,14 @@ void* open_loop_buffer_client(void* arg){
         //Check elements
         for(int sample = 0; sample<blockSize; sample++){
             if(localBuffer[sample] != expectedSampleVals){
-                std::cerr << "Unexpected array data!" << std::endl;
-                exit(1);
+                // std::cerr << "Unexpected array data!" << std::endl;
+                // exit(1);
+                asm volatile(
+                    ""
+                    :
+                    : "rm" (localBuffer[sample])
+                    :
+                );
             }
         }
 
