@@ -387,20 +387,21 @@ void* open_loop_buffer_client(void* arg){
 
         //+++ Read from array +++
         //The end ID is read first to check that the values being read from the array were completly written before this thread started reading.
-        idType *block_id_end = (idType*) (((char*) array) + readOffset*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
-        newBlockIDEnd = std::atomic_load_explicit(block_id_end, std::memory_order_acquire);
+        idType *block_id_start = (idType*) (((char*) array) + readOffset*blockSizeBytes);
+        newBlockIDStart = std::atomic_load_explicit(block_id_start, std::memory_order_acquire);
         
         //Read elements
         //Read backwards to avoid cache thrashing
         elementType *data_array = (elementType*) (((char*) array) + readOffset*blockSizeBytes + idCombinedBytes);
-        for(int sample = blockSize-1; sample>=0; sample--){
+        for(int sample = 0; sample<blockSize; sample++){
             localBuffer[sample] = data_array[sample];
         }
 
         //The start ID is read last to check that the block was not being overwritten while the data was being read
         std::atomic_signal_fence(std::memory_order_release); //Do not want an actual fence but do not want sample reading to be re-ordered before the end block ID read
-        idType *block_id_start = (idType*) (((char*) array) + readOffset*blockSizeBytes);
-        newBlockIDStart = std::atomic_load_explicit(block_id_start, std::memory_order_acquire);
+        idType *block_id_end = (idType*) (((char*) array) + readOffset*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        newBlockIDEnd = std::atomic_load_explicit(block_id_end, std::memory_order_acquire);
+        
         //+++ End read from array +++
 
         //Update Read Ptr
