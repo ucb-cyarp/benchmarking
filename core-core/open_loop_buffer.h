@@ -173,7 +173,7 @@ void* open_loop_buffer_cleanup(void* arg){
 }
 
 //This thread is the writer.  It will recieve a start signal from the client when it is ready (the client is the primary thread)
-template<typename elementType, typename idType = std::atomic_int32_t, typename indexType = std::atomic_int32_t, typename idLocalType = int32_t, typename indexLocalType = int32_t, int idMax = INT32_MAX>
+template<typename elementType, typename idType = std::atomic_int32_t, typename indexType = std::atomic_int32_t, typename idLocalType = int32_t, typename indexLocalType = int32_t, int idMax = INT32_MAX-1>
 void* open_loop_buffer_server(void* arg){
     OpenLoopBufferArgs<elementType, idType, indexType>* args = (OpenLoopBufferArgs<elementType, idType, indexType>*) arg;
 
@@ -256,20 +256,13 @@ void* open_loop_buffer_server(void* arg){
         //+++ End write into array +++
 
         //Check for index wrap arround (note, there is an extra array element)
-        if (writeOffset >= array_length)
-        {
-            writeOffset = 0;
-        }
-        else
-        {
-            writeOffset++;
-        }
+        writeOffset = (writeOffset+1) % (array_length+1);
 
         //Update Write Ptr
         std::atomic_store_explicit(write_offset_ptr, writeOffset, std::memory_order_release);
 
         //Increment block id for next block
-        writeBlockInd = writeBlockInd == idMax ? 0 : writeBlockInd+1;
+        writeBlockInd = (writeBlockInd+1) % (idMax+1);
         sampleVals = (sampleVals+1)%2;
 
         //Check stop flag
@@ -301,7 +294,7 @@ void* open_loop_buffer_server(void* arg){
 
 //The client is the one that should be measuring time since it is what detects errors
 //Make the client the primary (ie. in the client server runner, swap the functions given as the client and the server)
-template<typename elementType, typename idType = std::atomic_int32_t, typename indexType = std::atomic_int32_t, typename idLocalType = int32_t, typename indexLocalType = int32_t, int idMax = INT32_MAX>
+template<typename elementType, typename idType = std::atomic_int32_t, typename indexType = std::atomic_int32_t, typename idLocalType = int32_t, typename indexLocalType = int32_t, int idMax = INT32_MAX-1>
 void* open_loop_buffer_client(void* arg){
     OpenLoopBufferArgs<elementType, idType, indexType>* args = (OpenLoopBufferArgs<elementType, idType, indexType>*) arg;
     indexType *read_offset_ptr = args->read_offset_ptr;
@@ -376,14 +369,7 @@ void* open_loop_buffer_client(void* arg){
     for(transfer = 0; transfer<(max_block_transfers+numberInitBlocks); transfer++){ //Need to do numberInitBlocks extra reads
         //---- Read from Input Buffer Unconditionally ----
         //Load Read Ptr
-        if (readOffset >= array_length) //(note, there is an extra array element)
-        {
-            readOffset = 0;
-        }
-        else
-        {
-            readOffset++;
-        }
+        readOffset = (readOffset+1) % (array_length+1);
 
         //+++ Read from array +++
         //The end ID is read first to check that the values being read from the array were completly written before this thread started reading.
@@ -407,8 +393,11 @@ void* open_loop_buffer_client(void* arg){
         std::atomic_store_explicit(read_offset_ptr, readOffset, std::memory_order_release);
 
         //Check the read block IDs
-        expectedBlockID = readBlockInd == UINT32_MAX ? 0 : readBlockInd+1;
-        if(expectedBlockID != newBlockIDStart || expectedBlockID != newBlockIDEnd){
+        expectedBlockID = (readBlockInd+1) % (idMax+1);
+
+        bool errorStart = expectedBlockID != newBlockIDStart;
+        bool errorEnd = expectedBlockID != newBlockIDEnd;
+        if(errorStart || errorEnd){
             //Will signal failure outside of loop
             failureDetected = true;
             readBlockInd = expectedBlockID;

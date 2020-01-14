@@ -65,8 +65,8 @@ void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<
 
     //==== Run The Experiments ====
     //The primary is the client (because it performs the measurment) and the secondary is the server
-    std::vector<Results> results_vec = execute_client_server_kernel(profiler, open_loop_buffer_client<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, INT32_MAX>, 
-                                                                    open_loop_buffer_server<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, INT32_MAX>,
+    std::vector<Results> results_vec = execute_client_server_kernel(profiler, open_loop_buffer_client<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, INT32_MAX-1>, 
+                                                                    open_loop_buffer_server<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, INT32_MAX-1>,
                                                                     open_loop_buffer_reset<int32_t, std::atomic_int32_t, std::atomic_int32_t>,
                                                                     open_loop_buffer_cleanup<int32_t, std::atomic_int32_t, std::atomic_int32_t>, 
                                                                     args, args, args, cpus[1], cpus[0], num_experiments);
@@ -182,8 +182,8 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
 
     //==== Run The Experiments ====
     //The primary is the client (because it performs the measurment) and the secondary is the server
-    std::vector<Results> results_vec = execute_client_server_kernel(profiler, open_loop_fullness_tracker_buffer_client<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, INT32_MAX>, 
-                                                                    open_loop_buffer_server<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, INT32_MAX>,
+    std::vector<Results> results_vec = execute_client_server_kernel(profiler, open_loop_fullness_tracker_buffer_client<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, INT32_MAX-1>, 
+                                                                    open_loop_buffer_server<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, INT32_MAX-1>,
                                                                     open_loop_fullness_tracker_buffer_reset<int32_t, std::atomic_int32_t, std::atomic_int32_t>,
                                                                     open_loop_buffer_cleanup<int32_t, std::atomic_int32_t, std::atomic_int32_t>, 
                                                                     args, args, args, cpus[1], cpus[0], num_experiments);
