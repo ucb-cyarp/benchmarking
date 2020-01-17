@@ -128,9 +128,22 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
     std::vector<std::atomic_flag*> start_flags;
     std::atomic_flag* stop_flag;
     std::vector<int32_t*> startTrackers;
+    std::vector<int32_t*> startInterruptTrackers;
     std::vector<int32_t*> endTrackers;
+    std::vector<int32_t*> endInterruptTrackers;
+    std::vector<FILE*> interruptReporterFiles;
 
-    openLoopFullnessTrackerAllocate<int32_t, std::atomic_int32_t, std::atomic_int32_t>(shared_array_locs, shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, startTrackers, endTrackers, array_lengths, block_lengths, cpus, alignment, false, false, trackerLen, trackerLen);
+    openLoopFullnessTrackerAllocate<int32_t, std::atomic_int32_t, std::atomic_int32_t>(shared_array_locs, shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, startTrackers, startInterruptTrackers, endTrackers, endInterruptTrackers, array_lengths, block_lengths, cpus, alignment, false, false, trackerLen, trackerLen);
+
+    for(int i = 0; i<cpus.size(); i++){
+        FILE* interruptReporter = fopen("/dev/sir0", "r");
+        if(interruptReporter == NULL){
+            std::cerr << "Unable to open /dev/sir0.  Check that the sir module is loaded" << std::endl;
+            exit(1);
+        }
+
+        interruptReporterFiles.push_back(interruptReporter);
+    }
 
     //==== Create Configurations for each experiment ====
     int num_experiments = array_lengths.size() * block_lengths.size() * balance_nops.size() * initial_nops.size() * checkPeriods.size();
@@ -171,9 +184,13 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
                         args[idx].initialNOPs = initial_nop;
                         args[idx].checkPeriod = checkPeriod;
                         args[idx].startTracker = startTrackers[0];
+                        args[idx].startInterruptTracker = startInterruptTrackers[0];
                         args[idx].startTrackerLen = trackerLen;
                         args[idx].endTracker = endTrackers[0];
+                        args[idx].endInterruptTracker = endInterruptTrackers[0];
                         args[idx].endTrackerLen = trackerLen;
+                        args[idx].readerInterruptReporter = interruptReporterFiles[0];
+                        args[idx].writerInterruptReporter = interruptReporterFiles[1];
                     }
                 }
             }
@@ -215,10 +232,16 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
     closeEntry(file, raw_file);
 
     //==== Cleanup ====
+    for(int i = 0; i<interruptReporterFiles.size(); i++){
+        fclose(interruptReporterFiles[i]);
+    }
+
     destructSharedIDs(shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag);
 
     freeVectorContents(startTrackers);
+    freeVectorContents(startInterruptTrackers);
     freeVectorContents(endTrackers);
+    freeVectorContents(endInterruptTrackers);
     freeVectorContents(shared_array_locs);
     freeVectorContents(shared_write_id_locs);
     freeVectorContents(shared_read_id_locs);

@@ -2,7 +2,7 @@
 
 std::string FifolessBufferFullnessTrackerEndCondition::getTrialCSVHeader(){
     std::string granularityStr = getGranularityStr();
-    return "\"Expected Block ID [" + granularityStr + "]\",\"Start Block ID [" + granularityStr + "]\",\"End Block ID [" + granularityStr + "]\",\"Errored [" + granularityStr + "]\",\"Error Source [" + granularityStr + "]\",\"Transaction [" + granularityStr + "]\",\"Fullness Start [" + granularityStr + "]\",\"Fullness End [" + granularityStr + "]\"";
+    return "\"Expected Block ID [" + granularityStr + "]\",\"Start Block ID [" + granularityStr + "]\",\"End Block ID [" + granularityStr + "]\",\"Errored [" + granularityStr + "]\",\"Error Source [" + granularityStr + "]\",\"Transaction [" + granularityStr + "]\",\"Fullness Start [" + granularityStr + "]\",\"Fullness End [" + granularityStr + "]\",\"Interrupts Start [" + granularityStr + "]\",\"Interrupts End [" + granularityStr + "]\"";
 }
 
 std::string FifolessBufferFullnessTrackerEndCondition::getTrialCSVData(){
@@ -24,6 +24,7 @@ std::string FifolessBufferFullnessTrackerEndCondition::getTrialCSVData(){
     }
     str += "\"";
 
+    //Print the end array
     str += ",\"";
     for(int i = 0; i<endTracker.size(); i++){
         if(i > 0){
@@ -31,6 +32,28 @@ std::string FifolessBufferFullnessTrackerEndCondition::getTrialCSVData(){
         }
 
         str += std::to_string(endTracker[i]);
+    }
+    str += "\"";
+
+    //Print the start interrupt array
+    str += ",\"";
+    for(int i = 0; i<startInterruptTracker.size(); i++){
+        if(i > 0){
+            str += ",";
+        }
+
+        str += std::to_string(startInterruptTracker[i]);
+    }
+    str += "\"";
+
+    //Print the end interrupt array
+    str += ",\"";
+    for(int i = 0; i<endInterruptTracker.size(); i++){
+        if(i > 0){
+            str += ",";
+        }
+
+        str += std::to_string(endInterruptTracker[i]);
     }
     str += "\"";
 
