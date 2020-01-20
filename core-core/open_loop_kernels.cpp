@@ -55,8 +55,8 @@ void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<
                     args[idx].balancing_nops = balance_nop;
                     args[idx].blockSize = block_length;
                     args[idx].alignment = alignment;
-                    args[idx].core_server = cpus[0]; //The server is the secondary but is placed on cpu a to have the typical transfer from cpu_a -> cpu_b
-                    args[idx].core_client = cpus[1]; //The client is the primary but is placed on cpu b
+                    args[idx].core_server = cpus[0]; 
+                    args[idx].core_client = cpus[1]; 
                     args[idx].initialNOPs = initial_nop;
                 }
             }
@@ -65,11 +65,11 @@ void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<
 
     //==== Run The Experiments ====
     //The primary is the client (because it performs the measurment) and the secondary is the server
-    std::vector<Results> results_vec = execute_client_server_kernel(profiler, open_loop_buffer_client<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, INT32_MAX>, 
-                                                                    open_loop_buffer_server<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, INT32_MAX>,
+    std::vector<Results> results_vec = execute_client_server_kernel(profiler, open_loop_buffer_server<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, INT32_MAX>,
+                                                                    open_loop_buffer_client<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, INT32_MAX>,
                                                                     open_loop_buffer_reset<int32_t, std::atomic_int32_t, std::atomic_int32_t>,
                                                                     open_loop_buffer_cleanup<int32_t, std::atomic_int32_t, std::atomic_int32_t>, 
-                                                                    args, args, args, cpus[1], cpus[0], num_experiments);
+                                                                    args, args, args, cpus[0], cpus[1], num_experiments);
 
     //==== Process Results ====
     if(results_vec.size() != num_experiments){
@@ -166,8 +166,8 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
                         args[idx].balancing_nops = balance_nop;
                         args[idx].blockSize = block_length;
                         args[idx].alignment = alignment;
-                        args[idx].core_server = cpus[0]; //The server is the secondary but is placed on cpu a to have the typical transfer from cpu_a -> cpu_b
-                        args[idx].core_client = cpus[1]; //The client is the primary but is placed on cpu b
+                        args[idx].core_server = cpus[0]; //Making the writer the server so that it performs the reset and initialization (will have exclusive access to the cache lines it writes)
+                        args[idx].core_client = cpus[1]; //The client is secondary even through it does the measurements and error checks.  This will cause the timing measurement to be slightly off as there is a delay for the failure thread to be analyzed
                         args[idx].initialNOPs = initial_nop;
                         args[idx].checkPeriod = checkPeriod;
                         args[idx].startTracker = startTrackers[0];
@@ -181,12 +181,15 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
     }
 
     //==== Run The Experiments ====
-    //The primary is the client (because it performs the measurment) and the secondary is the server
-    std::vector<Results> results_vec = execute_client_server_kernel(profiler, open_loop_fullness_tracker_buffer_client<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, INT32_MAX>, 
-                                                                    open_loop_buffer_server<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, INT32_MAX>,
+    //The primary is the writer which also performs the reset.
+    //The reader still controls starting the writer thread internally (an additional handshake to the primary/secondary handshake)
+    //The reader will read the entries that do not have initial values in them so that they are in the shared state.  This should cause the writer to need to invalidate the lines.
+    //The reader will not read the 
+    std::vector<Results> results_vec = execute_client_server_kernel(profiler, open_loop_buffer_server<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, INT32_MAX>,
+                                                                    open_loop_fullness_tracker_buffer_client<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, INT32_MAX>,
                                                                     open_loop_fullness_tracker_buffer_reset<int32_t, std::atomic_int32_t, std::atomic_int32_t>,
                                                                     open_loop_buffer_cleanup<int32_t, std::atomic_int32_t, std::atomic_int32_t>, 
-                                                                    args, args, args, cpus[1], cpus[0], num_experiments);
+                                                                    args, args, args, cpus[0], cpus[1], num_experiments);
 
     //==== Process Results ====
     if(results_vec.size() != num_experiments){
