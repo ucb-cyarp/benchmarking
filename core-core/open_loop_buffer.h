@@ -47,52 +47,23 @@ void open_loop_buffer_reset_internal(OpenLoopBufferArgs<elementType, idType, ind
 
     int numberInitBlocks = args->array_length/2; //Initialize FIFO to be half full (round down if odd number)
 
+
+    //Using memory order released so that initialization occures in the order it occures in steady state operation
+    //
+
     //Reset the index pointers (they are initialized outside)
-    std::atomic_store_explicit(args->read_offset_ptr, 0, std::memory_order_relaxed); //Initialized to 0.  This is the index last read.  Index 1 contains the first initial value
-    std::atomic_store_explicit(args->write_offset_ptr, numberInitBlocks+1, std::memory_order_relaxed); //Initialized to index after that last initial value in the FIFO (note, the initial elements start at index 1)
+    std::atomic_store_explicit(args->read_offset_ptr, 0, std::memory_order_release); //Initialized to 0.  This is the index last read.  Index 1 contains the first initial value
+    std::atomic_store_explicit(args->write_offset_ptr, numberInitBlocks+1, std::memory_order_release); //Initialized to index after that last initial value in the FIFO (note, the initial elements start at index 1)
 
     //=== Init ===
     //Reset the block ids and data
-    //Init ID Zero
-    idType *block_id_start = (idType*) (((char*) args->array));
-    idType *block_id_start_constructed = new (block_id_start) idType();
-    std::atomic_init(block_id_start, 0);
-    std::atomic_store_explicit(block_id_start, 0, std::memory_order_relaxed);
 
-    elementType *data_array = (elementType*) (((char*) args->array) + idCombinedBytes);
-    for(int j = 0; j<args->blockSize; j++){
-        data_array[j] = -1;
-    }
-
-    idType *block_id_end = (idType*) (((char*) args->array) + idCombinedBytes + blockArrayCombinedBytes);
-    idType *block_id_end_constructed = new (block_id_end) idType();
-    std::atomic_init(block_id_end, 0);
-    std::atomic_store_explicit(block_id_end, 0, std::memory_order_relaxed);
-
-    //Initial Conditions
-    for(int i = 1; i<numberInitBlocks+1; i++){
-        idType *block_id_start = (idType*) (((char*) args->array) + i*blockSizeBytes);
-        idType *block_id_start_constructed = new (block_id_start) idType();
-        std::atomic_init(block_id_start, i);
-        std::atomic_store_explicit(block_id_start, i, std::memory_order_relaxed);
-
-        elementType *data_array = (elementType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes);
-        for(int j = 0; j<args->blockSize; j++){
-            data_array[j] = (i+1)%2;
-        }
-        
-        idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
-        idType *block_id_end_constructed = new (block_id_end) idType();
-        std::atomic_init(block_id_end, i);
-        std::atomic_store_explicit(block_id_end, i, std::memory_order_relaxed);
-    }
-
-    //Init After
+    //Init Blocks After Initial Conditions (these are initialized first because, after the reset, these will be the first blocks to be written to by the writer)
     for(int i = numberInitBlocks+1; i <= args->array_length; i++){ //Note, there is an extra element in the array
         idType *block_id_start = (idType*) (((char*) args->array) + i*blockSizeBytes);
         idType *block_id_start_constructed = new (block_id_start) idType();
         std::atomic_init(block_id_start, 0);
-        std::atomic_store_explicit(block_id_start, 0, std::memory_order_relaxed);
+        std::atomic_store_explicit(block_id_start, 0, std::memory_order_release);
 
         elementType *data_array = (elementType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes);
         for(int j = 0; j<args->blockSize; j++){
@@ -102,13 +73,47 @@ void open_loop_buffer_reset_internal(OpenLoopBufferArgs<elementType, idType, ind
         idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
         idType *block_id_end_constructed = new (block_id_end) idType();
         std::atomic_init(block_id_end, 0);
-        std::atomic_store_explicit(block_id_end, 0, std::memory_order_relaxed);
+        std::atomic_store_explicit(block_id_end, 0, std::memory_order_release);
+    }
+
+    //Init ID Zero
+    idType *block_id_start = (idType*) (((char*) args->array));
+    idType *block_id_start_constructed = new (block_id_start) idType();
+    std::atomic_init(block_id_start, 0);
+    std::atomic_store_explicit(block_id_start, 0, std::memory_order_release);
+
+    elementType *data_array = (elementType*) (((char*) args->array) + idCombinedBytes);
+    for(int j = 0; j<args->blockSize; j++){
+        data_array[j] = -1;
+    }
+
+    idType *block_id_end = (idType*) (((char*) args->array) + idCombinedBytes + blockArrayCombinedBytes);
+    idType *block_id_end_constructed = new (block_id_end) idType();
+    std::atomic_init(block_id_end, 0);
+    std::atomic_store_explicit(block_id_end, 0, std::memory_order_release);
+
+    //Initial Conditions
+    for(int i = 1; i<numberInitBlocks+1; i++){
+        idType *block_id_start = (idType*) (((char*) args->array) + i*blockSizeBytes);
+        idType *block_id_start_constructed = new (block_id_start) idType();
+        std::atomic_init(block_id_start, i);
+        std::atomic_store_explicit(block_id_start, i, std::memory_order_release);
+
+        elementType *data_array = (elementType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes);
+        for(int j = 0; j<args->blockSize; j++){
+            data_array[j] = (i+1)%2;
+        }
+        
+        idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        idType *block_id_end_constructed = new (block_id_end) idType();
+        std::atomic_init(block_id_end, i);
+        std::atomic_store_explicit(block_id_end, i, std::memory_order_release);
     }
     
     //Flags are initialized and destructed outside
-    std::atomic_flag_test_and_set_explicit(args->start_flag, std::memory_order_relaxed);
-    std::atomic_flag_test_and_set_explicit(args->stop_flag, std::memory_order_relaxed);
-    std::atomic_flag_test_and_set_explicit(args->ready_flag, std::memory_order_relaxed);
+    std::atomic_flag_test_and_set_explicit(args->start_flag, std::memory_order_release);
+    std::atomic_flag_test_and_set_explicit(args->stop_flag, std::memory_order_release);
+    std::atomic_flag_test_and_set_explicit(args->ready_flag, std::memory_order_release);
 
     std::atomic_thread_fence(std::memory_order_release);
 }
@@ -332,18 +337,55 @@ void* open_loop_buffer_client(void* arg){
     getBlockSizing<elementType, idType>(args->blockSize, args->alignment, blockArrayBytes, blockArrayPaddingBytes, 
     blockArrayCombinedBytes, idBytes, idPaddingBytes, idCombinedBytes, blockSizeBytes);
 
-    //Load the initial read offset
+    //==== Load the initial read offset ====
     indexLocalType readOffset = std::atomic_load_explicit(read_offset_ptr, std::memory_order_acquire);
 
     int numberInitBlocks = array_length/2; //Initialize FIFO to be half full (round down if odd number)
 
-    //Wait for ready
+    //==== Wait for ready ====
     bool ready = false;
     while(!ready){
         ready = !std::atomic_flag_test_and_set_explicit(ready_flag, std::memory_order_acq_rel);
     }
 
-    //Singal start
+    //==== Read the uninitialized entries in the FIFO ====
+    //The writer will have written the initial conditions into the FIFO and therefor will have
+    //exclusive access to the cache lines in the array.  Reading the entries will force them
+    //into the shared state which will force the writer to invalidate there entries in the reader.
+    //This is what it needs to do in the steady state case and should do at the start as well.
+    
+    //Read Elements beyond initial condition
+    for(int i = numberInitBlocks+1; i <= array_length+1; i++){ //Note, there is an extra element in the array
+        int ind = i<=array_length ? i : 0;
+        idType *block_id_end = (idType*) (((char*) array) + ind*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        newBlockIDEnd = std::atomic_load_explicit(block_id_end, std::memory_order_acquire);
+        asm volatile(""
+        :
+        : "r" (newBlockIDEnd)
+        :);
+        
+        //Read elements
+        //Read backwards to avoid cache thrashing
+        elementType *data_array = (elementType*) (((char*) array) + ind*blockSizeBytes + idCombinedBytes);
+        for(int sample = blockSize-1; sample>=0; sample--){
+            localBuffer[sample] = data_array[sample];
+            asm volatile(""
+            :
+            : "r" (localBuffer[sample])
+            :);
+        }
+
+        //The start ID is read last to check that the block was not being overwritten while the data was being read
+        std::atomic_signal_fence(std::memory_order_release); //Do not want an actual fence but do not want sample reading to be re-ordered before the end block ID read
+        idType *block_id_start = (idType*) (((char*) array) + ind*blockSizeBytes);
+        newBlockIDStart = std::atomic_load_explicit(block_id_start, std::memory_order_acquire);
+        asm volatile(""
+        :
+        : "r" (newBlockIDStart)
+        :);
+    }
+
+    //==== Singal start ====
     std::atomic_thread_fence(std::memory_order_acquire);
     std::atomic_flag_clear_explicit(start_flag, std::memory_order_release);
 
