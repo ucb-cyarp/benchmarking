@@ -5,6 +5,8 @@
 #include "open_loop_helpers.h"
 #include "open_loop_buffer.h"
 #include "closed_loop_helpers.h"
+#include <sys/ioctl.h>
+#include "sir.h"
 
 //This benchmarks measures the fullness of the buffer at the start of a reader cycle.  This is slightly
 //different from the closed loop test case which measures at the end of a writer cycle.  It is read
@@ -87,8 +89,9 @@ public:
 //TODO: Bundle this with SIR
 inline uint64_t readInterrupts(FILE* interruptReader){
     uint64_t interrupts;
-    int read = fread(&interrupts, sizeof(interrupts), 1, interruptReader);
-    if(read != 1){
+
+    int status = ioctl(fileno(interruptReader), SIR_IOCTL_GET, &interrupts);
+    if(status < 0){
         std::cerr << "Problem reading /dev/sir0" << std::endl;
         exit(1);
     }
@@ -149,16 +152,20 @@ void* open_loop_fullness_tracker_buffer_reset(void* arg){
     open_loop_buffer_reset_internal(args);
     
     int32_t* startTracker = args->startTracker;
+    int32_t* startInterruptTracker = args->startInterruptTracker;
     int startTrackerLen = args->startTrackerLen;
     int32_t* endTracker = args->endTracker;
+    int32_t* endInterruptTracker = args->endInterruptTracker;
     int endTrackerLen = args->endTrackerLen;
 
     for(int i = 0; i<startTrackerLen; i++){
         startTracker[i] = -1;
+        startInterruptTracker[i] = -1;
     }
 
     for(int i = 0; i<endTrackerLen; i++){
         endTracker[i] = -1;
+        endInterruptTracker[i] = -1;
     }
 
     std::atomic_thread_fence(std::memory_order_release);

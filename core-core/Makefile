@@ -1,6 +1,7 @@
 BUILD_DIR=build
 DEPENDS_DIR=../depends
 COMMON_DIR=../common
+SIR_DIR=~/git/sir/module
 SRC_DIR=.
 
 #Parameters that can be supplied to this makefile
@@ -24,7 +25,7 @@ CFLAGS = -O3 -c -g -std=c++11 -march=native -masm=att
 KERNEL_CFLAGS = -O3 -c -g -std=c++11 -march=native -masm=att
 #For kernels that should not be optimized, the following is used
 KERNEL_NO_OPT_CFLAGS = -O0 -c -g -std=c++11 -march=native -masm=att
-INC=-I $(COMMON_DIR)
+INC=-I $(COMMON_DIR) -I $(SIR_DIR)
 LIB_DIRS=-L $(COMMON_DIR)
 LIB=-pthread -lrt -lProfilerCommon -latomic
 
