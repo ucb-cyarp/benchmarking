@@ -193,8 +193,8 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
                         args[idx].endInterruptTracker = endInterruptTrackers[0];
                         args[idx].endTimingTracker = endTimingTrackers[0];
                         args[idx].endTrackerLen = trackerLen;
-                        args[idx].readerInterruptReporter = interruptReporterFiles[0];
-                        args[idx].writerInterruptReporter = interruptReporterFiles[1];
+                        args[idx].writerInterruptReporter = interruptReporterFiles[0];
+                        args[idx].readerInterruptReporter = interruptReporterFiles[1];
                     }
                 }
             }
