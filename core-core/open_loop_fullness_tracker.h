@@ -294,6 +294,35 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
         ready = !std::atomic_flag_test_and_set_explicit(ready_flag, std::memory_order_acq_rel);
     }
 
+    //==== Write to the tracker arrays ====
+    //The tracker arrays are reset in the server/writer so it has exclusive access.
+    //Need to attain exclusive access to these tracker arrays in the reader
+    for(int i = 0; i<startTrackerLen; i++){
+        int32_t startTrack = startTracker[i];
+        int32_t startInterruptTrack = startInterruptTracker[i];
+        double startTimingTrack = startTimingTracker[i];
+        asm volatile(""
+        :
+        : 
+        : "memory");
+        startTracker[i] = startTrack;
+        startInterruptTracker[i] = startInterruptTrack;
+        startTimingTracker[i] = startTimingTrack;
+    }
+
+    for(int i = 0; i<endTrackerLen; i++){
+        int32_t endTrack = endTracker[i];
+        int32_t endInterruptTrack = endInterruptTracker[i];
+        double endTimingTrack = endTimingTracker[i];
+        asm volatile(""
+        :
+        : 
+        : "memory");
+        endTracker[i] = endTrack;
+        endInterruptTracker[i] = endInterruptTrack;
+        endTimingTracker[i] = endTimingTrack;
+    }
+
     //==== Read the uninitialized entries in the FIFO ====
     //The writer will have written the initial conditions into the FIFO and therefor will have
     //exclusive access to the cache lines in the array.  Reading the entries will force them
@@ -532,6 +561,10 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
     idLocalType writeBlockInd = writeOffset;
 
     elementType sampleVals = (writeOffset+1)%2;
+
+    //The writer/server performs the reset so it already has exclusive access to its tracker arrays
+    //If this changes, write to the arrays before signaling ready to attain exclusive access before
+    //the trial starts
 
     //Signal Ready
     std::atomic_thread_fence(std::memory_order_acquire);
