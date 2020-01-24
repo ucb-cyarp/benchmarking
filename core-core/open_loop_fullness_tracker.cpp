@@ -1,4 +1,5 @@
 #include "open_loop_fullness_tracker.h"
+#include <cstdio>
 
 std::string FifolessBufferFullnessTrackerEndCondition::getTrialCSVHeader(){
     std::string granularityStr = getGranularityStr();
@@ -64,7 +65,9 @@ std::string FifolessBufferFullnessTrackerEndCondition::getTrialCSVData(){
             str += ",";
         }
 
-        str += std::to_string(startTimingTracker[i]);
+        char buf[32];
+        snprintf(buf, 32, "%12.6e", startTimingTracker[i]);
+        str += buf;
     }
     str += "\"";
 
@@ -75,7 +78,9 @@ std::string FifolessBufferFullnessTrackerEndCondition::getTrialCSVData(){
             str += ",";
         }
 
-        str += std::to_string(endTimingTracker[i]);
+        char buf[32];
+        snprintf(buf, 32, "%12.6e", endTimingTracker[i]);
+        str += buf;
     }
     str += "\"";
 
