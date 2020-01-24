@@ -130,16 +130,22 @@ size_t openLoopFullnessTrackerAllocate(std::vector<elementType*> &shared_array_l
         if(amountToAllocStartInterruptTracker % CACHE_LINE_SIZE != 0){
             amountToAllocStartInterruptTracker += (CACHE_LINE_SIZE - (amountToAllocStartInterruptTracker % CACHE_LINE_SIZE));
         }
-        int32_t *startInterruptTrackerInst = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocStartInterruptTracker, cpus[buffer]);
-        startInterruptTracker.push_back(startInterruptTrackerInst);
+        //There are 2 of these arrays, one for the client and one for the server
+        for(int i = 0; i<2; i++){
+            int32_t *startInterruptTrackerInst = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocStartInterruptTracker, cpus[buffer]);
+            startInterruptTracker.push_back(startInterruptTrackerInst);
+        }
 
         //Start Timing 
         size_t amountToAllocStartTimingTracker = sizeof(double)*startTrackerLen;
         if(amountToAllocStartTimingTracker % CACHE_LINE_SIZE != 0){
             amountToAllocStartTimingTracker += (CACHE_LINE_SIZE - (amountToAllocStartTimingTracker % CACHE_LINE_SIZE));
         }
-        double *startTimingTrackerInst = (double*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocStartTimingTracker, cpus[buffer]);
-        startTimingTracker.push_back(startTimingTrackerInst);
+        //There are 2 of these arrays, one for the client and one for the server
+        for(int i = 0; i<2; i++){
+            double *startTimingTrackerInst = (double*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocStartTimingTracker, cpus[buffer]);
+            startTimingTracker.push_back(startTimingTrackerInst);
+        }
 
         //End Tracker
         size_t amountToAllocEndTracker = sizeof(int32_t)*endTrackerLen;
