@@ -7,6 +7,7 @@
 #include "closed_loop_helpers.h"
 #include <sys/ioctl.h>
 #include "sir.h"
+#include "time_helpers.h"
 
 //This benchmarks measures the fullness of the buffer at the start of a reader cycle.  This is slightly
 //different from the closed loop test case which measures at the end of a writer cycle.  It is read
@@ -20,9 +21,11 @@ public:
     //These buffers are used to record the fullness values
     int32_t* startTracker;
     int32_t* startInterruptTracker;
+    double* startTimingTracker;
     int startTrackerLen;
     int32_t* endTracker;
     int32_t* endInterruptTracker;
+    double* endTimingTracker;
     int endTrackerLen;
     FILE* readerInterruptReporter;
     FILE* writerInterruptReporter;
@@ -76,6 +79,8 @@ public:
     std::vector<int32_t> endTracker;
     std::vector<int32_t> startInterruptTracker;
     std::vector<int32_t> endInterruptTracker;
+    std::vector<double> startTimingTracker;
+    std::vector<double> endTimingTracker;
 
     //The fullness tracking is only reported in the CSV file
     // std::string getTrialResultsHeader() override;
@@ -99,7 +104,7 @@ inline uint64_t readInterrupts(FILE* interruptReader){
 }
 
 template<typename elementType, typename atomicIdType, typename atomicIndexType>
-size_t openLoopFullnessTrackerAllocate(std::vector<elementType*> &shared_array_locs, std::vector<atomicIndexType*> &shared_write_id_locs, std::vector<atomicIndexType*> &shared_read_id_locs, std::vector<std::atomic_flag*> &ready_flags, std::vector<std::atomic_flag*> &start_flags, std::atomic_flag* &stop_flag, std::vector<int32_t*> &startTracker, std::vector<int32_t*> &startInterruptTracker, std::vector<int32_t*> &endTracker, std::vector<int32_t*> &endInterruptTracker, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int> cpus, int alignment, bool circular, bool include_dummy_flags, int startTrackerLen, int endTrackerLen){
+size_t openLoopFullnessTrackerAllocate(std::vector<elementType*> &shared_array_locs, std::vector<atomicIndexType*> &shared_write_id_locs, std::vector<atomicIndexType*> &shared_read_id_locs, std::vector<std::atomic_flag*> &ready_flags, std::vector<std::atomic_flag*> &start_flags, std::atomic_flag* &stop_flag, std::vector<int32_t*> &startTracker, std::vector<int32_t*> &startInterruptTracker, std::vector<double*> &startTimingTracker, std::vector<int32_t*> &endTracker, std::vector<int32_t*> &endInterruptTracker, std::vector<double*> &endTimingTracker, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int> cpus, int alignment, bool circular, bool include_dummy_flags, int startTrackerLen, int endTrackerLen){
     //Run the standard open loop allocator
     size_t maxBufferSize = openLoopAllocate<elementType, atomicIdType, atomicIndexType>(shared_array_locs, shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, array_lengths, block_lengths, cpus, alignment, circular, include_dummy_flags);
 
@@ -123,6 +128,14 @@ size_t openLoopFullnessTrackerAllocate(std::vector<elementType*> &shared_array_l
         int32_t *startInterruptTrackerInst = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocStartInterruptTracker, cpus[buffer]);
         startInterruptTracker.push_back(startInterruptTrackerInst);
 
+        //Start Timing 
+        size_t amountToAllocStartTimingTracker = sizeof(double)*startTrackerLen;
+        if(amountToAllocStartTimingTracker % CACHE_LINE_SIZE != 0){
+            amountToAllocStartTimingTracker += (CACHE_LINE_SIZE - (amountToAllocStartTimingTracker % CACHE_LINE_SIZE));
+        }
+        double *startTimingTrackerInst = (double*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocStartTimingTracker, cpus[buffer]);
+        startTimingTracker.push_back(startTimingTrackerInst);
+
         //End Tracker
         size_t amountToAllocEndTracker = sizeof(int32_t)*endTrackerLen;
         if(amountToAllocEndTracker % CACHE_LINE_SIZE != 0){
@@ -138,6 +151,14 @@ size_t openLoopFullnessTrackerAllocate(std::vector<elementType*> &shared_array_l
         }
         int32_t *endInterruptTrackerInst = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocEndInterruptTracker, cpus[buffer]);
         endInterruptTracker.push_back(endInterruptTrackerInst);
+
+        //End Timing 
+        size_t amountToAllocEndTimingTracker = sizeof(double)*endTrackerLen;
+        if(amountToAllocEndTimingTracker % CACHE_LINE_SIZE != 0){
+            amountToAllocEndTimingTracker += (CACHE_LINE_SIZE - (amountToAllocEndTimingTracker % CACHE_LINE_SIZE));
+        }
+        double *endTimingTrackerInst = (double*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocEndTimingTracker, cpus[buffer]);
+        endTimingTracker.push_back(endTimingTrackerInst);
     }
 
     return maxBufferSize;
@@ -153,19 +174,23 @@ void* open_loop_fullness_tracker_buffer_reset(void* arg){
     
     int32_t* startTracker = args->startTracker;
     int32_t* startInterruptTracker = args->startInterruptTracker;
+    double* startTimingTracker = args->startTimingTracker;
     int startTrackerLen = args->startTrackerLen;
     int32_t* endTracker = args->endTracker;
     int32_t* endInterruptTracker = args->endInterruptTracker;
+    double* endTimingTracker = args->endTimingTracker;
     int endTrackerLen = args->endTrackerLen;
 
     for(int i = 0; i<startTrackerLen; i++){
         startTracker[i] = -1;
         startInterruptTracker[i] = -1;
+        startTimingTracker[i] = -1;
     }
 
     for(int i = 0; i<endTrackerLen; i++){
         endTracker[i] = -1;
         endInterruptTracker[i] = -1;
+        endTimingTracker[i] = -1;
     }
 
     std::atomic_thread_fence(std::memory_order_release);
@@ -200,9 +225,11 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
     int checkPeriod = args->checkPeriod;
     int32_t* startTracker = args->startTracker;
     int32_t* startInterruptTracker = args->startInterruptTracker;
+    double* startTimingTracker = args->startTimingTracker;
     int startTrackerLen = args->startTrackerLen;
     int32_t* endTracker = args->endTracker;
     int32_t* endInterruptTracker = args->endInterruptTracker;
+    double* endTimingTracker = args->endTimingTracker;
     int endTrackerLen = args->endTrackerLen;
     int endTrackerInd = 0; //This is the index to write next.  It is the tail of the buffer.  When reading back, this address is read first then is incremented until it has been reached again
     int startTrackerInd = 0;
@@ -281,7 +308,9 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
     std::atomic_thread_fence(std::memory_order_acquire);
     std::atomic_flag_clear_explicit(start_flag, std::memory_order_release);
 
-    //Get initial interrupts
+    //Get initial time & interrupts
+    timespec_t lastTime;
+    clock_gettime(CLOCK_MONOTONIC, &lastTime);
     uint64_t lastInterrupts = readInterrupts(interruptReporterFile);
 
     bool failureDetected = false;
@@ -291,10 +320,16 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
         if(checkCounter>=checkPeriod){
             checkCounter = 0;
 
-            //Get the number of interrupts
+            //Get time & number of interrupts
+            timespec_t currentTime;
+            clock_gettime(CLOCK_MONOTONIC, &currentTime);
             uint64_t currentInterrupts = readInterrupts(interruptReporterFile);
+
+            //Get the number of interrupts
+            double timeDiff = difftimespec(&currentTime, &lastTime);
             uint64_t interruptDiff = currentInterrupts - lastInterrupts;
             lastInterrupts = currentInterrupts;
+            lastTime = currentTime;
 
             //Load Write Ptr
             indexLocalType writeOffset = std::atomic_load_explicit(write_offset_ptr, std::memory_order_acquire);
@@ -305,11 +340,13 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
             if(startTrackerInd<startTrackerLen){
                 startTracker[startTrackerInd] = numEntries;
                 startInterruptTracker[startTrackerInd] = interruptDiff;
+                startTimingTracker[startTrackerInd] = timeDiff;
                 startTrackerInd++;
             }
 
             endTracker[endTrackerInd] = numEntries;
             endInterruptTracker[endTrackerInd] = interruptDiff;
+            endTimingTracker[endTrackerInd] = timeDiff;
             if(endTrackerInd>=(startTrackerLen-1)){
                 endTrackerInd = 0;
             }else{
@@ -395,12 +432,14 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
     for(int i = 0; i<startTrackerLen; i++){
         rtn->startTracker.push_back(startTracker[i]);
         rtn->startInterruptTracker.push_back(startInterruptTracker[i]);
+        rtn->startTimingTracker.push_back(startTimingTracker[i]);
     }
 
     int ind = endTrackerInd; //Begin copying from 
     for(int i = 0; i<endTrackerLen; i++){
         rtn->endTracker.push_back(endTracker[ind]);
         rtn->endInterruptTracker.push_back(endInterruptTracker[ind]);
+        rtn->endTimingTracker.push_back(endTimingTracker[ind]);
 
         if(ind >= (endTrackerLen-1)){
             ind = 0;
