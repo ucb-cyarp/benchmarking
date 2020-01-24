@@ -247,8 +247,10 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
 
     freeVectorContents(startTrackers);
     freeVectorContents(startInterruptTrackers);
+    freeVectorContents(startTimingTrackers);
     freeVectorContents(endTrackers);
     freeVectorContents(endInterruptTrackers);
+    freeVectorContents(endTimingTrackers);
     freeVectorContents(shared_array_locs);
     freeVectorContents(shared_write_id_locs);
     freeVectorContents(shared_read_id_locs);
