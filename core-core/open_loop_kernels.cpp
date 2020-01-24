@@ -188,13 +188,17 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
                         args[idx].startTracker = startTrackers[0];
                         args[idx].startInterruptTracker = startInterruptTrackers[0];
                         args[idx].startTimingTracker = startTimingTrackers[0];
+                        args[idx].startInterruptTrackerWriter = startInterruptTrackers[1];
+                        args[idx].startTimingTrackerWriter = startTimingTrackers[1];
                         args[idx].startTrackerLen = trackerLen;
                         args[idx].endTracker = endTrackers[0];
                         args[idx].endInterruptTracker = endInterruptTrackers[0];
                         args[idx].endTimingTracker = endTimingTrackers[0];
+                        args[idx].endInterruptTrackerWriter = endInterruptTrackers[1];
+                        args[idx].endTimingTrackerWriter = endTimingTrackers[1];
                         args[idx].endTrackerLen = trackerLen;
-                        args[idx].readerInterruptReporter = interruptReporterFiles[0];
-                        args[idx].writerInterruptReporter = interruptReporterFiles[1];
+                        args[idx].writerInterruptReporter = interruptReporterFiles[0];
+                        args[idx].readerInterruptReporter = interruptReporterFiles[1];
                     }
                 }
             }
@@ -206,7 +210,7 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
     //The reader still controls starting the writer thread internally (an additional handshake to the primary/secondary handshake)
     //The reader will read the entries that do not have initial values in them so that they are in the shared state.  This should cause the writer to need to invalidate the lines.
     //The reader will not read the 
-    std::vector<Results> results_vec = execute_client_server_kernel(profiler, open_loop_buffer_server<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, INT32_MAX>,
+    std::vector<Results> results_vec = execute_client_server_kernel(profiler, open_loop_fullness_tracker_buffer_server<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, INT32_MAX>,
                                                                     open_loop_fullness_tracker_buffer_client<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, INT32_MAX>,
                                                                     open_loop_fullness_tracker_buffer_reset<int32_t, std::atomic_int32_t, std::atomic_int32_t>,
                                                                     open_loop_buffer_cleanup<int32_t, std::atomic_int32_t, std::atomic_int32_t>, 

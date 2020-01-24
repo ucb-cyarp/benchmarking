@@ -30,6 +30,11 @@ public:
     FILE* readerInterruptReporter;
     FILE* writerInterruptReporter;
 
+    int32_t* startInterruptTrackerWriter;
+    double* startTimingTrackerWriter;
+    int32_t* endInterruptTrackerWriter;
+    double* endTimingTrackerWriter;
+
     void printStandaloneTitle(bool report_standalone, std::string title) override; //Prints the standalone title block if standalone results are requested
 protected:
     virtual void printExportNonStandaloneResults(Results &result, bool report_standalone, std::string resultPrintFormatStr, FILE* file, std::ofstream* raw_file) override;
@@ -149,16 +154,22 @@ size_t openLoopFullnessTrackerAllocate(std::vector<elementType*> &shared_array_l
         if(amountToAllocEndInterruptTracker % CACHE_LINE_SIZE != 0){
             amountToAllocEndInterruptTracker += (CACHE_LINE_SIZE - (amountToAllocEndInterruptTracker % CACHE_LINE_SIZE));
         }
-        int32_t *endInterruptTrackerInst = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocEndInterruptTracker, cpus[buffer]);
-        endInterruptTracker.push_back(endInterruptTrackerInst);
+        //There are 2 of these arrays, one for the client and one for the server
+        for(int i = 0; i<2; i++){
+            int32_t *endInterruptTrackerInst = (int32_t*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocEndInterruptTracker, cpus[buffer]);
+            endInterruptTracker.push_back(endInterruptTrackerInst);
+        }
 
         //End Timing 
         size_t amountToAllocEndTimingTracker = sizeof(double)*endTrackerLen;
         if(amountToAllocEndTimingTracker % CACHE_LINE_SIZE != 0){
             amountToAllocEndTimingTracker += (CACHE_LINE_SIZE - (amountToAllocEndTimingTracker % CACHE_LINE_SIZE));
         }
-        double *endTimingTrackerInst = (double*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocEndTimingTracker, cpus[buffer]);
-        endTimingTracker.push_back(endTimingTrackerInst);
+        //There are 2 of these arrays, one for the client and one for the server
+        for(int i = 0; i<2; i++){
+            double *endTimingTrackerInst = (double*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocEndTimingTracker, cpus[buffer]);
+            endTimingTracker.push_back(endTimingTrackerInst);
+        }
     }
 
     return maxBufferSize;
@@ -449,6 +460,192 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
     }
 
     return (void*) rtn;
+}
+
+template<typename elementType, typename idType = std::atomic_int32_t, typename indexType = std::atomic_int32_t, typename idLocalType = int32_t, typename indexLocalType = int32_t, int idMax = INT32_MAX>
+void* open_loop_fullness_tracker_buffer_server(void* arg){
+    OpenLoopFullnessTrackerBufferArgs<elementType, idType, indexType>* args = (OpenLoopFullnessTrackerBufferArgs<elementType, idType, indexType>*) arg;
+
+    indexType *write_offset_ptr = args->write_offset_ptr;
+    void *array = args->array;
+    int array_length = args->array_length;
+    int64_t max_block_transfers = args->max_block_transfers;
+    std::atomic_flag *start_flag = args->start_flag;
+    std::atomic_flag *stop_flag = args->stop_flag;
+    std::atomic_flag *ready_flag = args->ready_flag;
+    int blockSize = args->blockSize;
+    int allignment = args->alignment;
+    int core = args->core_server;
+
+    int balancing_nops = args->balancing_nops;
+    int numNops = balancing_nops < 0 ? -balancing_nops : 0;
+    numNops += args->initialNOPs;
+
+    //Tracking
+    FILE* interruptReporterFile = args->writerInterruptReporter;
+    int checkPeriod = args->checkPeriod;
+    int32_t* startInterruptTracker = args->startInterruptTrackerWriter;
+    double* startTimingTracker = args->startTimingTrackerWriter;
+    int startTrackerLen = args->startTrackerLen;
+    int32_t* endInterruptTracker = args->endInterruptTrackerWriter;
+    double* endTimingTracker = args->endTimingTrackerWriter;
+    int endTrackerLen = args->endTrackerLen;
+    int endTrackerInd = 0; //This is the index to write next.  It is the tail of the buffer.  When reading back, this address is read first then is incremented until it has been reached again
+    int startTrackerInd = 0;
+    int checkCounter = 0;
+
+    //printf("Config: Array Len: %d, Block Size: %d, NOPs %d\n", array_length, blockSize, balancing_nops);
+
+    int numberInitBlocks = array_length/2; //Initialize FIFO to be half full (round down if odd number)
+
+    int blockArrayBytes;
+    int blockArrayPaddingBytes;
+    int blockArrayCombinedBytes;
+    int idBytes;
+    int idPaddingBytes;
+    int idCombinedBytes;
+    int blockSizeBytes;
+
+    getBlockSizing<elementType, idType>(blockSize, args->alignment, blockArrayBytes, blockArrayPaddingBytes, 
+    blockArrayCombinedBytes, idBytes, idPaddingBytes, idCombinedBytes, blockSizeBytes);
+
+    //Load initial write offset
+    indexLocalType writeOffset = std::atomic_load_explicit(write_offset_ptr, std::memory_order_acquire);
+
+    //Initialize Block ID
+    idLocalType writeBlockInd = writeOffset;
+
+    elementType sampleVals = (writeOffset+1)%2;
+
+    //Signal Ready
+    std::atomic_thread_fence(std::memory_order_acquire);
+    std::atomic_flag_clear_explicit(ready_flag, std::memory_order_release);
+    
+    //Wait for start signal
+    bool start = false;
+    while(!start){
+        start = !std::atomic_flag_test_and_set_explicit(start_flag, std::memory_order_acq_rel); //Start signal is active low
+    }
+
+    //Get initial time & interrupts
+    timespec_t lastTime;
+    clock_gettime(CLOCK_MONOTONIC, &lastTime);
+    uint64_t lastInterrupts = readInterrupts(interruptReporterFile);
+
+    bool stop = false;
+    int64_t transfer;
+    for(transfer = 0; transfer<max_block_transfers; transfer++){
+        //Check Time and Interrupts
+        if(checkCounter>=checkPeriod){
+            checkCounter = 0;
+
+            //Get time & number of interrupts
+            timespec_t currentTime;
+            clock_gettime(CLOCK_MONOTONIC, &currentTime);
+            uint64_t currentInterrupts = readInterrupts(interruptReporterFile);
+
+            //Get the number of interrupts
+            double timeDiff = difftimespec(&currentTime, &lastTime);
+            uint64_t interruptDiff = currentInterrupts - lastInterrupts;
+            lastInterrupts = currentInterrupts;
+            lastTime = currentTime;
+
+            if(startTrackerInd<startTrackerLen){
+                startInterruptTracker[startTrackerInd] = interruptDiff;
+                startTimingTracker[startTrackerInd] = timeDiff;
+                startTrackerInd++;
+            }
+
+            endInterruptTracker[endTrackerInd] = interruptDiff;
+            endTimingTracker[endTrackerInd] = timeDiff;
+            if(endTrackerInd>=(startTrackerLen-1)){
+                endTrackerInd = 0;
+            }else{
+                endTrackerInd++;
+            }
+        }else{
+            checkCounter++;
+        }
+
+        std::atomic_signal_fence(std::memory_order_acquire); //Do not want an actual fence but do not want the write to the initial block ID to re-ordered before the write to the write ptr
+        //---- Write to output buffer unconditionally (order of writing the IDs is important as they are used by the reader to detect partially valid blocks)
+        //+++ Write into array +++
+        //Write initial block ID
+        idType *block_id_start = (idType*) (((char*) array) + writeOffset*blockSizeBytes);
+        std::atomic_store_explicit(block_id_start, writeBlockInd, std::memory_order_release); //Prevents memory access from being reordered after this
+        std::atomic_signal_fence(std::memory_order_acquire); //Do not want an actual fence but do not want sample writing to be re-ordered before the initial block ID write
+
+        //Write elements
+        elementType *data_array = (elementType*) (((char*) array) + writeOffset*blockSizeBytes + idCombinedBytes);
+        for(int sample = 0; sample<blockSize; sample++){
+            data_array[sample] = sampleVals;
+        }
+
+        //Write final block ID
+        idType *block_id_end = (idType*) (((char*) array) + writeOffset*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        std::atomic_store_explicit(block_id_end, writeBlockInd, std::memory_order_release); //Prevents memory access from being reordered after this
+        //+++ End write into array +++
+
+        //Check for index wrap arround (note, there is an extra array element)
+        if (writeOffset >= array_length)
+        {
+            writeOffset = 0;
+        }
+        else
+        {
+            writeOffset++;
+        }
+
+        //Update Write Ptr
+        std::atomic_store_explicit(write_offset_ptr, writeOffset, std::memory_order_release);
+
+        //Increment block id for next block
+        writeBlockInd = writeBlockInd == idMax ? 0 : writeBlockInd+1;
+        sampleVals = (sampleVals+1)%2;
+
+        //Check stop flag
+        stop = !std::atomic_flag_test_and_set_explicit(stop_flag, std::memory_order_acq_rel);
+        if(stop){
+            break;
+        }
+
+        //Perform NOPs
+        for(int nop = 0; nop<numNops; nop++){
+            asm volatile ("nop" : : :);
+        }
+    }
+
+    FifolessBufferFullnessTrackerEndCondition *rtn = new FifolessBufferFullnessTrackerEndCondition;
+    rtn->expectedBlockID = -1;
+    rtn->startBlockID = -1;
+    rtn->startBlockID = -1;
+    rtn->wasErrorSrc = false;
+    rtn->errored = stop;
+    rtn->resultGranularity = HW_Granularity::CORE;
+    rtn->granularityIndex = core;
+    rtn->transaction = transfer;
+
+    //Copy from buffers
+    for(int i = 0; i<startTrackerLen; i++){
+        rtn->startInterruptTracker.push_back(startInterruptTracker[i]);
+        rtn->startTimingTracker.push_back(startTimingTracker[i]);
+    }
+
+    int ind = endTrackerInd; //Begin copying from 
+    for(int i = 0; i<endTrackerLen; i++){
+        rtn->endInterruptTracker.push_back(endInterruptTracker[ind]);
+        rtn->endTimingTracker.push_back(endTimingTracker[ind]);
+
+        if(ind >= (endTrackerLen-1)){
+            ind = 0;
+        }else{
+            ind++;
+        }
+    }
+
+    return (void*) rtn;
+
+    // return nullptr;
 }
 
 #endif
