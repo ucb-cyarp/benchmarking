@@ -198,16 +198,26 @@ void* open_loop_fullness_tracker_buffer_reset(void* arg){
     double* endTimingTracker = args->endTimingTracker;
     int endTrackerLen = args->endTrackerLen;
 
+    int32_t* startInterruptTrackerWriter = args->startInterruptTrackerWriter;
+    double* startTimingTrackerWriter = args->startTimingTrackerWriter;
+
+    int32_t* endInterruptTrackerWriter = args->endInterruptTrackerWriter;
+    double* endTimingTrackerWriter = args->endTimingTrackerWriter;
+
     for(int i = 0; i<startTrackerLen; i++){
         startTracker[i] = -1;
         startInterruptTracker[i] = -1;
         startTimingTracker[i] = -1;
+        startInterruptTrackerWriter[i] = -1;
+        startTimingTrackerWriter[i] = -1;
     }
 
     for(int i = 0; i<endTrackerLen; i++){
         endTracker[i] = -1;
         endInterruptTracker[i] = -1;
         endTimingTracker[i] = -1;
+        endInterruptTrackerWriter[i] = -1;
+        endTimingTrackerWriter[i] = -1;
     }
 
     std::atomic_thread_fence(std::memory_order_release);
