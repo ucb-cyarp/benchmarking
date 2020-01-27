@@ -1,15 +1,16 @@
 %Plots the tracker vectors for an open loop fullness tracker run
 
 %Plot & Filter Parameters
-ArrayLength = 28;
+ArrayLength = 255;
 BlockSize = 32;
 InitNOPs = 0;
-BalNOPs = 26;
-PlotThreshold = 3e3;
-PlotColors = false;
+BalNOPs = 19;
+PlotThreshold = 0;
+PlotColors = true;
 
 %Import Data
-[ArrayLengthBlocks, BlockSizeint32_tElements, BalancingNOPs, InitialNOPs, CheckPeriod, SteadyClockWalltimems, ExpectedBlockIDCore_Client, StartBlockIDCore_Client, EndBlockIDCore_Client, ErroredCore_Client, TransactionCore_Client, FullnessStartCore_Client, FullnessEndCore_Client] = import_open_loop_fullness_tracker_raw_file('report_open_loop_fullness_tracker_raw');
+% %[ArrayLengthBlocks, BlockSizeint32_tElements, BalancingNOPs, InitialNOPs, CheckPeriod, SteadyClockWalltimems, ExpectedBlockIDCore_Client, StartBlockIDCore_Client, EndBlockIDCore_Client, ErroredCore_Client, TransactionCore_Client, FullnessStartCore_Client, FullnessEndCore_Client] = import_open_loop_fullness_tracker_raw_file('report_open_loop_fullness_tracker_raw');
+% [ArrayLengthBlocks, BlockSizeint32_tElements, BalancingNOPs, InitialNOPs, CheckPeriod, SteadyClockWalltimems, ClockCyclesCycleTimems, Clockrdtsc, ExpectedBlockIDCore_Server, StartBlockIDCore_Server, EndBlockIDCore_Server, ErroredCore_Server, ErrorSourceCore_Server, TransactionCore_Server, ExpectedBlockIDCore_Client, StartBlockIDCore_Client, EndBlockIDCore_Client, ErroredCore_Client, ErrorSourceCore_Client, TransactionCore_Client, FullnessStartCore_Client, FullnessEndCore_Client] = import_open_loop_fullness_v2('report_open_loop_fullness_tracker_raw.csv');
 
 %Filter Data
 idxs = find( (ArrayLengthBlocks == ArrayLength) & (BlockSizeint32_tElements == BlockSize) & (InitialNOPs == InitNOPs) & (BalancingNOPs == BalNOPs) & (TransactionCore_Client >= PlotThreshold));
@@ -34,7 +35,7 @@ for i = 1:length(idxs)
     startTracker = importTrackerVector(FullnessStartCore_Client(idx));
     if PlotColors
         colorInd = floor((TransactionCore_Client(idx)-minTransact)*255/(maxTransact-minTransact)+1);
-        plot(startTracker, 'Color', [colors(colorInd, :), 0.3]);
+        plot(startTracker, 'Color', [colors(colorInd, :), 0.2]);
     else
         plot(startTracker);
     end
@@ -62,7 +63,7 @@ for i = 1:length(idxs)
     if(length(endTrackerUntrimmed) == length(endTracker))
         if PlotColors
             colorInd = floor((TransactionCore_Client(idx)-minTransact)*255/(maxTransact-minTransact)+1);
-            plot(endTracker, 'Color', [colors(colorInd, :), 0.3]);
+            plot(endTracker, 'Color', [colors(colorInd, :), 0.2]);
         else
             plot(endTracker);
         end
