@@ -9,8 +9,9 @@
 #include "sir.h"
 #include "time_helpers.h"
 
-// #define TRACK_INTERRUPTS 1
-#define TRACK_INTERRUPTS 0
+#define TRACK_INTERRUPTS 2 // Summary
+// #define TRACK_INTERRUPTS 1 // Enabled
+// #define TRACK_INTERRUPTS 0 // Disabled
 
 //This benchmarks measures the fullness of the buffer at the start of a reader cycle.  This is slightly
 //different from the closed loop test case which measures at the end of a writer cycle.  It is read
@@ -371,7 +372,7 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
     timespec_t lastTime;
     clock_gettime(CLOCK_MONOTONIC, &lastTime);
 
-    #if TRACK_INTERRUPTS==1
+    #if TRACK_INTERRUPTS>0
         uint64_t lastInterrupts = readInterrupts(interruptReporterFile);
     #endif
 
@@ -486,6 +487,10 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
 
     }
 
+    #if TRACK_INTERRUPTS==2
+        uint64_t currentInterrupts = readInterrupts(interruptReporterFile);
+    #endif
+
     std::atomic_thread_fence(std::memory_order_acquire);
     std::atomic_flag_clear_explicit(stop_flag, std::memory_order_release);
 
@@ -522,6 +527,11 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
             ind++;
         }
     }
+
+    #if TRACK_INTERRUPTS==2
+        uint64_t interruptDiff = currentInterrupts - lastInterrupts;
+        rtn->endInterruptTracker.push_back(interruptDiff);
+    #endif
 
     return (void*) rtn;
 }
@@ -598,7 +608,7 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
     //Get initial time & interrupts
     timespec_t lastTime;
     clock_gettime(CLOCK_MONOTONIC, &lastTime);
-    #if TRACK_INTERRUPTS==1
+    #if TRACK_INTERRUPTS>0
         uint64_t lastInterrupts = readInterrupts(interruptReporterFile);
     #endif
 
@@ -694,6 +704,10 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
         }
     }
 
+    #if TRACK_INTERRUPTS==2
+        uint64_t currentInterrupts = readInterrupts(interruptReporterFile);
+    #endif
+
     FifolessBufferFullnessTrackerEndCondition *rtn = new FifolessBufferFullnessTrackerEndCondition;
     rtn->expectedBlockID = -1;
     rtn->startBlockID = -1;
@@ -725,6 +739,11 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
             ind++;
         }
     }
+
+    #if TRACK_INTERRUPTS==2
+        uint64_t interruptDiff = currentInterrupts - lastInterrupts;
+        rtn->endInterruptTracker.push_back(interruptDiff);
+    #endif
 
     return (void*) rtn;
 
