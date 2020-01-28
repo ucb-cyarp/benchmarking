@@ -9,6 +9,9 @@
 #include "sir.h"
 #include "time_helpers.h"
 
+// #define TRACK_INTERRUPTS 1
+#define TRACK_INTERRUPTS 0
+
 //This benchmarks measures the fullness of the buffer at the start of a reader cycle.  This is slightly
 //different from the closed loop test case which measures at the end of a writer cycle.  It is read
 //earlier in the cycle so that, in the error case, the measurement had already been made. 
@@ -367,7 +370,10 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
     //Get initial time & interrupts
     timespec_t lastTime;
     clock_gettime(CLOCK_MONOTONIC, &lastTime);
-    uint64_t lastInterrupts = readInterrupts(interruptReporterFile);
+
+    #if TRACK_INTERRUPTS==1
+        uint64_t lastInterrupts = readInterrupts(interruptReporterFile);
+    #endif
 
     bool failureDetected = false;
     int64_t transfer;
@@ -379,13 +385,18 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
             //Get time & number of interrupts
             timespec_t currentTime;
             clock_gettime(CLOCK_MONOTONIC, &currentTime);
-            uint64_t currentInterrupts = readInterrupts(interruptReporterFile);
+            #if TRACK_INTERRUPTS==1
+                uint64_t currentInterrupts = readInterrupts(interruptReporterFile);
+            #endif
 
             //Get the number of interrupts
             double timeDiff = difftimespec(&currentTime, &lastTime);
-            uint64_t interruptDiff = currentInterrupts - lastInterrupts;
-            lastInterrupts = currentInterrupts;
             lastTime = currentTime;
+
+            #if TRACK_INTERRUPTS==1
+                uint64_t interruptDiff = currentInterrupts - lastInterrupts;
+                lastInterrupts = currentInterrupts;
+            #endif
 
             //Load Write Ptr
             indexLocalType writeOffset = std::atomic_load_explicit(write_offset_ptr, std::memory_order_acquire);
@@ -395,13 +406,17 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
 
             if(startTrackerInd<startTrackerLen){
                 startTracker[startTrackerInd] = numEntries;
-                startInterruptTracker[startTrackerInd] = interruptDiff;
+                #if TRACK_INTERRUPTS==1
+                    startInterruptTracker[startTrackerInd] = interruptDiff;
+                #endif
                 startTimingTracker[startTrackerInd] = timeDiff;
                 startTrackerInd++;
             }
 
             endTracker[endTrackerInd] = numEntries;
-            endInterruptTracker[endTrackerInd] = interruptDiff;
+            #if TRACK_INTERRUPTS==1
+                endInterruptTracker[endTrackerInd] = interruptDiff;
+            #endif
             endTimingTracker[endTrackerInd] = timeDiff;
             if(endTrackerInd>=(startTrackerLen-1)){
                 endTrackerInd = 0;
@@ -487,14 +502,18 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
     //Copy from buffers
     for(int i = 0; i<startTrackerLen; i++){
         rtn->startTracker.push_back(startTracker[i]);
-        rtn->startInterruptTracker.push_back(startInterruptTracker[i]);
+        #if TRACK_INTERRUPTS==1
+            rtn->startInterruptTracker.push_back(startInterruptTracker[i]);
+        #endif
         rtn->startTimingTracker.push_back(startTimingTracker[i]);
     }
 
     int ind = endTrackerInd; //Begin copying from 
     for(int i = 0; i<endTrackerLen; i++){
         rtn->endTracker.push_back(endTracker[ind]);
-        rtn->endInterruptTracker.push_back(endInterruptTracker[ind]);
+        #if TRACK_INTERRUPTS==1
+            rtn->endInterruptTracker.push_back(endInterruptTracker[ind]);
+        #endif
         rtn->endTimingTracker.push_back(endTimingTracker[ind]);
 
         if(ind >= (endTrackerLen-1)){
@@ -579,7 +598,9 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
     //Get initial time & interrupts
     timespec_t lastTime;
     clock_gettime(CLOCK_MONOTONIC, &lastTime);
-    uint64_t lastInterrupts = readInterrupts(interruptReporterFile);
+    #if TRACK_INTERRUPTS==1
+        uint64_t lastInterrupts = readInterrupts(interruptReporterFile);
+    #endif
 
     bool stop = false;
     int64_t transfer;
@@ -591,21 +612,30 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
             //Get time & number of interrupts
             timespec_t currentTime;
             clock_gettime(CLOCK_MONOTONIC, &currentTime);
-            uint64_t currentInterrupts = readInterrupts(interruptReporterFile);
+            #if TRACK_INTERRUPTS==1
+                uint64_t currentInterrupts = readInterrupts(interruptReporterFile);
+            #endif
 
             //Get the number of interrupts
             double timeDiff = difftimespec(&currentTime, &lastTime);
-            uint64_t interruptDiff = currentInterrupts - lastInterrupts;
-            lastInterrupts = currentInterrupts;
             lastTime = currentTime;
 
+            #if TRACK_INTERRUPTS==1
+                uint64_t interruptDiff = currentInterrupts - lastInterrupts;
+                lastInterrupts = currentInterrupts;
+            #endif
+
             if(startTrackerInd<startTrackerLen){
-                startInterruptTracker[startTrackerInd] = interruptDiff;
+                #if TRACK_INTERRUPTS==1
+                    startInterruptTracker[startTrackerInd] = interruptDiff;
+                #endif
                 startTimingTracker[startTrackerInd] = timeDiff;
                 startTrackerInd++;
             }
 
-            endInterruptTracker[endTrackerInd] = interruptDiff;
+            #if TRACK_INTERRUPTS==1
+                endInterruptTracker[endTrackerInd] = interruptDiff;
+            #endif
             endTimingTracker[endTrackerInd] = timeDiff;
             if(endTrackerInd>=(startTrackerLen-1)){
                 endTrackerInd = 0;
@@ -676,13 +706,17 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
 
     //Copy from buffers
     for(int i = 0; i<startTrackerLen; i++){
-        rtn->startInterruptTracker.push_back(startInterruptTracker[i]);
+        #if TRACK_INTERRUPTS==1
+            rtn->startInterruptTracker.push_back(startInterruptTracker[i]);
+        #endif
         rtn->startTimingTracker.push_back(startTimingTracker[i]);
     }
 
     int ind = endTrackerInd; //Begin copying from 
     for(int i = 0; i<endTrackerLen; i++){
-        rtn->endInterruptTracker.push_back(endInterruptTracker[ind]);
+        #if TRACK_INTERRUPTS==1
+            rtn->endInterruptTracker.push_back(endInterruptTracker[ind]);
+        #endif
         rtn->endTimingTracker.push_back(endTimingTracker[ind]);
 
         if(ind >= (endTrackerLen-1)){
