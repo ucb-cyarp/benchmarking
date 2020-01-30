@@ -654,15 +654,19 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
         rtn->startTimingTracker.push_back(startTimingTracker[i]);
     }
 
-    int ind = endTrackerInd; //Begin copying from 
-    for(int i = 0; i<endSampleWindowCollected; i++){ //Only copy up to the number of samples collected
-        rtn->endTracker.push_back(endTracker[ind]);
-        #if TRACK_INTERRUPTS==1
-            rtn->endStdInterruptTracker.push_back(endStdInterruptTracker[ind]);
-            rtn->endLocInterruptTracker.push_back(endLocInterruptTracker[ind]);
-            rtn->endOtherArchInterruptTracker.push_back(endOtherArchInterruptTracker[ind]);
-        #endif
-        rtn->endTimingTracker.push_back(endTimingTracker[ind]);
+    int ind = endTrackerInd; //Begin copying from
+    int entriesToSkip = endTrackerLen-endSampleWindowCollected;
+    for(int i = 0; i<endTrackerLen; i++){ //Only copy up to the number of samples collected
+        //Run past the first endTrackerLen-endSampleWindowCollected entries
+        if(i >= entriesToSkip){
+            rtn->endTracker.push_back(endTracker[ind]);
+            #if TRACK_INTERRUPTS==1
+                rtn->endStdInterruptTracker.push_back(endStdInterruptTracker[ind]);
+                rtn->endLocInterruptTracker.push_back(endLocInterruptTracker[ind]);
+                rtn->endOtherArchInterruptTracker.push_back(endOtherArchInterruptTracker[ind]);
+            #endif
+            rtn->endTimingTracker.push_back(endTimingTracker[ind]);
+        }
 
         if(ind >= (endTrackerLen-1)){
             ind = 0;
@@ -904,13 +908,17 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
     }
 
     int ind = endTrackerInd; //Begin copying from 
-    for(int i = 0; i<endSampleWindowCollected; i++){ //Only copy up to the number of samples collected
-        #if TRACK_INTERRUPTS==1
-            rtn->endStdInterruptTracker.push_back(endStdInterruptTracker[ind]);
-            rtn->endLocInterruptTracker.push_back(endLocInterruptTracker[ind]);
-            rtn->endOtherArchInterruptTracker.push_back(endOtherArchInterruptTracker[ind]);
-        #endif
-        rtn->endTimingTracker.push_back(endTimingTracker[ind]);
+    int entriesToSkip = endTrackerLen-endSampleWindowCollected;
+    for(int i = 0; i<endTrackerLen; i++){ //Only copy up to the number of samples collected
+    //Run past the first endTrackerLen-endSampleWindowCollected entries
+        if(i >= entriesToSkip){
+            #if TRACK_INTERRUPTS==1
+                rtn->endStdInterruptTracker.push_back(endStdInterruptTracker[ind]);
+                rtn->endLocInterruptTracker.push_back(endLocInterruptTracker[ind]);
+                rtn->endOtherArchInterruptTracker.push_back(endOtherArchInterruptTracker[ind]);
+            #endif
+            rtn->endTimingTracker.push_back(endTimingTracker[ind]);
+        }
 
         if(ind >= (endTrackerLen-1)){
             ind = 0;
