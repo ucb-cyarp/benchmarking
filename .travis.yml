@@ -36,9 +36,6 @@ jobs:
       os: osx
       osx_image: xcode11.2
       env: COMPILER=clang++
-  exclide:
-    - compiler: gcc
-    - compiler: clang
 
 addons:
   apt:
