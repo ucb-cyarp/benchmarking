@@ -1,7 +1,7 @@
 BUILD_DIR=build
 DEPENDS_DIR=../depends
 COMMON_DIR=../common
-SIR_DIR=~/git/sir/module
+SIR_DIR=$(DEPENDS_DIR)/sir/module
 SRC_DIR=.
 
 #Parameters that can be supplied to this makefile
