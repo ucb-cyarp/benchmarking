@@ -264,6 +264,7 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
     int endTrackerLen = args->endTrackerLen;
     int endTrackerInd = 0; //This is the index to write next.  It is the tail of the buffer.  When reading back, this address is read first then is incremented until it has been reached again
     int startTrackerInd = 0;
+    int endSampleWindowCollected = 0;
     int checkCounter = 0;
 
     elementType expectedSampleVals = 0;
@@ -419,10 +420,14 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
                 endInterruptTracker[endTrackerInd] = interruptDiff;
             #endif
             endTimingTracker[endTrackerInd] = timeDiff;
-            if(endTrackerInd>=(startTrackerLen-1)){
+            if(endTrackerInd>=(endTrackerLen-1)){
                 endTrackerInd = 0;
             }else{
                 endTrackerInd++;
+            }
+
+            if(endSampleWindowCollected<endTrackerLen){
+                endSampleWindowCollected++;
             }
         }else{
             checkCounter++;
@@ -505,7 +510,7 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
     rtn->transaction = transfer;
 
     //Copy from buffers
-    for(int i = 0; i<startTrackerLen; i++){
+    for(int i = 0; i<startTrackerInd; i++){ //Only copy up to the number of samples collected
         rtn->startTracker.push_back(startTracker[i]);
         #if TRACK_INTERRUPTS==1
             rtn->startInterruptTracker.push_back(startInterruptTracker[i]);
@@ -514,7 +519,7 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
     }
 
     int ind = endTrackerInd; //Begin copying from 
-    for(int i = 0; i<endTrackerLen; i++){
+    for(int i = 0; i<endSampleWindowCollected; i++){ //Only copy up to the number of samples collected
         rtn->endTracker.push_back(endTracker[ind]);
         #if TRACK_INTERRUPTS==1
             rtn->endInterruptTracker.push_back(endInterruptTracker[ind]);
@@ -566,6 +571,7 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
     int endTrackerLen = args->endTrackerLen;
     int endTrackerInd = 0; //This is the index to write next.  It is the tail of the buffer.  When reading back, this address is read first then is incremented until it has been reached again
     int startTrackerInd = 0;
+    int endSampleWindowCollected = 0;
     int checkCounter = 0;
 
     //printf("Config: Array Len: %d, Block Size: %d, NOPs %d\n", array_length, blockSize, balancing_nops);
@@ -647,10 +653,14 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
                 endInterruptTracker[endTrackerInd] = interruptDiff;
             #endif
             endTimingTracker[endTrackerInd] = timeDiff;
-            if(endTrackerInd>=(startTrackerLen-1)){
+            if(endTrackerInd>=(endTrackerLen-1)){
                 endTrackerInd = 0;
             }else{
                 endTrackerInd++;
+            }
+
+            if(endSampleWindowCollected<endTrackerLen){
+                endSampleWindowCollected++;
             }
         }else{
             checkCounter++;
@@ -719,7 +729,7 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
     rtn->transaction = transfer;
 
     //Copy from buffers
-    for(int i = 0; i<startTrackerLen; i++){
+    for(int i = 0; i<startTrackerInd; i++){ //Only copy up to the number of samples collected
         #if TRACK_INTERRUPTS==1
             rtn->startInterruptTracker.push_back(startInterruptTracker[i]);
         #endif
@@ -727,7 +737,7 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
     }
 
     int ind = endTrackerInd; //Begin copying from 
-    for(int i = 0; i<endTrackerLen; i++){
+    for(int i = 0; i<endSampleWindowCollected; i++){ //Only copy up to the number of samples collected
         #if TRACK_INTERRUPTS==1
             rtn->endInterruptTracker.push_back(endInterruptTracker[ind]);
         #endif
