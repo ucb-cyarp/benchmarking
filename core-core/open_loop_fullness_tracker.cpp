@@ -3,7 +3,22 @@
 
 std::string FifolessBufferFullnessTrackerEndCondition::getTrialCSVHeader(){
     std::string granularityStr = getGranularityStr();
-    return "\"Expected Block ID [" + granularityStr + "]\",\"Start Block ID [" + granularityStr + "]\",\"End Block ID [" + granularityStr + "]\",\"Errored [" + granularityStr + "]\",\"Error Source [" + granularityStr + "]\",\"Transaction [" + granularityStr + "]\",\"Fullness Start [" + granularityStr + "]\",\"Fullness End [" + granularityStr + "]\",\"Interrupts Start [" + granularityStr + "]\",\"Interrupts End [" + granularityStr + "]\",\"Timing Start [" + granularityStr + "]\",\"Timing End [" + granularityStr + "]\"";
+    return  "\"Expected Block ID [" + granularityStr + "]\","
+            "\"Start Block ID [" + granularityStr + "]\","
+            "\"End Block ID [" + granularityStr + "]\","
+            "\"Errored [" + granularityStr + "]\","
+            "\"Error Source [" + granularityStr + "]\","
+            "\"Transaction [" + granularityStr + "]\","
+            "\"Fullness Start [" + granularityStr + "]\","
+            "\"Fullness End [" + granularityStr + "]\","
+            "\"Interrupts Std Start [" + granularityStr + "]\","
+            "\"Interrupts LOC Start [" + granularityStr + "]\","
+            "\"Interrupts Other Arch Start [" + granularityStr + "]\","
+            "\"Interrupts Std End [" + granularityStr + "]\","
+            "\"Interrupts LOC End [" + granularityStr + "]\","
+            "\"Interrupts Other Arch End [" + granularityStr + "]\","
+            "\"Timing Start [" + granularityStr + "]\","
+            "\"Timing End [" + granularityStr + "]\"";
 }
 
 std::string FifolessBufferFullnessTrackerEndCondition::getTrialCSVData(){
@@ -38,23 +53,60 @@ std::string FifolessBufferFullnessTrackerEndCondition::getTrialCSVData(){
 
     //Print the start interrupt array
     str += ",\"";
-    for(int i = 0; i<startInterruptTracker.size(); i++){
+    for(int i = 0; i<startStdInterruptTracker.size(); i++){
         if(i > 0){
             str += ",";
         }
 
-        str += std::to_string(startInterruptTracker[i]);
+        str += std::to_string(startStdInterruptTracker[i]);
+    }
+    str += "\"";
+    str += ",\"";
+    for(int i = 0; i<startLocInterruptTracker.size(); i++){
+        if(i > 0){
+            str += ",";
+        }
+
+        str += std::to_string(startLocInterruptTracker[i]);
+    }
+    str += "\"";
+    str += ",\"";
+    for(int i = 0; i<startOtherArchInterruptTracker.size(); i++){
+        if(i > 0){
+            str += ",";
+        }
+
+        str += std::to_string(startOtherArchInterruptTracker[i]);
     }
     str += "\"";
 
+
     //Print the end interrupt array
     str += ",\"";
-    for(int i = 0; i<endInterruptTracker.size(); i++){
+    for(int i = 0; i<endStdInterruptTracker.size(); i++){
         if(i > 0){
             str += ",";
         }
 
-        str += std::to_string(endInterruptTracker[i]);
+        str += std::to_string(endStdInterruptTracker[i]);
+    }
+    str += "\"";
+    str += ",\"";
+    for(int i = 0; i<endLocInterruptTracker.size(); i++){
+        if(i > 0){
+            str += ",";
+        }
+
+        str += std::to_string(endLocInterruptTracker[i]);
+    }
+    str += "\"";
+    str += ",\"";
+    for(int i = 0; i<endOtherArchInterruptTracker.size(); i++){
+        if(i > 0){
+            str += ",";
+        }
+
+        str += std::to_string(endOtherArchInterruptTracker[i]);
     }
     str += "\"";
 
