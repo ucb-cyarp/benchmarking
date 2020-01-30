@@ -1,5 +1,7 @@
 language: cpp
 
+version: ~> 1.0
+
 #Using trick from https://genbattle.bitbucket.io/blog/2016/01/17/c++-travis-ci/
 # https://github.com/travis-ci/travis-ci/issues/6300
 # https://github.com/travis-ci/travis-ci/issues/7100
