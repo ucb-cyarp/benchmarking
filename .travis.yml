@@ -22,7 +22,7 @@ before_script:
     - export C_INCLUDE_PATH="$START_PATH/depends/amduprof/AMDuProf_Linux_x64_3.1.35/include:$C_INCLUDE_PATH"
     - export CPLUS_INCLUDE_PATH="$START_PATH/depends/amduprof/AMDuProf_Linux_x64_3.1.35/include:$CPLUS_INCLUDE_PATH"
 
-matrix:
+jobs:
   include:
     - compiler: gcc
       os: linux
