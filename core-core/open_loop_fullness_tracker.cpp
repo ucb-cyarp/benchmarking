@@ -119,9 +119,7 @@ std::string FifolessBufferFullnessTrackerEndCondition::getTrialCSVData(){
             str += ",";
         }
 
-        char buf[32];
-        snprintf(buf, 32, "%12.6e", startSoftirqInterruptTracker[i]);
-        str += buf;
+        str += std::to_string(startSoftirqInterruptTracker[i]);
     }
     str += "\"";
 
@@ -132,9 +130,7 @@ std::string FifolessBufferFullnessTrackerEndCondition::getTrialCSVData(){
             str += ",";
         }
 
-        char buf[32];
-        snprintf(buf, 32, "%12.6e", endSoftirqInterruptTracker[i]);
-        str += buf;
+        str += std::to_string(endSoftirqInterruptTracker[i]);
     }
     str += "\"";
 
