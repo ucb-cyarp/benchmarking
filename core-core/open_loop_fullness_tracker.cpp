@@ -17,6 +17,8 @@ std::string FifolessBufferFullnessTrackerEndCondition::getTrialCSVHeader(){
             "\"Interrupts Std End [" + granularityStr + "]\","
             "\"Interrupts LOC End [" + granularityStr + "]\","
             "\"Interrupts Other Arch End [" + granularityStr + "]\","
+            "\"softirq Start [" + granularityStr + "]\","
+            "\"softirq End [" + granularityStr + "]\","
             "\"Timing Start [" + granularityStr + "]\","
             "\"Timing End [" + granularityStr + "]\"";
 }
@@ -107,6 +109,32 @@ std::string FifolessBufferFullnessTrackerEndCondition::getTrialCSVData(){
         }
 
         str += std::to_string(endOtherArchInterruptTracker[i]);
+    }
+    str += "\"";
+
+    //Print the start softirq array
+    str += ",\"";
+    for(int i = 0; i<startSoftirqInterruptTracker.size(); i++){
+        if(i > 0){
+            str += ",";
+        }
+
+        char buf[32];
+        snprintf(buf, 32, "%12.6e", startSoftirqInterruptTracker[i]);
+        str += buf;
+    }
+    str += "\"";
+
+    //Print the end softirq array
+    str += ",\"";
+    for(int i = 0; i<endSoftirqInterruptTracker.size(); i++){
+        if(i > 0){
+            str += ",";
+        }
+
+        char buf[32];
+        snprintf(buf, 32, "%12.6e", endSoftirqInterruptTracker[i]);
+        str += buf;
     }
     str += "\"";
 
