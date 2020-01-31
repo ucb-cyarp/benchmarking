@@ -4,11 +4,11 @@
 ArrayLength = 255;
 BlockSize = 32;
 InitNOPs = 0;
-BalNOPs = 53;
+BalNOPs = 42;
 PlotThreshold = 0;
 Summary = false; % If a summary run, do not plot interrupts
 PlotAll = true; %If true, plot every trace, not just the ones with interrupts
-VideoFilename = 'interrupt_cases_2.mp4';
+VideoFilename = 'interrupt_cases.mp4';
 
 %Filter Data
 idxs = find( (ArrayLengthBlocks == ArrayLength) & (BlockSizeint32_tElements == BlockSize) & (InitialNOPs == InitNOPs) & (BalancingNOPs == BalNOPs) & (TransactionCore_Client >= PlotThreshold));
@@ -34,8 +34,12 @@ clear frames;
 %Plot the start tracker
 for i = 1:length(idxs)
     idx = idxs(i);
-    endTrackerServer = importTrackerVector(InterruptsEndCore_Server(idx));
-    endTrackerClient = importTrackerVector(InterruptsEndCore_Client(idx));
+    endTrackerStdServer = str2num(InterruptsStdEndCore_Server(idx));
+    endTrackerLocServer = str2num(InterruptsLOCEndCore_Server(idx));
+    endTrackerOtherArchServer = str2num(InterruptsOtherArchEndCore_Server(idx));
+    endTrackerStdClient = str2num(InterruptsStdEndCore_Client(idx));
+    endTrackerLocClient = str2num(InterruptsLOCEndCore_Client(idx));
+    endTrackerOtherArchClient = str2num(InterruptsOtherArchEndCore_Client(idx));
     if PlotAll || ~isempty(find(endTrackerServer)) || ~isempty(find(endTrackerClient))
         frameCount = frameCount+1;
         fig = figure;
@@ -53,21 +57,27 @@ for i = 1:length(idxs)
         ylim([0, ArrayLength]);
         if Summary
             title({'End Trace', filterCond, ['Transactions: ' num2str(TransactionCore_Client(idx))], ...
-                                            ['Writer Trial Interrupts: ' num2str(endTrackerServer)], ...
-                                            ['Reader Trial Interrupts: ' num2str(endTrackerClient)]});
+                                            ['Writer Trial Interrupts: ' num2str(endTrackerStdServer + endTrackerLocServer + endTrackerOtherArchServer)], ...
+                                            ['Reader Trial Interrupts: ' num2str(endTrackerStdClient + endTrackerLocClient + endTrackerOtherArchClient)]});
         else
             title({'End Trace', filterCond, ['Transactions: ' num2str(TransactionCore_Client(idx))], ...
-                                            ['Writer Trial Interrupts (In Window): ' num2str(sum(endTrackerServer))], ...
-                                            ['Reader Trial Interrupts (In Window): ' num2str(sum(endTrackerClient))]});
+                                            ['Writer Trial Interrupts (In Window): ' num2str(sum(endTrackerStdServer) + sum(endTrackerLocServer) + sum(endTrackerOtherArchServer))], ...
+                                            ['Reader Trial Interrupts (In Window): ' num2str(sum(endTrackerStdClient) + sum(endTrackerLocClient) + sum(endTrackerOtherArchClient))]});
         end
         
         if ~Summary
             ax2 = subplot(3, 1, 2);
-            plot(ax2, endTrackerServer)
+            plot(ax2, endTrackerStdServer)
             hold on;
-            plot(ax2, endTrackerClient)
+            plot(ax2, endTrackerLocServer)
+            plot(ax2, endTrackerOtherArchServer)
+            plot(ax2, endTrackerStdClient)
+            plot(ax2, endTrackerLocClient)
+            plot(ax2, endTrackerOtherArchClient)
             hold off;
-            legend('Server', 'Client')
+            legend({'Writer Std', 'Writer LOC', 'Writer Other Arch', ...
+                    'Reader Std', 'Reader LOC', 'Reader Other Arch'}, ...
+                    'Location', 'northwest')
             ylabel('Interrupts');
             xlabel('Iterations');
         end
@@ -83,7 +93,7 @@ for i = 1:length(idxs)
         hold on;
         plot(ax3, endTimingClient)
         hold off;
-        legend('Server', 'Client')
+        legend({'Server', 'Client'}, 'Location', 'northwest')
         ylabel('Iteration Period (s)');
         xlabel('Iterations');
         
@@ -100,11 +110,11 @@ end
 % implay(frames, 2);
 % close(figs);
 
-% v = VideoWriter(VideoFilename, 'MPEG-4');
-% v.Quality = 100;
-% v.FrameRate = 2;
-% open(v);
-% for f = 1:length(frames)
-%     writeVideo(v,frames(f));
-% end
-% close(v);
+v = VideoWriter(VideoFilename, 'MPEG-4');
+v.Quality = 100;
+v.FrameRate = 2;
+open(v);
+for f = 1:length(frames)
+    writeVideo(v,frames(f));
+end
+close(v);

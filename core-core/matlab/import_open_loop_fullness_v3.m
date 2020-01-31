@@ -1,4 +1,6 @@
 function [ArrayLengthBlocks, BlockSizeint32_tElements, BalancingNOPs, InitialNOPs, CheckPeriod, SteadyClockWalltimems, ClockCyclesCycleTimems, Clockrdtsc, ExpectedBlockIDCore_Server, StartBlockIDCore_Server, EndBlockIDCore_Server, ErroredCore_Server, ErrorSourceCore_Server, TransactionCore_Server, InterruptsStartCore_Server, InterruptsEndCore_Server, TimingStartCore_Server, TimingEndCore_Server, ExpectedBlockIDCore_Client, StartBlockIDCore_Client, EndBlockIDCore_Client, ErroredCore_Client, ErrorSourceCore_Client, TransactionCore_Client, FullnessStartCore_Client, FullnessEndCore_Client, InterruptsStartCore_Client, InterruptsEndCore_Client, TimingStartCore_Client, TimingEndCore_Client] = import_open_loop_fullness_v3(filename, dataLines)
+% This version imports results that have 
+
 %IMPORTFILE Import data from a text file
 %  [ARRAYLENGTHBLOCKS, BLOCKSIZEINT32_TELEMENTS, BALANCINGNOPS,
 %  INITIALNOPS, CHECKPERIOD, STEADYCLOCKWALLTIMEMS,
