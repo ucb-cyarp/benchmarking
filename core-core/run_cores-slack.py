@@ -52,7 +52,9 @@ def main():
     print('\nRunning: {}\n'.format(cmd))
 
     subprocess.call('uname -a > uname_a.txt', shell=True, executable='/bin/bash')
+    subprocess.call('cat /proc/cmdline > kernel_boot_cmdline.txt', shell=True, executable='/bin/bash')
     subprocess.call('dmesg | grep NO_HZ > no_hz_dmesg.txt', shell=True, executable='/bin/bash')
+    subprocess.call('dmesg | grep "RCU" > rcu_dmesg.txt', shell=True, executable='/bin/bash')
     subprocess.call('cat /proc/interrupts > interruptsBefore.txt', shell=True, executable='/bin/bash')
     subprocess.call(cmd, shell=True, executable='/bin/bash')
     subprocess.call('cat /proc/interrupts > interruptsAfter.txt', shell=True, executable='/bin/bash')
@@ -64,6 +66,10 @@ def main():
     endStamp = open('end_stamp.txt', 'w')
     endStamp.write("Finished: {}\n".format(str(cur_time)))
     endStamp.close()
+    cur_time = datetime.datetime.now()
+    print("\nCompressing Results\n")
+    subprocess.call('gzip *.csv', shell=True, executable='/bin/bash')
+    print("\nFinished Compressing: {}\n".format(str(cur_time)))
     slackStatusPost('*Core-Core Benchmarking Finishing*\nHost: ' + hostname + '\n' + 'Time: ' + str(cur_time))
 
 if __name__ == "__main__":
