@@ -4,7 +4,7 @@
 ArrayLength = 255;
 BlockSize = 32;
 InitNOPs = 0;
-BalNOPs = 42;
+BalNOPs = 16;
 PlotThreshold = 0;
 PlotColors = true;
 

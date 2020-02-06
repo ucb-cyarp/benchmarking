@@ -7,7 +7,7 @@ InitNOPs = 0;
 BalNOPs = 53;
 PlotThreshold = 0;
 Summary = false; % If a summary run, do not plot interrupts
-PlotAll = true; %If true, plot every trace, not just the ones with interrupts
+PlotAll = false; %If true, plot every trace, not just the ones with interrupts
 VideoFilename = 'interrupt_cases_2.mp4';
 
 %Filter Data

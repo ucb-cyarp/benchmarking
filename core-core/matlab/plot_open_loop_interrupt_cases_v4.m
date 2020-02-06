@@ -4,7 +4,7 @@
 ArrayLength = 255;
 BlockSize = 32;
 InitNOPs = 0;
-BalNOPs = 42;
+BalNOPs = 33;
 PlotThreshold = 0;
 Summary = false; % If a summary run, do not plot interrupts
 PlotAll = true; %If true, plot every trace, not just the ones with interrupts

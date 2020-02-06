@@ -24,3 +24,12 @@ figure;
 s = scatter(BalancingNOPs(idx), TransactionCore_Client(idx), 30, [0 0.4470 0.7410], 'filled');
 s.MarkerFaceAlpha = 0.2;
 title({'With Tracking', filterCond}, 'Interpreter', 'none');
+ylabel('Iterations Before Failure');
+xlabel('Balancing NOPs');
+
+figure;
+s = scatter(BalancingNOPs(idx), SteadyClockWalltimems(idx)./1000, 30, [0 0.4470 0.7410], 'filled');
+s.MarkerFaceAlpha = 0.2;
+title({'With Tracking', filterCond}, 'Interpreter', 'none');
+ylabel('Time Before Failure (s)');
+xlabel('Balancing NOPs');
