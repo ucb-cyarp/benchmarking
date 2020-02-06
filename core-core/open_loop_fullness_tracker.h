@@ -11,8 +11,8 @@
 
 #define INTERRUPT_TRACKER_TYPE int8_t
 
-//#define TRACK_INTERRUPTS 2 // Summary
- #define TRACK_INTERRUPTS 1 // Enabled
+#define TRACK_INTERRUPTS 2 // Summary
+//#define TRACK_INTERRUPTS 1 // Enabled
 // #define TRACK_INTERRUPTS 0 // Disabled
 
 //This benchmarks measures the fullness of the buffer at the start of a reader cycle.  This is slightly
@@ -787,7 +787,6 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
     }
 
     #if TRACK_INTERRUPTS==2
-        uint64_t interruptDiff = currentInterrupts - lastInterrupts;
         SIR_INTERRUPT_TYPE stdInterruptDiff = currentStdInterrupt - lastStdInterrupt;
         SIR_INTERRUPT_TYPE locInterruptDiff = currentLocInterrupt - lastLocInterrupt;
         SIR_INTERRUPT_TYPE otherArchInterruptDiff = currentOtherArchInterrupt - lastOtherArchInterrupt;
@@ -1065,7 +1064,6 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
     }
 
     #if TRACK_INTERRUPTS==2
-        uint64_t interruptDiff = currentInterrupts - lastInterrupts;
         SIR_INTERRUPT_TYPE stdInterruptDiff = currentStdInterrupt - lastStdInterrupt;
         SIR_INTERRUPT_TYPE locInterruptDiff = currentLocInterrupt - lastLocInterrupt;
         SIR_INTERRUPT_TYPE otherArchInterruptDiff = currentOtherArchInterrupt - lastOtherArchInterrupt;
