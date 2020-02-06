@@ -11,8 +11,8 @@
 
 #define INTERRUPT_TRACKER_TYPE int8_t
 
-#define TRACK_INTERRUPTS 2 // Summary
-//#define TRACK_INTERRUPTS 1 // Enabled
+// #define TRACK_INTERRUPTS 2 // Summary
+#define TRACK_INTERRUPTS 1 // Enabled
 // #define TRACK_INTERRUPTS 0 // Disabled
 
 //This benchmarks measures the fullness of the buffer at the start of a reader cycle.  This is slightly
