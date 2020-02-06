@@ -17,8 +17,10 @@ std::string FifolessBufferFullnessTrackerEndCondition::getTrialCSVHeader(){
             "\"Interrupts Std End [" + granularityStr + "]\","
             "\"Interrupts LOC End [" + granularityStr + "]\","
             "\"Interrupts Other Arch End [" + granularityStr + "]\","
-            "\"softirq Start [" + granularityStr + "]\","
-            "\"softirq End [" + granularityStr + "]\","
+            "\"softirq TIMER Start [" + granularityStr + "]\","
+            "\"softirq TIMER End [" + granularityStr + "]\","
+            "\"softirq Other Start [" + granularityStr + "]\","
+            "\"softirq Other End [" + granularityStr + "]\","
             "\"Timing Start [" + granularityStr + "]\","
             "\"Timing End [" + granularityStr + "]\"";
 }
@@ -112,25 +114,47 @@ std::string FifolessBufferFullnessTrackerEndCondition::getTrialCSVData(){
     }
     str += "\"";
 
-    //Print the start softirq array
+    //Print the start softirq TIMER array
     str += ",\"";
-    for(int i = 0; i<startSoftirqInterruptTracker.size(); i++){
+    for(int i = 0; i<startSoftirqTimerInterruptTracker.size(); i++){
         if(i > 0){
             str += ",";
         }
 
-        str += std::to_string(startSoftirqInterruptTracker[i]);
+        str += std::to_string(startSoftirqTimerInterruptTracker[i]);
     }
     str += "\"";
 
     //Print the end softirq array
     str += ",\"";
-    for(int i = 0; i<endSoftirqInterruptTracker.size(); i++){
+    for(int i = 0; i<endSoftirqTimerInterruptTracker.size(); i++){
         if(i > 0){
             str += ",";
         }
 
-        str += std::to_string(endSoftirqInterruptTracker[i]);
+        str += std::to_string(endSoftirqTimerInterruptTracker[i]);
+    }
+    str += "\"";
+
+    //Print the start softirq Other array
+    str += ",\"";
+    for(int i = 0; i<startSoftirqOtherInterruptTracker.size(); i++){
+        if(i > 0){
+            str += ",";
+        }
+
+        str += std::to_string(startSoftirqOtherInterruptTracker[i]);
+    }
+    str += "\"";
+
+    //Print the end softirq array
+    str += ",\"";
+    for(int i = 0; i<endSoftirqOtherInterruptTracker.size(); i++){
+        if(i > 0){
+            str += ",";
+        }
+
+        str += std::to_string(endSoftirqOtherInterruptTracker[i]);
     }
     str += "\"";
 

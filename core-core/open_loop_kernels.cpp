@@ -132,13 +132,15 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
     std::vector<INTERRUPT_TRACKER_TYPE*> startStdInterruptTrackers;
     std::vector<INTERRUPT_TRACKER_TYPE*> startLocInterruptTrackers;
     std::vector<INTERRUPT_TRACKER_TYPE*> startOtherArchInterruptTrackers;
-    std::vector<INTERRUPT_TRACKER_TYPE*> startSoftirqInterruptTrackers;
+    std::vector<INTERRUPT_TRACKER_TYPE*> startSoftirqTimerInterruptTrackers;
+    std::vector<INTERRUPT_TRACKER_TYPE*> startSoftirqOtherInterruptTrackers;
     std::vector<double*> startTimingTrackers;
     std::vector<int32_t*> endTrackers;
     std::vector<INTERRUPT_TRACKER_TYPE*> endStdInterruptTrackers;
     std::vector<INTERRUPT_TRACKER_TYPE*> endLocInterruptTrackers;
     std::vector<INTERRUPT_TRACKER_TYPE*> endOtherArchInterruptTrackers;
-    std::vector<INTERRUPT_TRACKER_TYPE*> endSoftirqInterruptTrackers;
+    std::vector<INTERRUPT_TRACKER_TYPE*> endSoftirqTimerInterruptTrackers;
+    std::vector<INTERRUPT_TRACKER_TYPE*> endSoftirqOtherInterruptTrackers;
     std::vector<double*> endTimingTrackers;
     std::vector<FILE*> interruptReporterFiles;
 
@@ -152,13 +154,15 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
                                                                                        startStdInterruptTrackers, 
                                                                                        startLocInterruptTrackers, 
                                                                                        startOtherArchInterruptTrackers, 
-                                                                                       startSoftirqInterruptTrackers, 
+                                                                                       startSoftirqTimerInterruptTrackers, 
+                                                                                       startSoftirqOtherInterruptTrackers, 
                                                                                        startTimingTrackers, 
                                                                                        endTrackers, 
                                                                                        endStdInterruptTrackers, 
                                                                                        endLocInterruptTrackers, 
                                                                                        endOtherArchInterruptTrackers, 
-                                                                                       endSoftirqInterruptTrackers, 
+                                                                                       endSoftirqTimerInterruptTrackers, 
+                                                                                       endSoftirqOtherInterruptTrackers, 
                                                                                        endTimingTrackers, 
                                                                                        array_lengths, 
                                                                                        block_lengths, 
@@ -219,24 +223,28 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
                         args[idx].startStdInterruptTracker = startStdInterruptTrackers[0];
                         args[idx].startLocInterruptTracker = startLocInterruptTrackers[0];
                         args[idx].startOtherArchInterruptTracker = startOtherArchInterruptTrackers[0];
-                        args[idx].startSoftirqInterruptTracker = startSoftirqInterruptTrackers[0];
+                        args[idx].startSoftirqTimerInterruptTracker = startSoftirqTimerInterruptTrackers[0];
+                        args[idx].startSoftirqOtherInterruptTracker = startSoftirqOtherInterruptTrackers[0];
                         args[idx].startTimingTracker = startTimingTrackers[0];
                         args[idx].startStdInterruptTrackerWriter = startStdInterruptTrackers[1];
                         args[idx].startLocInterruptTrackerWriter = startLocInterruptTrackers[1];
                         args[idx].startOtherArchInterruptTrackerWriter = startOtherArchInterruptTrackers[1];
-                        args[idx].startSoftirqInterruptTrackerWriter = startSoftirqInterruptTrackers[1];
+                        args[idx].startSoftirqTimerInterruptTrackerWriter = startSoftirqTimerInterruptTrackers[1];
+                        args[idx].startSoftirqOtherInterruptTrackerWriter = startSoftirqOtherInterruptTrackers[1];
                         args[idx].startTimingTrackerWriter = startTimingTrackers[1];
                         args[idx].startTrackerLen = trackerLen;
                         args[idx].endTracker = endTrackers[0];
                         args[idx].endStdInterruptTracker = endStdInterruptTrackers[0];
                         args[idx].endLocInterruptTracker = endLocInterruptTrackers[0];
                         args[idx].endOtherArchInterruptTracker = endOtherArchInterruptTrackers[0];
-                        args[idx].endSoftirqInterruptTracker = endSoftirqInterruptTrackers[0];
+                        args[idx].endSoftirqTimerInterruptTracker = endSoftirqTimerInterruptTrackers[0];
+                        args[idx].endSoftirqOtherInterruptTracker = endSoftirqOtherInterruptTrackers[0];
                         args[idx].endTimingTracker = endTimingTrackers[0];
                         args[idx].endStdInterruptTrackerWriter = endStdInterruptTrackers[1];
                         args[idx].endLocInterruptTrackerWriter = endLocInterruptTrackers[1];
                         args[idx].endOtherArchInterruptTrackerWriter = endOtherArchInterruptTrackers[1];
-                        args[idx].endSoftirqInterruptTrackerWriter = endSoftirqInterruptTrackers[1];
+                        args[idx].endSoftirqTimerInterruptTrackerWriter = endSoftirqTimerInterruptTrackers[1];
+                        args[idx].endSoftirqOtherInterruptTrackerWriter = endSoftirqOtherInterruptTrackers[1];
                         args[idx].endTimingTrackerWriter = endTimingTrackers[1];
                         args[idx].endTrackerLen = trackerLen;
                         args[idx].writerInterruptReporter = interruptReporterFiles[0];
@@ -295,13 +303,15 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
     freeVectorContents(startStdInterruptTrackers);
     freeVectorContents(startLocInterruptTrackers);
     freeVectorContents(startOtherArchInterruptTrackers);
-    freeVectorContents(startSoftirqInterruptTrackers);
+    freeVectorContents(startSoftirqTimerInterruptTrackers);
+    freeVectorContents(startSoftirqOtherInterruptTrackers);
     freeVectorContents(startTimingTrackers);
     freeVectorContents(endTrackers);
     freeVectorContents(endStdInterruptTrackers);
     freeVectorContents(endLocInterruptTrackers);
     freeVectorContents(endOtherArchInterruptTrackers);
-    freeVectorContents(endSoftirqInterruptTrackers);
+    freeVectorContents(endSoftirqTimerInterruptTrackers);
+    freeVectorContents(endSoftirqOtherInterruptTrackers);
     freeVectorContents(endTimingTrackers);
     freeVectorContents(shared_array_locs);
     freeVectorContents(shared_write_id_locs);
