@@ -35,7 +35,7 @@ std::string FifolessBufferFullnessTrackerEndCondition::getTrialCSVData(){
 
     //Print the start array
     str += "\"";
-    for(int i = 0; i<startTracker.size(); i++){
+    for(int i = 0; i<startTrackerOccupencyElements; i++){
         if(i > 0){
             str += ",";
         }
@@ -46,7 +46,7 @@ std::string FifolessBufferFullnessTrackerEndCondition::getTrialCSVData(){
 
     //Print the end array
     str += ",\"";
-    for(int i = 0; i<endTracker.size(); i++){
+    for(int i = 0; i<endTrackerOccupencyElements; i++){
         if(i > 0){
             str += ",";
         }
@@ -57,7 +57,7 @@ std::string FifolessBufferFullnessTrackerEndCondition::getTrialCSVData(){
 
     //Print the start interrupt array
     str += ",\"";
-    for(int i = 0; i<startStdInterruptTracker.size(); i++){
+    for(int i = 0; i<startTrackerInterruptElements; i++){
         if(i > 0){
             str += ",";
         }
@@ -66,7 +66,7 @@ std::string FifolessBufferFullnessTrackerEndCondition::getTrialCSVData(){
     }
     str += "\"";
     str += ",\"";
-    for(int i = 0; i<startLocInterruptTracker.size(); i++){
+    for(int i = 0; i<startTrackerInterruptElements; i++){
         if(i > 0){
             str += ",";
         }
@@ -75,7 +75,7 @@ std::string FifolessBufferFullnessTrackerEndCondition::getTrialCSVData(){
     }
     str += "\"";
     str += ",\"";
-    for(int i = 0; i<startOtherArchInterruptTracker.size(); i++){
+    for(int i = 0; i<startTrackerInterruptElements; i++){
         if(i > 0){
             str += ",";
         }
@@ -87,7 +87,7 @@ std::string FifolessBufferFullnessTrackerEndCondition::getTrialCSVData(){
 
     //Print the end interrupt array
     str += ",\"";
-    for(int i = 0; i<endStdInterruptTracker.size(); i++){
+    for(int i = 0; i<endTrackerInterruptElements; i++){
         if(i > 0){
             str += ",";
         }
@@ -96,7 +96,7 @@ std::string FifolessBufferFullnessTrackerEndCondition::getTrialCSVData(){
     }
     str += "\"";
     str += ",\"";
-    for(int i = 0; i<endLocInterruptTracker.size(); i++){
+    for(int i = 0; i<endTrackerInterruptElements; i++){
         if(i > 0){
             str += ",";
         }
@@ -105,7 +105,7 @@ std::string FifolessBufferFullnessTrackerEndCondition::getTrialCSVData(){
     }
     str += "\"";
     str += ",\"";
-    for(int i = 0; i<endOtherArchInterruptTracker.size(); i++){
+    for(int i = 0; i<endTrackerInterruptElements; i++){
         if(i > 0){
             str += ",";
         }
@@ -116,7 +116,7 @@ std::string FifolessBufferFullnessTrackerEndCondition::getTrialCSVData(){
 
     //Print the start softirq TIMER array
     str += ",\"";
-    for(int i = 0; i<startSoftirqTimerInterruptTracker.size(); i++){
+    for(int i = 0; i<startTrackerInterruptElements; i++){
         if(i > 0){
             str += ",";
         }
@@ -127,7 +127,7 @@ std::string FifolessBufferFullnessTrackerEndCondition::getTrialCSVData(){
 
     //Print the end softirq array
     str += ",\"";
-    for(int i = 0; i<endSoftirqTimerInterruptTracker.size(); i++){
+    for(int i = 0; i<endTrackerInterruptElements; i++){
         if(i > 0){
             str += ",";
         }
@@ -138,7 +138,7 @@ std::string FifolessBufferFullnessTrackerEndCondition::getTrialCSVData(){
 
     //Print the start softirq Other array
     str += ",\"";
-    for(int i = 0; i<startSoftirqOtherInterruptTracker.size(); i++){
+    for(int i = 0; i<startTrackerInterruptElements; i++){
         if(i > 0){
             str += ",";
         }
@@ -149,7 +149,7 @@ std::string FifolessBufferFullnessTrackerEndCondition::getTrialCSVData(){
 
     //Print the end softirq array
     str += ",\"";
-    for(int i = 0; i<endSoftirqOtherInterruptTracker.size(); i++){
+    for(int i = 0; i<endTrackerInterruptElements; i++){
         if(i > 0){
             str += ",";
         }
@@ -160,7 +160,7 @@ std::string FifolessBufferFullnessTrackerEndCondition::getTrialCSVData(){
 
     //Print the start timing array
     str += ",\"";
-    for(int i = 0; i<startTimingTracker.size(); i++){
+    for(int i = 0; i<startTrackerTimeElements; i++){
         if(i > 0){
             str += ",";
         }
@@ -173,7 +173,7 @@ std::string FifolessBufferFullnessTrackerEndCondition::getTrialCSVData(){
 
     //Print the end timing array
     str += ",\"";
-    for(int i = 0; i<endTimingTracker.size(); i++){
+    for(int i = 0; i<endTrackerTimeElements; i++){
         if(i > 0){
             str += ",";
         }
@@ -187,8 +187,38 @@ std::string FifolessBufferFullnessTrackerEndCondition::getTrialCSVData(){
     return str;
 }
 
-FifolessBufferFullnessTrackerEndCondition::FifolessBufferFullnessTrackerEndCondition() {
+FifolessBufferFullnessTrackerEndCondition::FifolessBufferFullnessTrackerEndCondition(int startTrackerLen, int endTrackerLen) : startTrackerOccupencyElements(0), startTrackerInterruptElements(0), startTrackerTimeElements(0), endTrackerOccupencyElements(0), endTrackerInterruptElements(0), endTrackerTimeElements(0) {
+    startTracker = new int32_t[startTrackerLen];
+    endTracker = new int32_t[endTrackerLen];
+    startStdInterruptTracker = new INTERRUPT_TRACKER_TYPE[startTrackerLen];
+    startLocInterruptTracker = new INTERRUPT_TRACKER_TYPE[startTrackerLen];
+    startOtherArchInterruptTracker = new INTERRUPT_TRACKER_TYPE[startTrackerLen];
+    startSoftirqTimerInterruptTracker = new INTERRUPT_TRACKER_TYPE[startTrackerLen];
+    startSoftirqOtherInterruptTracker = new INTERRUPT_TRACKER_TYPE[startTrackerLen];
+    endStdInterruptTracker = new INTERRUPT_TRACKER_TYPE[endTrackerLen];
+    endLocInterruptTracker = new INTERRUPT_TRACKER_TYPE[endTrackerLen];
+    endOtherArchInterruptTracker = new INTERRUPT_TRACKER_TYPE[endTrackerLen];
+    endSoftirqTimerInterruptTracker = new INTERRUPT_TRACKER_TYPE[endTrackerLen];
+    endSoftirqOtherInterruptTracker = new INTERRUPT_TRACKER_TYPE[endTrackerLen];
+    startTimingTracker = new double[startTrackerLen];
+    endTimingTracker = new double[endTrackerLen];
+}
 
+FifolessBufferFullnessTrackerEndCondition::~FifolessBufferFullnessTrackerEndCondition(){
+    delete[] startTracker;
+    delete[] endTracker;
+    delete[] startStdInterruptTracker;
+    delete[] startLocInterruptTracker;
+    delete[] startOtherArchInterruptTracker;
+    delete[] startSoftirqTimerInterruptTracker;
+    delete[] startSoftirqOtherInterruptTracker;
+    delete[] endStdInterruptTracker;
+    delete[] endLocInterruptTracker;
+    delete[] endOtherArchInterruptTracker;
+    delete[] endSoftirqTimerInterruptTracker;
+    delete[] endSoftirqOtherInterruptTracker;
+    delete[] startTimingTracker;
+    delete[] endTimingTracker;
 }
 
 void writeRawHeaderOpenLoopFullnessTracker(std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResults, std::ofstream* raw_file){

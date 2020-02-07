@@ -145,6 +145,10 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
     #if TRACK_INTERRUPTS>0
         std::vector<FILE*> interruptReporterFiles;
     #endif
+    std::vector<FifolessBufferFullnessTrackerEndCondition*> readerResults;
+    std::vector<FifolessBufferFullnessTrackerEndCondition*> writerResults;
+
+    int num_experiments = array_lengths.size() * block_lengths.size() * balance_nops.size() * initial_nops.size() * checkPeriods.size();
 
     openLoopFullnessTrackerAllocate<int32_t, std::atomic_int32_t, std::atomic_int32_t>(shared_array_locs, 
                                                                                        shared_write_id_locs, 
@@ -166,12 +170,14 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
                                                                                        endSoftirqTimerInterruptTrackers, 
                                                                                        endSoftirqOtherInterruptTrackers, 
                                                                                        endTimingTrackers, 
+                                                                                       readerResults,
+                                                                                       writerResults,
                                                                                        array_lengths, 
                                                                                        block_lengths, 
                                                                                        cpus, 
                                                                                        alignment, 
                                                                                        false, false, 
-                                                                                       trackerLen, trackerLen);
+                                                                                       trackerLen, trackerLen, num_experiments);
 
 
     #if TRACK_INTERRUPTS>0
@@ -187,8 +193,6 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
     #endif
 
     //==== Create Configurations for each experiment ====
-    int num_experiments = array_lengths.size() * block_lengths.size() * balance_nops.size() * initial_nops.size() * checkPeriods.size();
-
     OpenLoopFullnessTrackerBufferArgs<int32_t, std::atomic_int32_t, std::atomic_int32_t>* args = new OpenLoopFullnessTrackerBufferArgs<int32_t, std::atomic_int32_t, std::atomic_int32_t>[num_experiments];
 
     for(int i = 0; i<array_lengths.size(); i++)
@@ -256,6 +260,8 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
                             args[idx].writerInterruptReporter = interruptReporterFiles[0];
                             args[idx].readerInterruptReporter = interruptReporterFiles[1];
                         #endif
+                        args[idx].readerRtn = readerResults[idx];
+                        args[idx].writerRtn = writerResults[idx];
                     }
                 }
             }
@@ -329,6 +335,7 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
     freeVectorContents(start_flags);
     free(stop_flag);
     delete[] args;
+    //Note: readerResults and writerResults are freed by smartpointers which are freed when the Result vectors are freed
 }
 
 void run_open_loop_run_past_failure_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int32_t> balance_nops, std::vector<int> initial_nops, int numUnderOverflowRecords, int alignment, int64_t max_block_transfers, FILE* file, std::ofstream* raw_file)

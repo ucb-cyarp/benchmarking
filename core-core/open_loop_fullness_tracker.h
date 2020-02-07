@@ -19,6 +19,39 @@
 //different from the closed loop test case which measures at the end of a writer cycle.  It is read
 //earlier in the cycle so that, in the error case, the measurement had already been made. 
 
+class FifolessBufferFullnessTrackerEndCondition : public FifolessBufferEndCondition{
+public:
+    int32_t* startTracker;
+    int32_t* endTracker;
+    INTERRUPT_TRACKER_TYPE* startStdInterruptTracker;
+    INTERRUPT_TRACKER_TYPE* startLocInterruptTracker;
+    INTERRUPT_TRACKER_TYPE* startOtherArchInterruptTracker;
+    INTERRUPT_TRACKER_TYPE* startSoftirqTimerInterruptTracker;
+    INTERRUPT_TRACKER_TYPE* startSoftirqOtherInterruptTracker;
+    INTERRUPT_TRACKER_TYPE* endStdInterruptTracker;
+    INTERRUPT_TRACKER_TYPE* endLocInterruptTracker;
+    INTERRUPT_TRACKER_TYPE* endOtherArchInterruptTracker;
+    INTERRUPT_TRACKER_TYPE* endSoftirqTimerInterruptTracker;
+    INTERRUPT_TRACKER_TYPE* endSoftirqOtherInterruptTracker;
+    double* startTimingTracker;
+    double* endTimingTracker;
+
+    int startTrackerOccupencyElements;
+    int startTrackerInterruptElements;
+    int startTrackerTimeElements;
+    int endTrackerOccupencyElements;
+    int endTrackerInterruptElements;
+    int endTrackerTimeElements;
+
+    //The fullness tracking is only reported in the CSV file
+    // std::string getTrialResultsHeader() override;
+    // std::string getTrialResults() override;
+    std::string getTrialCSVHeader() override;
+    std::string getTrialCSVData() override;
+
+    FifolessBufferFullnessTrackerEndCondition(int startTrackerLen, int endTrackerLen);
+    ~FifolessBufferFullnessTrackerEndCondition();
+};
 
 template<typename elementType, typename idType = std::atomic_int32_t, typename indexType = std::atomic_int32_t>
 class OpenLoopFullnessTrackerBufferArgs : public OpenLoopBufferArgs<elementType, idType, indexType>{
@@ -59,6 +92,9 @@ public:
 
     FILE* readerInterruptReporter;
     FILE* writerInterruptReporter;
+
+    FifolessBufferFullnessTrackerEndCondition *readerRtn;
+    FifolessBufferFullnessTrackerEndCondition *writerRtn;
 
     void printStandaloneTitle(bool report_standalone, std::string title) override; //Prints the standalone title block if standalone results are requested
 protected:
@@ -103,32 +139,6 @@ void OpenLoopFullnessTrackerBufferArgs<elementType, idType, indexType>::printExp
 
 void writeRawHeaderOpenLoopFullnessTracker(std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResults, std::ofstream* raw_file);
 
-class FifolessBufferFullnessTrackerEndCondition : public FifolessBufferEndCondition{
-public:
-    std::vector<int32_t> startTracker;
-    std::vector<int32_t> endTracker;
-    std::vector<INTERRUPT_TRACKER_TYPE> startStdInterruptTracker;
-    std::vector<INTERRUPT_TRACKER_TYPE> startLocInterruptTracker;
-    std::vector<INTERRUPT_TRACKER_TYPE> startOtherArchInterruptTracker;
-    std::vector<INTERRUPT_TRACKER_TYPE> startSoftirqTimerInterruptTracker;
-    std::vector<INTERRUPT_TRACKER_TYPE> startSoftirqOtherInterruptTracker;
-    std::vector<INTERRUPT_TRACKER_TYPE> endStdInterruptTracker;
-    std::vector<INTERRUPT_TRACKER_TYPE> endLocInterruptTracker;
-    std::vector<INTERRUPT_TRACKER_TYPE> endOtherArchInterruptTracker;
-    std::vector<INTERRUPT_TRACKER_TYPE> endSoftirqTimerInterruptTracker;
-    std::vector<INTERRUPT_TRACKER_TYPE> endSoftirqOtherInterruptTracker;
-    std::vector<double> startTimingTracker;
-    std::vector<double> endTimingTracker;
-
-    //The fullness tracking is only reported in the CSV file
-    // std::string getTrialResultsHeader() override;
-    // std::string getTrialResults() override;
-    std::string getTrialCSVHeader() override;
-    std::string getTrialCSVData() override;
-
-    FifolessBufferFullnessTrackerEndCondition();
-};
-
 //TODO: Bundle this with SIR
 inline void readInterrupts(FILE* interruptReader, 
                            SIR_INTERRUPT_TYPE &stdInterruptTracker, 
@@ -171,10 +181,12 @@ size_t openLoopFullnessTrackerAllocate(std::vector<elementType*> &shared_array_l
                                        std::vector<INTERRUPT_TRACKER_TYPE*> &endSoftirqTimerInterruptTracker, 
                                        std::vector<INTERRUPT_TRACKER_TYPE*> &endSoftirqOtherInterruptTracker, 
                                        std::vector<double*> &endTimingTracker, 
+                                       std::vector<FifolessBufferFullnessTrackerEndCondition*> &readerResults,
+                                       std::vector<FifolessBufferFullnessTrackerEndCondition*> &writerResults,
                                        std::vector<size_t> array_lengths, 
                                        std::vector<int32_t> block_lengths, 
                                        std::vector<int> cpus, int alignment, bool circular, 
-                                       bool include_dummy_flags, int startTrackerLen, int endTrackerLen){
+                                       bool include_dummy_flags, int startTrackerLen, int endTrackerLen, int numExperiments){
     //Run the standard open loop allocator
     size_t maxBufferSize = openLoopAllocate<elementType, atomicIdType, atomicIndexType>(shared_array_locs, shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, array_lengths, block_lengths, cpus, alignment, circular, include_dummy_flags);
 
@@ -333,6 +345,13 @@ size_t openLoopFullnessTrackerAllocate(std::vector<elementType*> &shared_array_l
             double *endTimingTrackerInst = (double*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocEndTimingTracker, cpus[buffer]);
             endTimingTracker.push_back(endTimingTrackerInst);
         }
+    }
+
+    for(int i = 0; i<numExperiments; i++){
+        FifolessBufferFullnessTrackerEndCondition* readerResult = new FifolessBufferFullnessTrackerEndCondition(startTrackerLen, endTrackerLen);
+        FifolessBufferFullnessTrackerEndCondition* writerResult = new FifolessBufferFullnessTrackerEndCondition(startTrackerLen, endTrackerLen);
+        readerResults.push_back(readerResult);
+        writerResults.push_back(writerResult);
     }
 
     return maxBufferSize;
@@ -740,7 +759,7 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
     std::atomic_thread_fence(std::memory_order_acquire);
     std::atomic_flag_clear_explicit(stop_flag, std::memory_order_release);
 
-    FifolessBufferFullnessTrackerEndCondition *rtn = new FifolessBufferFullnessTrackerEndCondition;
+    FifolessBufferFullnessTrackerEndCondition *rtn = args->readerRtn;
     rtn->expectedBlockID = readBlockInd;
     rtn->startBlockID = newBlockIDStart;
     rtn->endBlockID = newBlockIDEnd;
@@ -752,15 +771,18 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
 
     //Copy from buffers
     for(int i = 0; i<startTrackerInd; i++){ //Only copy up to the number of samples collected
-        rtn->startTracker.push_back(startTracker[i]);
+        rtn->startTracker[rtn->startTrackerOccupencyElements] = startTracker[i];
+        rtn->startTrackerOccupencyElements++;
         #if TRACK_INTERRUPTS==1
-            rtn->startStdInterruptTracker.push_back(startStdInterruptTracker[i]);
-            rtn->startLocInterruptTracker.push_back(startLocInterruptTracker[i]);
-            rtn->startOtherArchInterruptTracker.push_back(startOtherArchInterruptTracker[i]);
-            rtn->startSoftirqTimerInterruptTracker.push_back(startSoftirqTimerInterruptTracker[i]);
-            rtn->startSoftirqOtherInterruptTracker.push_back(startSoftirqOtherInterruptTracker[i]);
+            rtn->startStdInterruptTracker[rtn->startTrackerInterruptElements] = startStdInterruptTracker[i];
+            rtn->startLocInterruptTracker[rtn->startTrackerInterruptElements] = startLocInterruptTracker[i];
+            rtn->startOtherArchInterruptTracker[rtn->startTrackerInterruptElements] = startOtherArchInterruptTracker[i];
+            rtn->startSoftirqTimerInterruptTracker[rtn->startTrackerInterruptElements] = startSoftirqTimerInterruptTracker[i];
+            rtn->startSoftirqOtherInterruptTracker[rtn->startTrackerInterruptElements] = startSoftirqOtherInterruptTracker[i];
+            rtn->startTrackerInterruptElements++;
         #endif
-        rtn->startTimingTracker.push_back(startTimingTracker[i]);
+        rtn->startTimingTracker[rtn->startTrackerTimeElements] = startTimingTracker[i];
+        rtn->startTrackerTimeElements++;
     }
 
     int ind = endTrackerInd; //Begin copying from
@@ -768,15 +790,18 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
     for(int i = 0; i<endTrackerLen; i++){ //Only copy up to the number of samples collected
         //Run past the first endTrackerLen-endSampleWindowCollected entries
         if(i >= entriesToSkip){
-            rtn->endTracker.push_back(endTracker[ind]);
+            rtn->endTracker[rtn->endTrackerOccupencyElements] = endTracker[ind];
+            rtn->endTrackerOccupencyElements++;
             #if TRACK_INTERRUPTS==1
-                rtn->endStdInterruptTracker.push_back(endStdInterruptTracker[ind]);
-                rtn->endLocInterruptTracker.push_back(endLocInterruptTracker[ind]);
-                rtn->endOtherArchInterruptTracker.push_back(endOtherArchInterruptTracker[ind]);
-                rtn->endSoftirqTimerInterruptTracker.push_back(endSoftirqTimerInterruptTracker[ind]);
-                rtn->endSoftirqOtherInterruptTracker.push_back(endSoftirqOtherInterruptTracker[ind]);
+                rtn->endStdInterruptTracker[rtn->endTrackerInterruptElements] = endStdInterruptTracker[ind];
+                rtn->endLocInterruptTracker[rtn->endTrackerInterruptElements] = endLocInterruptTracker[ind];
+                rtn->endOtherArchInterruptTracker[rtn->endTrackerInterruptElements] = endOtherArchInterruptTracker[ind];
+                rtn->endSoftirqTimerInterruptTracker[rtn->endTrackerInterruptElements] = endSoftirqTimerInterruptTracker[ind];
+                rtn->endSoftirqOtherInterruptTracker[rtn->endTrackerInterruptElements] = endSoftirqOtherInterruptTracker[ind];
+                rtn->endTrackerInterruptElements++;
             #endif
-            rtn->endTimingTracker.push_back(endTimingTracker[ind]);
+            rtn->endTimingTracker[rtn->endTrackerTimeElements] = endTimingTracker[ind];
+            rtn->endTrackerTimeElements++;
         }
 
         if(ind >= (endTrackerLen-1)){
@@ -793,11 +818,12 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
         SIR_INTERRUPT_TYPE softirqTimerInterruptDiff = currentSoftirqTimerInterrupt - lastSoftirqTimerInterrupt;
         SIR_INTERRUPT_TYPE softirqOtherInterruptDiff = currentSoftirqOtherInterrupt - lastSoftirqOtherInterrupt;
 
-        rtn->endStdInterruptTracker.push_back(stdInterruptDiff);
-        rtn->endLocInterruptTracker.push_back(locInterruptDiff);
-        rtn->endOtherArchInterruptTracker.push_back(otherArchInterruptDiff);
-        rtn->endSoftirqTimerInterruptTracker.push_back(softirqTimerInterruptDiff);
-        rtn->endSoftirqOtherInterruptTracker.push_back(softirqOtherInterruptDiff);
+        rtn->endStdInterruptTracker[rtn->endTrackerInterruptElements] = stdInterruptDiff;
+        rtn->endLocInterruptTracker[rtn->endTrackerInterruptElements] = locInterruptDiff;
+        rtn->endOtherArchInterruptTracker[rtn->endTrackerInterruptElements] = otherArchInterruptDiff;
+        rtn->endSoftirqTimerInterruptTracker[rtn->endTrackerInterruptElements] = softirqTimerInterruptDiff;
+        rtn->endSoftirqOtherInterruptTracker[rtn->endTrackerInterruptElements] = softirqOtherInterruptDiff;
+        rtn->endTrackerInterruptElements++;
     #endif
 
     return (void*) rtn;
@@ -1019,7 +1045,7 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
         readInterrupts(interruptReporterFile, currentStdInterrupt, currentLocInterrupt, currentOtherArchInterrupt, currentSoftirqTimerInterrupt, currentSoftirqOtherInterrupt);
     #endif
 
-    FifolessBufferFullnessTrackerEndCondition *rtn = new FifolessBufferFullnessTrackerEndCondition;
+    FifolessBufferFullnessTrackerEndCondition *rtn = args->writerRtn;
     rtn->expectedBlockID = -1;
     rtn->startBlockID = -1;
     rtn->startBlockID = -1;
@@ -1032,13 +1058,15 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
     //Copy from buffers
     for(int i = 0; i<startTrackerInd; i++){ //Only copy up to the number of samples collected
         #if TRACK_INTERRUPTS==1
-            rtn->startStdInterruptTracker.push_back(startStdInterruptTracker[i]);
-            rtn->startLocInterruptTracker.push_back(startLocInterruptTracker[i]);
-            rtn->startOtherArchInterruptTracker.push_back(startOtherArchInterruptTracker[i]);
-            rtn->startSoftirqTimerInterruptTracker.push_back(startSoftirqTimerInterruptTracker[i]);
-            rtn->startSoftirqOtherInterruptTracker.push_back(startSoftirqOtherInterruptTracker[i]);
+            rtn->startStdInterruptTracker[rtn->startTrackerInterruptElements] = startStdInterruptTracker[i];
+            rtn->startLocInterruptTracker[rtn->startTrackerInterruptElements] = startLocInterruptTracker[i];
+            rtn->startOtherArchInterruptTracker[rtn->startTrackerInterruptElements] = startOtherArchInterruptTracker[i];
+            rtn->startSoftirqTimerInterruptTracker[rtn->startTrackerInterruptElements] = startSoftirqTimerInterruptTracker[i];
+            rtn->startSoftirqOtherInterruptTracker[rtn->startTrackerInterruptElements] = startSoftirqOtherInterruptTracker[i];
+            rtn->startTrackerInterruptElements++;
         #endif
-        rtn->startTimingTracker.push_back(startTimingTracker[i]);
+        rtn->startTimingTracker[rtn->startTrackerTimeElements] = startTimingTracker[i];
+        rtn->startTrackerTimeElements++;
     }
 
     int ind = endTrackerInd; //Begin copying from 
@@ -1047,13 +1075,15 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
     //Run past the first endTrackerLen-endSampleWindowCollected entries
         if(i >= entriesToSkip){
             #if TRACK_INTERRUPTS==1
-                rtn->endStdInterruptTracker.push_back(endStdInterruptTracker[ind]);
-                rtn->endLocInterruptTracker.push_back(endLocInterruptTracker[ind]);
-                rtn->endOtherArchInterruptTracker.push_back(endOtherArchInterruptTracker[ind]);
-                rtn->endSoftirqTimerInterruptTracker.push_back(endSoftirqTimerInterruptTracker[ind]);
-                rtn->endSoftirqOtherInterruptTracker.push_back(endSoftirqOtherInterruptTracker[ind]);
+                rtn->endStdInterruptTracker[rtn->endTrackerInterruptElements] = endStdInterruptTracker[ind];
+                rtn->endLocInterruptTracker[rtn->endTrackerInterruptElements] = endLocInterruptTracker[ind];
+                rtn->endOtherArchInterruptTracker[rtn->endTrackerInterruptElements] = endOtherArchInterruptTracker[ind];
+                rtn->endSoftirqTimerInterruptTracker[rtn->endTrackerInterruptElements] = endSoftirqTimerInterruptTracker[ind];
+                rtn->endSoftirqOtherInterruptTracker[rtn->endTrackerInterruptElements] = endSoftirqOtherInterruptTracker[ind];
+                rtn->endTrackerInterruptElements++;
             #endif
-            rtn->endTimingTracker.push_back(endTimingTracker[ind]);
+            rtn->endTimingTracker[rtn->endTrackerTimeElements] = endTimingTracker[ind];
+            rtn->endTrackerTimeElements++;
         }
 
         if(ind >= (endTrackerLen-1)){
@@ -1070,11 +1100,12 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
         SIR_INTERRUPT_TYPE softirqTimerInterruptDiff = currentSoftirqTimerInterrupt - lastSoftirqTimerInterrupt;
         SIR_INTERRUPT_TYPE softirqOtherInterruptDiff = currentSoftirqOtherInterrupt - lastSoftirqOtherInterrupt;
 
-        rtn->endStdInterruptTracker.push_back(stdInterruptDiff);
-        rtn->endLocInterruptTracker.push_back(locInterruptDiff);
-        rtn->endOtherArchInterruptTracker.push_back(otherArchInterruptDiff);
-        rtn->endSoftirqTimerInterruptTracker.push_back(softirqTimerInterruptDiff);
-        rtn->endSoftirqOtherInterruptTracker.push_back(softirqOtherInterruptDiff);
+        rtn->endStdInterruptTracker[rtn->endTrackerInterruptElements] = stdInterruptDiff;
+        rtn->endLocInterruptTracker[rtn->endTrackerInterruptElements] = locInterruptDiff;
+        rtn->endOtherArchInterruptTracker[rtn->endTrackerInterruptElements] = otherArchInterruptDiff;
+        rtn->endSoftirqTimerInterruptTracker[rtn->endTrackerInterruptElements] = softirqTimerInterruptDiff;
+        rtn->endSoftirqOtherInterruptTracker[rtn->endTrackerInterruptElements] = softirqOtherInterruptDiff;
+        rtn->endTrackerInterruptElements++;
     #endif
 
     return (void*) rtn;
