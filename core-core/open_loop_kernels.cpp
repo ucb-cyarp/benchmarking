@@ -142,7 +142,9 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
     std::vector<INTERRUPT_TRACKER_TYPE*> endSoftirqTimerInterruptTrackers;
     std::vector<INTERRUPT_TRACKER_TYPE*> endSoftirqOtherInterruptTrackers;
     std::vector<double*> endTimingTrackers;
-    std::vector<FILE*> interruptReporterFiles;
+    #if TRACK_INTERRUPTS>0
+        std::vector<FILE*> interruptReporterFiles;
+    #endif
 
     openLoopFullnessTrackerAllocate<int32_t, std::atomic_int32_t, std::atomic_int32_t>(shared_array_locs, 
                                                                                        shared_write_id_locs, 
@@ -171,15 +173,18 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
                                                                                        false, false, 
                                                                                        trackerLen, trackerLen);
 
-    for(int i = 0; i<cpus.size(); i++){
-        FILE* interruptReporter = fopen("/dev/sir0", "r");
-        if(interruptReporter == NULL){
-            std::cerr << "Unable to open /dev/sir0.  Check that the sir module is loaded" << std::endl;
-            exit(1);
-        }
 
-        interruptReporterFiles.push_back(interruptReporter);
-    }
+    #if TRACK_INTERRUPTS>0
+        for(int i = 0; i<cpus.size(); i++){
+            FILE* interruptReporter = fopen("/dev/sir0", "r");
+            if(interruptReporter == NULL){
+                std::cerr << "Unable to open /dev/sir0.  Check that the sir module is loaded" << std::endl;
+                exit(1);
+            }
+
+            interruptReporterFiles.push_back(interruptReporter);
+        }
+    #endif
 
     //==== Create Configurations for each experiment ====
     int num_experiments = array_lengths.size() * block_lengths.size() * balance_nops.size() * initial_nops.size() * checkPeriods.size();
@@ -247,8 +252,10 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
                         args[idx].endSoftirqOtherInterruptTrackerWriter = endSoftirqOtherInterruptTrackers[1];
                         args[idx].endTimingTrackerWriter = endTimingTrackers[1];
                         args[idx].endTrackerLen = trackerLen;
-                        args[idx].writerInterruptReporter = interruptReporterFiles[0];
-                        args[idx].readerInterruptReporter = interruptReporterFiles[1];
+                        #if TRACK_INTERRUPTS>0
+                            args[idx].writerInterruptReporter = interruptReporterFiles[0];
+                            args[idx].readerInterruptReporter = interruptReporterFiles[1];
+                        #endif
                     }
                 }
             }
@@ -293,9 +300,11 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
     closeEntry(file, raw_file);
 
     //==== Cleanup ====
-    for(int i = 0; i<interruptReporterFiles.size(); i++){
-        fclose(interruptReporterFiles[i]);
-    }
+    #if TRACK_INTERRUPTS>0
+        for(int i = 0; i<interruptReporterFiles.size(); i++){
+            fclose(interruptReporterFiles[i]);
+        }
+    #endif
 
     destructSharedIDs(shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag);
 
