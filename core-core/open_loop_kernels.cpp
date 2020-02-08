@@ -145,8 +145,8 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
     #if TRACK_INTERRUPTS>0
         std::vector<FILE*> interruptReporterFiles;
     #endif
-    std::vector<FifolessBufferFullnessTrackerEndCondition*> readerResults;
-    std::vector<FifolessBufferFullnessTrackerEndCondition*> writerResults;
+    std::vector<std::vector<FifolessBufferFullnessTrackerEndCondition*>> readerResults;
+    std::vector<std::vector<FifolessBufferFullnessTrackerEndCondition*>> writerResults;
 
     int num_experiments = array_lengths.size() * block_lengths.size() * balance_nops.size() * initial_nops.size() * checkPeriods.size();
 
@@ -177,7 +177,7 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
                                                                                        cpus, 
                                                                                        alignment, 
                                                                                        false, false, 
-                                                                                       trackerLen, trackerLen, num_experiments);
+                                                                                       trackerLen, trackerLen, num_experiments, TRIALS);
 
 
     #if TRACK_INTERRUPTS>0
@@ -260,8 +260,8 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
                             args[idx].writerInterruptReporter = interruptReporterFiles[0];
                             args[idx].readerInterruptReporter = interruptReporterFiles[1];
                         #endif
-                        args[idx].readerRtn = readerResults[idx];
-                        args[idx].writerRtn = writerResults[idx];
+                        args[idx].readerRtn = readerResults[idx]; //This will result in copying the pointer vector but that is OK since we have not started trials yet
+                        args[idx].writerRtn = writerResults[idx]; //This will result in copying the pointer vector but that is OK since we have not started trials yet
                     }
                 }
             }

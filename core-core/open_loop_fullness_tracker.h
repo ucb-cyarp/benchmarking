@@ -12,8 +12,8 @@
 #define INTERRUPT_TRACKER_TYPE int8_t
 
 // #define TRACK_INTERRUPTS 2 // Summary
-#define TRACK_INTERRUPTS 1 // Enabled
-// #define TRACK_INTERRUPTS 0 // Disabled
+// #define TRACK_INTERRUPTS 1 // Enabled
+#define TRACK_INTERRUPTS 0 // Disabled
 
 //This benchmarks measures the fullness of the buffer at the start of a reader cycle.  This is slightly
 //different from the closed loop test case which measures at the end of a writer cycle.  It is read
@@ -93,8 +93,11 @@ public:
     FILE* readerInterruptReporter;
     FILE* writerInterruptReporter;
 
-    FifolessBufferFullnessTrackerEndCondition *readerRtn;
-    FifolessBufferFullnessTrackerEndCondition *writerRtn;
+    std::vector<FifolessBufferFullnessTrackerEndCondition*> readerRtn;
+    std::vector<FifolessBufferFullnessTrackerEndCondition*> writerRtn;
+
+    int trialIndReader = 0; //Used as part of a temproary hack to pre-allocate result arrays
+    int trialIndWriter = 0; //Used as part of a temproary hack to pre-allocate result arrays
 
     void printStandaloneTitle(bool report_standalone, std::string title) override; //Prints the standalone title block if standalone results are requested
 protected:
@@ -181,12 +184,12 @@ size_t openLoopFullnessTrackerAllocate(std::vector<elementType*> &shared_array_l
                                        std::vector<INTERRUPT_TRACKER_TYPE*> &endSoftirqTimerInterruptTracker, 
                                        std::vector<INTERRUPT_TRACKER_TYPE*> &endSoftirqOtherInterruptTracker, 
                                        std::vector<double*> &endTimingTracker, 
-                                       std::vector<FifolessBufferFullnessTrackerEndCondition*> &readerResults,
-                                       std::vector<FifolessBufferFullnessTrackerEndCondition*> &writerResults,
+                                       std::vector<std::vector<FifolessBufferFullnessTrackerEndCondition*>> &readerResults,
+                                       std::vector<std::vector<FifolessBufferFullnessTrackerEndCondition*>> &writerResults,
                                        std::vector<size_t> array_lengths, 
                                        std::vector<int32_t> block_lengths, 
                                        std::vector<int> cpus, int alignment, bool circular, 
-                                       bool include_dummy_flags, int startTrackerLen, int endTrackerLen, int numExperiments){
+                                       bool include_dummy_flags, int startTrackerLen, int endTrackerLen, int numExperiments, int trials){
     //Run the standard open loop allocator
     size_t maxBufferSize = openLoopAllocate<elementType, atomicIdType, atomicIndexType>(shared_array_locs, shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, array_lengths, block_lengths, cpus, alignment, circular, include_dummy_flags);
 
@@ -348,10 +351,18 @@ size_t openLoopFullnessTrackerAllocate(std::vector<elementType*> &shared_array_l
     }
 
     for(int i = 0; i<numExperiments; i++){
-        FifolessBufferFullnessTrackerEndCondition* readerResult = new FifolessBufferFullnessTrackerEndCondition(startTrackerLen, endTrackerLen);
-        FifolessBufferFullnessTrackerEndCondition* writerResult = new FifolessBufferFullnessTrackerEndCondition(startTrackerLen, endTrackerLen);
-        readerResults.push_back(readerResult);
-        writerResults.push_back(writerResult);
+        std::vector<FifolessBufferFullnessTrackerEndCondition*> readerTrialResults;
+        std::vector<FifolessBufferFullnessTrackerEndCondition*> writerTrialResults;
+
+        for(int j = 0; j<trials; j++){
+            FifolessBufferFullnessTrackerEndCondition* readerResult = new FifolessBufferFullnessTrackerEndCondition(startTrackerLen, endTrackerLen);
+            FifolessBufferFullnessTrackerEndCondition* writerResult = new FifolessBufferFullnessTrackerEndCondition(startTrackerLen, endTrackerLen);
+            readerTrialResults.push_back(readerResult);
+            writerTrialResults.push_back(writerResult);
+        }
+
+        readerResults.push_back(readerTrialResults);
+        writerResults.push_back(writerTrialResults);
     }
 
     return maxBufferSize;
@@ -759,7 +770,7 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
     std::atomic_thread_fence(std::memory_order_acquire);
     std::atomic_flag_clear_explicit(stop_flag, std::memory_order_release);
 
-    FifolessBufferFullnessTrackerEndCondition *rtn = args->readerRtn;
+    FifolessBufferFullnessTrackerEndCondition *rtn = args->readerRtn[args->trialIndReader];
     rtn->expectedBlockID = readBlockInd;
     rtn->startBlockID = newBlockIDStart;
     rtn->endBlockID = newBlockIDEnd;
@@ -826,6 +837,7 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
         rtn->endTrackerInterruptElements++;
     #endif
 
+    args->trialIndReader++;
     return (void*) rtn;
 }
 
@@ -1045,7 +1057,7 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
         readInterrupts(interruptReporterFile, currentStdInterrupt, currentLocInterrupt, currentOtherArchInterrupt, currentSoftirqTimerInterrupt, currentSoftirqOtherInterrupt);
     #endif
 
-    FifolessBufferFullnessTrackerEndCondition *rtn = args->writerRtn;
+    FifolessBufferFullnessTrackerEndCondition *rtn = args->writerRtn[args->trialIndWriter];
     rtn->expectedBlockID = -1;
     rtn->startBlockID = -1;
     rtn->startBlockID = -1;
@@ -1107,6 +1119,8 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
         rtn->endSoftirqOtherInterruptTracker[rtn->endTrackerInterruptElements] = softirqOtherInterruptDiff;
         rtn->endTrackerInterruptElements++;
     #endif
+
+    args->trialIndWriter++;
 
     return (void*) rtn;
 
