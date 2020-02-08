@@ -49,6 +49,7 @@ void* kernel_exe_primary_wrapper(void *arg)
     }
 
     std::vector<Results> *resultVec = new std::vector<Results>;
+    resultVec->reserve(numExperiments*numTrials); //Pre-allocate entris in the results vector
 
     //=== Logic for interconnected primaries ===
     //Wait for initial signal from master
