@@ -74,7 +74,7 @@
              * Warning: If exporting to CSV or printing multiple trial results, the relative order of these 
              * benchmark_specific_results should be consistent across the different TrialResult objects
              */
-            std::vector<std::shared_ptr<BenchmarkSpecificResult>> benchmarkSpecificResults;
+            std::vector<BenchmarkSpecificResult*> benchmarkSpecificResults;
 
             TrialResult();
             TrialResult(int reserveBenchmarkSpecificResults);

@@ -8,7 +8,7 @@
     //Define some helper functions to be inlined
     
     //Check for frequency change events.  Discards sample if freq change event occured.  If not, adds result to results.  Prepares for next run in either case
-    inline bool processTrialAndPrepareForNextHelper(Profiler* profiler, Results &results, TrialResult *trial_result, int &trial, int &discard_count, std::vector<std::shared_ptr<BenchmarkSpecificResult>*> secondaryBenchmarkSpecificResults, std::vector<int> socketsOfInterest = {}){
+    inline bool processTrialAndPrepareForNextHelper(Profiler* profiler, Results &results, TrialResult *trial_result, int &trial, int &discard_count, std::vector<BenchmarkSpecificResult**> secondaryBenchmarkSpecificResults, std::vector<int> socketsOfInterest = {}){
             bool freq_change_events_occured = profiler->detectsFreqChange() ? profiler->checkFreqChanged(socketsOfInterest) : false;
             //Proceed if no freq changes occured
             if(!freq_change_events_occured)

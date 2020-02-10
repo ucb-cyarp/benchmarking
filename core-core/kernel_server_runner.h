@@ -36,7 +36,7 @@
             std::vector<std::atomic_flag*> restart_trial_signals_to_master;
             std::vector<std::atomic_flag*> start_new_trial_signals_from_master;
             std::vector<std::atomic_flag*> restart_trial_signals_from_master;
-            std::vector<std::shared_ptr<BenchmarkSpecificResult>*> benchmarkSpecificResultPtrs;
+            std::vector<BenchmarkSpecificResult**> benchmarkSpecificResultPtrs;
     };
 
     class KernelExeSecondaryWrapperArgs
@@ -49,7 +49,7 @@
             std::atomic_flag* start_new_trial_signal;
             std::atomic_flag* restart_trial_signal;
             std::vector<std::atomic_flag*> done_signals;
-            std::shared_ptr<BenchmarkSpecificResult> *benchmarkSpecificResultPtr;
+            BenchmarkSpecificResult** benchmarkSpecificResultPtr;
             int num_trials;
     };
 
@@ -182,7 +182,8 @@
         std::atomic_flag_test_and_set_explicit(restart_trial_signal, std::memory_order_acq_rel);
         std::atomic_flag_test_and_set_explicit(done_signal, std::memory_order_acq_rel);
 
-        std::shared_ptr<BenchmarkSpecificResult> *benchmarkSpecificResultPtrClient = new std::shared_ptr<BenchmarkSpecificResult>(nullptr);
+        BenchmarkSpecificResult **benchmarkSpecificResultPtrClient = new BenchmarkSpecificResult*;
+        *benchmarkSpecificResultPtrClient = nullptr;
 
         // --- Create threads ---
         //Create threads.  Create thread b (client) before thread a (server) which performs measurments
@@ -470,8 +471,11 @@
         std::atomic_flag_test_and_set_explicit(restart_trial_signal_d, std::memory_order_acq_rel);
         std::atomic_flag_test_and_set_explicit(done_signal_d, std::memory_order_acq_rel);
 
-        std::shared_ptr<BenchmarkSpecificResult> *benchmarkSpecificResultPtrClient_b = new std::shared_ptr<BenchmarkSpecificResult>(nullptr);
-        std::shared_ptr<BenchmarkSpecificResult> *benchmarkSpecificResultPtrClient_d = new std::shared_ptr<BenchmarkSpecificResult>(nullptr);
+        BenchmarkSpecificResult** benchmarkSpecificResultPtrClient_b = new BenchmarkSpecificResult*;
+        *benchmarkSpecificResultPtrClient_b = nullptr;
+        BenchmarkSpecificResult** benchmarkSpecificResultPtrClient_d = new BenchmarkSpecificResult*;
+        *benchmarkSpecificResultPtrClient_d = nullptr;
+
 
         // --- Create threads ---
         //Create threads.  Create thread b and d (clients) before thread a and c (servers) which performs measurments
@@ -820,7 +824,8 @@
         std::atomic_flag_test_and_set_explicit(start_new_trial_to_master, std::memory_order_acq_rel);
         std::atomic_flag_test_and_set_explicit(restart_trial_to_master, std::memory_order_acq_rel);
 
-        std::shared_ptr<BenchmarkSpecificResult> *benchmarkSpecificResultPtrClient = new std::shared_ptr<BenchmarkSpecificResult>(nullptr);
+        BenchmarkSpecificResult **benchmarkSpecificResultPtrClient = new BenchmarkSpecificResult*;
+        *benchmarkSpecificResultPtrClient = nullptr;
 
         // --- Create threads ---
         //Create threads.  Create thread c (client) before thread a and b (server) which perform measurments
@@ -1146,7 +1151,8 @@
         std::atomic_flag* start_new_trial_to_master = new std::atomic_flag;
         std::atomic_flag* restart_trial_to_master = new std::atomic_flag;
 
-        std::shared_ptr<BenchmarkSpecificResult> *benchmarkSpecificResultPtrServer = new std::shared_ptr<BenchmarkSpecificResult>(nullptr);
+        BenchmarkSpecificResult **benchmarkSpecificResultPtrServer = new BenchmarkSpecificResult*;
+        *benchmarkSpecificResultPtrServer = nullptr;
 
         //Init these syncronization mechanisms before starting threads
         //These flags are active low so are initialized to true

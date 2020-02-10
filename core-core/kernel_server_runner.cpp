@@ -147,9 +147,8 @@ void* kernel_exe_primary_wrapper(void *arg)
             if(kernel_result != nullptr){
                 //The kernel returned an implementation specific result, add it to the trial result
                 BenchmarkSpecificResult *specificResultOrig = (BenchmarkSpecificResult*) kernel_result;
-                std::shared_ptr<BenchmarkSpecificResult> specificResult(specificResultOrig);
                 //Copy the smart pointer before destructing the origional.
-                trial_result->benchmarkSpecificResults.push_back(specificResult);
+                trial_result->benchmarkSpecificResults.push_back(specificResultOrig);
             }//If nullptr, no result was returned
 
             #if PRINT_TRIALS == 1
@@ -285,7 +284,7 @@ void* kernel_exe_secondary_wrapper(void *arg){
     void* (*kernel_fun)(void*) = args->kernel_fun;
     int numExperiments = args->num_args;
     int numTrials = args->num_trials;
-    std::shared_ptr<BenchmarkSpecificResult> *benchmarkSpecificResultPtr = args->benchmarkSpecificResultPtr;
+    BenchmarkSpecificResult **benchmarkSpecificResultPtr = args->benchmarkSpecificResultPtr;
 
     //Wait for first trial (should always be signaled by start_new_trial_signal)
     bool execute = false;
@@ -313,10 +312,7 @@ void* kernel_exe_secondary_wrapper(void *arg){
             //The object is not deleted here and it's lifetime is governed by the smart ptr.
             if(kernel_result != nullptr){
                 BenchmarkSpecificResult *benchmarkSpecificResult = (BenchmarkSpecificResult*) kernel_result;
-                //Create a smart pointer to this raw ptr
-                std::shared_ptr<BenchmarkSpecificResult> benchmarkSpecificResultSmartPtr(benchmarkSpecificResult);
-                //Copy the smart pointer
-                *benchmarkSpecificResultPtr = benchmarkSpecificResultSmartPtr;
+                *benchmarkSpecificResultPtr = benchmarkSpecificResult;
             }else{
                 *benchmarkSpecificResultPtr = nullptr;
             }

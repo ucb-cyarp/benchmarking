@@ -563,13 +563,13 @@
     void writeCSVSummaryHeaderOpenLoop(FILE* file);
     std::string tableHeaderOpenLoop(std::string title, FILE* file);
 
-    void writeRawHeaderOpenLoop(std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResults, std::ofstream* raw_file);
+    void writeRawHeaderOpenLoop(std::vector<BenchmarkSpecificResult*> implSpecificResults, std::ofstream* raw_file);
 
     std::string tableHeaderClosedLoopBang(std::string title, FILE* file);
-    void writeRawHeaderClosedLoopBang(std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResults, std::ofstream* raw_file);
+    void writeRawHeaderClosedLoopBang(std::vector<BenchmarkSpecificResult*> implSpecificResults, std::ofstream* raw_file);
 
     std::string tableHeaderClosedLoopPI(std::string title, FILE* file);
-    void writeRawHeaderClosedLoopPI(std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResults, std::ofstream* raw_file);
+    void writeRawHeaderClosedLoopPI(std::vector<BenchmarkSpecificResult*> implSpecificResults, std::ofstream* raw_file);
 
     void closeEntry(FILE* file, std::ofstream* raw_file);
 

@@ -221,7 +221,7 @@ FifolessBufferFullnessTrackerEndCondition::~FifolessBufferFullnessTrackerEndCond
     delete[] endTimingTracker;
 }
 
-void writeRawHeaderOpenLoopFullnessTracker(std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResults, std::ofstream* raw_file){
+void writeRawHeaderOpenLoopFullnessTracker(std::vector<BenchmarkSpecificResult*> implSpecificResults, std::ofstream* raw_file){
     #if WRITE_CSV == 1
         *raw_file << "\"Array Length (Blocks)\","
                   << "\"Block Size (int32_t Elements)\","

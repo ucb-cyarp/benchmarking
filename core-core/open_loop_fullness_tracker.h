@@ -140,7 +140,7 @@ void OpenLoopFullnessTrackerBufferArgs<elementType, idType, indexType>::printExp
     }
 }
 
-void writeRawHeaderOpenLoopFullnessTracker(std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResults, std::ofstream* raw_file);
+void writeRawHeaderOpenLoopFullnessTracker(std::vector<BenchmarkSpecificResult*> implSpecificResults, std::ofstream* raw_file);
 
 //TODO: Bundle this with SIR
 inline void readInterrupts(FILE* interruptReader, 

@@ -239,7 +239,7 @@ void printTitleFIFOPoint(bool report_standalone, std::string title, size_t array
     #endif
 }
 
-void writeRawHeaderOpenLoop(std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResults, std::ofstream* raw_file){
+void writeRawHeaderOpenLoop(std::vector<BenchmarkSpecificResult*> implSpecificResults, std::ofstream* raw_file){
     #if WRITE_CSV == 1
         *raw_file << "\"Array Length (Blocks)\","
                   << "\"Block Size (int32_t Elements)\","
@@ -282,7 +282,7 @@ std::string tableHeaderClosedLoopBang(std::string title, FILE* file){
     return "         %14d | %20d | %19d | %19d | %12d | %7d | %10.4e, %10.4e\n";
 }
 
-void writeRawHeaderClosedLoopBang(std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResults, std::ofstream* raw_file){
+void writeRawHeaderClosedLoopBang(std::vector<BenchmarkSpecificResult*> implSpecificResults, std::ofstream* raw_file){
     #if WRITE_CSV == 1
         *raw_file << "\"Array Length (Blocks)\","
                   << "\"Block Size (int32_t Elements)\","
@@ -327,7 +327,7 @@ std::string tableHeaderClosedLoopPI(std::string title, FILE* file){
     return "         %14d | %20d | %19d | %19d | %14d | %14d | %7d | %10.4e, %10.4e\n";
 }
 
-void writeRawHeaderClosedLoopPI(std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResults, std::ofstream* raw_file){
+void writeRawHeaderClosedLoopPI(std::vector<BenchmarkSpecificResult*> implSpecificResults, std::ofstream* raw_file){
     #if WRITE_CSV == 1
         *raw_file << "\"Array Length (Blocks)\","
                   << "\"Block Size (int32_t Elements)\","
