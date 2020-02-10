@@ -101,8 +101,8 @@ void run_closed_loop_bang_control_kernel(Profiler* profiler, int cpu_a, int cpu_
     //==== Write Raw Headers (Done after the experiment is run because we need the benchmark specific results to get the header information) ====
     std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResultExamples;
     if(results_vec[0].trial_results.size() > 0){
-        if(results_vec[0].trial_results[0].benchmarkSpecificResults.size() > 0){
-            implSpecificResultExamples = results_vec[0].trial_results[0].benchmarkSpecificResults;
+        if(results_vec[0].trial_results[0]->benchmarkSpecificResults.size() > 0){
+            implSpecificResultExamples = results_vec[0].trial_results[0]->benchmarkSpecificResults;
         }
     }
     writeRawHeaderClosedLoopBang(implSpecificResultExamples, raw_file);
@@ -229,8 +229,8 @@ void run_closed_loop_pi_control_rate_kernel(Profiler* profiler, int cpu_a, int c
     //==== Write Raw Headers (Done after the experiment is run because we need the benchmark specific results to get the header information) ====
     std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResultExamples;
     if(results_vec[0].trial_results.size() > 0){
-        if(results_vec[0].trial_results[0].benchmarkSpecificResults.size() > 0){
-            implSpecificResultExamples = results_vec[0].trial_results[0].benchmarkSpecificResults;
+        if(results_vec[0].trial_results[0]->benchmarkSpecificResults.size() > 0){
+            implSpecificResultExamples = results_vec[0].trial_results[0]->benchmarkSpecificResults;
         }
     }
     writeRawHeaderClosedLoopPI(implSpecificResultExamples, raw_file);

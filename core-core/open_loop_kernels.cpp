@@ -85,8 +85,8 @@ void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<
     //==== Write Raw Headers (Done after the experiment is run because we need the benchmark specific results to get the header information) ====
     std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResultExamples;
     if(results_vec[0].trial_results.size() > 0){
-        if(results_vec[0].trial_results[0].benchmarkSpecificResults.size() > 0){
-            implSpecificResultExamples = results_vec[0].trial_results[0].benchmarkSpecificResults;
+        if(results_vec[0].trial_results[0]->benchmarkSpecificResults.size() > 0){
+            implSpecificResultExamples = results_vec[0].trial_results[0]->benchmarkSpecificResults;
         }
     }
     writeRawHeaderOpenLoop(implSpecificResultExamples, raw_file);
@@ -292,8 +292,8 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
     //==== Write Raw Headers (Done after the experiment is run because we need the benchmark specific results to get the header information) ====
     std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResultExamples;
     if(results_vec[0].trial_results.size() > 0){
-        if(results_vec[0].trial_results[0].benchmarkSpecificResults.size() > 0){
-            implSpecificResultExamples = results_vec[0].trial_results[0].benchmarkSpecificResults;
+        if(results_vec[0].trial_results[0]->benchmarkSpecificResults.size() > 0){
+            implSpecificResultExamples = results_vec[0].trial_results[0]->benchmarkSpecificResults;
         }
     }
     writeRawHeaderOpenLoopFullnessTracker(implSpecificResultExamples, raw_file);
@@ -427,8 +427,8 @@ void run_open_loop_run_past_failure_kernel(Profiler* profiler, int cpu_a, int cp
     //==== Write Raw Headers (Done after the experiment is run because we need the benchmark specific results to get the header information) ====
     std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResultExamples;
     if(results_vec[0].trial_results.size() > 0){
-        if(results_vec[0].trial_results[0].benchmarkSpecificResults.size() > 0){
-            implSpecificResultExamples = results_vec[0].trial_results[0].benchmarkSpecificResults;
+        if(results_vec[0].trial_results[0]->benchmarkSpecificResults.size() > 0){
+            implSpecificResultExamples = results_vec[0].trial_results[0]->benchmarkSpecificResults;
         }
     }
     writeRawHeaderOpenLoop(implSpecificResultExamples, raw_file);

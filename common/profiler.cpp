@@ -229,12 +229,16 @@ void Profiler::endTrial(){
 TrialResult Profiler::computeTrialResult(){
     TrialResult result;
 
+    computeTrialResultInPlace(result);
+
+    return result;
+}
+
+void Profiler::computeTrialResultInPlace(TrialResult &result){
     //At the superclass level, only the time for the trial is computed and stored.
     result.duration = (std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(stop_steady-start_steady)).count();
     //Start power profile first since it may take some time to start
     //result.duration_clock = 1000.0 * (stop_clock - start_clock) / CLOCKS_PER_SEC;
     result.duration_clock = -1;
     result.duration_rdtsc =  (stop_rdtsc - start_rdtsc);
-
-    return result;
 }

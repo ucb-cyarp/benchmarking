@@ -48,8 +48,16 @@ void* kernel_exe_primary_wrapper(void *arg)
         }
     }
 
-    std::vector<Results> *resultVec = new std::vector<Results>;
-    resultVec->reserve(numExperiments*numTrials); //Pre-allocate entris in the results vector
+    std::vector<Results> *resultVec = new std::vector<Results>(); 
+    for(int i = 0; i<numExperiments; i++){
+        //Pre-allocate entris in the results vector
+        //Because we are actually constructing these, the space reservation for the trials is happening in the constructors
+        resultVec->emplace_back(numTrials);
+    }
+    
+    //Pointers are now coppied into the Result
+    //TODO: Memory leak here since no easy way to free this segment.  Need to return base pointer
+    TrialResult *trialResultAllocVec = new TrialResult[numExperiments*numTrials];
 
     //=== Logic for interconnected primaries ===
     //Wait for initial signal from master
@@ -76,7 +84,7 @@ void* kernel_exe_primary_wrapper(void *arg)
         void* reset_arg = (void*) (((char*) args->reset_args)+experiment*(args->reset_arg_size));
         int cpu_num = args->cpu_num;
 
-        Results results; //Trials are added to results
+        Results* results = &((*resultVec)[experiment]); //Trials are added to results
         int discard_count = 0;
 
         bool lastTrialWasDiscarded = false;
@@ -130,7 +138,8 @@ void* kernel_exe_primary_wrapper(void *arg)
             std::atomic_signal_fence(std::memory_order_acq_rel);
             
             //Compute the trial result
-            TrialResult trial_result = computeTrialResultAndSetTrialNum(profiler, &results);
+            TrialResult *trial_result = trialResultAllocVec+(experiment*numTrials)+trial;
+            computeTrialResultAndSetTrialNumInplace(profiler, results, trial_result);
 
             //Note, the kernel is returning a pointer.  It can return a NULL ptr in which case no action is taken.
             //Otherwise, it still returns a raw pointer which is converted to a shared_ptr here
@@ -140,7 +149,7 @@ void* kernel_exe_primary_wrapper(void *arg)
                 BenchmarkSpecificResult *specificResultOrig = (BenchmarkSpecificResult*) kernel_result;
                 std::shared_ptr<BenchmarkSpecificResult> specificResult(specificResultOrig);
                 //Copy the smart pointer before destructing the origional.
-                trial_result.benchmarkSpecificResults.push_back(specificResult);
+                trial_result->benchmarkSpecificResults.push_back(specificResult);
             }//If nullptr, no result was returned
 
             #if PRINT_TRIALS == 1
@@ -164,7 +173,7 @@ void* kernel_exe_primary_wrapper(void *arg)
             //This function adds the trial result if no frequency change event occured (if the profiler supports checking)
             //If the trial is kept, the benchmark specific results from the secondaries are added.  Otherwise, the smart pointer is deleted
             //Important: This function increments trial if no frequency change event occured.  It also increments discard_count if a discard occured
-            lastTrialWasDiscarded = processTrialAndPrepareForNextHelper(profiler, results, trial_result, trial, discard_count, args->benchmarkSpecificResultPtrs);
+            lastTrialWasDiscarded = processTrialAndPrepareForNextHelper(profiler, *results, trial_result, trial, discard_count, args->benchmarkSpecificResultPtrs);
 
             //=== Logic for interconnected primaries ===
             if(args->interconnected_primaries){
@@ -200,7 +209,7 @@ void* kernel_exe_primary_wrapper(void *arg)
 
                     //Discard if local decision was not to discard but group decision was to discard
                     if(discardShouldOccure && !lastTrialWasDiscarded){
-                        discardLastTrial(results, trial, discard_count);
+                        discardLastTrial(*results, trial, discard_count);
                     }
 
                     //Set lastTrialWasDiscarded to group decision so that any secondaries are properly informed of the discard on the next cycle
@@ -235,7 +244,7 @@ void* kernel_exe_primary_wrapper(void *arg)
 
                     //Discard if local decision was not to discard but group decision was to discard
                     if(remote_discard_found && !lastTrialWasDiscarded){
-                        discardLastTrial(results, trial, discard_count);
+                        discardLastTrial(*results, trial, discard_count);
                     }
 
                     //Set lastTrialWasDiscarded to group decision so that any secondaries are properly informed of the discard on the next cycle
@@ -249,8 +258,6 @@ void* kernel_exe_primary_wrapper(void *arg)
                 cleanup_fun(reset_arg);
             }
         }
-
-        resultVec->push_back(results);
     }
 
     //==== Send the Final Success Flags ====

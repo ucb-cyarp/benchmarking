@@ -61,6 +61,9 @@ Statistics::Statistics(double avg, double stdDev, Unit unit, bool cumulative) : 
 }
 
 TrialResult::TrialResult() : sampled(false){}
+TrialResult::TrialResult(int reserveBenchmarkSpecificResults) : sampled(false) {
+    benchmarkSpecificResults.reserve(reserveBenchmarkSpecificResults);
+}
 TrialResult::TrialResult(bool sampled) : sampled(sampled){}
 
 void TrialResult::print_trial(const std::vector<HW_Granularity> granularityToPrint, const std::vector<MeasurementType> measurementTypeToPrint)
@@ -109,59 +112,63 @@ Results::Results()
 {
 }
 
+Results::Results(int trials){
+    trial_results.reserve(trials);
+}
+
 Statistics Results::measurementStats(MeasurementType measurmentType, HW_Granularity granularity, int32_t index, bool treatTrialSamplesAsLumped){
     //Itterate through the measurements to find the ones that apply
     std::vector<Measurement> filteredMeasurements;
     for(unsigned long i = 0; i<trial_results.size(); i++){
         //Itterate through the measurements for this trial at the specified meaurment type and granularity level
-        if(trial_results[i].measurements.find(measurmentType) != trial_results[i].measurements.end() && 
-        trial_results[i].measurements[measurmentType].find(granularity) != trial_results[i].measurements[measurmentType].end()){
-            for(unsigned long j = 0; j<trial_results[i].measurements[measurmentType][granularity].size(); j++){
-                if(trial_results[i].measurements[measurmentType][granularity][j].index == index){
+        if(trial_results[i]->measurements.find(measurmentType) != trial_results[i]->measurements.end() && 
+        trial_results[i]->measurements[measurmentType].find(granularity) != trial_results[i]->measurements[measurmentType].end()){
+            for(unsigned long j = 0; j<trial_results[i]->measurements[measurmentType][granularity].size(); j++){
+                if(trial_results[i]->measurements[measurmentType][granularity][j].index == index){
 
-                    bool shouldLump = treatTrialSamplesAsLumped && trial_results[i].measurements[measurmentType][granularity][j].measurement.size()>1;
-                    bool isCumulativeAndSampled = (trial_results[i].measurements[measurmentType][granularity][j].collectionType == MeasurementCollectionType::CUMULATIVE_DELTA ||
-                                                   trial_results[i].measurements[measurmentType][granularity][j].collectionType == MeasurementCollectionType::CUMULATIVE_WHILE_SAMPLED) && trial_results[i].sampled;
+                    bool shouldLump = treatTrialSamplesAsLumped && trial_results[i]->measurements[measurmentType][granularity][j].measurement.size()>1;
+                    bool isCumulativeAndSampled = (trial_results[i]->measurements[measurmentType][granularity][j].collectionType == MeasurementCollectionType::CUMULATIVE_DELTA ||
+                                                   trial_results[i]->measurements[measurmentType][granularity][j].collectionType == MeasurementCollectionType::CUMULATIVE_WHILE_SAMPLED) && trial_results[i]->sampled;
                     
                     if(shouldLump || isCumulativeAndSampled){ //Still need to run of the degenerate cumulative case of 1 sample if a sampling profiler was used -- need to interpolate
 
-                        if(trial_results[i].measurements[measurmentType][granularity][j].collectionType == MeasurementCollectionType::CUMULATIVE_WHILE_SAMPLED){
+                        if(trial_results[i]->measurements[measurmentType][granularity][j].collectionType == MeasurementCollectionType::CUMULATIVE_WHILE_SAMPLED){
                             //Just take the last measurement in the sample
-                            unsigned long numSamples = trial_results[i].measurements[measurmentType][granularity][j].measurement.size();
+                            unsigned long numSamples = trial_results[i]->measurements[measurmentType][granularity][j].measurement.size();
                             if(numSamples>=1){
                                 double duration = 0;
-                                for(unsigned long k = 0; k<trial_results[i].measurements[measurmentType][granularity][j].deltaT.size(); k++){
-                                    duration += trial_results[i].measurements[measurmentType][granularity][j].deltaT[k];
+                                for(unsigned long k = 0; k<trial_results[i]->measurements[measurmentType][granularity][j].deltaT.size(); k++){
+                                    duration += trial_results[i]->measurements[measurmentType][granularity][j].deltaT[k];
                                 }
 
                                 //Need to scale measurement
-                                double sampledVal = trial_results[i].measurements[measurmentType][granularity][j].measurement[numSamples-1];
+                                double sampledVal = trial_results[i]->measurements[measurmentType][granularity][j].measurement[numSamples-1];
 
                                 Unit durationUnit(BaseUnit::SECOND, -3);
-                                double scaledVal = sampledVal * trial_results[i].duration / Unit::scale(trial_results[i].measurements[measurmentType][granularity][j].deltaTUnit, durationUnit, duration);
+                                double scaledVal = sampledVal * trial_results[i]->duration / Unit::scale(trial_results[i]->measurements[measurmentType][granularity][j].deltaTUnit, durationUnit, duration);
 
                                 Measurement cumulativeMeasurement;
-                                cumulativeMeasurement.index = trial_results[i].measurements[measurmentType][granularity][j].index;
-                                cumulativeMeasurement.unit = trial_results[i].measurements[measurmentType][granularity][j].unit;
+                                cumulativeMeasurement.index = trial_results[i]->measurements[measurmentType][granularity][j].index;
+                                cumulativeMeasurement.unit = trial_results[i]->measurements[measurmentType][granularity][j].unit;
                                 cumulativeMeasurement.measurement.push_back(scaledVal);
                                 cumulativeMeasurement.deltaTUnit = durationUnit;
                                 cumulativeMeasurement.deltaT.push_back(scaledVal);
-                                cumulativeMeasurement.collectionType = trial_results[i].measurements[measurmentType][granularity][j].collectionType;
+                                cumulativeMeasurement.collectionType = trial_results[i]->measurements[measurmentType][granularity][j].collectionType;
                                 filteredMeasurements.push_back(cumulativeMeasurement);
                             }
                         }else{
                             //Average the measurements (if instantanious) or sum (if cumulative_delya)
                             double sum = 0;
                             double sampleDuration = 0;
-                            for(unsigned long k = 0; k<trial_results[i].measurements[measurmentType][granularity][j].measurement.size(); k++){
-                                sum += trial_results[i].measurements[measurmentType][granularity][j].measurement[k];
-                                sampleDuration += trial_results[i].measurements[measurmentType][granularity][j].deltaT[k];
+                            for(unsigned long k = 0; k<trial_results[i]->measurements[measurmentType][granularity][j].measurement.size(); k++){
+                                sum += trial_results[i]->measurements[measurmentType][granularity][j].measurement[k];
+                                sampleDuration += trial_results[i]->measurements[measurmentType][granularity][j].deltaT[k];
                             }
 
                             double measurementVal=0;
-                            if(trial_results[i].measurements[measurmentType][granularity][j].collectionType == MeasurementCollectionType::INSTANTANEOUS){
-                                measurementVal = sum/trial_results[i].measurements[measurmentType][granularity][j].measurement.size();
-                            }else if(trial_results[i].measurements[measurmentType][granularity][j].collectionType == MeasurementCollectionType::CUMULATIVE_DELTA){
+                            if(trial_results[i]->measurements[measurmentType][granularity][j].collectionType == MeasurementCollectionType::INSTANTANEOUS){
+                                measurementVal = sum/trial_results[i]->measurements[measurmentType][granularity][j].measurement.size();
+                            }else if(trial_results[i]->measurements[measurmentType][granularity][j].collectionType == MeasurementCollectionType::CUMULATIVE_DELTA){
                                 //Interpolate cumulative to the reported measurement time
                                 //We need to do this because, when sampling, the last moments of the trial may not be captured.
                                 //HWhen normalized to the number of samples computed, this may give an optomistic view
@@ -169,34 +176,34 @@ Statistics Results::measurementStats(MeasurementType measurmentType, HW_Granular
                                 //NOTE: this is only accurate if the sampling interval is sufficiently short that the interpolation is only for a small
                                 //fraction of the trial
                                 Unit durationUnit(BaseUnit::SECOND, -3);
-                                measurementVal = sum * trial_results[i].duration / Unit::scale(trial_results[i].measurements[measurmentType][granularity][j].deltaTUnit, durationUnit, sampleDuration);
+                                measurementVal = sum * trial_results[i]->duration / Unit::scale(trial_results[i]->measurements[measurmentType][granularity][j].deltaTUnit, durationUnit, sampleDuration);
                             }else{
                                 throw std::runtime_error("Unknown MeasurementCollectionType");
                             }
 
                             Measurement lumpedMeasurement;
-                            lumpedMeasurement.index = trial_results[i].measurements[measurmentType][granularity][j].index;
-                            lumpedMeasurement.unit = trial_results[i].measurements[measurmentType][granularity][j].unit;
+                            lumpedMeasurement.index = trial_results[i]->measurements[measurmentType][granularity][j].index;
+                            lumpedMeasurement.unit = trial_results[i]->measurements[measurmentType][granularity][j].unit;
                             lumpedMeasurement.deltaTUnit = Unit(BaseUnit::SECOND, -3);
-                            lumpedMeasurement.deltaT.push_back(trial_results[i].duration);
+                            lumpedMeasurement.deltaT.push_back(trial_results[i]->duration);
                             lumpedMeasurement.measurement.push_back(measurementVal);
-                            lumpedMeasurement.collectionType = trial_results[i].measurements[measurmentType][granularity][j].collectionType;
+                            lumpedMeasurement.collectionType = trial_results[i]->measurements[measurmentType][granularity][j].collectionType;
                             filteredMeasurements.push_back(lumpedMeasurement);
                         }
-                    }else if(trial_results[i].measurements[measurmentType][granularity][j].collectionType != MeasurementCollectionType::CUMULATIVE_DELTA &&
-                    trial_results[i].measurements[measurmentType][granularity][j].collectionType != MeasurementCollectionType::CUMULATIVE_WHILE_SAMPLED &&
-                    trial_results[i].measurements[measurmentType][granularity][j].collectionType != MeasurementCollectionType::INSTANTANEOUS){
+                    }else if(trial_results[i]->measurements[measurmentType][granularity][j].collectionType != MeasurementCollectionType::CUMULATIVE_DELTA &&
+                    trial_results[i]->measurements[measurmentType][granularity][j].collectionType != MeasurementCollectionType::CUMULATIVE_WHILE_SAMPLED &&
+                    trial_results[i]->measurements[measurmentType][granularity][j].collectionType != MeasurementCollectionType::INSTANTANEOUS){
                         throw std::runtime_error("Unknown MeasurementCollectionType");
                     }
                     else{
                         //This is not supposed to be treated as lumped or is not cumulative and sampled
                         //Pass the measurement, with the full array of values
-                        if((trial_results[i].measurements[measurmentType][granularity][j].collectionType == MeasurementCollectionType::CUMULATIVE_DELTA ||
-                         trial_results[i].measurements[measurmentType][granularity][j].collectionType == MeasurementCollectionType::CUMULATIVE_WHILE_SAMPLED) &&
-                        trial_results[i].measurements[measurmentType][granularity][j].measurement.size()>1){
+                        if((trial_results[i]->measurements[measurmentType][granularity][j].collectionType == MeasurementCollectionType::CUMULATIVE_DELTA ||
+                         trial_results[i]->measurements[measurmentType][granularity][j].collectionType == MeasurementCollectionType::CUMULATIVE_WHILE_SAMPLED) &&
+                        trial_results[i]->measurements[measurmentType][granularity][j].measurement.size()>1){
                             throw std::runtime_error("A measurement was found which was cumulative and had >1 data points but was not marked as being sampled");
                         }else{
-                            filteredMeasurements.push_back(trial_results[i].measurements[measurmentType][granularity][j]);
+                            filteredMeasurements.push_back(trial_results[i]->measurements[measurmentType][granularity][j]);
                         }
                     }
                 }
@@ -263,17 +270,17 @@ Statistics Results::measurementStats(MeasurementType measurmentType, HW_Granular
     return Statistics(avg, stdDev, avgUnit, isCumulative);
 }
 
-TrialResult* Results::add_trial(TrialResult &trial)
+TrialResult* Results::add_trial(TrialResult *trial)
 {
     trial_results.push_back(trial);
-    return &trial_results[trial_results.size()-1];
+    return trial_results[trial_results.size()-1];
 }
 
-TrialResult* Results::add_trial_set_trialInd(TrialResult &trial)
+TrialResult* Results::add_trial_set_trialInd(TrialResult *trial)
 {
-    trial.trial = trial_results.size();
+    trial->trial = trial_results.size();
     trial_results.push_back(trial);
-    return &trial_results[trial_results.size()-1];
+    return trial_results[trial_results.size()-1];
 }
 
 void Results::remove_last_trial(){
@@ -287,7 +294,7 @@ double Results::avg_duration()
 
     for(size_t i = 0; i<trials; i++)
     {
-        result[i] = trial_results[i].duration;
+        result[i] = trial_results[i]->duration;
     }
 
     return average(result, trials);
@@ -300,7 +307,7 @@ double Results::avg_duration_clock()
 
     for(size_t i = 0; i<trials; i++)
     {
-        result[i] = trial_results[i].duration_clock;
+        result[i] = trial_results[i]->duration_clock;
     }
 
     return average(result, trials);
@@ -313,7 +320,7 @@ double Results::avg_duration_rdtsc()
 
     for(size_t i = 0; i<trials; i++)
     {
-        result[i] = trial_results[i].duration_rdtsc;
+        result[i] = trial_results[i]->duration_rdtsc;
     }
 
     return average(result, trials);
@@ -326,7 +333,7 @@ double Results::stddev_duration()
 
     for(size_t i = 0; i<trials; i++)
     {
-        result[i] = trial_results[i].duration;
+        result[i] = trial_results[i]->duration;
     }
 
     return standard_dev(result, trials);
@@ -339,7 +346,7 @@ double Results::stddev_duration_clock()
 
     for(size_t i = 0; i<trials; i++)
     {
-        result[i] = trial_results[i].duration_clock;
+        result[i] = trial_results[i]->duration_clock;
     }
 
     return standard_dev(result, trials);
@@ -352,7 +359,7 @@ double Results::stddev_duration_rdtsc()
 
     for(size_t i = 0; i<trials; i++)
     {
-        result[i] = trial_results[i].duration_rdtsc;
+        result[i] = trial_results[i]->duration_rdtsc;
     }
 
     return standard_dev(result, trials);
@@ -523,8 +530,8 @@ void Results::write_csv(std::ofstream &csv_file, int socket, int core, int threa
     size_t trials = trial_results.size();
 
     if(trials>0){
-        for(int i = 0; i<trial_results[0].benchmarkSpecificResults.size(); i++){
-            csv_file << "," << trial_results[0].benchmarkSpecificResults[i]->getTrialCSVHeader();
+        for(int i = 0; i<trial_results[0]->benchmarkSpecificResults.size(); i++){
+            csv_file << "," << trial_results[0]->benchmarkSpecificResults[i]->getTrialCSVHeader();
         }
     }
 
@@ -554,10 +561,10 @@ void Results::write_csv(std::ofstream &csv_file, int socket, int core, int threa
         if(!col0_name.empty()){
             csv_file << col0_val;
         }
-        csv_file << std::scientific << trial_results[trial].duration << "," << trial_results[trial].duration_clock << "," << trial_results[trial].duration_rdtsc;
+        csv_file << std::scientific << trial_results[trial]->duration << "," << trial_results[trial]->duration_clock << "," << trial_results[trial]->duration_rdtsc;
 
-        for(int i = 0; i<trial_results[trial].benchmarkSpecificResults.size(); i++){
-            csv_file << "," << trial_results[trial].benchmarkSpecificResults[i]->getTrialCSVData();
+        for(int i = 0; i<trial_results[trial]->benchmarkSpecificResults.size(); i++){
+            csv_file << "," << trial_results[trial]->benchmarkSpecificResults[i]->getTrialCSVData();
         }
         
         for(unsigned long i = 0; i<measurementTypeToPrint.size(); i++){
@@ -567,9 +574,9 @@ void Results::write_csv(std::ofstream &csv_file, int socket, int core, int threa
                     if(avail[measurementTypeToPrint[i]].find(granularityToPrint[j]) != avail[measurementTypeToPrint[i]].end()){
                         int indexes = avail[measurementTypeToPrint[i]][granularityToPrint[j]].size();
                         for(unsigned long k = 0; k<indexes; k++){
-                            if(trial_results[trial].measurements.find(measurementTypeToPrint[i]) != trial_results[trial].measurements.end() && 
-                            trial_results[trial].measurements[measurementTypeToPrint[i]].find(granularityToPrint[j]) != trial_results[trial].measurements[measurementTypeToPrint[i]].end()){
-                                csv_file << "," << average(trial_results[trial].measurements[measurementTypeToPrint[i]][granularityToPrint[j]][k].measurement);
+                            if(trial_results[trial]->measurements.find(measurementTypeToPrint[i]) != trial_results[trial]->measurements.end() && 
+                            trial_results[trial]->measurements[measurementTypeToPrint[i]].find(granularityToPrint[j]) != trial_results[trial]->measurements[measurementTypeToPrint[i]].end()){
+                                csv_file << "," << average(trial_results[trial]->measurements[measurementTypeToPrint[i]][granularityToPrint[j]][k].measurement);
                             }else{
                                 csv_file << ",";
                             }
@@ -588,14 +595,14 @@ std::map<MeasurementType, std::map<HW_Granularity, std::map<int, Unit>>> Results
     
     for(unsigned long i = 0; i<trial_results.size(); i++){
         for(unsigned long j = 0; j<measurementTypeToInspect.size(); j++){
-            if(trial_results[i].measurements.find(measurementTypeToInspect[j]) != trial_results[i].measurements.end()){
+            if(trial_results[i]->measurements.find(measurementTypeToInspect[j]) != trial_results[i]->measurements.end()){
                 //Found the measurement
                 for(unsigned long k = 0; k<granularityToInspect.size(); k++){
                     //Found granularity
-                    if(trial_results[i].measurements[measurementTypeToInspect[j]].find(granularityToInspect[k]) != trial_results[i].measurements[measurementTypeToInspect[j]].end()){
-                        for(unsigned long l = 0; l<trial_results[i].measurements[measurementTypeToInspect[j]][granularityToInspect[k]].size(); l++){
+                    if(trial_results[i]->measurements[measurementTypeToInspect[j]].find(granularityToInspect[k]) != trial_results[i]->measurements[measurementTypeToInspect[j]].end()){
+                        for(unsigned long l = 0; l<trial_results[i]->measurements[measurementTypeToInspect[j]][granularityToInspect[k]].size(); l++){
                             if(avail[measurementTypeToInspect[j]][granularityToInspect[k]].find(l) == avail[measurementTypeToInspect[j]][granularityToInspect[k]].end()){
-                                avail[measurementTypeToInspect[j]][granularityToInspect[k]][l] = trial_results[i].measurements[measurementTypeToInspect[j]][granularityToInspect[k]][l].unit;
+                                avail[measurementTypeToInspect[j]][granularityToInspect[k]][l] = trial_results[i]->measurements[measurementTypeToInspect[j]][granularityToInspect[k]][l].unit;
                             }/*else{
                                 //check unit 
                                 Unit origUnit = avail[measurementTypeToInspect[j]][granularityToInspect[k]][l];
@@ -630,7 +637,7 @@ void Results::write_durations(std::ofstream &csv_file, std::vector<std::string> 
         for(int i = 0; i<col_vals.size(); i++){
             csv_file << "\"" << col_vals[i] << "\",";
         }
-        csv_file << std::scientific <<  trial_results[i].duration << "," << trial_results[i].duration_clock << "," << trial_results[i].duration_rdtsc << std::endl;
+        csv_file << std::scientific <<  trial_results[i]->duration << "," << trial_results[i]->duration_clock << "," << trial_results[i]->duration_rdtsc << std::endl;
     }
 }
 
@@ -645,8 +652,8 @@ void Results::write_durations_and_benchmark_specific_results(std::ofstream &csv_
         csv_file << "\"Steady Clock - Walltime (ms)\",\"Clock - Cycles/Cycle Time (ms)\",\"Clock - rdtsc\"";
 
         if(trial_results.size()>0){
-            for(int i = 0; i<trial_results[0].benchmarkSpecificResults.size(); i++){
-                csv_file << "," << trial_results[0].benchmarkSpecificResults[i]->getTrialCSVHeader();
+            for(int i = 0; i<trial_results[0]->benchmarkSpecificResults.size(); i++){
+                csv_file << "," << trial_results[0]->benchmarkSpecificResults[i]->getTrialCSVHeader();
             }
         }
 
@@ -659,10 +666,10 @@ void Results::write_durations_and_benchmark_specific_results(std::ofstream &csv_
         for(int j = 0; j<col_vals.size(); j++){
             csv_file << "\"" << col_vals[j] << "\",";
         }
-        csv_file << std::scientific <<  trial_results[i].duration << "," << trial_results[i].duration_clock << "," << trial_results[i].duration_rdtsc;
+        csv_file << std::scientific <<  trial_results[i]->duration << "," << trial_results[i]->duration_clock << "," << trial_results[i]->duration_rdtsc;
 
-        for(int j = 0; j<trial_results[i].benchmarkSpecificResults.size(); j++){
-            csv_file << "," << trial_results[i].benchmarkSpecificResults[j]->getTrialCSVData();
+        for(int j = 0; j<trial_results[i]->benchmarkSpecificResults.size(); j++){
+            csv_file << "," << trial_results[i]->benchmarkSpecificResults[j]->getTrialCSVData();
         }
 
         csv_file << std::endl;

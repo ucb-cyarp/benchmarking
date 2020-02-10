@@ -77,6 +77,7 @@
             std::vector<std::shared_ptr<BenchmarkSpecificResult>> benchmarkSpecificResults;
 
             TrialResult();
+            TrialResult(int reserveBenchmarkSpecificResults);
             TrialResult(bool sampled);
 
             void print_trial(const std::vector<HW_Granularity> granularityToPrint = DEFAULT_GRANULARITY_LIST, const std::vector<MeasurementType> measurementTypeToPrint = DEFAULT_REPORT_TYPE_LIST);
@@ -97,12 +98,13 @@
     class Results
     {
         public:
-            std::vector<TrialResult> trial_results;
+            std::vector<TrialResult*> trial_results;
 
             Results();
+            Results(int trials);
 
-            TrialResult* add_trial_set_trialInd(TrialResult &trial);
-            TrialResult* add_trial(TrialResult &trial);
+            TrialResult* add_trial_set_trialInd(TrialResult *trial);
+            TrialResult* add_trial(TrialResult *trial);
             void remove_last_trial();
 
             double avg_duration();
