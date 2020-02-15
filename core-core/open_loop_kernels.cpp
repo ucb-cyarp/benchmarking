@@ -142,7 +142,7 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
     std::vector<INTERRUPT_TRACKER_TYPE*> endSoftirqTimerInterruptTrackers;
     std::vector<INTERRUPT_TRACKER_TYPE*> endSoftirqOtherInterruptTrackers;
     std::vector<double*> endTimingTrackers;
-    #if TRACK_INTERRUPTS>0
+    #if TRACK_INTERRUPTS>0 || DISABLE_INTERRUPTS>0
         std::vector<FILE*> interruptReporterFiles;
     #endif
 
