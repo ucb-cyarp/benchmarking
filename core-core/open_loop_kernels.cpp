@@ -174,7 +174,7 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
                                                                                        trackerLen, trackerLen);
 
 
-    #if TRACK_INTERRUPTS>0
+    #if TRACK_INTERRUPTS>0 || DISABLE_INTERRUPTS>0
         for(int i = 0; i<cpus.size(); i++){
             FILE* interruptReporter = fopen("/dev/sir0", "r");
             if(interruptReporter == NULL){
@@ -300,7 +300,7 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
     closeEntry(file, raw_file);
 
     //==== Cleanup ====
-    #if TRACK_INTERRUPTS>0
+    #if TRACK_INTERRUPTS>0 || DISABLE_INTERRUPTS>0
         for(int i = 0; i<interruptReporterFiles.size(); i++){
             fclose(interruptReporterFiles[i]);
         }
