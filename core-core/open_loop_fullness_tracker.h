@@ -15,6 +15,8 @@
 // #define TRACK_INTERRUPTS 1 // Enabled
 #define TRACK_INTERRUPTS 0 // Disabled
 
+#define DISABLE_INTERRUPTS 1
+
 //This benchmarks measures the fullness of the buffer at the start of a reader cycle.  This is slightly
 //different from the closed loop test case which measures at the end of a writer cycle.  It is read
 //earlier in the cycle so that, in the error case, the measurement had already been made. 
@@ -517,6 +519,14 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
 
     int numberInitBlocks = array_length/2; //Initialize FIFO to be half full (round down if odd number)
 
+    #if DISABLE_INTERRUPTS == 1
+        int status = ioctl(fileno(interruptReporterFile), SIR_IOCTL_DISABLE_INTERRUPT, NULL);
+        if(status < 0){
+            std::cerr << "Problem accessing /dev/sir0" << std::endl;
+            exit(1);
+        }
+    #endif
+
     //==== Wait for ready ====
     bool ready = false;
     while(!ready){
@@ -770,6 +780,15 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
     std::atomic_thread_fence(std::memory_order_acquire);
     std::atomic_flag_clear_explicit(stop_flag, std::memory_order_release);
 
+    #if DISABLE_INTERRUPTS == 1
+        status = ioctl(fileno(interruptReporterFile), SIR_IOCTL_RESTORE_INTERRUPT, NULL);
+        if(status < 0){
+            std::cerr << "Problem accessing /dev/sir0" << std::endl;
+            exit(1);
+        }
+    #endif
+
+
     FifolessBufferFullnessTrackerEndCondition *rtn = args->readerRtn[args->trialIndReader];
     rtn->expectedBlockID = readBlockInd;
     rtn->startBlockID = newBlockIDStart;
@@ -908,6 +927,14 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
     //The writer/server performs the reset so it already has exclusive access to its tracker arrays
     //If this changes, write to the arrays before signaling ready to attain exclusive access before
     //the trial starts
+
+    #if DISABLE_INTERRUPTS == 1
+        int status = ioctl(fileno(interruptReporterFile), SIR_IOCTL_DISABLE_INTERRUPT, NULL);
+        if(status < 0){
+            std::cerr << "Problem accessing /dev/sir0" << std::endl;
+            exit(1);
+        }
+    #endif
 
     //Signal Ready
     std::atomic_thread_fence(std::memory_order_acquire);
@@ -1055,6 +1082,14 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
         SIR_INTERRUPT_TYPE currentSoftirqTimerInterrupt;
         SIR_INTERRUPT_TYPE currentSoftirqOtherInterrupt;
         readInterrupts(interruptReporterFile, currentStdInterrupt, currentLocInterrupt, currentOtherArchInterrupt, currentSoftirqTimerInterrupt, currentSoftirqOtherInterrupt);
+    #endif
+
+    #if DISABLE_INTERRUPTS == 1
+        status = ioctl(fileno(interruptReporterFile), SIR_IOCTL_RESTORE_INTERRUPT, NULL);
+        if(status < 0){
+            std::cerr << "Problem accessing /dev/sir0" << std::endl;
+            exit(1);
+        }
     #endif
 
     FifolessBufferFullnessTrackerEndCondition *rtn = args->writerRtn[args->trialIndWriter];
