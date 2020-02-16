@@ -256,7 +256,7 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
                         args[idx].endSoftirqOtherInterruptTrackerWriter = endSoftirqOtherInterruptTrackers[1];
                         args[idx].endTimingTrackerWriter = endTimingTrackers[1];
                         args[idx].endTrackerLen = trackerLen;
-                        #if TRACK_INTERRUPTS>0
+                        #if TRACK_INTERRUPTS>0 || DISABLE_INTERRUPTS>0
                             args[idx].writerInterruptReporter = interruptReporterFiles[0];
                             args[idx].readerInterruptReporter = interruptReporterFiles[1];
                         #endif
