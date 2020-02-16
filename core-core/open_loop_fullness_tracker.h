@@ -492,7 +492,7 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
     #if DISABLE_INTERRUPTS == 1
         int status = ioctl(fileno(interruptReporterFile), SIR_IOCTL_DISABLE_INTERRUPT, NULL);
         if(status < 0){
-            std::cerr << "Problem accessing /dev/sir0" << std::endl;
+            std::cerr << "Problem accessing /dev/sir0 to Disable Interrupts" << std::endl;
             exit(1);
         }
     #endif
@@ -753,7 +753,7 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
     #if DISABLE_INTERRUPTS == 1
         status = ioctl(fileno(interruptReporterFile), SIR_IOCTL_RESTORE_INTERRUPT, NULL);
         if(status < 0){
-            std::cerr << "Problem accessing /dev/sir0" << std::endl;
+            std::cerr << "Problem accessing /dev/sir0 to Restore Interrupts" << std::endl;
             exit(1);
         }
     #endif
@@ -892,7 +892,7 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
     #if DISABLE_INTERRUPTS == 1
         int status = ioctl(fileno(interruptReporterFile), SIR_IOCTL_DISABLE_INTERRUPT, NULL);
         if(status < 0){
-            std::cerr << "Problem accessing /dev/sir0" << std::endl;
+            std::cerr << "Problem accessing /dev/sir0 to Disable Interrupts" << std::endl;
             exit(1);
         }
     #endif
@@ -1048,7 +1048,7 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
     #if DISABLE_INTERRUPTS == 1
         status = ioctl(fileno(interruptReporterFile), SIR_IOCTL_RESTORE_INTERRUPT, NULL);
         if(status < 0){
-            std::cerr << "Problem accessing /dev/sir0" << std::endl;
+            std::cerr << "Problem accessing /dev/sir0 to Restore Interrupts" << std::endl;
             exit(1);
         }
     #endif
