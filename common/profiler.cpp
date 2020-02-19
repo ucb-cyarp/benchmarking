@@ -202,13 +202,15 @@ int64_t Profiler::samplingPeriod(){
 
 void Profiler::startTrialTimer(){
     start_steady = std::chrono::steady_clock::now();
-    start_clock = clock();
+    // start_clock = clock();
+    start_clock = -1;
     start_rdtsc = _rdtsc();
 }
 
 void Profiler::endTrialTimer(){
     stop_steady = std::chrono::steady_clock::now();
-    stop_clock = clock();
+    // stop_clock = clock();
+    stop_clock = -1;
     stop_rdtsc = _rdtsc();
 }
 
@@ -229,7 +231,8 @@ TrialResult Profiler::computeTrialResult(){
 
     //At the superclass level, only the time for the trial is computed and stored.
     result.duration = (std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(stop_steady-start_steady)).count();
-    result.duration_clock = 1000.0 * (stop_clock - start_clock) / CLOCKS_PER_SEC;
+    // result.duration_clock = 1000.0 * (stop_clock - start_clock) / CLOCKS_PER_SEC;
+    result.duration_clock = -1;
     result.duration_rdtsc =  (stop_rdtsc - start_rdtsc);
 
     return result;

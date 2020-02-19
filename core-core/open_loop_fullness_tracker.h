@@ -12,8 +12,8 @@
 #define INTERRUPT_TRACKER_TYPE int8_t
 
 // #define TRACK_INTERRUPTS 2 // Summary
-#define TRACK_INTERRUPTS 1 // Enabled
-// #define TRACK_INTERRUPTS 0 // Disabled
+// #define TRACK_INTERRUPTS 1 // Enabled
+#define TRACK_INTERRUPTS 0 // Disabled
 
 #define DISABLE_INTERRUPTS 1
 
