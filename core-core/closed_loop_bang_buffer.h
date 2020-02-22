@@ -108,6 +108,8 @@ void* closed_loop_buffer_bang_control_server(void* arg){
     int allignment = args->alignment;
     int core = args->core_server;
 
+    FILE* sirFile = args->writerSirFile;
+
     nopsClientType *clientNops = args->clientNops;
     int32_t control_check_period = args->control_check_period;
     int32_t control_gain = args->control_gain;
@@ -136,6 +138,15 @@ void* closed_loop_buffer_bang_control_server(void* arg){
     idLocalType writeBlockInd = writeOffset;
 
     elementType sampleVals = (writeOffset+1)%2;
+
+    //Disable Interrupts For This Trial (Before Signalling Ready)
+    #if CLOSED_LOOP_DISABLE_INTERRUPTS == 1
+        int status = ioctl(fileno(sirFile), SIR_IOCTL_DISABLE_INTERRUPT, NULL);
+        if(status < 0){
+            std::cerr << "Problem accessing /dev/sir0 to Disable Interrupts" << std::endl;
+            exit(1);
+        }
+    #endif
 
     //Signal Ready
     std::atomic_thread_fence(std::memory_order_acquire);
@@ -250,6 +261,15 @@ void* closed_loop_buffer_bang_control_server(void* arg){
             asm volatile ("nop" : : :);
         }
     }
+
+    //Re-enable interrupts before processing results (which dynamically allocates memory which can result in a system call)
+    #if CLOSED_LOOP_DISABLE_INTERRUPTS == 1
+        status = ioctl(fileno(sirFile), SIR_IOCTL_RESTORE_INTERRUPT, NULL);
+        if(status < 0){
+            std::cerr << "Problem accessing /dev/sir0 to Restore Interrupts" << std::endl;
+            exit(1);
+        }
+    #endif
 
     ClosedLoopServerEndCondition *rtn = new ClosedLoopServerEndCondition;
     rtn->resultGranularity = HW_Granularity::CORE;

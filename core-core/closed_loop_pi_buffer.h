@@ -111,6 +111,8 @@ void* closed_loop_buffer_pi_rate_control_server(void* arg){
     int allignment = args->alignment;
     int core = args->core_server;
 
+    FILE* sirFile = args->writerSirFile;
+
     nopsClientType *clientNops = args->clientNops;
     int32_t control_check_period = args->control_check_period;
 
@@ -145,6 +147,15 @@ void* closed_loop_buffer_pi_rate_control_server(void* arg){
     idLocalType writeBlockInd = writeOffset;
 
     elementType sampleVals = (writeOffset+1)%2;
+
+    //Disable Interrupts For This Trial (Before Signalling Ready)
+    #if CLOSED_LOOP_DISABLE_INTERRUPTS == 1
+        int status = ioctl(fileno(sirFile), SIR_IOCTL_DISABLE_INTERRUPT, NULL);
+        if(status < 0){
+            std::cerr << "Problem accessing /dev/sir0 to Disable Interrupts" << std::endl;
+            exit(1);
+        }
+    #endif
 
     //Signal Ready
     std::atomic_thread_fence(std::memory_order_acquire);
@@ -260,6 +271,15 @@ void* closed_loop_buffer_pi_rate_control_server(void* arg){
         nops_current -= nops_current_trunk;//Get the residual for the next round
     }
 
+    //Re-enable interrupts before processing results (which dynamically allocates memory which can result in a system call)
+    #if CLOSED_LOOP_DISABLE_INTERRUPTS == 1
+        status = ioctl(fileno(sirFile), SIR_IOCTL_RESTORE_INTERRUPT, NULL);
+        if(status < 0){
+            std::cerr << "Problem accessing /dev/sir0 to Restore Interrupts" << std::endl;
+            exit(1);
+        }
+    #endif
+
     ClosedLoopServerEndCondition *rtn = new ClosedLoopServerEndCondition;
     rtn->resultGranularity = HW_Granularity::CORE;
     rtn->granularityIndex = core;
@@ -300,6 +320,8 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
     int allignment = args->alignment;
     int core = args->core_server;
 
+    FILE* sirFile = args->writerSirFile;
+
     nopsClientType *clientNops = args->clientNops;
     int32_t control_check_period = args->control_check_period;
     int32_t control_gain = args->control_gain;
@@ -335,6 +357,15 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
     idLocalType writeBlockInd = writeOffset;
 
     elementType sampleVals = (writeOffset+1)%2;
+
+    //Disable Interrupts For This Trial (Before Signalling Ready)
+    #if CLOSED_LOOP_DISABLE_INTERRUPTS == 1
+        int status = ioctl(fileno(sirFile), SIR_IOCTL_DISABLE_INTERRUPT, NULL);
+        if(status < 0){
+            std::cerr << "Problem accessing /dev/sir0 to Disable Interrupts" << std::endl;
+            exit(1);
+        }
+    #endif
 
     //Signal Ready
     std::atomic_thread_fence(std::memory_order_acquire);
@@ -446,6 +477,15 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
         nops_current -= nops_current_trunk;//Get the residual for the next round
     }
 
+    //Re-enable interrupts before processing results (which dynamically allocates memory which can result in a system call)
+    #if CLOSED_LOOP_DISABLE_INTERRUPTS == 1
+        status = ioctl(fileno(sirFile), SIR_IOCTL_RESTORE_INTERRUPT, NULL);
+        if(status < 0){
+            std::cerr << "Problem accessing /dev/sir0 to Restore Interrupts" << std::endl;
+            exit(1);
+        }
+    #endif
+
     ClosedLoopServerEndCondition *rtn = new ClosedLoopServerEndCondition;
     rtn->resultGranularity = HW_Granularity::CORE;
     rtn->granularityIndex = core;
@@ -484,6 +524,8 @@ void* closed_loop_buffer_pi_client(void* arg){
 
     int core = args->core_client;
 
+    FILE* sirFile = args->readerSirFile;
+
     int32_t control_client_check_period = args->control_client_check_period;
     nopsClientType *clientNops = args->clientNops;
     nopsClientLocalType nops_current = 0; //Is used to carry over residual between nop cycles
@@ -514,6 +556,15 @@ void* closed_loop_buffer_pi_client(void* arg){
     indexLocalType readOffset = std::atomic_load_explicit(read_offset_ptr, std::memory_order_acquire);
 
     int numberInitBlocks = array_length/2; //Initialize FIFO to be half full (round down if odd number)
+
+    //Disable Interrupts For This Trial (Before Signalling Ready)
+    #if CLOSED_LOOP_DISABLE_INTERRUPTS == 1
+        int status = ioctl(fileno(sirFile), SIR_IOCTL_DISABLE_INTERRUPT, NULL);
+        if(status < 0){
+            std::cerr << "Problem accessing /dev/sir0 to Disable Interrupts" << std::endl;
+            exit(1);
+        }
+    #endif
 
     //==== Wait for ready ====
     bool ready = false;
@@ -638,6 +689,15 @@ void* closed_loop_buffer_pi_client(void* arg){
 
     std::atomic_thread_fence(std::memory_order_acquire);
     std::atomic_flag_clear_explicit(stop_flag, std::memory_order_release);
+
+    //Re-enable interrupts before processing results (which dynamically allocates memory which can result in a system call)
+    #if CLOSED_LOOP_DISABLE_INTERRUPTS == 1
+        status = ioctl(fileno(sirFile), SIR_IOCTL_RESTORE_INTERRUPT, NULL);
+        if(status < 0){
+            std::cerr << "Problem accessing /dev/sir0 to Restore Interrupts" << std::endl;
+            exit(1);
+        }
+    #endif
 
     FifolessBufferEndCondition *rtn = new FifolessBufferEndCondition;
     rtn->expectedBlockID = readBlockInd;

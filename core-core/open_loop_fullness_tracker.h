@@ -11,11 +11,11 @@
 
 #define INTERRUPT_TRACKER_TYPE int8_t
 
-// #define TRACK_INTERRUPTS 2 // Summary
-#define TRACK_INTERRUPTS 1 // Enabled
-// #define TRACK_INTERRUPTS 0 // Disabled
+// #define OPEN_LOOP_FT_TRACK_INTERRUPTS 2 // Summary
+#define OPEN_LOOP_FT_TRACK_INTERRUPTS 1 // Enabled
+// #define OPEN_LOOP_FT_TRACK_INTERRUPTS 0 // Disabled
 
-#define DISABLE_INTERRUPTS 1
+#define OPEN_LOOP_FT_DISABLE_INTERRUPTS 1
 
 //This benchmarks measures the fullness of the buffer at the start of a reader cycle.  This is slightly
 //different from the closed loop test case which measures at the end of a writer cycle.  It is read
@@ -58,9 +58,6 @@ public:
     INTERRUPT_TRACKER_TYPE* endSoftirqTimerInterruptTrackerWriter;
     INTERRUPT_TRACKER_TYPE* endSoftirqOtherInterruptTrackerWriter;
     double* endTimingTrackerWriter;
-
-    FILE* readerInterruptReporter;
-    FILE* writerInterruptReporter;
 
     void printStandaloneTitle(bool report_standalone, std::string title) override; //Prints the standalone title block if standalone results are requested
 protected:
@@ -489,7 +486,8 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
 
     int numberInitBlocks = array_length/2; //Initialize FIFO to be half full (round down if odd number)
 
-    #if DISABLE_INTERRUPTS == 1
+    //Disable Interrupts For This Trial (Before Signalling Ready)
+    #if OPEN_LOOP_FT_DISABLE_INTERRUPTS == 1
         int status = ioctl(fileno(interruptReporterFile), SIR_IOCTL_DISABLE_INTERRUPT, NULL);
         if(status < 0){
             std::cerr << "Problem accessing /dev/sir0 to Disable Interrupts" << std::endl;
@@ -593,7 +591,7 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
     timespec_t lastTime;
     clock_gettime(CLOCK_MONOTONIC, &lastTime);
 
-    #if TRACK_INTERRUPTS>0
+    #if OPEN_LOOP_FT_TRACK_INTERRUPTS>0
         SIR_INTERRUPT_TYPE lastStdInterrupt;
         SIR_INTERRUPT_TYPE lastLocInterrupt;
         SIR_INTERRUPT_TYPE lastOtherArchInterrupt;
@@ -612,7 +610,7 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
             //Get time & number of interrupts
             timespec_t currentTime;
             clock_gettime(CLOCK_MONOTONIC, &currentTime);
-            #if TRACK_INTERRUPTS==1
+            #if OPEN_LOOP_FT_TRACK_INTERRUPTS==1
                 SIR_INTERRUPT_TYPE currentStdInterrupt;
                 SIR_INTERRUPT_TYPE currentLocInterrupt;
                 SIR_INTERRUPT_TYPE currentOtherArchInterrupt;
@@ -625,7 +623,7 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
             double timeDiff = difftimespec(&currentTime, &lastTime);
             lastTime = currentTime;
 
-            #if TRACK_INTERRUPTS==1
+            #if OPEN_LOOP_FT_TRACK_INTERRUPTS==1
                 SIR_INTERRUPT_TYPE stdInterruptDiff = currentStdInterrupt - lastStdInterrupt;
                 SIR_INTERRUPT_TYPE locInterruptDiff = currentLocInterrupt - lastLocInterrupt;
                 SIR_INTERRUPT_TYPE otherArchInterruptDiff = currentOtherArchInterrupt - lastOtherArchInterrupt;
@@ -646,7 +644,7 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
 
             if(startTrackerInd<startTrackerLen){
                 startTracker[startTrackerInd] = numEntries;
-                #if TRACK_INTERRUPTS==1
+                #if OPEN_LOOP_FT_TRACK_INTERRUPTS==1
                     startStdInterruptTracker[startTrackerInd] = stdInterruptDiff;
                     startLocInterruptTracker[startTrackerInd] = locInterruptDiff;
                     startOtherArchInterruptTracker[startTrackerInd] = otherArchInterruptDiff;
@@ -658,7 +656,7 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
             }
 
             endTracker[endTrackerInd] = numEntries;
-            #if TRACK_INTERRUPTS==1
+            #if OPEN_LOOP_FT_TRACK_INTERRUPTS==1
                 endStdInterruptTracker[endTrackerInd] = stdInterruptDiff;
                 endLocInterruptTracker[endTrackerInd] = locInterruptDiff;
                 endOtherArchInterruptTracker[endTrackerInd] = otherArchInterruptDiff;
@@ -738,7 +736,7 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
 
     }
 
-    #if TRACK_INTERRUPTS==2
+    #if OPEN_LOOP_FT_TRACK_INTERRUPTS==2
         SIR_INTERRUPT_TYPE currentStdInterrupt;
         SIR_INTERRUPT_TYPE currentLocInterrupt;
         SIR_INTERRUPT_TYPE currentOtherArchInterrupt;
@@ -750,7 +748,8 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
     std::atomic_thread_fence(std::memory_order_acquire);
     std::atomic_flag_clear_explicit(stop_flag, std::memory_order_release);
 
-    #if DISABLE_INTERRUPTS == 1
+    //Re-enable interrupts before processing results (which dynamically allocates memory which can result in a system call)
+    #if OPEN_LOOP_FT_DISABLE_INTERRUPTS == 1
         status = ioctl(fileno(interruptReporterFile), SIR_IOCTL_RESTORE_INTERRUPT, NULL);
         if(status < 0){
             std::cerr << "Problem accessing /dev/sir0 to Restore Interrupts" << std::endl;
@@ -771,7 +770,7 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
     //Copy from buffers
     for(int i = 0; i<startTrackerInd; i++){ //Only copy up to the number of samples collected
         rtn->startTracker.push_back(startTracker[i]);
-        #if TRACK_INTERRUPTS==1
+        #if OPEN_LOOP_FT_TRACK_INTERRUPTS==1
             rtn->startStdInterruptTracker.push_back(startStdInterruptTracker[i]);
             rtn->startLocInterruptTracker.push_back(startLocInterruptTracker[i]);
             rtn->startOtherArchInterruptTracker.push_back(startOtherArchInterruptTracker[i]);
@@ -787,7 +786,7 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
         //Run past the first endTrackerLen-endSampleWindowCollected entries
         if(i >= entriesToSkip){
             rtn->endTracker.push_back(endTracker[ind]);
-            #if TRACK_INTERRUPTS==1
+            #if OPEN_LOOP_FT_TRACK_INTERRUPTS==1
                 rtn->endStdInterruptTracker.push_back(endStdInterruptTracker[ind]);
                 rtn->endLocInterruptTracker.push_back(endLocInterruptTracker[ind]);
                 rtn->endOtherArchInterruptTracker.push_back(endOtherArchInterruptTracker[ind]);
@@ -804,7 +803,7 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
         }
     }
 
-    #if TRACK_INTERRUPTS==2
+    #if OPEN_LOOP_FT_TRACK_INTERRUPTS==2
         SIR_INTERRUPT_TYPE stdInterruptDiff = currentStdInterrupt - lastStdInterrupt;
         SIR_INTERRUPT_TYPE locInterruptDiff = currentLocInterrupt - lastLocInterrupt;
         SIR_INTERRUPT_TYPE otherArchInterruptDiff = currentOtherArchInterrupt - lastOtherArchInterrupt;
@@ -889,7 +888,8 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
     //If this changes, write to the arrays before signaling ready to attain exclusive access before
     //the trial starts
 
-    #if DISABLE_INTERRUPTS == 1
+    //Disable Interrupts For This Trial (Before Signalling Ready)
+    #if OPEN_LOOP_FT_DISABLE_INTERRUPTS == 1
         int status = ioctl(fileno(interruptReporterFile), SIR_IOCTL_DISABLE_INTERRUPT, NULL);
         if(status < 0){
             std::cerr << "Problem accessing /dev/sir0 to Disable Interrupts" << std::endl;
@@ -910,7 +910,7 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
     //Get initial time & interrupts
     timespec_t lastTime;
     clock_gettime(CLOCK_MONOTONIC, &lastTime);
-    #if TRACK_INTERRUPTS>0
+    #if OPEN_LOOP_FT_TRACK_INTERRUPTS>0
         SIR_INTERRUPT_TYPE lastStdInterrupt;
         SIR_INTERRUPT_TYPE lastLocInterrupt;
         SIR_INTERRUPT_TYPE lastOtherArchInterrupt;
@@ -929,7 +929,7 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
             //Get time & number of interrupts
             timespec_t currentTime;
             clock_gettime(CLOCK_MONOTONIC, &currentTime);
-            #if TRACK_INTERRUPTS==1
+            #if OPEN_LOOP_FT_TRACK_INTERRUPTS==1
                 SIR_INTERRUPT_TYPE currentStdInterrupt;
                 SIR_INTERRUPT_TYPE currentLocInterrupt;
                 SIR_INTERRUPT_TYPE currentOtherArchInterrupt;
@@ -942,7 +942,7 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
             double timeDiff = difftimespec(&currentTime, &lastTime);
             lastTime = currentTime;
 
-            #if TRACK_INTERRUPTS==1
+            #if OPEN_LOOP_FT_TRACK_INTERRUPTS==1
                 SIR_INTERRUPT_TYPE stdInterruptDiff = currentStdInterrupt - lastStdInterrupt;
                 SIR_INTERRUPT_TYPE locInterruptDiff = currentLocInterrupt - lastLocInterrupt;
                 SIR_INTERRUPT_TYPE otherArchInterruptDiff = currentOtherArchInterrupt - lastOtherArchInterrupt;
@@ -956,7 +956,7 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
             #endif
 
             if(startTrackerInd<startTrackerLen){
-                #if TRACK_INTERRUPTS==1
+                #if OPEN_LOOP_FT_TRACK_INTERRUPTS==1
                     startStdInterruptTracker[startTrackerInd] = stdInterruptDiff;
                     startLocInterruptTracker[startTrackerInd] = locInterruptDiff;
                     startOtherArchInterruptTracker[startTrackerInd] = otherArchInterruptDiff;
@@ -967,7 +967,7 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
                 startTrackerInd++;
             }
 
-            #if TRACK_INTERRUPTS==1
+            #if OPEN_LOOP_FT_TRACK_INTERRUPTS==1
                 endStdInterruptTracker[endTrackerInd] = stdInterruptDiff;
                 endLocInterruptTracker[endTrackerInd] = locInterruptDiff;
                 endOtherArchInterruptTracker[endTrackerInd] = otherArchInterruptDiff;
@@ -1036,7 +1036,7 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
         }
     }
 
-    #if TRACK_INTERRUPTS==2
+    #if OPEN_LOOP_FT_TRACK_INTERRUPTS==2
         SIR_INTERRUPT_TYPE currentStdInterrupt;
         SIR_INTERRUPT_TYPE currentLocInterrupt;
         SIR_INTERRUPT_TYPE currentOtherArchInterrupt;
@@ -1045,7 +1045,8 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
         readInterrupts(interruptReporterFile, currentStdInterrupt, currentLocInterrupt, currentOtherArchInterrupt, currentSoftirqTimerInterrupt, currentSoftirqOtherInterrupt);
     #endif
 
-    #if DISABLE_INTERRUPTS == 1
+    //Re-enable interrupts before processing results (which dynamically allocates memory which can result in a system call)
+    #if OPEN_LOOP_FT_DISABLE_INTERRUPTS == 1
         status = ioctl(fileno(interruptReporterFile), SIR_IOCTL_RESTORE_INTERRUPT, NULL);
         if(status < 0){
             std::cerr << "Problem accessing /dev/sir0 to Restore Interrupts" << std::endl;
@@ -1065,7 +1066,7 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
 
     //Copy from buffers
     for(int i = 0; i<startTrackerInd; i++){ //Only copy up to the number of samples collected
-        #if TRACK_INTERRUPTS==1
+        #if OPEN_LOOP_FT_TRACK_INTERRUPTS==1
             rtn->startStdInterruptTracker.push_back(startStdInterruptTracker[i]);
             rtn->startLocInterruptTracker.push_back(startLocInterruptTracker[i]);
             rtn->startOtherArchInterruptTracker.push_back(startOtherArchInterruptTracker[i]);
@@ -1080,7 +1081,7 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
     for(int i = 0; i<endTrackerLen; i++){ //Only copy up to the number of samples collected
     //Run past the first endTrackerLen-endSampleWindowCollected entries
         if(i >= entriesToSkip){
-            #if TRACK_INTERRUPTS==1
+            #if OPEN_LOOP_FT_TRACK_INTERRUPTS==1
                 rtn->endStdInterruptTracker.push_back(endStdInterruptTracker[ind]);
                 rtn->endLocInterruptTracker.push_back(endLocInterruptTracker[ind]);
                 rtn->endOtherArchInterruptTracker.push_back(endOtherArchInterruptTracker[ind]);
@@ -1097,7 +1098,7 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
         }
     }
 
-    #if TRACK_INTERRUPTS==2
+    #if OPEN_LOOP_FT_TRACK_INTERRUPTS==2
         SIR_INTERRUPT_TYPE stdInterruptDiff = currentStdInterrupt - lastStdInterrupt;
         SIR_INTERRUPT_TYPE locInterruptDiff = currentLocInterrupt - lastLocInterrupt;
         SIR_INTERRUPT_TYPE otherArchInterruptDiff = currentOtherArchInterrupt - lastOtherArchInterrupt;

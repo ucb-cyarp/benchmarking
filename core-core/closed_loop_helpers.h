@@ -7,11 +7,15 @@
 #include "reporting_helpers.h"
 #include "open_loop_helpers.h"
 #include "fifoless_helpers.h"
+#include "sir.h"
 
 #include <vector>
 #include <atomic>
 #include <stdlib.h>
 #include <stdint.h>
+#include <sys/ioctl.h>
+
+#define CLOSED_LOOP_DISABLE_INTERRUPTS 1
 
 template<typename elementType, 
          typename idType = std::atomic_int32_t, 
@@ -35,6 +39,8 @@ public:
     int core_client; //The core the client is executing on
     int core_server; //The core the server is executing on
     int initialNops; //The initial NOPs for the client and server
+    FILE* writerSirFile; //The file pointer to the sir driver for the writer (used for disabling interrupts)
+    FILE* readerSirFile; //The file pointer to the sir driver for the reader (used for disabling interrupts)
 
 protected:
     virtual void printExportNonStandaloneResults(Results &result, bool report_standalone, std::string resultPrintFormatStr, FILE* file, std::ofstream* raw_file) = 0;
@@ -283,6 +289,8 @@ void* closed_loop_buffer_client(void* arg){
 
     int core = args->core_client;
 
+    FILE* sirFile = args->readerSirFile;
+
     int32_t control_client_check_period = args->control_client_check_period;
     nopsClientType *clientNops = args->clientNops;
     nopsClientLocalType clientNopsLocal = std::atomic_load_explicit(clientNops, std::memory_order_acquire);
@@ -312,6 +320,15 @@ void* closed_loop_buffer_client(void* arg){
     indexLocalType readOffset = std::atomic_load_explicit(read_offset_ptr, std::memory_order_acquire);
 
     int numberInitBlocks = array_length/2; //Initialize FIFO to be half full (round down if odd number)
+
+    //Disable Interrupts For This Trial (Before Signalling Ready)
+    #if CLOSED_LOOP_DISABLE_INTERRUPTS == 1
+        int status = ioctl(fileno(sirFile), SIR_IOCTL_DISABLE_INTERRUPT, NULL);
+        if(status < 0){
+            std::cerr << "Problem accessing /dev/sir0 to Disable Interrupts" << std::endl;
+            exit(1);
+        }
+    #endif
 
     //==== Wait for ready ====
     bool ready = false;
@@ -433,6 +450,15 @@ void* closed_loop_buffer_client(void* arg){
 
     std::atomic_thread_fence(std::memory_order_acquire);
     std::atomic_flag_clear_explicit(stop_flag, std::memory_order_release);
+
+    //Re-enable interrupts before processing results (which dynamically allocates memory which can result in a system call)
+    #if CLOSED_LOOP_DISABLE_INTERRUPTS == 1
+        status = ioctl(fileno(sirFile), SIR_IOCTL_RESTORE_INTERRUPT, NULL);
+        if(status < 0){
+            std::cerr << "Problem accessing /dev/sir0 to Restore Interrupts" << std::endl;
+            exit(1);
+        }
+    #endif
 
     FifolessBufferEndCondition *rtn = new FifolessBufferEndCondition;
     rtn->expectedBlockID = readBlockInd;

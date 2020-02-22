@@ -29,6 +29,9 @@
         int core_server; //The core the server is executing on
         int initialNOPs; //The initial NOPs in the reader and writer.
 
+        FILE* readerInterruptReporter;
+        FILE* writerInterruptReporter;
+
         void printStandaloneTitle(bool report_standalone, std::string title) override; //Prints the standalone title block if standalone results are requested
     protected:
         virtual void printExportNonStandaloneResults(Results &result, bool report_standalone, std::string resultPrintFormatStr, FILE* file, std::ofstream* raw_file) override;

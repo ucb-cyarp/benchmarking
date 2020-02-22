@@ -2,7 +2,11 @@
 #define _OPEN_LOOP_BUFFER_H
 
 #include <atomic>
+#include <sys/ioctl.h>
 #include "open_loop_helpers.h"
+#include "sir.h"
+
+#define OPEN_LOOP_DISABLE_INTERRUPTS 1
 
 //Note: This benchmark has the potential for asemytric load on the reader and writer threads.  Ballancing in the form of NOPs is required
 //to remove this imballance's impact on the measurement of how long the benchmark can run before failing.
@@ -193,6 +197,8 @@ void* open_loop_buffer_server(void* arg){
     int allignment = args->alignment;
     int core = args->core_server;
 
+    FILE* sirFile = args->writerInterruptReporter;
+
     int balancing_nops = args->balancing_nops;
     int numNops = balancing_nops < 0 ? -balancing_nops : 0;
     numNops += args->initialNOPs;
@@ -219,6 +225,15 @@ void* open_loop_buffer_server(void* arg){
     idLocalType writeBlockInd = writeOffset;
 
     elementType sampleVals = (writeOffset+1)%2;
+
+    //Disable Interrupts For This Trial (Before Signalling Ready)
+    #if OPEN_LOOP_DISABLE_INTERRUPTS == 1
+        int status = ioctl(fileno(sirFile), SIR_IOCTL_DISABLE_INTERRUPT, NULL);
+        if(status < 0){
+            std::cerr << "Problem accessing /dev/sir0 to Disable Interrupts" << std::endl;
+            exit(1);
+        }
+    #endif
 
     //Signal Ready
     std::atomic_thread_fence(std::memory_order_acquire);
@@ -281,6 +296,15 @@ void* open_loop_buffer_server(void* arg){
         }
     }
 
+    //Re-enable interrupts before processing results (which dynamically allocates memory which can result in a system call)
+    #if OPEN_LOOP_DISABLE_INTERRUPTS == 1
+        status = ioctl(fileno(sirFile), SIR_IOCTL_RESTORE_INTERRUPT, NULL);
+        if(status < 0){
+            std::cerr << "Problem accessing /dev/sir0 to Restore Interrupts" << std::endl;
+            exit(1);
+        }
+    #endif
+
     FifolessBufferEndCondition *rtn = new FifolessBufferEndCondition;
     rtn->expectedBlockID = -1;
     rtn->startBlockID = -1;
@@ -312,6 +336,8 @@ void* open_loop_buffer_client(void* arg){
 
     int core = args->core_client;
 
+    FILE* sirFile = args->readerInterruptReporter;
+
     int balancing_nops = args->balancing_nops;
     int numNops = balancing_nops > 0 ? balancing_nops : 0;
     numNops += args->initialNOPs;
@@ -341,6 +367,15 @@ void* open_loop_buffer_client(void* arg){
     indexLocalType readOffset = std::atomic_load_explicit(read_offset_ptr, std::memory_order_acquire);
 
     int numberInitBlocks = array_length/2; //Initialize FIFO to be half full (round down if odd number)
+
+    //Disable Interrupts For This Trial (Before Signalling Ready)
+    #if OPEN_LOOP_DISABLE_INTERRUPTS == 1
+        int status = ioctl(fileno(sirFile), SIR_IOCTL_DISABLE_INTERRUPT, NULL);
+        if(status < 0){
+            std::cerr << "Problem accessing /dev/sir0 to Disable Interrupts" << std::endl;
+            exit(1);
+        }
+    #endif
 
     //==== Wait for ready ====
     bool ready = false;
@@ -453,6 +488,15 @@ void* open_loop_buffer_client(void* arg){
 
     std::atomic_thread_fence(std::memory_order_acquire);
     std::atomic_flag_clear_explicit(stop_flag, std::memory_order_release);
+
+    //Re-enable interrupts before processing results (which dynamically allocates memory which can result in a system call)
+    #if OPEN_LOOP_DISABLE_INTERRUPTS == 1
+        status = ioctl(fileno(sirFile), SIR_IOCTL_RESTORE_INTERRUPT, NULL);
+        if(status < 0){
+            std::cerr << "Problem accessing /dev/sir0 to Restore Interrupts" << std::endl;
+            exit(1);
+        }
+    #endif
 
     FifolessBufferEndCondition *rtn = new FifolessBufferEndCondition;
     rtn->expectedBlockID = readBlockInd;

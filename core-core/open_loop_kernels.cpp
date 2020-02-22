@@ -23,6 +23,20 @@ void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<
     std::vector<std::atomic_flag*> start_flags;
     std::atomic_flag* stop_flag;
 
+    #if OPEN_LOOP_DISABLE_INTERRUPTS == 1
+        std::vector<FILE*> interruptReporterFiles;
+
+        for(int i = 0; i<cpus.size(); i++){
+            FILE* interruptReporter = fopen("/dev/sir0", "r");
+            if(interruptReporter == NULL){
+                std::cerr << "Unable to open /dev/sir0.  Check that the sir module is loaded" << std::endl;
+                exit(1);
+            }
+
+            interruptReporterFiles.push_back(interruptReporter);
+        }
+    #endif
+
     openLoopAllocate<int32_t, std::atomic_int32_t, std::atomic_int32_t>(shared_array_locs, shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, array_lengths, block_lengths, cpus, alignment, false, false);
 
     //==== Create Configurations for each experiment ====
@@ -59,6 +73,10 @@ void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<
                     args[idx].core_server = cpus[0]; 
                     args[idx].core_client = cpus[1]; 
                     args[idx].initialNOPs = initial_nop;
+                    #if OPEN_LOOP_DISABLE_INTERRUPTS == 1
+                        args[idx].writerInterruptReporter = interruptReporterFiles[0];
+                        args[idx].readerInterruptReporter = interruptReporterFiles[1];
+                    #endif
                 }
             }
         }
@@ -99,6 +117,12 @@ void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<
     closeEntry(file, raw_file);
 
     //==== Cleanup ====
+    #if OPEN_LOOP_DISABLE_INTERRUPTS == 1
+        for(int i = 0; i<interruptReporterFiles.size(); i++){
+            fclose(interruptReporterFiles[i]);
+        }
+    #endif
+
     destructSharedIDs(shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag);
 
     freeVectorContents(shared_array_locs);
@@ -142,7 +166,7 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
     std::vector<INTERRUPT_TRACKER_TYPE*> endSoftirqTimerInterruptTrackers;
     std::vector<INTERRUPT_TRACKER_TYPE*> endSoftirqOtherInterruptTrackers;
     std::vector<double*> endTimingTrackers;
-    #if TRACK_INTERRUPTS>0 || DISABLE_INTERRUPTS>0
+    #if OPEN_LOOP_FT_TRACK_INTERRUPTS>0 || OPEN_LOOP_FT_DISABLE_INTERRUPTS>0
         std::vector<FILE*> interruptReporterFiles;
     #endif
 
@@ -174,7 +198,7 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
                                                                                        trackerLen, trackerLen);
 
 
-    #if TRACK_INTERRUPTS>0 || DISABLE_INTERRUPTS>0
+    #if OPEN_LOOP_FT_TRACK_INTERRUPTS>0 || OPEN_LOOP_FT_DISABLE_INTERRUPTS>0
         for(int i = 0; i<cpus.size(); i++){
             FILE* interruptReporter = fopen("/dev/sir0", "r");
             if(interruptReporter == NULL){
@@ -252,7 +276,7 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
                         args[idx].endSoftirqOtherInterruptTrackerWriter = endSoftirqOtherInterruptTrackers[1];
                         args[idx].endTimingTrackerWriter = endTimingTrackers[1];
                         args[idx].endTrackerLen = trackerLen;
-                        #if TRACK_INTERRUPTS>0 || DISABLE_INTERRUPTS>0
+                        #if OPEN_LOOP_FT_TRACK_INTERRUPTS>0 || OPEN_LOOP_FT_DISABLE_INTERRUPTS>0
                             args[idx].writerInterruptReporter = interruptReporterFiles[0];
                             args[idx].readerInterruptReporter = interruptReporterFiles[1];
                         #endif
@@ -300,7 +324,7 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
     closeEntry(file, raw_file);
 
     //==== Cleanup ====
-    #if TRACK_INTERRUPTS>0 || DISABLE_INTERRUPTS>0
+    #if OPEN_LOOP_FT_TRACK_INTERRUPTS>0 || OPEN_LOOP_FT_DISABLE_INTERRUPTS>0
         for(int i = 0; i<interruptReporterFiles.size(); i++){
             fclose(interruptReporterFiles[i]);
         }

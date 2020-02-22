@@ -24,6 +24,20 @@ void run_closed_loop_bang_control_kernel(Profiler* profiler, int cpu_a, int cpu_
 
     std::vector<std::atomic_int32_t*> nopsControl;
 
+    #if CLOSED_LOOP_DISABLE_INTERRUPTS==1
+        std::vector<FILE*> interruptReporterFiles;
+
+        for(int i = 0; i<cpus.size(); i++){
+            FILE* interruptReporter = fopen("/dev/sir0", "r");
+            if(interruptReporter == NULL){
+                std::cerr << "Unable to open /dev/sir0.  Check that the sir module is loaded" << std::endl;
+                exit(1);
+            }
+
+            interruptReporterFiles.push_back(interruptReporter);
+        }
+    #endif
+
     closedLoopAllocate<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic_int32_t>(shared_array_locs, shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, nopsControl, array_lengths, block_lengths, cpus, alignment, false, false);
 
     //==== Create Configurations for each experiment ====
@@ -73,6 +87,11 @@ void run_closed_loop_bang_control_kernel(Profiler* profiler, int cpu_a, int cpu_
                             args[idx].core_server = cpus[0];
                             args[idx].core_client = cpus[1];
                             args[idx].initialNops = initial_nop;
+
+                            #if CLOSED_LOOP_DISABLE_INTERRUPTS==1
+                                args[idx].writerSirFile = interruptReporterFiles[0];
+                                args[idx].readerSirFile = interruptReporterFiles[1];
+                            #endif
                         }
                     }
                 }
@@ -115,6 +134,12 @@ void run_closed_loop_bang_control_kernel(Profiler* profiler, int cpu_a, int cpu_
     closeEntry(file, raw_file);
 
     //==== Cleanup ====
+    #if CLOSED_LOOP_DISABLE_INTERRUPTS==1
+        for(int i = 0; i<interruptReporterFiles.size(); i++){
+            fclose(interruptReporterFiles[i]);
+        }
+    #endif
+
     destructSharedIDs(shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, nopsControl);
 
     freeVectorContents(shared_array_locs);
@@ -146,6 +171,20 @@ void run_closed_loop_pi_control_rate_kernel(Profiler* profiler, int cpu_a, int c
     std::atomic_flag* stop_flag;
 
     std::vector<std::atomic<float>*> nopsControl;
+
+    #if CLOSED_LOOP_DISABLE_INTERRUPTS==1
+        std::vector<FILE*> interruptReporterFiles;
+
+        for(int i = 0; i<cpus.size(); i++){
+            FILE* interruptReporter = fopen("/dev/sir0", "r");
+            if(interruptReporter == NULL){
+                std::cerr << "Unable to open /dev/sir0.  Check that the sir module is loaded" << std::endl;
+                exit(1);
+            }
+
+            interruptReporterFiles.push_back(interruptReporter);
+        }
+    #endif
 
     closedLoopAllocate<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic<float>>(shared_array_locs, shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, nopsControl, array_lengths, block_lengths, cpus, alignment, false, false);
 
@@ -200,6 +239,11 @@ void run_closed_loop_pi_control_rate_kernel(Profiler* profiler, int cpu_a, int c
                                 args[idx].core_server = cpus[0];
                                 args[idx].core_client = cpus[1];
                                 args[idx].initialNops = initial_nop;
+
+                                #if CLOSED_LOOP_DISABLE_INTERRUPTS==1
+                                    args[idx].writerSirFile = interruptReporterFiles[0];
+                                    args[idx].readerSirFile = interruptReporterFiles[1];
+                                #endif
                             }
                         }
                     }
@@ -243,6 +287,12 @@ void run_closed_loop_pi_control_rate_kernel(Profiler* profiler, int cpu_a, int c
     closeEntry(file, raw_file);
 
     //==== Cleanup ====
+    #if CLOSED_LOOP_DISABLE_INTERRUPTS==1
+        for(int i = 0; i<interruptReporterFiles.size(); i++){
+            fclose(interruptReporterFiles[i]);
+        }
+    #endif
+
     destructSharedIDs(shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, nopsControl);
 
     freeVectorContents(shared_array_locs);
