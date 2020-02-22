@@ -510,18 +510,55 @@ void* closed_loop_buffer_pi_client(void* arg){
     getBlockSizing<elementType, idType>(args->blockSize, args->alignment, blockArrayBytes, blockArrayPaddingBytes, 
     blockArrayCombinedBytes, idBytes, idPaddingBytes, idCombinedBytes, blockSizeBytes);
 
-    //Load the initial read offset
+    //==== Load the initial read offset ====
     indexLocalType readOffset = std::atomic_load_explicit(read_offset_ptr, std::memory_order_acquire);
 
     int numberInitBlocks = array_length/2; //Initialize FIFO to be half full (round down if odd number)
 
-    //Wait for ready
+    //==== Wait for ready ====
     bool ready = false;
     while(!ready){
         ready = !std::atomic_flag_test_and_set_explicit(ready_flag, std::memory_order_acq_rel);
     }
 
-    //Singal start
+    //==== Read the uninitialized entries in the FIFO ====
+    //The writer will have written the initial conditions into the FIFO and therefor will have
+    //exclusive access to the cache lines in the array.  Reading the entries will force them
+    //into the shared state which will force the writer to invalidate there entries in the reader.
+    //This is what it needs to do in the steady state case and should do at the start as well.
+    
+    //Read Elements beyond initial condition
+    for(int i = numberInitBlocks+1; i <= array_length+1; i++){ //Note, there is an extra element in the array
+        int ind = i<=array_length ? i : 0;
+        idType *block_id_end = (idType*) (((char*) array) + ind*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        newBlockIDEnd = std::atomic_load_explicit(block_id_end, std::memory_order_acquire);
+        asm volatile(""
+        :
+        : "r" (newBlockIDEnd)
+        :);
+        
+        //Read elements
+        //Read backwards to avoid cache thrashing
+        elementType *data_array = (elementType*) (((char*) array) + ind*blockSizeBytes + idCombinedBytes);
+        for(int sample = blockSize-1; sample>=0; sample--){
+            localBuffer[sample] = data_array[sample];
+            asm volatile(""
+            :
+            : "r" (localBuffer[sample])
+            :);
+        }
+
+        //The start ID is read last to check that the block was not being overwritten while the data was being read
+        std::atomic_signal_fence(std::memory_order_release); //Do not want an actual fence but do not want sample reading to be re-ordered before the end block ID read
+        idType *block_id_start = (idType*) (((char*) array) + ind*blockSizeBytes);
+        newBlockIDStart = std::atomic_load_explicit(block_id_start, std::memory_order_acquire);
+        asm volatile(""
+        :
+        : "r" (newBlockIDStart)
+        :);
+    }
+
+    //==== Singal start ====
     std::atomic_thread_fence(std::memory_order_acquire);
     std::atomic_flag_clear_explicit(start_flag, std::memory_order_release);
 
