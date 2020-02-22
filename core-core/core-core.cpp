@@ -439,6 +439,7 @@ int main(int argc, char *argv[])
 
     printf("\n");
 
+    #if TEST_OPEN_LOOP_FULLNESS_TRACKER == 1
     //===== Test 5.1 - Open Loop Fullness Tracker =====
     {
         size_t open_loop_fullness_tracker_array_length_start = 60;
@@ -501,10 +502,12 @@ int main(int argc, char *argv[])
         fclose(open_loop_fullness_tracker_csv_file);
         open_loop_fullness_tracker_raw_csv_file.close();
     }
+    #endif
 
+    #if TEST_OPEN_LOOP_PAST_FAILURE == 1
     printf("\n");
 
-    //===== Test 5.2 - Open Loop  =====
+    //===== Test 5.2 - Open Loop Run Past Failure =====
     {
         size_t open_loop_array_length_start = 60;
         size_t open_loop_array_length_end = 69;
@@ -552,6 +555,7 @@ int main(int argc, char *argv[])
         fclose(open_loop_run_past_failure_csv_file);
         open_loop_run_past_failure_raw_csv_file.close();
     }
+    #endif
 
     printf("\n");
 
