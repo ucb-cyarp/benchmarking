@@ -70,8 +70,8 @@ void run_closed_loop_bang_control_kernel(Profiler* profiler, int cpu_a, int cpu_
                             args[idx].control_gain = control_gain;
                             args[idx].clientNops = nopsControl[0];
                             args[idx].alignment = alignment;
-                            args[idx].core_server = cpus[0]; //The server is the secondary but is placed on cpu a to have the typical transfer from cpu_a -> cpu_b
-                            args[idx].core_client = cpus[1]; //The client is the primary but is placed on cpu b
+                            args[idx].core_server = cpus[0];
+                            args[idx].core_client = cpus[1];
                             args[idx].initialNops = initial_nop;
                         }
                     }
@@ -82,11 +82,11 @@ void run_closed_loop_bang_control_kernel(Profiler* profiler, int cpu_a, int cpu_
 
     //==== Run The Experiments ====
     //The primary is the client (because it performs the measurment) and the secondary is the server
-    std::vector<Results> results_vec = execute_client_server_kernel(profiler, closed_loop_buffer_client<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, std::atomic_int32_t, int32_t, INT32_MAX>, 
-                                                                    closed_loop_buffer_bang_control_server<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, std::atomic_int32_t, int32_t, INT32_MAX>,
+    std::vector<Results> results_vec = execute_client_server_kernel(profiler, closed_loop_buffer_bang_control_server<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, std::atomic_int32_t, int32_t, INT32_MAX>, 
+                                                                    closed_loop_buffer_client<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, std::atomic_int32_t, int32_t, INT32_MAX>,
                                                                     closed_loop_buffer_reset<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t>,
                                                                     closed_loop_buffer_cleanup<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic_int32_t>, 
-                                                                    args, args, args, cpus[1], cpus[0], num_experiments);
+                                                                    args, args, args, cpus[0], cpus[1], num_experiments);
 
     //==== Process Results ====
     if(results_vec.size() != num_experiments){
@@ -197,8 +197,8 @@ void run_closed_loop_pi_control_rate_kernel(Profiler* profiler, int cpu_a, int c
                                 args[idx].control_gain_p = control_gain_p;
                                 args[idx].clientNops = nopsControl[0];
                                 args[idx].alignment = alignment;
-                                args[idx].core_server = cpus[0]; //The server is the secondary but is placed on cpu a to have the typical transfer from cpu_a -> cpu_b
-                                args[idx].core_client = cpus[1]; //The client is the primary but is placed on cpu b
+                                args[idx].core_server = cpus[0];
+                                args[idx].core_client = cpus[1];
                                 args[idx].initialNops = initial_nop;
                             }
                         }
@@ -210,11 +210,11 @@ void run_closed_loop_pi_control_rate_kernel(Profiler* profiler, int cpu_a, int c
 
     //==== Run The Experiments ====
     //The primary is the client (because it performs the measurment) and the secondary is the server
-    std::vector<Results> results_vec = execute_client_server_kernel(profiler, closed_loop_buffer_pi_client<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, std::atomic<float>, float, INT32_MAX>, 
-                                                                    closed_loop_buffer_pi_rate_control_server<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, std::atomic<float>, float, INT32_MAX>,
+    std::vector<Results> results_vec = execute_client_server_kernel(profiler, closed_loop_buffer_pi_rate_control_server<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, std::atomic<float>, float, INT32_MAX>, 
+                                                                    closed_loop_buffer_pi_client<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, std::atomic<float>, float, INT32_MAX>,
                                                                     closed_loop_buffer_reset<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic<float>, float>,
                                                                     closed_loop_buffer_cleanup<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic<float>>, 
-                                                                    args, args, args, cpus[1], cpus[0], num_experiments);
+                                                                    args, args, args, cpus[0], cpus[1], num_experiments);
 
     //==== Process Results ====
     if(results_vec.size() != num_experiments){
