@@ -578,11 +578,11 @@ int main(int argc, char *argv[])
     int32_t closed_loop_client_control_period_step = 10;
     int32_t closed_loop_client_control_period_end = 2010;
 
-    int32_t closed_loop_control_gain_start = 0;
-    int32_t closed_loop_control_gain_step = 1;
-    int32_t closed_loop_control_gain_end = 2000;
+    float closed_loop_control_gain_start = 0;
+    float closed_loop_control_gain_step = 1;
+    float closed_loop_control_gain_end = 2000;
 
-    std::vector<int> closed_loop_initial_nops = {0, 100, 500, 1000};
+    std::vector<float> closed_loop_initial_nops = {0, 100, 500, 1000};
 
     int closed_loop_alignment = 4; //Align to 4 byte (32 bit) words
     int closed_loop_max_block_transfers = 200000;
@@ -611,8 +611,8 @@ int main(int argc, char *argv[])
         closed_loop_client_control_periods.push_back(i);
     }
 
-    std::vector<int32_t> closed_loop_control_gains;
-    for(int i = closed_loop_control_gain_start; i < closed_loop_control_gain_end; i+=closed_loop_control_gain_step)
+    std::vector<float> closed_loop_control_gains;
+    for(float i = closed_loop_control_gain_start; i < closed_loop_control_gain_end; i+=closed_loop_control_gain_step)
     {
         closed_loop_control_gains.push_back(i);
     }

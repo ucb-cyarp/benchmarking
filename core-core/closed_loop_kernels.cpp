@@ -4,7 +4,7 @@
 #include "closed_loop_helpers.h"
 
 //MAKE A 2D Table
-void run_closed_loop_bang_control_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int32_t> server_control_periods, std::vector<int32_t> client_control_periods, std::vector<int32_t> control_gains, std::vector<int> initial_nops, int alignment, int64_t max_block_transfers, FILE* file, std::ofstream* raw_file)
+void run_closed_loop_bang_control_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int32_t> server_control_periods, std::vector<int32_t> client_control_periods, std::vector<float> control_gains, std::vector<float> initial_nops, int alignment, int64_t max_block_transfers, FILE* file, std::ofstream* raw_file)
 {
     int32_t data_col_width = 10;
 
@@ -22,7 +22,7 @@ void run_closed_loop_bang_control_kernel(Profiler* profiler, int cpu_a, int cpu_
     std::vector<std::atomic_flag*> start_flags;
     std::atomic_flag* stop_flag;
 
-    std::vector<std::atomic_int32_t*> nopsControl;
+    std::vector<std::atomic<float>*> nopsControl;
 
     #if CLOSED_LOOP_DISABLE_INTERRUPTS==1
         std::vector<FILE*> interruptReporterFiles;
@@ -38,12 +38,12 @@ void run_closed_loop_bang_control_kernel(Profiler* profiler, int cpu_a, int cpu_
         }
     #endif
 
-    closedLoopAllocate<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic_int32_t>(shared_array_locs, shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, nopsControl, array_lengths, block_lengths, cpus, alignment, false, false);
+    closedLoopAllocate<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic<float>>(shared_array_locs, shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, nopsControl, array_lengths, block_lengths, cpus, alignment, false, false);
 
     //==== Create Configurations for each experiment ====
     int num_experiments = array_lengths.size() * block_lengths.size() * server_control_periods.size() * client_control_periods.size() * control_gains.size() * initial_nops.size();
 
-    ClosedLoopBangBufferArgs<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic_int32_t>* args = new ClosedLoopBangBufferArgs<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic_int32_t>[num_experiments];
+    ClosedLoopBangBufferArgs<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic<float>>* args = new ClosedLoopBangBufferArgs<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic<float>>[num_experiments];
 
     for(int i = 0; i<array_lengths.size(); i++)
     {
@@ -101,8 +101,8 @@ void run_closed_loop_bang_control_kernel(Profiler* profiler, int cpu_a, int cpu_
 
     //==== Run The Experiments ====
     //The primary is the client (because it performs the measurment) and the secondary is the server
-    std::vector<Results> results_vec = execute_client_server_kernel(profiler, closed_loop_buffer_bang_control_server<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, std::atomic_int32_t, int32_t, INT32_MAX>, 
-                                                                    closed_loop_buffer_client<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, std::atomic_int32_t, int32_t, INT32_MAX>,
+    std::vector<Results> results_vec = execute_client_server_kernel(profiler, closed_loop_buffer_bang_control_server<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, std::atomic<float>, float, INT32_MAX>, 
+                                                                    closed_loop_buffer_float_client<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, std::atomic<float>, float, INT32_MAX>,
                                                                     closed_loop_buffer_reset<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t>,
                                                                     closed_loop_buffer_cleanup<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic_int32_t>, 
                                                                     args, args, args, cpus[0], cpus[1], num_experiments);
@@ -255,7 +255,7 @@ void run_closed_loop_pi_control_rate_kernel(Profiler* profiler, int cpu_a, int c
     //==== Run The Experiments ====
     //The primary is the client (because it performs the measurment) and the secondary is the server
     std::vector<Results> results_vec = execute_client_server_kernel(profiler, closed_loop_buffer_pi_rate_control_server<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, std::atomic<float>, float, INT32_MAX>, 
-                                                                    closed_loop_buffer_pi_client<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, std::atomic<float>, float, INT32_MAX>,
+                                                                    closed_loop_buffer_float_client<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, std::atomic<float>, float, INT32_MAX>,
                                                                     closed_loop_buffer_reset<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic<float>, float>,
                                                                     closed_loop_buffer_cleanup<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic<float>>, 
                                                                     args, args, args, cpus[0], cpus[1], num_experiments);
