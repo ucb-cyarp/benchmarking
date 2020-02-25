@@ -17,7 +17,7 @@ std::string ClosedLoopServerEndCondition::getTrialResultsHeader(){
 std::string ClosedLoopServerEndCondition::getTrialResults(){
     char tmp[120];
     std::string erroredStr = errored ? "Yes" : "No";
-    snprintf(tmp, 120, "%22ld|%12ld|%12ld|%13ld|%13ld|%9s|%12ld", controlChecks, speed_up_count, slow_down_count, serverNops, clientNops, erroredStr.c_str(), transaction);
+    snprintf(tmp, 120, "%22ld|%12ld|%12ld|%13.2f|%13.2f|%9s|%12ld", controlChecks, speed_up_count, slow_down_count, serverNops, clientNops, erroredStr.c_str(), transaction);
     std::string str = tmp;
     return str;
 }

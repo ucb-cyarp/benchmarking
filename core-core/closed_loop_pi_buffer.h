@@ -22,10 +22,10 @@
 //The IDs are padded to be multiples of the provided alignment.  The buffer is also padded to be a multiple of the alignment.
 
 template<typename elementType, 
-         typename idType = std::atomic_int32_t, 
-         typename indexType = std::atomic_int32_t, 
-         typename nopsClient = std::atomic<float>,
-         typename nopsClientLocal = float>
+         typename idType, 
+         typename indexType, 
+         typename nopsClient,
+         typename nopsClientLocal>
 struct ClosedLoopPIBufferArgs : public ClosedLoopBufferArgs<elementType, idType, indexType, nopsClient, nopsClientLocal>{
     nopsClientLocal control_gain_p; //The gain of the control system p
     nopsClientLocal control_gain_i; //The gain of the control system i
@@ -89,15 +89,15 @@ void ClosedLoopPIBufferArgs<elementType, idType, indexType, nopsClient, nopsClie
 //The server also acts as the controller in this case.  It is capable of slowing itself down and can command the reciever to slow down if
 //nessasary via a shared ptr
 template<typename elementType, 
-         typename idType = std::atomic_int32_t, 
-         typename indexType = std::atomic_int32_t, 
-         typename idLocalType = int32_t, 
-         typename indexLocalType = int32_t, 
-         typename nopsClientType = std::atomic<float>,
-         typename nopsClientLocalType = float, 
+         typename idType, 
+         typename indexType, 
+         typename idLocalType, 
+         typename indexLocalType, 
+         typename nopsClientType,
+         typename nopsClientLocalType, 
          int idMax = INT32_MAX>
 void* closed_loop_buffer_pi_rate_control_server(void* arg){
-    ClosedLoopPIBufferArgs<elementType, idType, indexType, nopsClientType>* args = (ClosedLoopPIBufferArgs<elementType, idType, indexType, nopsClientType>*) arg;
+    ClosedLoopPIBufferArgs<elementType, idType, indexType, nopsClientType, nopsClientLocalType>* args = (ClosedLoopPIBufferArgs<elementType, idType, indexType, nopsClientType, nopsClientLocalType>*) arg;
 
     indexType *write_offset_ptr = args->write_offset_ptr;
     indexType *read_offset_ptr = args->read_offset_ptr;
@@ -301,15 +301,15 @@ void* closed_loop_buffer_pi_rate_control_server(void* arg){
 }
 
 template<typename elementType, 
-         typename idType = std::atomic_int32_t, 
-         typename indexType = std::atomic_int32_t, 
-         typename idLocalType = int32_t, 
-         typename indexLocalType = int32_t, 
-         typename nopsClientType = std::atomic<float>,
-         typename nopsClientLocalType = float, 
-         int idMax = INT32_MAX>
+         typename idType, 
+         typename indexType, 
+         typename idLocalType, 
+         typename indexLocalType, 
+         typename nopsClientType,
+         typename nopsClientLocalType, 
+         int idMax>
 void* closed_loop_buffer_pi_period_control_server(void* arg){
-    ClosedLoopPIBufferArgs<elementType, idType, indexType, nopsClientType>* args = (ClosedLoopBangBufferArgs<elementType, idType, indexType, nopsClientType>*) arg;
+    ClosedLoopPIBufferArgs<elementType, idType, indexType, nopsClientType, nopsClientLocalType>* args = (ClosedLoopBangBufferArgs<elementType, idType, indexType, nopsClientType, nopsClientLocalType>*) arg;
 
     indexType *write_offset_ptr = args->write_offset_ptr;
     indexType *read_offset_ptr = args->read_offset_ptr;

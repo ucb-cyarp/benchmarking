@@ -59,9 +59,9 @@ void run_closed_loop_bang_control_kernel(Profiler* profiler, int cpu_a, int cpu_
                     int32_t client_control_period = client_control_periods[n];
                     for(int m = 0; m<control_gains.size(); m++)
                     {
-                        int32_t control_gain = control_gains[m];
+                        float control_gain = control_gains[m];
                         for(int l = 0; l<initial_nops.size(); l++){
-                            int initial_nop = initial_nops[l];
+                            float initial_nop = initial_nops[l];
 
                             int idx = l + 
                                     m*initial_nops.size() + 
@@ -191,7 +191,7 @@ void run_closed_loop_pi_control_rate_kernel(Profiler* profiler, int cpu_a, int c
     //==== Create Configurations for each experiment ====
     int num_experiments = array_lengths.size() * block_lengths.size() * server_control_periods.size() * client_control_periods.size() * control_gains_p.size() * control_gains_i.size() * initial_nops.size();
 
-    ClosedLoopPIBufferArgs<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic<float>>* args = new ClosedLoopPIBufferArgs<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic<float>>[num_experiments];
+    ClosedLoopPIBufferArgs<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic<float>, float>* args = new ClosedLoopPIBufferArgs<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic<float>, float>[num_experiments];
 
     for(int i = 0; i<array_lengths.size(); i++)
     {

@@ -82,8 +82,8 @@ public:
     int64_t controlChecks;
     int64_t speed_up_count;
     int64_t slow_down_count;
-    int64_t serverNops;
-    int64_t clientNops;
+    float serverNops;
+    float clientNops;
     bool errored;
     int64_t transaction;
 
