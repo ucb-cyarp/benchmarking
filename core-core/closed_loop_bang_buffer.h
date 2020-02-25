@@ -119,6 +119,7 @@ void* closed_loop_buffer_bang_control_server(void* arg){
 
     nopsClientLocalType nops_server = args->initialNops;
     nopsClientLocalType nops_client_local = std::atomic_load_explicit(clientNops, std::memory_order_acquire);
+    nopsClientLocalType nops_current = 0; //Is used to carry over residual between nop cycles
 
     int halfFilledPoint = array_length/2; //Initialize FIFO to be half full (round down if odd number)
     int numberInitBlocks = halfFilledPoint;
@@ -260,9 +261,12 @@ void* closed_loop_buffer_bang_control_server(void* arg){
         }
 
         //Perform NOPs
-        for(nopsClientLocalType nop = 0; nop<nops_server; nop++){
+        nops_current += nops_server;//nop_current contains the resitual from the last round
+        int32_t nops_current_trunk = std::floor(nops_current); //Truncate to a fixed number of NOPs
+        for(int32_t nop = 0; nop<nops_current_trunk; nop++){
             asm volatile ("nop" : : :);
         }
+        nops_current -= nops_current_trunk;//Get the residual for the next round
     }
 
     //Re-enable interrupts before processing results (which dynamically allocates memory which can result in a system call)
