@@ -46,7 +46,7 @@ void ClosedLoopBangBufferArgs<elementType, idType, indexType, nopsClient>::print
             printf("\n");
             printTitle(title);
             //Need to use this-> because of the class templating
-            printf("Array Length (Blocks): %d, Block Length (int32_t Elements): %d, Server Control Period (Iterations): %d, Client Control Period (Iterations): %d, Control Gain (NOPs): %d, Initial NOPs: %d\n", this->array_length, this->blockSize, this->control_check_period, this->control_client_check_period, this->control_gain, this->initialNops);
+            printf("Array Length (Blocks): %d, Block Length (int32_t Elements): %d, Server Control Period (Iterations): %d, Client Control Period (Iterations): %d, Control Gain (NOPs): %f, Initial NOPs: %f\n", this->array_length, this->blockSize, this->control_check_period, this->control_client_check_period, this->control_gain, this->initialNops);
             fflush(stdout);
         }
     #endif
@@ -70,7 +70,7 @@ void ClosedLoopBangBufferArgs<elementType, idType, indexType, nopsClient>::print
             #if WRITE_CSV == 1
             //write the general results to the summary csv file
             //Need to use this-> because of the class templating
-            fprintf(file, "%d,%d,%d,%d,%d,%d,%f,%f\n", this->array_length, this->blockSize, this->control_check_period, this->control_client_check_period, this->control_gain, this->initialNops, avg_duration_ms, stddev_duration_ms);
+            fprintf(file, "%d,%d,%d,%d,%f,%f,%f,%f\n", this->array_length, this->blockSize, this->control_check_period, this->control_client_check_period, this->control_gain, this->initialNops, avg_duration_ms, stddev_duration_ms);
             //write the general and benchmark specific results to the raw file
             //Need to use this-> because of the class templating
             result.write_durations_and_benchmark_specific_results(*raw_file, {"", "", "", "", "", ""}, {std::to_string(this->array_length), std::to_string(this->blockSize), std::to_string(this->control_check_period), std::to_string(this->control_client_check_period), std::to_string(this->control_gain), std::to_string(this->initialNops)}, false);
