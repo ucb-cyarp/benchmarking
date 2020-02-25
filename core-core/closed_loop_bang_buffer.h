@@ -25,7 +25,7 @@ template<typename elementType,
          typename idType = std::atomic_int32_t, 
          typename indexType = std::atomic_int32_t, 
          typename nopsClient = std::atomic_int32_t>
-class ClosedLoopBangBufferArgs : public ClosedLoopBufferArgs<idType, indexType, nopsClient>{
+class ClosedLoopBangBufferArgs : public ClosedLoopBufferArgs<elementType, idType, indexType, nopsClient>{
 public:
     int32_t control_gain; //The gain of the control system
 
