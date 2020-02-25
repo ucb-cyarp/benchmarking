@@ -257,9 +257,12 @@ void* closed_loop_buffer_pi_rate_control_server(void* arg){
             }
             nops_server = 1/correctedServerRate;
 
-            if(nops_client_local_prev!=nops_client_local){
-                std::atomic_store_explicit(clientNops, nops_client_local, std::memory_order_release);
-            }
+            // if(nops_client_local_prev!=nops_client_local){
+            //     std::atomic_store_explicit(clientNops, nops_client_local, std::memory_order_release);
+            // }
+
+            //Write to client in any case so that the amount of time spent per control itteration in the client due to the cache miss is consistent.
+            std::atomic_store_explicit(clientNops, nops_client_local, std::memory_order_release);
         }
 
         //Perform NOPs
@@ -463,9 +466,12 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
                 nops_client_local = base_nops;
             }
 
-            if(nops_client_local_prev != nops_client_local){
-                std::atomic_store_explicit(clientNops, nops_client_local, std::memory_order_release);
-            }
+            // if(nops_client_local_prev != nops_client_local){
+            //     std::atomic_store_explicit(clientNops, nops_client_local, std::memory_order_release);
+            // }
+
+            //Write to client in any case so that the amount of time spent per control itteration in the client due to the cache miss is consistent.
+            std::atomic_store_explicit(clientNops, nops_client_local, std::memory_order_release);
         }
 
         //Perform NOPs

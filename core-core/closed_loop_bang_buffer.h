@@ -232,7 +232,6 @@ void* closed_loop_buffer_bang_control_server(void* arg){
                         nops_server-=nops_client_local;
                         nops_client_local=0;
                     }
-                    std::atomic_store_explicit(clientNops, nops_client_local, std::memory_order_release);
                 }else{
                     //Slow down the server
                     nops_server += control_gain;
@@ -247,13 +246,14 @@ void* closed_loop_buffer_bang_control_server(void* arg){
                     if(nops_server<0){ //If the number of NOPS went negative, shift the difference to the client (slow it down)
                         nops_client_local-=nops_server;
                         nops_server=0;
-                        std::atomic_store_explicit(clientNops, nops_client_local, std::memory_order_release);
                     }
                 }else{
                     nops_client_local += control_gain;
-                    std::atomic_store_explicit(clientNops, nops_client_local, std::memory_order_release);
                 }
             }
+            //Write to the client in any case so that the amount of time spent per control itteration (due to the cache miss) is consistent
+            //   ie. should not be different if the server is effected vs. the client.  This would potetnailly create its own imballance
+            std::atomic_store_explicit(clientNops, nops_client_local, std::memory_order_release);
         }
 
         //Perform NOPs
