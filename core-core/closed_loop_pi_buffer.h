@@ -26,7 +26,7 @@ template<typename elementType,
          typename indexType = std::atomic_int32_t, 
          typename nopsClient = std::atomic<float>,
          typename nopsClientLocal = float>
-struct ClosedLoopPIBufferArgs : public ClosedLoopBufferArgs<elementType, idType, indexType, nopsClient>{
+struct ClosedLoopPIBufferArgs : public ClosedLoopBufferArgs<elementType, idType, indexType, nopsClient, nopsClientLocal>{
     nopsClientLocal control_gain_p; //The gain of the control system p
     nopsClientLocal control_gain_i; //The gain of the control system i
 
@@ -48,7 +48,7 @@ void ClosedLoopPIBufferArgs<elementType, idType, indexType, nopsClient, nopsClie
             printf("\n");
             printTitle(title);
             //Need to use this-> because of the class templating
-            printf("Array Length (Blocks): %d, Block Length (int32_t Elements): %d, Server Control Period (Iterations): %d, Client Control Period (Iterations): %d, Control Gain P (NOPs): %f, Control Gain I (NOPs): %f, Initial NOPs: %d\n", this->array_length, this->blockSize, this->control_check_period, this->control_client_check_period, this->control_gain_p, this->control_gain_i, this->initialNops);
+            printf("Array Length (Blocks): %d, Block Length (int32_t Elements): %d, Server Control Period (Iterations): %d, Client Control Period (Iterations): %d, Control Gain P (NOPs): %f, Control Gain I (NOPs): %f, Initial NOPs: %f\n", this->array_length, this->blockSize, this->control_check_period, this->control_client_check_period, this->control_gain_p, this->control_gain_i, this->initialNops);
             fflush(stdout);
         }
     #endif
@@ -73,7 +73,7 @@ void ClosedLoopPIBufferArgs<elementType, idType, indexType, nopsClient, nopsClie
             #if WRITE_CSV == 1
             //write the general results to the summary csv file
             //Need to use this-> because of the class templating
-            fprintf(file, "%d,%d,%d,%d,%f,%f,%d,%f,%f\n", this->array_length, this->blockSize, this->control_check_period, this->control_client_check_period, this->control_gain_p, this->control_gain_i, this->initialNops, avg_duration_ms, stddev_duration_ms);
+            fprintf(file, "%d,%d,%d,%d,%f,%f,%f,%f,%f\n", this->array_length, this->blockSize, this->control_check_period, this->control_client_check_period, this->control_gain_p, this->control_gain_i, this->initialNops, avg_duration_ms, stddev_duration_ms);
             //write the general and benchmark specific results to the raw file
             //Need to use this-> because of the class templating
             result.write_durations_and_benchmark_specific_results(*raw_file, {"", "", "", "", "", "", ""}, {std::to_string(this->array_length), std::to_string(this->blockSize), std::to_string(this->control_check_period), std::to_string(this->control_client_check_period), std::to_string(this->control_gain_p), std::to_string(this->control_gain_i), std::to_string(this->initialNops)}, false);

@@ -24,10 +24,11 @@
 template<typename elementType, 
          typename idType = std::atomic_int32_t, 
          typename indexType = std::atomic_int32_t, 
-         typename nopsClient = std::atomic_int32_t>
-class ClosedLoopBangBufferArgs : public ClosedLoopBufferArgs<elementType, idType, indexType, nopsClient>{
+         typename nopsClient = std::atomic_int32_t,
+         typename nopsLocal = int32_t>
+class ClosedLoopBangBufferArgs : public ClosedLoopBufferArgs<elementType, idType, indexType, nopsClient, nopsLocal>{
 public:
-    int32_t control_gain; //The gain of the control system
+    nopsLocal control_gain; //The gain of the control system
 
     void printStandaloneTitle(bool report_standalone, std::string title) override; //Prints the standalone title block if standalone results are requested
 protected:
@@ -37,8 +38,9 @@ protected:
 template<typename elementType, 
          typename idType, 
          typename indexType, 
-         typename nopsClient>
-void ClosedLoopBangBufferArgs<elementType, idType, indexType, nopsClient>::printStandaloneTitle(bool report_standalone, std::string title){
+         typename nopsClient,
+         typename nopsLocal>
+void ClosedLoopBangBufferArgs<elementType, idType, indexType, nopsClient, nopsLocal>::printStandaloneTitle(bool report_standalone, std::string title){
     //Print the title if a standalone report
     #if PRINT_TITLE == 1
         if(report_standalone)
@@ -55,8 +57,9 @@ void ClosedLoopBangBufferArgs<elementType, idType, indexType, nopsClient>::print
 template<typename elementType, 
          typename idType, 
          typename indexType, 
-         typename nopsClient>
-void ClosedLoopBangBufferArgs<elementType, idType, indexType, nopsClient>::printExportNonStandaloneResults(Results &result, bool report_standalone, std::string resultPrintFormatStr, FILE* file, std::ofstream* raw_file){
+         typename nopsClient,
+         typename nopsLocal>
+void ClosedLoopBangBufferArgs<elementType, idType, indexType, nopsClient, nopsLocal>::printExportNonStandaloneResults(Results &result, bool report_standalone, std::string resultPrintFormatStr, FILE* file, std::ofstream* raw_file){
     if(!report_standalone){
         //Print the complete results
             double avg_duration_ms = result.avg_duration();

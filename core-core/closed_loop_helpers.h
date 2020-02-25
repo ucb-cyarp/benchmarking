@@ -20,7 +20,8 @@
 template<typename elementType, 
          typename idType = std::atomic_int32_t, 
          typename indexType = std::atomic_int32_t, 
-         typename nopsClient = std::atomic_int32_t> //Note, this can be changed to a float for PI controllers
+         typename nopsClient = std::atomic_int32_t,
+         typename nopsLocal = int32_t> //Note, this can be changed to a float for PI controllers
 class ClosedLoopBufferArgs : public FifolessConfig{
 public:
     indexType *read_offset_ptr;
@@ -38,7 +39,7 @@ public:
     int alignment; //The alignment in bytes of the components within the block (the IDs and the Buffer)
     int core_client; //The core the client is executing on
     int core_server; //The core the server is executing on
-    int initialNops; //The initial NOPs for the client and server
+    nopsLocal initialNops; //The initial NOPs for the client and server
     FILE* writerSirFile; //The file pointer to the sir driver for the writer (used for disabling interrupts)
     FILE* readerSirFile; //The file pointer to the sir driver for the reader (used for disabling interrupts)
 
