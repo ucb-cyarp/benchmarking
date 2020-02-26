@@ -214,7 +214,7 @@ void run_closed_loop_pi_control_rate_kernel(Profiler* profiler, int cpu_a, int c
                                 float initial_nop = initial_nops[l];
 
                                 int idx = l + 
-                                        mm*initial_nops.size()* + 
+                                        mm*initial_nops.size() + 
                                         m*initial_nops.size()*control_gains_i.size() + 
                                         n*initial_nops.size()*control_gains_i.size()*control_gains_p.size() +
                                         k*initial_nops.size()*control_gains_i.size()*control_gains_p.size()*client_control_periods.size() + 
