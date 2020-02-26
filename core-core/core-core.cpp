@@ -702,11 +702,11 @@ int main(int argc, char *argv[])
     FILE* closed_loop_pi_bang_control_csv_file = NULL;
     std::ofstream closed_loop_pi_bang_control_raw_csv_file;
     #if WRITE_CSV == 1
-    closed_loop_pi_bang_control_csv_file = fopen("report_closed_loop_pi_bang_control.csv", "w");
-    closed_loop_pi_bang_control_raw_csv_file.open("report_closed_loop_pi_bang_control_raw.csv", std::ofstream::out);
+    closed_loop_pi_bang_control_csv_file = fopen("report_closed_loop_pi_control.csv", "w");
+    closed_loop_pi_bang_control_raw_csv_file.open("report_closed_loop_pi_control_raw.csv", std::ofstream::out);
     #endif
 
-    run_closed_loop_pi_control_rate_kernel(profiler, cpu_a, cpu_b, closed_loop_pi_array_lengths, closed_loop_pi_block_sizes, closed_loop_pi_control_periods, closed_loop_pi_client_control_periods, closed_loop_pi_control_gains_p, closed_loop_pi_control_gains_i, closed_loop_pi_initial_nops, closed_loop_pi_alignment, closed_loop_pi_max_block_transfers, closed_loop_pi_bang_control_csv_file, &closed_loop_pi_bang_control_raw_csv_file);
+    run_closed_loop_pi_control_period_kernel(profiler, cpu_a, cpu_b, closed_loop_pi_array_lengths, closed_loop_pi_block_sizes, closed_loop_pi_control_periods, closed_loop_pi_client_control_periods, closed_loop_pi_control_gains_p, closed_loop_pi_control_gains_i, closed_loop_pi_initial_nops, closed_loop_pi_alignment, closed_loop_pi_max_block_transfers, closed_loop_pi_bang_control_csv_file, &closed_loop_pi_bang_control_raw_csv_file);
 
     fclose(closed_loop_pi_bang_control_csv_file);
     closed_loop_pi_bang_control_raw_csv_file.close();
