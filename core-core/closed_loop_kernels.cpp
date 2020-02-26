@@ -152,7 +152,7 @@ void run_closed_loop_bang_control_kernel(Profiler* profiler, int cpu_a, int cpu_
     delete[] args;
 }
 
-void run_closed_loop_pi_control_rate_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int32_t> server_control_periods, std::vector<int32_t> client_control_periods, std::vector<int32_t> control_gains_p, std::vector<int32_t> control_gains_i, std::vector<int> initial_nops, int alignment, int64_t max_block_transfers, FILE* file, std::ofstream* raw_file)
+void run_closed_loop_pi_control_rate_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int32_t> server_control_periods, std::vector<int32_t> client_control_periods, std::vector<float> control_gains_p, std::vector<float> control_gains_i, std::vector<float> initial_nops, int alignment, int64_t max_block_transfers, FILE* file, std::ofstream* raw_file)
 {
     int32_t data_col_width = 10;
 
@@ -211,7 +211,7 @@ void run_closed_loop_pi_control_rate_kernel(Profiler* profiler, int cpu_a, int c
                         for(int mm = 0; mm<control_gains_i.size(); mm++){
                             float control_gain_i = control_gains_i[mm];
                             for(int l = 0; l<initial_nops.size(); l++){
-                                int initial_nop = initial_nops[l];
+                                float initial_nop = initial_nops[l];
 
                                 int idx = l + 
                                         mm*initial_nops.size()* + 
