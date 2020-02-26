@@ -561,6 +561,7 @@
 
     
     void writeCSVSummaryHeaderOpenLoop(FILE* file);
+    void writeCSVSummaryHeaderClosedLoop(FILE* file);
     std::string tableHeaderOpenLoop(std::string title, FILE* file);
 
     void writeRawHeaderOpenLoop(std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResults, std::ofstream* raw_file);
