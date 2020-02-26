@@ -71,6 +71,9 @@ void* kernel_exe_primary_wrapper(void *arg)
     //=== End for interconnected primaries ===
 
     for(int experiment = 0; experiment < numExperiments; experiment++){
+        #if PRINT_EXPERIMENT_TRACKER==1
+            printf("Experiment %d of %d\n", experiment+1, numExperiments);
+        #endif
         void* kernel_arg = (void*) (((char*) args->kernel_args)+experiment*(args->kernel_arg_size));
         void* reset_arg = (void*) (((char*) args->reset_args)+experiment*(args->reset_arg_size));
         int cpu_num = args->cpu_num;
@@ -80,6 +83,9 @@ void* kernel_exe_primary_wrapper(void *arg)
 
         bool lastTrialWasDiscarded = false;
         for(int trial = 0; trial < numTrials; ){ //Trial is incremented by processTrialAndPrepareForNextHelper as appropriate
+            #if PRINT_TRIAL_TRACKER==1
+                printf("Trial %d of %d\n", trial+1, numTrials);
+            #endif
             //Reset the experiment state for new trial
             //Reset if not a member of interconnected primaries or if it is the master interconnected primary
             if(!(args->interconnected_primaries) || (args->interconnected_primaries && args->interconnected_master)){
