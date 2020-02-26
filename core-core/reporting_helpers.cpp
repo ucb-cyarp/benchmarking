@@ -279,7 +279,7 @@ std::string tableHeaderClosedLoopBang(std::string title, FILE* file){
 
     writeCSVSummaryHeaderOpenLoop(file);
 
-    return "         %14d | %20d | %19d | %19d | %12d | %7d | %10.4e, %10.4e\n";
+    return "         %14d | %20d | %19d | %19d | %12.2f | %7.2f | %10.4e, %10.4e\n";
 }
 
 void writeRawHeaderClosedLoopBang(std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResults, std::ofstream* raw_file){
@@ -324,7 +324,7 @@ std::string tableHeaderClosedLoopPI(std::string title, FILE* file){
 
     writeCSVSummaryHeaderOpenLoop(file);
 
-    return "         %14d | %20d | %19d | %19d | %14d | %14d | %7d | %10.4e, %10.4e\n";
+    return "         %14d | %20d | %19d | %19d | %14.2f | %14.2f | %7.2f | %10.4e, %10.4e\n";
 }
 
 void writeRawHeaderClosedLoopPI(std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResults, std::ofstream* raw_file){
