@@ -561,7 +561,7 @@ int main(int argc, char *argv[])
 
     #endif
 
-    #if TEST_CLOSED_LOOP==1
+    #if TEST_CLOSED_LOOP_BANG==1
 
     //===== Test 6 - Closed Loop Bang Control =====
     size_t closed_loop_array_length_start = 62;
@@ -632,8 +632,86 @@ int main(int argc, char *argv[])
 
     printf("\n");
 
-    //TODO: Add PI Controller Versions
+    #endif
 
+    #if TEST_CLOSED_LOOP_PI==1
+    //===== Test 6.1 - Closed Loop PI Control =====
+    size_t closed_loop_pi_array_length_start = 62;
+    size_t closed_loop_pi_array_length_end = 63;
+
+    int32_t closed_loop_pi_block_size_start = 32;
+    int32_t closed_loop_pi_block_size_end = 33;
+
+    int32_t closed_loop_pi_control_period_start = 0;
+    int32_t closed_loop_pi_control_period_step = 10;
+    int32_t closed_loop_pi_control_period_end = 1010;
+
+    int32_t closed_loop_pi_client_control_period_start = 0;
+    int32_t closed_loop_pi_client_control_period_step = 10;
+    int32_t closed_loop_pi_client_control_period_end = 2010;
+
+    float closed_loop_pi_control_gain_p_start = 0;
+    float closed_loop_pi_control_gain_p_step = 1;
+    float closed_loop_pi_control_gain_p_end = 2000;
+
+    float closed_loop_pi_control_gain_i_start = 0;
+    float closed_loop_pi_control_gain_i_step = 1;
+    float closed_loop_pi_control_gain_i_end = 2000;
+
+    std::vector<float> closed_loop_pi_initial_nops = {0, 100, 500, 1000};
+
+    int closed_loop_pi_alignment = 4; //Align to 4 byte (32 bit) words
+    int closed_loop_pi_max_block_transfers = 200000;
+
+    std::vector<size_t> closed_loop_pi_array_lengths;
+    for(int i = closed_loop_pi_array_length_start; i < closed_loop_pi_array_length_end; i++)
+    {
+        closed_loop_pi_array_lengths.push_back(i);
+    }
+
+    std::vector<int32_t> closed_loop_pi_block_sizes;
+    for(int i = closed_loop_pi_block_size_start; i < closed_loop_pi_block_size_end; i++)
+    {
+        closed_loop_pi_block_sizes.push_back(i);
+    }
+
+    std::vector<int32_t> closed_loop_pi_control_periods;
+    for(int i = closed_loop_pi_control_period_start; i < closed_loop_pi_control_period_end; i+=closed_loop_pi_control_period_step)
+    {
+        closed_loop_pi_control_periods.push_back(i);
+    }
+
+    std::vector<int32_t> closed_loop_pi_client_control_periods;
+    for(int i = closed_loop_pi_client_control_period_start; i < closed_loop_pi_client_control_period_end; i+=closed_loop_pi_client_control_period_step)
+    {
+        closed_loop_pi_client_control_periods.push_back(i);
+    }
+
+    std::vector<float> closed_loop_pi_control_gains_p;
+    for(float i = closed_loop_pi_control_gain_p_start; i < closed_loop_pi_control_gain_p_end; i+=closed_loop_pi_control_gain_p_step)
+    {
+        closed_loop_pi_control_gains_p.push_back(i);
+    }
+
+    std::vector<float> closed_loop_pi_control_gains_i;
+    for(float i = closed_loop_pi_control_gain_i_start; i < closed_loop_pi_control_gain_i_end; i+=closed_loop_pi_control_gain_i_step)
+    {
+        closed_loop_pi_control_gains_i.push_back(i);
+    }
+
+    FILE* closed_loop_pi_bang_control_csv_file = NULL;
+    std::ofstream closed_loop_pi_bang_control_raw_csv_file;
+    #if WRITE_CSV == 1
+    closed_loop_pi_bang_control_csv_file = fopen("report_closed_loop_pi_bang_control.csv", "w");
+    closed_loop_pi_bang_control_raw_csv_file.open("report_closed_loop_pi_bang_control_raw.csv", std::ofstream::out);
+    #endif
+
+    run_closed_loop_pi_control_rate_kernel(profiler, cpu_a, cpu_b, closed_loop_pi_array_lengths, closed_loop_pi_block_sizes, closed_loop_pi_control_periods, closed_loop_pi_client_control_periods, closed_loop_pi_control_gains_p, closed_loop_pi_control_gains_i, closed_loop_pi_initial_nops, closed_loop_pi_alignment, closed_loop_pi_max_block_transfers, closed_loop_pi_bang_control_csv_file, &closed_loop_pi_bang_control_raw_csv_file);
+
+    fclose(closed_loop_pi_bang_control_csv_file);
+    closed_loop_pi_bang_control_raw_csv_file.close();
+
+    printf("\n");
     #endif
 
     //########## Parallel Runs ##########
