@@ -88,6 +88,7 @@ void ClosedLoopPIBufferArgs<elementType, idType, indexType, nopsClient, nopsClie
 //This thread is the writer.  It will recieve a start signal from the client when it is ready (the client is the primary thread)
 //The server also acts as the controller in this case.  It is capable of slowing itself down and can command the reciever to slow down if
 //nessasary via a shared ptr
+
 template<typename elementType, 
          typename idType, 
          typename indexType, 
@@ -95,8 +96,8 @@ template<typename elementType,
          typename indexLocalType, 
          typename nopsClientType,
          typename nopsClientLocalType, 
-         int idMax = INT32_MAX>
-void* closed_loop_buffer_pi_rate_control_server(void* arg){
+         int idMax>
+void* closed_loop_buffer_pi_period_control_server(void* arg){
     ClosedLoopPIBufferArgs<elementType, idType, indexType, nopsClientType, nopsClientLocalType>* args = (ClosedLoopPIBufferArgs<elementType, idType, indexType, nopsClientType, nopsClientLocalType>*) arg;
 
     indexType *write_offset_ptr = args->write_offset_ptr;
@@ -115,219 +116,6 @@ void* closed_loop_buffer_pi_rate_control_server(void* arg){
 
     nopsClientType *clientNops = args->clientNops;
     int32_t control_check_period = args->control_check_period;
-
-    nopsClientLocalType base_rate = 1/args->initialNops; //There is an approximation as there are more than the initial NOPS in each itteration (the actual reading/writing)
-    nopsClientLocalType nops_server = args->initialNops;
-    nopsClientLocalType nops_client_local = std::atomic_load_explicit(clientNops, std::memory_order_acquire);
-    nopsClientLocalType nops_current = 0; //Is used to carry over residual between nop cycles
-
-    nopsClientLocalType control_gain_p = args->control_gain_p;
-    nopsClientLocalType control_gain_i = args->control_gain_i;
-
-    nopsClientLocalType control_integral = 0;
-
-    int halfFilledPoint = array_length/2; //Initialize FIFO to be half full (round down if odd number)
-    int numberInitBlocks = halfFilledPoint;
-
-    int blockArrayBytes;
-    int blockArrayPaddingBytes;
-    int blockArrayCombinedBytes;
-    int idBytes;
-    int idPaddingBytes;
-    int idCombinedBytes;
-    int blockSizeBytes;
-
-    getBlockSizing<elementType, idType>(blockSize, args->alignment, blockArrayBytes, blockArrayPaddingBytes, 
-    blockArrayCombinedBytes, idBytes, idPaddingBytes, idCombinedBytes, blockSizeBytes);
-
-    //Load initial write offset
-    indexLocalType writeOffset = std::atomic_load_explicit(write_offset_ptr, std::memory_order_acquire);
-
-    //Initialize Block ID
-    idLocalType writeBlockInd = writeOffset;
-
-    elementType sampleVals = (writeOffset+1)%2;
-
-    //Disable Interrupts For This Trial (Before Signalling Ready)
-    #if CLOSED_LOOP_DISABLE_INTERRUPTS == 1
-        int status = ioctl(fileno(sirFile), SIR_IOCTL_DISABLE_INTERRUPT, NULL);
-        if(status < 0){
-            std::cerr << "Problem accessing /dev/sir0 to Disable Interrupts" << std::endl;
-            exit(1);
-        }
-    #endif
-
-    //Signal Ready
-    std::atomic_thread_fence(std::memory_order_acquire);
-    std::atomic_flag_clear_explicit(ready_flag, std::memory_order_release);
-    
-    //Wait for start signal
-    bool start = false;
-    while(!start){
-        start = !std::atomic_flag_test_and_set_explicit(start_flag, std::memory_order_acq_rel); //Start signal is active low
-    }
-
-    bool stop = false;
-    int64_t transfer;
-    int32_t controlCheckCounter = 0;
-    int64_t controlCheckHist = 0;
-    int64_t speedUpCount = 0;
-    int64_t slowDownCount = 0;
-    for(transfer = 0; transfer<max_block_transfers; transfer++){
-        std::atomic_signal_fence(std::memory_order_acquire); //Do not want an actual fence but do not want the write to the initial block ID to re-ordered before the write to the write ptr
-        //---- Write to output buffer unconditionally (order of writing the IDs is important as they are used by the reader to detect partially valid blocks)
-        //+++ Write into array +++
-        //Write initial block ID
-        idType *block_id_start = (idType*) (((char*) array) + writeOffset*blockSizeBytes);
-        std::atomic_store_explicit(block_id_start, writeBlockInd, std::memory_order_release); //Prevents memory access from being reordered after this
-        std::atomic_signal_fence(std::memory_order_acquire); //Do not want an actual fence but do not want sample writing to be re-ordered before the initial block ID write
-
-        //Write elements
-        elementType *data_array = (elementType*) (((char*) array) + writeOffset*blockSizeBytes + idCombinedBytes);
-        for(int sample = 0; sample<blockSize; sample++){
-            data_array[sample] = sampleVals;
-        }
-
-        //Write final block ID
-        idType *block_id_end = (idType*) (((char*) array) + writeOffset*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
-        std::atomic_store_explicit(block_id_end, writeBlockInd, std::memory_order_release); //Prevents memory access from being reordered after this
-        //+++ End write into array +++
-
-        //Check for index wrap arround (note, there is an extra array element)
-        if (writeOffset >= array_length)
-        {
-            writeOffset = 0;
-        }
-        else
-        {
-            writeOffset++;
-        }
-
-        //Update Write Ptr
-        std::atomic_store_explicit(write_offset_ptr, writeOffset, std::memory_order_release);
-
-        //Increment block id for next block
-        writeBlockInd = writeBlockInd == idMax ? 0 : writeBlockInd+1;
-        sampleVals = (sampleVals+1)%2;
-
-        //Check stop flag
-        stop = !std::atomic_flag_test_and_set_explicit(stop_flag, std::memory_order_acq_rel);
-        if(stop){
-            break;
-        }
-
-        //==== Control ====
-        if(controlCheckCounter < control_check_period){
-            controlCheckCounter++;
-        }else{
-            controlCheckCounter = 0;
-            controlCheckHist++;
-
-            //Check Fullness
-            //writeOffset is the local copy of the write offset
-            //Load the 
-            indexLocalType readOffset = std::atomic_load_explicit(read_offset_ptr, std::memory_order_acquire);
-            indexLocalType numEntries = getNumItemsInBuffer(readOffset, writeOffset, array_length);
-
-            nopsClientLocalType error = numEntries - halfFilledPoint;
-            control_integral += error;
-
-            //The correction is from the perspective of the server.
-            //If the error is positive, then the array is more full then it should be.  The server should slow down (lower rate)
-            //Alternativly, the client should be spead up
-            nopsClientLocalType correction = -error*control_gain_p - control_integral*control_gain_i;
-            if(correction<0){
-                slowDownCount++;
-            }else if(correction > 0){
-                speedUpCount++;
-            }
-
-            nopsClientLocalType nops_client_local_prev = nops_client_local;
-            //Try to resolve this at the server alone if possible
-            nopsClientLocalType correctedServerRate = base_rate+correction;
-            if(correctedServerRate<1){
-                //Requires the server to have only a fractional NOP
-                //Speed up the client as well
-                nopsClientLocalType correctedClientRate = base_rate+(1-correctedServerRate);
-                correctedServerRate = 1;
-                nops_client_local = 1/correctedClientRate;
-            }else{
-                //Just correct in the server
-                nops_client_local = 1/base_rate;
-            }
-            nops_server = 1/correctedServerRate;
-
-            // if(nops_client_local_prev!=nops_client_local){
-            //     std::atomic_store_explicit(clientNops, nops_client_local, std::memory_order_release);
-            // }
-
-            //Write to client in any case so that the amount of time spent per control itteration in the client due to the cache miss is consistent.
-            std::atomic_store_explicit(clientNops, nops_client_local, std::memory_order_release);
-        }
-
-        //Perform NOPs
-        nops_current += nops_server;//nop_current contains the resitual from the last round
-        int32_t nops_current_trunk = std::floor(nops_current); //Truncate to a fixed number of NOPs
-        for(int32_t nop = 0; nop<nops_current_trunk; nop++){
-            asm volatile ("nop" : : :);
-        }
-        nops_current -= nops_current_trunk;//Get the residual for the next round
-    }
-
-    //Re-enable interrupts before processing results (which dynamically allocates memory which can result in a system call)
-    #if CLOSED_LOOP_DISABLE_INTERRUPTS == 1
-        status = ioctl(fileno(sirFile), SIR_IOCTL_RESTORE_INTERRUPT, NULL);
-        if(status < 0){
-            std::cerr << "Problem accessing /dev/sir0 to Restore Interrupts" << std::endl;
-            exit(1);
-        }
-    #endif
-
-    ClosedLoopServerEndCondition *rtn = new ClosedLoopServerEndCondition;
-    rtn->resultGranularity = HW_Granularity::CORE;
-    rtn->granularityIndex = core;
-
-    rtn->controlChecks = controlCheckHist;
-    rtn->speed_up_count = speedUpCount;
-    rtn->slow_down_count = slowDownCount;
-    rtn->serverNops = nops_server;
-    rtn->clientNops = nops_client_local;
-    rtn->errored = stop;
-    rtn->transaction = transfer;
-
-    return (void*) rtn;
-
-    // return nullptr;
-}
-
-template<typename elementType, 
-         typename idType, 
-         typename indexType, 
-         typename idLocalType, 
-         typename indexLocalType, 
-         typename nopsClientType,
-         typename nopsClientLocalType, 
-         int idMax>
-void* closed_loop_buffer_pi_period_control_server(void* arg){
-    ClosedLoopPIBufferArgs<elementType, idType, indexType, nopsClientType, nopsClientLocalType>* args = (ClosedLoopBangBufferArgs<elementType, idType, indexType, nopsClientType, nopsClientLocalType>*) arg;
-
-    indexType *write_offset_ptr = args->write_offset_ptr;
-    indexType *read_offset_ptr = args->read_offset_ptr;
-    void *array = args->array;
-    int array_length = args->array_length;
-    int64_t max_block_transfers = args->max_block_transfers;
-    std::atomic_flag *start_flag = args->start_flag;
-    std::atomic_flag *stop_flag = args->stop_flag;
-    std::atomic_flag *ready_flag = args->ready_flag;
-    int blockSize = args->blockSize;
-    int allignment = args->alignment;
-    int core = args->core_server;
-
-    FILE* sirFile = args->writerSirFile;
-
-    nopsClientType *clientNops = args->clientNops;
-    int32_t control_check_period = args->control_check_period;
-    int32_t control_gain = args->control_gain;
 
     nopsClientLocalType base_nops = args->initialNops;
     nopsClientLocalType nops_server = args->initialNops;
@@ -455,20 +243,21 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
                 speedUpCount++;
             }
 
-            nopsClientLocalType nops_client_local_prev = nops_client_local;
-
-            nops_server = base_nops+correction;
+            //Try to ballance the correction between the client and server
+            nops_server = base_nops+correction/2;
+            nops_client_local = base_nops-correction/2;
             if(nops_server<0){
                 //Need to shift some of the correction to the client (tried to speed up the server too much, need to slow down the client)
-                nops_client_local = base_nops - nops_server;
+                nops_client_local -= nops_server;
                 nops_server = 0;
-            }else{
-                nops_client_local = base_nops;
+            }else if(nops_client_local<0){
+                //Need to shift some of the correction to the server
+                nops_server -= nops_client_local;
+                nops_client_local = 0;
             }
 
-            // if(nops_client_local_prev != nops_client_local){
-            //     std::atomic_store_explicit(clientNops, nops_client_local, std::memory_order_release);
-            // }
+            //TODO: ADD mechanism to reduce the base_nops by some amount if both server and client have >0 NOPs and to raise it if one is periodicaly low
+            //For now, it will hover around the base NOPS and will only slow down further is nessisary.  It will not speed up if both are ballanced.
 
             //Write to client in any case so that the amount of time spent per control itteration in the client due to the cache miss is consistent.
             std::atomic_store_explicit(clientNops, nops_client_local, std::memory_order_release);
