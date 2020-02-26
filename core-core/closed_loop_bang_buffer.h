@@ -115,8 +115,8 @@ void* closed_loop_buffer_bang_control_server(void* arg){
 
     nopsClientType *clientNops = args->clientNops;
     int32_t control_check_period = args->control_check_period;
-    int32_t control_gain = args->control_gain;
 
+    nopsClientLocalType control_gain = args->control_gain;
     nopsClientLocalType nops_server = args->initialNops;
     nopsClientLocalType nops_client_local = std::atomic_load_explicit(clientNops, std::memory_order_acquire);
     nopsClientLocalType nops_current = 0; //Is used to carry over residual between nop cycles
