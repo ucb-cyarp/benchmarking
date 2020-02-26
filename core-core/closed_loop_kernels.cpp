@@ -103,8 +103,8 @@ void run_closed_loop_bang_control_kernel(Profiler* profiler, int cpu_a, int cpu_
     //The primary is the client (because it performs the measurment) and the secondary is the server
     std::vector<Results> results_vec = execute_client_server_kernel(profiler, closed_loop_buffer_bang_control_server<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, std::atomic<float>, float, INT32_MAX>, 
                                                                     closed_loop_buffer_float_client<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, std::atomic<float>, float, INT32_MAX>,
-                                                                    closed_loop_buffer_reset<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t>,
-                                                                    closed_loop_buffer_cleanup<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic_int32_t>, 
+                                                                    closed_loop_buffer_reset<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic<float>, float>,
+                                                                    closed_loop_buffer_cleanup<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic<float>, float>, 
                                                                     args, args, args, cpus[0], cpus[1], num_experiments);
 
     //==== Process Results ====
@@ -257,7 +257,7 @@ void run_closed_loop_pi_control_rate_kernel(Profiler* profiler, int cpu_a, int c
     std::vector<Results> results_vec = execute_client_server_kernel(profiler, closed_loop_buffer_pi_rate_control_server<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, std::atomic<float>, float, INT32_MAX>, 
                                                                     closed_loop_buffer_float_client<int32_t, std::atomic_int32_t, std::atomic_int32_t, int32_t, int32_t, std::atomic<float>, float, INT32_MAX>,
                                                                     closed_loop_buffer_reset<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic<float>, float>,
-                                                                    closed_loop_buffer_cleanup<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic<float>>, 
+                                                                    closed_loop_buffer_cleanup<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic<float>, float>, 
                                                                     args, args, args, cpus[0], cpus[1], num_experiments);
 
     //==== Process Results ====
