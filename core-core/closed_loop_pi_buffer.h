@@ -290,7 +290,7 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
             }else{
                 //The last correction did not force the reader or writer to have a negative number of NOPs.  This may mean we are leaving performance on
                 //table.  decrease the base number of nops
-                base_nops += base_gain;
+                base_nops -= base_gain;
                 baseSpeedUpCount++;
             }
 
