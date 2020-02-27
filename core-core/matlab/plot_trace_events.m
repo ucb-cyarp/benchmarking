@@ -1,7 +1,9 @@
 %% Parameters
 databaseFilename = 'out.db';
 cpusOfInterest = [4, 5];
-eventsOfInterest = {'hrtimer_expire_entry'};
+% eventsOfInterest = {'hrtimer_expire_entry'};
+eventsOfInterest = {'timer_expire_entry'};
+% eventsOfInterest = {'hrtimer_expire_entry', 'timer_expire_entry'};
 timeRange = [];
 historgramBins = 10000;
 

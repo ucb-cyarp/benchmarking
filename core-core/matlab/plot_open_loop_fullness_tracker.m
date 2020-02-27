@@ -4,7 +4,7 @@
 ArrayLength = 255;
 BlockSize = 32;
 InitNOPs = 0;
-BalNOPs = 16;
+BalNOPs = 27;
 PlotThreshold = 0;
 PlotColors = true;
 
@@ -23,6 +23,11 @@ colors = cool(256);
 %Get the min/max range of the transactions
 minTransact = min(TransactionCore_Client(idxs));
 maxTransact = max(TransactionCore_Client(idxs));
+if minTransact == maxTransact && minTransact>0
+    minTransact = minTransact-1;
+elseif minTransact == maxTransact && minTransact<=0
+    maxTransact = maxTransact+1;
+end
 
 %Map from [minTransact, maxTransact] to color[1:256]
 

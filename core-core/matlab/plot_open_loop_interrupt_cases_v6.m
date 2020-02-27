@@ -4,7 +4,7 @@
 ArrayLength = 255;
 BlockSize = 32;
 InitNOPs = 0;
-BalNOPs = 16;
+BalNOPs = 27;
 PlotThreshold = 0;
 Summary = true; % If a summary run, do not plot interrupts
 PlotAll = true; %If true, plot every trace, not just the ones with interrupts
@@ -38,19 +38,23 @@ for i = 1:length(idxs)
     endTrackerStdServer = str2num(InterruptsStdEndCore_Server(idx));
     endTrackerLocServer = str2num(InterruptsLOCEndCore_Server(idx));
     endTrackerOtherArchServer = str2num(InterruptsOtherArchEndCore_Server(idx));
-    endTrackerSoftirqServer = str2num(InterruptsSoftirqEndCore_Server(idx));
+    endTrackerSoftirqTimerServer = str2num(InterruptsSoftirqTimerEndCore_Server(idx));
+    endTrackerSoftirqOtherServer = str2num(InterruptsSoftirqOtherEndCore_Server(idx));
     endTrackerStdClient = str2num(InterruptsStdEndCore_Client(idx));
     endTrackerLocClient = str2num(InterruptsLOCEndCore_Client(idx));
     endTrackerOtherArchClient = str2num(InterruptsOtherArchEndCore_Client(idx));
-    endTrackerSoftirqClient = str2num(InterruptsSoftirqEndCore_Client(idx));
+    endTrackerSoftirqTimerClient = str2num(InterruptsSoftirqTimerEndCore_Client(idx));
+    endTrackerSoftirqOtherClient = str2num(InterruptsSoftirqOtherEndCore_Client(idx));
     if PlotAll || ~isempty(find(endTrackerStdServer)) || ...
                   ~isempty(find(endTrackerLocServer)) || ...
                   ~isempty(find(endTrackerOtherArchServer)) || ...
-                  ~isempty(find(endTrackerSoftirqServer)) || ...
+                  ~isempty(find(endTrackerSoftirqTimerServer)) || ...
+                  ~isempty(find(endTrackerSoftirqOtherServer)) || ...
                   ~isempty(find(endTrackerStdClient)) || ...
                   ~isempty(find(endTrackerLocClient)) || ...
                   ~isempty(find(endTrackerOtherArchClient)) || ...
-                  ~isempty(find(endTrackerSoftirqClient))
+                  ~isempty(find(endTrackerSoftirqTimerClient)) || ...
+                  ~isempty(find(endTrackerSoftirqOtherClient))
                   
         frameCount = frameCount+1;
         fig = figure;
