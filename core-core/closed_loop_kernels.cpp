@@ -152,7 +152,7 @@ void run_closed_loop_bang_control_kernel(Profiler* profiler, int cpu_a, int cpu_
     delete[] args;
 }
 
-void run_closed_loop_pi_control_period_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int32_t> server_control_periods, std::vector<int32_t> client_control_periods, std::vector<float> control_gains_p, std::vector<float> control_gains_i, std::vector<float> initial_nops, int alignment, int64_t max_block_transfers, FILE* file, std::ofstream* raw_file)
+void run_closed_loop_pi_control_period_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int32_t> server_control_periods, std::vector<int32_t> client_control_periods, std::vector<float> control_gains_p, std::vector<float> control_gains_i, std::vector<float> control_gains_base_bang_bang, std::vector<float> initial_nops, int alignment, int64_t max_block_transfers, FILE* file, std::ofstream* raw_file)
 {
     int32_t data_col_width = 10;
 
@@ -189,7 +189,7 @@ void run_closed_loop_pi_control_period_kernel(Profiler* profiler, int cpu_a, int
     closedLoopAllocate<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic<float>>(shared_array_locs, shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, nopsControl, array_lengths, block_lengths, cpus, alignment, false, false);
 
     //==== Create Configurations for each experiment ====
-    int num_experiments = array_lengths.size() * block_lengths.size() * server_control_periods.size() * client_control_periods.size() * control_gains_p.size() * control_gains_i.size() * initial_nops.size();
+    int num_experiments = array_lengths.size() * block_lengths.size() * server_control_periods.size() * client_control_periods.size() * control_gains_p.size() * control_gains_i.size() * control_gains_base_bang_bang.size() * initial_nops.size();
 
     ClosedLoopPIBufferArgs<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic<float>, float>* args = new ClosedLoopPIBufferArgs<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic<float>, float>[num_experiments];
 
@@ -210,40 +210,45 @@ void run_closed_loop_pi_control_period_kernel(Profiler* profiler, int cpu_a, int
                         float control_gain_p = control_gains_p[m];
                         for(int mm = 0; mm<control_gains_i.size(); mm++){
                             float control_gain_i = control_gains_i[mm];
-                            for(int l = 0; l<initial_nops.size(); l++){
-                                float initial_nop = initial_nops[l];
+                            for(int mmm = 0; mmm<control_gains_base_bang_bang.size(); mmm++){
+                                float control_gain_base_bang_bang = control_gains_base_bang_bang[mmm];
+                                for(int l = 0; l<initial_nops.size(); l++){
+                                    float initial_nop = initial_nops[l];
 
-                                int idx = l + 
-                                        mm*initial_nops.size() + 
-                                        m*initial_nops.size()*control_gains_i.size() + 
-                                        n*initial_nops.size()*control_gains_i.size()*control_gains_p.size() +
-                                        k*initial_nops.size()*control_gains_i.size()*control_gains_p.size()*client_control_periods.size() + 
-                                        j*initial_nops.size()*control_gains_i.size()*control_gains_p.size()*client_control_periods.size()*server_control_periods.size() +
-                                        i*initial_nops.size()*control_gains_i.size()*control_gains_p.size()*client_control_periods.size()*server_control_periods.size()*block_lengths.size();
+                                    int idx = l + 
+                                            mmm*initial_nops.size() + 
+                                             mm*initial_nops.size()*control_gains_base_bang_bang.size() + 
+                                              m*initial_nops.size()*control_gains_base_bang_bang.size()*control_gains_i.size() + 
+                                              n*initial_nops.size()*control_gains_base_bang_bang.size()*control_gains_i.size()*control_gains_p.size() +
+                                              k*initial_nops.size()*control_gains_base_bang_bang.size()*control_gains_i.size()*control_gains_p.size()*client_control_periods.size() + 
+                                              j*initial_nops.size()*control_gains_base_bang_bang.size()*control_gains_i.size()*control_gains_p.size()*client_control_periods.size()*server_control_periods.size() +
+                                              i*initial_nops.size()*control_gains_base_bang_bang.size()*control_gains_i.size()*control_gains_p.size()*client_control_periods.size()*server_control_periods.size()*block_lengths.size();
 
-                                args[idx].read_offset_ptr = shared_read_id_locs[0];
-                                args[idx].write_offset_ptr = shared_write_id_locs[0];
-                                args[idx].array = shared_array_locs[0];
-                                args[idx].start_flag = start_flags[0];
-                                args[idx].stop_flag = stop_flag;
-                                args[idx].ready_flag = ready_flags[0];
-                                args[idx].array_length = array_length;
-                                args[idx].max_block_transfers = max_block_transfers;
-                                args[idx].blockSize = block_length;
-                                args[idx].control_check_period = server_control_period;
-                                args[idx].control_client_check_period = client_control_period;
-                                args[idx].control_gain_i = control_gain_i;
-                                args[idx].control_gain_p = control_gain_p;
-                                args[idx].clientNops = nopsControl[0];
-                                args[idx].alignment = alignment;
-                                args[idx].core_server = cpus[0];
-                                args[idx].core_client = cpus[1];
-                                args[idx].initialNops = initial_nop;
+                                    args[idx].read_offset_ptr = shared_read_id_locs[0];
+                                    args[idx].write_offset_ptr = shared_write_id_locs[0];
+                                    args[idx].array = shared_array_locs[0];
+                                    args[idx].start_flag = start_flags[0];
+                                    args[idx].stop_flag = stop_flag;
+                                    args[idx].ready_flag = ready_flags[0];
+                                    args[idx].array_length = array_length;
+                                    args[idx].max_block_transfers = max_block_transfers;
+                                    args[idx].blockSize = block_length;
+                                    args[idx].control_check_period = server_control_period;
+                                    args[idx].control_client_check_period = client_control_period;
+                                    args[idx].control_gain_i = control_gain_i;
+                                    args[idx].control_gain_p = control_gain_p;
+                                    args[idx].control_gain_base_bang = control_gain_base_bang_bang;
+                                    args[idx].clientNops = nopsControl[0];
+                                    args[idx].alignment = alignment;
+                                    args[idx].core_server = cpus[0];
+                                    args[idx].core_client = cpus[1];
+                                    args[idx].initialNops = initial_nop;
 
-                                #if CLOSED_LOOP_DISABLE_INTERRUPTS==1
-                                    args[idx].writerSirFile = interruptReporterFiles[0];
-                                    args[idx].readerSirFile = interruptReporterFiles[1];
-                                #endif
+                                    #if CLOSED_LOOP_DISABLE_INTERRUPTS==1
+                                        args[idx].writerSirFile = interruptReporterFiles[0];
+                                        args[idx].readerSirFile = interruptReporterFiles[1];
+                                    #endif
+                                }
                             }
                         }
                     }
