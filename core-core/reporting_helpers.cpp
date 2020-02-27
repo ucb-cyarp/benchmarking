@@ -156,7 +156,17 @@ void printTitleFIFO(std::string title, int columns, int column_width){
  */
 void writeCSVSummaryHeaderOpenLoop(FILE* file){
     #if WRITE_CSV == 1
-    fprintf(file, "\"Array Length (Blocks)\",\"Block Size (int32_t Elements)\",\"Balancing NOPs\",\"Time To Failure (ns) - Avg\",\"Time to Failure (ms) - StdDev\"\n");
+    fprintf(file, "\"Array Length (Blocks)\",\"Block Size (int32_t Elements)\",\"Balancing NOPs\",\"Time To Failure (ms) - Avg\",\"Time to Failure (ms) - StdDev\"\n");
+    fflush(file);
+    #endif
+}
+
+/**
+ * Writes the summary csv file header for the open loop benchmarks.
+ */
+void writeCSVSummaryHeaderClosedLoop(FILE* file){
+    #if WRITE_CSV == 1
+    fprintf(file, "\"Array Length (Blocks)\",\"Block Size (int32_t Elements)\",\"Server Control Check Period\",\"Client Control Check Period\",\"Control Gain P\",\"Control Gain I\",\"Initial NOPs\",\"Time To Failure (ms) - Avg\",\"Time to Failure (ms) - StdDev\"\n");
     fflush(file);
     #endif
 }
@@ -277,9 +287,9 @@ std::string tableHeaderClosedLoopBang(std::string title, FILE* file){
         fflush(stdout);
     #endif
 
-    writeCSVSummaryHeaderOpenLoop(file);
+    writeCSVSummaryHeaderClosedLoop(file);
 
-    return "         %14d | %20d | %19d | %19d | %12d | %7d | %10.4e, %10.4e\n";
+    return "         %14d | %20d | %19d | %19d | %12.2f | %7.2f | %10.4e, %10.4e\n";
 }
 
 void writeRawHeaderClosedLoopBang(std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResults, std::ofstream* raw_file){
@@ -322,9 +332,9 @@ std::string tableHeaderClosedLoopPI(std::string title, FILE* file){
         fflush(stdout);
     #endif
 
-    writeCSVSummaryHeaderOpenLoop(file);
+    writeCSVSummaryHeaderClosedLoop(file);
 
-    return "         %14d | %20d | %19d | %19d | %14d | %14d | %7d | %10.4e, %10.4e\n";
+    return "         %14d | %20d | %19d | %19d | %14.2f | %14.2f | %7.2f | %10.4e, %10.4e\n";
 }
 
 void writeRawHeaderClosedLoopPI(std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResults, std::ofstream* raw_file){

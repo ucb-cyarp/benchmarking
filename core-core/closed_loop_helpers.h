@@ -18,10 +18,10 @@
 #define CLOSED_LOOP_DISABLE_INTERRUPTS 1
 
 template<typename elementType, 
-         typename idType = std::atomic_int32_t, 
-         typename indexType = std::atomic_int32_t, 
-         typename nopsClient = std::atomic_int32_t,
-         typename nopsLocal = int32_t> //Note, this can be changed to a float for PI controllers
+         typename idType, 
+         typename indexType, 
+         typename nopsClient,
+         typename nopsLocal> //Note, this can be changed to a float for PI controllers
 class ClosedLoopBufferArgs : public FifolessConfig{
 public:
     indexType *read_offset_ptr;
@@ -119,12 +119,12 @@ void destructSharedIDs(std::vector<atomicIndexType*> &shared_write_id_locs, std:
 }
 
 template<typename elementType, 
-         typename idType = std::atomic_int32_t, 
-         typename indexType = std::atomic_int32_t, 
-         typename nopsClientType = std::atomic_int32_t,
-         typename nopsClientTypeLocal = int32_t>
+         typename idType, 
+         typename indexType, 
+         typename nopsClientType,
+         typename nopsClientTypeLocal>
 void* closed_loop_buffer_reset(void* arg){
-    ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType> *args = (ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType>*) arg;
+    ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType, nopsClientTypeLocal> *args = (ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType, nopsClientTypeLocal>*) arg;
 
     int blockArrayBytes;
     int blockArrayPaddingBytes;
@@ -214,11 +214,12 @@ void* closed_loop_buffer_reset(void* arg){
 }
 
 template<typename elementType, 
-         typename idType = std::atomic_int32_t, 
-         typename indexType = std::atomic_int32_t, 
-         typename nopsClientType = std::atomic_int32_t>
+         typename idType, 
+         typename indexType, 
+         typename nopsClientType,
+         typename nopsLocalType>
 void* closed_loop_buffer_cleanup(void* arg){
-    ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType> *args = (ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType>*) arg;
+    ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType, nopsLocalType> *args = (ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType, nopsLocalType>*) arg;
 
     int blockArrayBytes;
     int blockArrayPaddingBytes;
@@ -269,15 +270,15 @@ void* closed_loop_buffer_cleanup(void* arg){
 
 //For versions where the number of NOPs is an integer
 template<typename elementType, 
-         typename idType = std::atomic_int32_t, 
-         typename indexType = std::atomic_int32_t, 
-         typename idLocalType = int32_t, 
-         typename indexLocalType = int32_t, 
-         typename nopsClientType = std::atomic_int32_t, 
-         typename nopsClientLocalType = int32_t, 
+         typename idType, 
+         typename indexType, 
+         typename idLocalType, 
+         typename indexLocalType, 
+         typename nopsClientType, 
+         typename nopsClientLocalType, 
          int idMax = INT32_MAX>
 void* closed_loop_buffer_int_client(void* arg){
-    ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType>* args = (ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType>*) arg;
+    ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType, nopsClientLocalType>* args = (ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType, nopsClientLocalType>*) arg;
     indexType *read_offset_ptr = args->read_offset_ptr;
     void *array = args->array;
     int array_length = args->array_length;
@@ -475,15 +476,15 @@ void* closed_loop_buffer_int_client(void* arg){
 
 //For versions where the number of NOPs is kept as a float
 template<typename elementType, 
-         typename idType = std::atomic_int32_t, 
-         typename indexType = std::atomic_int32_t, 
-         typename idLocalType = int32_t, 
-         typename indexLocalType = int32_t, 
-         typename nopsClientType = std::atomic<float>, 
-         typename nopsClientLocalType = float, 
+         typename idType, 
+         typename indexType, 
+         typename idLocalType, 
+         typename indexLocalType, 
+         typename nopsClientType, 
+         typename nopsClientLocalType, 
          int idMax = INT32_MAX>
 void* closed_loop_buffer_float_client(void* arg){
-    ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType>* args = (ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType>*) arg;
+    ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType, nopsClientLocalType>* args = (ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType, nopsClientLocalType>*) arg;
     indexType *read_offset_ptr = args->read_offset_ptr;
     void *array = args->array;
     int array_length = args->array_length;

@@ -54,6 +54,14 @@
         #define PRINT_FREQ_CHANGE_EVENT 0
     #endif
 
+    #ifndef PRINT_EXPERIMENT_TRACKER
+        #define PRINT_EXPERIMENT_TRACKER 0
+    #endif
+
+    #ifndef PRINT_TRIAL_TRACKER
+        #define PRINT_TRIAL_TRACKER 0
+    #endif
+
     #ifndef USE_PCM
         #define USE_PCM 0
     #endif
