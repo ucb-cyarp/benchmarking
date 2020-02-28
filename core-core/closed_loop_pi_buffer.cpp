@@ -33,7 +33,7 @@ std::string ClosedLoopPIServerEndCondition::getTrialCSVData(){
     //Get the base result from the super function
     std::string str = ClosedLoopServerEndCondition::getTrialCSVData();
     
-    str += (std::to_string(base_speed_up_count) + "," +
+    str += ("," + std::to_string(base_speed_up_count) + "," +
             std::to_string(base_slow_down_count) + "," +
             std::to_string(base_nops));
     return str;
