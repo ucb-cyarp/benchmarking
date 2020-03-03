@@ -4,7 +4,7 @@
 ArrayLength = 255;
 BlockSize = 32;
 InitNOPs = 0;
-BalNOPs = 27;
+BalNOPs = 473;
 PlotThreshold = 0;
 PlotColors = true;
 
@@ -76,7 +76,14 @@ for i = 1:length(idxs)
         %Plot a marker for the last point
         %Check if it ended because it reached the itteration limit or due
         %to a failure
-        if ErroredCore_Client(idx) == 'Yes'
+        
+        if ischar(ErroredCore_Client(idx)) || isstring(ErroredCore_Client(idx))
+            errored = ErroredCore_Client(idx) == 'Yes';
+        else
+            errored = ErroredCore_Client(idx);
+        end
+        
+        if errored
             scatter(length(endTracker), endTracker(length(endTracker)), 'or');
         else
             scatter(length(endTracker), endTracker(length(endTracker)), '*g');

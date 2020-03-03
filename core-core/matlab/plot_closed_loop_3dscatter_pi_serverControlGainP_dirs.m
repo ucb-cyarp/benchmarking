@@ -1,11 +1,11 @@
-function plot_closed_loop_3dscatter_pi_serverControlGainP_dirs(directories, ClientControlPeriodIterationsFilter, InitialNOPsFilter, GainIFilter, satValue, plotZeroGain)
+function plot_closed_loop_3dscatter_pi_serverControlGainP_dirs(directories, ClientControlPeriodIterationsFilter, InitialNOPsFilter, GainIFilter, GainBaseFilter, satValue, plotZeroGain)
 %plot_closed_loop_3dscatter_dirs Summary of this function goes here
 %   Detailed explanation goes here
-if nargin<6
+if nargin<7
     plotZeroGain = false;
 end
 
-if nargin<5
+if nargin<6
     satValue = -1;
 end
 
@@ -18,7 +18,8 @@ end
 for i = 1:length(directories)
     disp([directories{i} ':'])
     dirPath = ['./' directories{i} '/report_closed_loop_pi_control_raw.csv'];
-    [~, BlockSizeint32_tElements, ServerControlPeriodIterations, ClientControlPeriodIterations, ControlGainPNOPs, ControlGainINOPs, InitialNOPs, SteadyClockWalltimems, ~, ~, ~, ~, ~, ErroredStr, ~, TransactionCore_Client] = import_closed_loop_pi_raw_file(dirPath, [2, inf]);
+    %[~, BlockSizeint32_tElements, ServerControlPeriodIterations, ClientControlPeriodIterations, ControlGainPNOPs, ControlGainINOPs, InitialNOPs, SteadyClockWalltimems, ~, ~, ~, ~, ~, ErroredStr, ~, TransactionCore_Client] = import_closed_loop_pi_raw_file(dirPath, [2, inf]);
+    [~, BlockSizeint32_tElements, ServerControlPeriodIterations, ClientControlPeriodIterations, ControlGainPNOPs, ControlGainINOPs, ControlGainBaseNOPs, InitialNOPs, SteadyClockWalltimems, ~, ~, ~, ~, ~, ~, ~, ~, ErroredStr, ~, TransactionCore_Client] = import_closed_loop_pi_base_adj_raw_file(dirPath, [2, inf]);
     TransactionCore_Client_Stat = TransactionCore_Client;
     
     %The element size does not change
@@ -37,13 +38,22 @@ for i = 1:length(directories)
         TransactionCore_Client_Stat(TransactionCore_Client>satValue) = satValue;
     end
     
-    if plotZeroGain
-        filterArr = (ClientControlPeriodIterations==ClientControlPeriodIterationsFilter) & (InitialNOPs == InitialNOPsFilter) & (ControlGainINOPs == GainIFilter);
-        plot_closed_loop_3dscatter(ServerControlPeriodIterations, ControlGainPNOPs, TransactionCore_Client_Stat, Errored, SteadyClockWalltimems, BlockSizeElements, ElementSizeBytes, { filterArr }, {['(ClientControlPeriodIterations==', num2str(ClientControlPeriodIterationsFilter) ') && (InitialNOPs==' num2str(InitialNOPsFilter) ') && (ControlGainINOPs == ' num2str(GainIFilter) ')' satValStr]}, directories{i}, 'ServerControlPeriodIterations', 'ControlGainPNOPS');
-    else
-        filterArr = (ClientControlPeriodIterations==ClientControlPeriodIterationsFilter) & (InitialNOPs == InitialNOPsFilter) & (ControlGainINOPs == GainIFilter) & (ControlGainPNOPs ~= 0);
-        plot_closed_loop_3dscatter(ServerControlPeriodIterations, ControlGainPNOPs, TransactionCore_Client_Stat, Errored, SteadyClockWalltimems, BlockSizeElements, ElementSizeBytes, { filterArr }, {['(ClientControlPeriodIterations==', num2str(ClientControlPeriodIterationsFilter) ') && (InitialNOPs==' num2str(InitialNOPsFilter) ') && (ControlGainINOPs == ' num2str(GainIFilter) ')' satValStr ', Omitted Gain 0']}, directories{i}, 'ServerControlPeriodIterations', 'ControlGainPNOPS');
+    filterArr = (ClientControlPeriodIterations==ClientControlPeriodIterationsFilter) & (InitialNOPs == InitialNOPsFilter) & (ControlGainINOPs == GainIFilter);
+    filterArrStr = ['(ClientControlPeriodIterations==', num2str(ClientControlPeriodIterationsFilter) ') && (InitialNOPs==' num2str(InitialNOPsFilter) ') && (ControlGainINOPs == ' num2str(GainIFilter) ')'];
+    
+    if exist('ControlGainBaseNOPs')
+        filterArr = filterArr & (ControlGainBaseNOPs == GainBaseFilter);
+        filterArrStr = [filterArrStr ' && (ControlGainBaseNOPs==', num2str(GainBaseFilter) ')'];
     end
+    
+    if ~plotZeroGain
+        filterArr = filterArr & (ControlGainPNOPs ~= 0);
+        filterArrStr = [filterArrStr ', Omitted Gain 0'];
+    end
+    
+    filterArrStr = [filterArrStr satValStr];
+    
+    plot_closed_loop_3dscatter(ServerControlPeriodIterations, ControlGainPNOPs, TransactionCore_Client_Stat, Errored, SteadyClockWalltimems, BlockSizeElements, ElementSizeBytes, { filterArr }, {filterArrStr}, directories{i}, 'ServerControlPeriodIterations', 'ControlGainPNOPS');
         
     %Also Report which configuration had the max itteration count
     [~, maxIndex] = max(TransactionCore_Client);

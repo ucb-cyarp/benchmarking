@@ -39,7 +39,7 @@ dataRateGbps = zeros(size(TransactionCore_Client));
 [succeedingRunsIdxs, ~] = find(Errored == false);
 for i = 1:length(succeedingRunsIdxs)
     succeedingRunsIdx = succeedingRunsIdxs(i);
-    bytesTransfered = BlockSizeElements(succeedingRunsIdx)*ElementSizeBytes(succeedingRunsIdx)*TransactionCore_Client(succeedingRunsIdx);
+    bytesTransfered = BlockSizeElements(succeedingRunsIdx)*ElementSizeBytes(succeedingRunsIdx)*TransactionCore_Client(succeedingRunsIdx); %Transactions are in blocks transfered for open and closed loop tests
     bitsTransfered = bytesTransfered*8;
     gbps = bitsTransfered/(SteadyClockMs(succeedingRunsIdx)*1e6); %Time is already in ms
     dataRateGbps(succeedingRunsIdx) = gbps;
