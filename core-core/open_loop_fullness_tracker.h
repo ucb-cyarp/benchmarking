@@ -74,7 +74,7 @@ void OpenLoopFullnessTrackerBufferArgs<elementType, idType, indexType>::printSta
     {
         printf("\n");
         printTitle(title);
-        printf("Array Length: %d Blocks, Block Length: %d int32_t Elements, Balancing NOPs: %d, Initial NOPs: %d, Check Period: %d\n", this->array_length, this->blockSize, this->balancing_nops, this->initialNOPs, this->checkPeriod);
+        printf("Array Length: %d Blocks, Block Length: %d int32_t Elements, Balancing NOPs: %f, Initial NOPs: %f, Check Period: %d\n", this->array_length, this->blockSize, this->balancing_nops, this->initialNOPs, this->checkPeriod);
         fflush(stdout);
     }
     #endif
@@ -94,7 +94,7 @@ void OpenLoopFullnessTrackerBufferArgs<elementType, idType, indexType>::printExp
         #endif
 
         #if WRITE_CSV == 1
-        fprintf(file, "%d,%d,%d,%d,%d,%f,%f\n", this->array_length, this->blockSize, this->balancing_nops, this->initialNOPs, this->checkPeriod, avg_duration_ms, stddev_duration_ms);
+        fprintf(file, "%d,%d,%f,%f,%d,%f,%f\n", this->array_length, this->blockSize, this->balancing_nops, this->initialNOPs, this->checkPeriod, avg_duration_ms, stddev_duration_ms);
         result.write_durations_and_benchmark_specific_results(*raw_file, {"", "", "", ""}, {std::to_string(this->array_length), std::to_string(this->blockSize), std::to_string(this->balancing_nops), std::to_string(this->initialNOPs), std::to_string(this->checkPeriod)}, false);
         #endif
     }
@@ -431,9 +431,10 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
 
     int core = args->core_client;
 
-    int balancing_nops = args->balancing_nops;
-    int numNops = balancing_nops > 0 ? balancing_nops : 0;
+    float balancing_nops = args->balancing_nops;
+    float numNops = balancing_nops > 0 ? balancing_nops : 0;
     numNops += args->initialNOPs;
+    float nops_current = 0; //Is used to carry over residual between nop cycles
 
     FILE* interruptReporterFile = args->readerInterruptReporter;
 
@@ -730,9 +731,12 @@ void* open_loop_fullness_tracker_buffer_client(void* arg){
         expectedSampleVals = (expectedSampleVals+1)%2;
 
         //Perform NOPs
-        for(int nop = 0; nop<numNops; nop++){
+        nops_current += numNops;//nop_current contains the resitual from the last round
+        int32_t nops_current_trunk = std::floor(nops_current); //Truncate to a fixed number of NOPs
+        for(int32_t nop = 0; nop<nops_current_trunk; nop++){
             asm volatile ("nop" : : :);
         }
+        nops_current -= nops_current_trunk;//Get the residual for the next round
 
     }
 
@@ -835,9 +839,10 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
     int allignment = args->alignment;
     int core = args->core_server;
 
-    int balancing_nops = args->balancing_nops;
-    int numNops = balancing_nops < 0 ? -balancing_nops : 0;
+    float balancing_nops = args->balancing_nops;
+    float numNops = balancing_nops < 0 ? -balancing_nops : 0;
     numNops += args->initialNOPs;
+    float nops_current = 0; //Is used to carry over residual between nop cycles
 
     //Tracking
     FILE* interruptReporterFile = args->writerInterruptReporter;
@@ -1031,9 +1036,12 @@ void* open_loop_fullness_tracker_buffer_server(void* arg){
         }
 
         //Perform NOPs
-        for(int nop = 0; nop<numNops; nop++){
+        nops_current += numNops;//nop_current contains the resitual from the last round
+        int32_t nops_current_trunk = std::floor(nops_current); //Truncate to a fixed number of NOPs
+        for(int32_t nop = 0; nop<nops_current_trunk; nop++){
             asm volatile ("nop" : : :);
         }
+        nops_current -= nops_current_trunk;//Get the residual for the next round
     }
 
     #if OPEN_LOOP_FT_TRACK_INTERRUPTS==2

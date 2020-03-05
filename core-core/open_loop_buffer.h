@@ -199,9 +199,10 @@ void* open_loop_buffer_server(void* arg){
 
     FILE* sirFile = args->writerInterruptReporter;
 
-    int balancing_nops = args->balancing_nops;
-    int numNops = balancing_nops < 0 ? -balancing_nops : 0;
+    float balancing_nops = args->balancing_nops;
+    float numNops = balancing_nops < 0 ? -balancing_nops : 0;
     numNops += args->initialNOPs;
+    float nops_current = 0; //Is used to carry over residual between nop cycles
 
     //printf("Config: Array Len: %d, Block Size: %d, NOPs %d\n", array_length, blockSize, balancing_nops);
 
@@ -291,9 +292,12 @@ void* open_loop_buffer_server(void* arg){
         }
 
         //Perform NOPs
-        for(int nop = 0; nop<numNops; nop++){
+        nops_current += numNops;//nop_current contains the resitual from the last round
+        int32_t nops_current_trunk = std::floor(nops_current); //Truncate to a fixed number of NOPs
+        for(int32_t nop = 0; nop<nops_current_trunk; nop++){
             asm volatile ("nop" : : :);
         }
+        nops_current -= nops_current_trunk;//Get the residual for the next round
     }
 
     //Re-enable interrupts before processing results (which dynamically allocates memory which can result in a system call)
@@ -338,9 +342,10 @@ void* open_loop_buffer_client(void* arg){
 
     FILE* sirFile = args->readerInterruptReporter;
 
-    int balancing_nops = args->balancing_nops;
-    int numNops = balancing_nops > 0 ? balancing_nops : 0;
+    float balancing_nops = args->balancing_nops;
+    float numNops = balancing_nops > 0 ? balancing_nops : 0;
     numNops += args->initialNOPs;
+    float nops_current = 0; //Is used to carry over residual between nop cycles
 
     elementType expectedSampleVals = 0;
     idLocalType readBlockInd = 0;
@@ -480,9 +485,12 @@ void* open_loop_buffer_client(void* arg){
         expectedSampleVals = (expectedSampleVals+1)%2;
 
         //Perform NOPs
-        for(int nop = 0; nop<numNops; nop++){
+        nops_current += numNops;//nop_current contains the resitual from the last round
+        int32_t nops_current_trunk = std::floor(nops_current); //Truncate to a fixed number of NOPs
+        for(int32_t nop = 0; nop<nops_current_trunk; nop++){
             asm volatile ("nop" : : :);
         }
+        nops_current -= nops_current_trunk;//Get the residual for the next round
 
     }
 

@@ -5,7 +5,7 @@
 #include "open_loop_run_past_failure.h"
 
 //MAKE A 2D Table
-void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int32_t> balance_nops, std::vector<int> initial_nops, int alignment, int64_t max_block_transfers, FILE* file, std::ofstream* raw_file)
+void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<float> balance_nops, std::vector<float> initial_nops, int alignment, int64_t max_block_transfers, FILE* file, std::ofstream* raw_file)
 {
     int32_t data_col_width = 10;
 
@@ -51,9 +51,9 @@ void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<
         {
             int32_t block_length = block_lengths[j];
             for(int k = 0; k<balance_nops.size(); k++){
-                int32_t balance_nop = balance_nops[k];
+                float balance_nop = balance_nops[k];
                 for(int l = 0; l<initial_nops.size(); l++){
-                    int initial_nop = initial_nops[l];
+                    float initial_nop = initial_nops[l];
                     int idx = l+
                               k*initial_nops.size()+
                               j*initial_nops.size()*balance_nops.size()+
@@ -135,7 +135,7 @@ void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<
 }
 
 //MAKE A 2D Table
-void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int32_t> balance_nops, std::vector<int> initial_nops, std::vector<int> checkPeriods, int alignment, int64_t max_block_transfers, int trackerLen, FILE* file, std::ofstream* raw_file)
+void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<float> balance_nops, std::vector<float> initial_nops, std::vector<int> checkPeriods, int alignment, int64_t max_block_transfers, int trackerLen, FILE* file, std::ofstream* raw_file)
 {
     int32_t data_col_width = 10;
 
@@ -222,9 +222,9 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
         {
             int32_t block_length = block_lengths[j];
             for(int k = 0; k<balance_nops.size(); k++){
-                int32_t balance_nop = balance_nops[k];
+                float balance_nop = balance_nops[k];
                 for(int l = 0; l<initial_nops.size(); l++){
-                    int initial_nop = initial_nops[l];
+                    float initial_nop = initial_nops[l];
                     for(int m = 0; m<checkPeriods.size(); m++){
                         int checkPeriod = checkPeriods[m];
                         int idx = m+ 
@@ -355,7 +355,7 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
     delete[] args;
 }
 
-void run_open_loop_run_past_failure_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int32_t> balance_nops, std::vector<int> initial_nops, int numUnderOverflowRecords, int alignment, int64_t max_block_transfers, FILE* file, std::ofstream* raw_file)
+void run_open_loop_run_past_failure_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<float> balance_nops, std::vector<float> initial_nops, int numUnderOverflowRecords, int alignment, int64_t max_block_transfers, FILE* file, std::ofstream* raw_file)
 {
     int32_t data_col_width = 10;
 
@@ -391,9 +391,9 @@ void run_open_loop_run_past_failure_kernel(Profiler* profiler, int cpu_a, int cp
         {
             int32_t block_length = block_lengths[j];
             for(int k = 0; k<balance_nops.size(); k++){
-                int32_t balance_nop = balance_nops[k];
+                float balance_nop = balance_nops[k];
                 for(int l = 0; l<initial_nops.size(); l++){
-                    int initial_nop = initial_nops[l];
+                    float initial_nop = initial_nops[l];
                     int idx = l+
                               k*initial_nops.size()+
                               j*initial_nops.size()*balance_nops.size()+

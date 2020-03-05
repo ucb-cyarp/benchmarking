@@ -398,10 +398,11 @@ int main(int argc, char *argv[])
         int32_t open_loop_block_size_start = 28;
         int32_t open_loop_block_size_end = 35;
 
-        int32_t open_loop_balancing_nops_start = -10;
-        int32_t open_loop_balancing_nops_end = 10;
+        float open_loop_balancing_nops_start = -10;
+        float open_loop_balancing_nops_step = 1;
+        float open_loop_balancing_nops_end = 10;
 
-        std::vector<int> open_loop_initial_nops = {0, 100, 500, 1000};
+        std::vector<float> open_loop_initial_nops = {0, 100, 500, 1000};
 
         int open_loop_alignment = 4; //Align to 4 byte (32 bit) words
         int open_loop_max_block_transfers = 2000000000;
@@ -418,8 +419,8 @@ int main(int argc, char *argv[])
             open_loop_block_sizes.push_back(i);
         }
 
-        std::vector<int32_t> open_loop_balancing_nops;
-        for(int i = open_loop_balancing_nops_start; i < open_loop_balancing_nops_end; i++)
+        std::vector<float> open_loop_balancing_nops;
+        for(float i = open_loop_balancing_nops_start; i < open_loop_balancing_nops_end; i+=open_loop_balancing_nops_step)
         {
             open_loop_balancing_nops.push_back(i);
         }
@@ -448,10 +449,11 @@ int main(int argc, char *argv[])
         int32_t open_loop_fullness_tracker_block_size_start = 28;
         int32_t open_loop_fullness_tracker_block_size_end = 35;
 
-        int32_t open_loop_fullness_tracker_balancing_nops_start = -10;
-        int32_t open_loop_fullness_tracker_balancing_nops_end = 10;
+        float open_loop_fullness_tracker_balancing_nops_start = -10;
+        float open_loop_fullness_tracker_balancing_nops_end = 10;
+        float open_loop_fullness_tracker_balancing_nops_step = 1;
 
-        std::vector<int> open_loop_fullness_tracker_initial_nops = {0};
+        std::vector<float> open_loop_fullness_tracker_initial_nops = {0};
 
         std::vector<int> open_loop_fullness_tracker_checkPeriod = {0};
 
@@ -472,8 +474,8 @@ int main(int argc, char *argv[])
             open_loop_fullness_tracker_block_sizes.push_back(i);
         }
 
-        std::vector<int32_t> open_loop_fullness_tracker_balancing_nops;
-        for(int i = open_loop_fullness_tracker_balancing_nops_start; i < open_loop_fullness_tracker_balancing_nops_end; i++)
+        std::vector<float> open_loop_fullness_tracker_balancing_nops;
+        for(float i = open_loop_fullness_tracker_balancing_nops_start; i < open_loop_fullness_tracker_balancing_nops_end; i+=open_loop_fullness_tracker_balancing_nops_step)
         {
             open_loop_fullness_tracker_balancing_nops.push_back(i);
         }
@@ -515,12 +517,13 @@ int main(int argc, char *argv[])
         int32_t open_loop_block_size_start = 28;
         int32_t open_loop_block_size_end = 35;
 
-        int32_t open_loop_balancing_nops_start = -10;
-        int32_t open_loop_balancing_nops_end = 10;
+        float open_loop_balancing_nops_start = -10;
+        float open_loop_balancing_nops_end = 10;
+        float open_loop_balancing_nops_step = 1;
 
         int open_loop_num_under_overflow_records = 64;
 
-        std::vector<int> open_loop_initial_nops = {0};
+        std::vector<float> open_loop_initial_nops = {0};
 
         int open_loop_alignment = 4; //Align to 4 byte (32 bit) words
         int open_loop_max_block_transfers = 2000000000;
@@ -537,8 +540,8 @@ int main(int argc, char *argv[])
             open_loop_block_sizes.push_back(i);
         }
 
-        std::vector<int32_t> open_loop_balancing_nops;
-        for(int i = open_loop_balancing_nops_start; i < open_loop_balancing_nops_end; i++)
+        std::vector<float> open_loop_balancing_nops;
+        for(float i = open_loop_balancing_nops_start; i < open_loop_balancing_nops_end; i+=open_loop_balancing_nops_step)
         {
             open_loop_balancing_nops.push_back(i);
         }

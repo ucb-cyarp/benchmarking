@@ -22,12 +22,12 @@
         std::atomic_flag *ready_flag; //Used by the server to signal to the client that it is ready to begin
         int array_length; //In Blocks  //Note: The FIFO Array has an additional block allocated to resolve the Empty/Full Ambiguity
         int64_t max_block_transfers; //The maximum number of blocks to transfer in this test
-        int balancing_nops; //The number of NOPs to use for balancing services.  If negative, the server has NOPS, if positive, the client has NOPS
+        float balancing_nops; //The number of NOPs to use for balancing services.  If negative, the server has NOPS, if positive, the client has NOPS
         int blockSize; //The block size (in elementType elements)
         int alignment; //The alignment in bytes of the components within the block (the IDs and the Buffer)
         int core_client; //The core the client is executing on
         int core_server; //The core the server is executing on
-        int initialNOPs; //The initial NOPs in the reader and writer.
+        float initialNOPs; //The initial NOPs in the reader and writer.
 
         FILE* readerInterruptReporter;
         FILE* writerInterruptReporter;
@@ -47,7 +47,7 @@
         {
             printf("\n");
             printTitle(title);
-            printf("Array Length: %d Blocks, Block Length: %d int32_t Elements, Balancing NOPs: %d, Initial NOPs: %d\n", this->array_length, this->blockSize, this->balancing_nops, this->initialNOPs);
+            printf("Array Length: %d Blocks, Block Length: %d int32_t Elements, Balancing NOPs: %f, Initial NOPs: %f\n", this->array_length, this->blockSize, this->balancing_nops, this->initialNOPs);
             fflush(stdout);
         }
         #endif
@@ -67,7 +67,7 @@
             #endif
 
             #if WRITE_CSV == 1
-            fprintf(file, "%d,%d,%d,%d,%f,%f\n", this->array_length, this->blockSize, this->balancing_nops, this->initialNOPs, avg_duration_ms, stddev_duration_ms);
+            fprintf(file, "%d,%d,%f,%f,%f,%f\n", this->array_length, this->blockSize, this->balancing_nops, this->initialNOPs, avg_duration_ms, stddev_duration_ms);
             result.write_durations_and_benchmark_specific_results(*raw_file, {"", "", ""}, {std::to_string(this->array_length), std::to_string(this->blockSize), std::to_string(this->balancing_nops), std::to_string(this->initialNOPs)}, false);
             #endif
         }
