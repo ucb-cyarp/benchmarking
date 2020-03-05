@@ -10,6 +10,7 @@
     #include "bandwidth_circular_fifo_blocked_kernel.h"
     #include "bandwidth_circular_fifo_read_limit_kernel.h"
     #include "bandwidth_circular_fifo_blocked_cachedptr_kernel.h"
+    #include "bandwidth_circular_fifo_blocked_optimized_kernel.h"
 
     #include "print_results.h"
 
@@ -32,4 +33,7 @@
 
     //MAKE A 2D Table
     void run_bandwidth_fifo_blocked_cachedptr_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, FILE* file = NULL, std::ofstream* raw_file=NULL);
+
+    //MAKE A 2D Table
+    void run_bandwidth_fifo_blocked_optimized_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, FILE* file, std::ofstream* raw_file);
 #endif

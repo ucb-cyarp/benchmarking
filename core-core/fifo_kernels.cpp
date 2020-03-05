@@ -251,3 +251,70 @@ void run_bandwidth_fifo_blocked_cachedptr_kernel(Profiler* profiler, int cpu_a, 
     free(shared_read_id_loc);
     delete[] args;
 }
+
+//MAKE A 2D Table
+void run_bandwidth_fifo_blocked_optimized_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, FILE* file, std::ofstream* raw_file)
+{
+    int32_t data_col_width = 10;
+
+    //==== Print Title ====
+    printTitleFIFO("FIFO - Array - Blocked Transfers (Optimized)", block_lengths.size(), data_col_width);
+
+    //==== Print/Write Headers ====
+    std::string format = printAndWriteHeadersFIFO("Block Length", "Block Length", block_lengths, data_col_width, file, raw_file);
+
+    //==== Allocate Array For the Largest Experiment ====
+    size_t max_array_length = *std::max_element(array_lengths.begin(), array_lengths.end());
+    size_t max_block_length = *std::max_element(block_lengths.begin(), block_lengths.end());
+    int32_t* shared_array_loc;
+    int32_t* local_array_loc;
+    std::atomic_int32_t* shared_write_id_loc;
+    std::atomic_int32_t* shared_read_id_loc;
+
+    fifoOptimizedAllocate(shared_array_loc, local_array_loc, shared_write_id_loc, shared_read_id_loc, max_array_length, max_block_length, cpu_a, cpu_b);
+
+    //==== Create Configurations for each experiment ====
+    int num_experiments = countNumberOfFIFOExperiments(array_lengths, block_lengths);
+
+    BandwidthCircularFifoBlockedOptimizedKernelArgs* args = new BandwidthCircularFifoBlockedOptimizedKernelArgs[num_experiments];
+
+    int arg_idx = 0;
+    for(int i = 0; i<array_lengths.size(); i++)
+    {
+        size_t array_length = array_lengths[i];
+        for(int j = 0; j<block_lengths.size(); j++)
+        {
+            int32_t block_length = block_lengths[j];
+            if(block_length <= array_length) //Check if we should bother running this case
+            {
+                args[arg_idx].array_shared_ptr = shared_array_loc;
+                args[arg_idx].local_array_reader = local_array_loc;
+                args[arg_idx].write_pos_shared_ptr = shared_write_id_loc;
+                args[arg_idx].read_pos_shared_ptr = shared_read_id_loc;
+                args[arg_idx].length = array_length;
+                args[arg_idx].block_length = block_length;
+
+                arg_idx++;
+            }
+        }
+    }
+
+    //==== Run The Experiments ====
+    std::vector<Results> results_vec = execute_client_server_kernel(profiler, bandwidth_circular_fifo_blocked_server_kernel, bandwidth_circular_fifo_blocked_client_kernel, bandwidth_circular_fifo_blocked_kernel_reset, noCleanupFctn, args, args, args, cpu_a, cpu_b, num_experiments);
+
+    //==== Process Results ====
+    if(results_vec.size() != num_experiments){
+        std::cerr << "Error: The number of results did not match the number of experiments" << std::endl;
+    }
+
+    printWriteBlockedOptimizedFIFOTable2Core<int32_t>(false, profiler, cpu_a, cpu_b, "FIFO - Array - Blocked Transfers", "Block Length Transaction", results_vec, array_lengths, block_lengths, data_col_width, format, file, raw_file);
+    
+    //==== Cleanup ====
+    shared_write_id_loc->~atomic();
+    shared_read_id_loc->~atomic();
+    free(shared_array_loc);
+    free(local_array_loc);
+    free(shared_write_id_loc);
+    free(shared_read_id_loc);
+    delete[] args;
+}
