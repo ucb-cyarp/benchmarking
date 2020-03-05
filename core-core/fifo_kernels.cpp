@@ -300,7 +300,7 @@ void run_bandwidth_fifo_blocked_optimized_kernel(Profiler* profiler, int cpu_a, 
     }
 
     //==== Run The Experiments ====
-    std::vector<Results> results_vec = execute_client_server_kernel(profiler, bandwidth_circular_fifo_blocked_server_kernel, bandwidth_circular_fifo_blocked_client_kernel, bandwidth_circular_fifo_blocked_kernel_reset, noCleanupFctn, args, args, args, cpu_a, cpu_b, num_experiments);
+    std::vector<Results> results_vec = execute_client_server_kernel(profiler, bandwidth_circular_fifo_blocked_optimized_server_kernel, bandwidth_circular_fifo_blocked_optimized_client_kernel, bandwidth_circular_fifo_blocked_optimized_kernel_reset, noCleanupFctn, args, args, args, cpu_a, cpu_b, num_experiments);
 
     //==== Process Results ====
     if(results_vec.size() != num_experiments){

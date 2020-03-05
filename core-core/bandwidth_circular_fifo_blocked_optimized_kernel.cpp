@@ -82,6 +82,7 @@ void* bandwidth_circular_fifo_blocked_optimized_server_kernel(void* arg)
         //Check if we are allowed to write a full block
         if(length - (write_id - read_id) > 0)
         {
+            // printf("Write %d of %d, %d\n", write_id, writeLim, sample_vals);
             //Yes, we are allowed to write a block
             int32_t* array_base = array_shared_ptr + write_offset*block_length;
 
@@ -96,7 +97,6 @@ void* bandwidth_circular_fifo_blocked_optimized_server_kernel(void* arg)
             //Let's sync the write pointer to the new tail of the queue
             std::atomic_store_explicit(write_pos_shared_ptr, write_id, std::memory_order_release); //Should prevent array writes from occuring after this.  Should force array writes to be visible to consumer by this point
             
-
             //Check for index wrap arround (no extra element in this test)
             if (write_offset >= length-1)
             {
@@ -148,10 +148,11 @@ void* bandwidth_circular_fifo_blocked_optimized_client_kernel(void* arg)
         //Check if we are allowed to read a full block
         if(write_id - read_id > 0)
         {
+            // printf("Read %d of %d, %d\n", read_id, readLim, expected_sample_vals);
             //Yes, we can read a full block
             int32_t* array_base = array_shared_ptr + read_offset*block_length;
 
-            for(int32_t i = 0; i <= block_length; i++)
+            for(int32_t i = 0; i < block_length; i++)
             {        
                 local_buffer[i] = array_base[i];
             }
@@ -162,13 +163,13 @@ void* bandwidth_circular_fifo_blocked_optimized_client_kernel(void* arg)
             std::atomic_store_explicit(read_pos_shared_ptr, read_id, std::memory_order_release); //Sync read ID.  Should force reads from array to finish before this (preventing producer from overwriting it will not write past the read pointer).
 
             //Check the read values
-            for(int32_t i = 0; i <= block_length; i++)
+            for(int32_t i = 0; i < block_length; i++)
             {
                 //Check that the value is what we expect.
                 //NOTE: We are using the fact that in this test, the value should be the same as the ID.
-                if(array_shared_ptr[i] != expected_sample_vals)
+                if(local_buffer[i] != expected_sample_vals)
                 {
-                    printf("Unexpected read value!!!");
+                    printf("Unexpected read value!!! ID: %d, %d ~= %d\n", read_id-1, local_buffer[i], expected_sample_vals);
                     exit(1);
                 }
             }
@@ -182,6 +183,7 @@ void* bandwidth_circular_fifo_blocked_optimized_client_kernel(void* arg)
             {
                 read_offset++;
             }
+            expected_sample_vals = (expected_sample_vals+1)%2;
         }
 
         //Poll until there is more data to read or the end of the test
