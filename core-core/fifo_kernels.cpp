@@ -274,7 +274,7 @@ void run_bandwidth_fifo_blocked_optimized_kernel(Profiler* profiler, int cpu_a, 
     fifoOptimizedAllocate(shared_array_loc, local_array_loc, shared_write_id_loc, shared_read_id_loc, max_array_length, max_block_length, cpu_a, cpu_b);
 
     //==== Create Configurations for each experiment ====
-    int num_experiments = countNumberOfFIFOExperiments(array_lengths, block_lengths);
+    int num_experiments = array_lengths.size() * block_lengths.size();
 
     BandwidthCircularFifoBlockedOptimizedKernelArgs* args = new BandwidthCircularFifoBlockedOptimizedKernelArgs[num_experiments];
 
@@ -285,17 +285,14 @@ void run_bandwidth_fifo_blocked_optimized_kernel(Profiler* profiler, int cpu_a, 
         for(int j = 0; j<block_lengths.size(); j++)
         {
             int32_t block_length = block_lengths[j];
-            if(block_length <= array_length) //Check if we should bother running this case
-            {
-                args[arg_idx].array_shared_ptr = shared_array_loc;
-                args[arg_idx].local_array_reader = local_array_loc;
-                args[arg_idx].write_pos_shared_ptr = shared_write_id_loc;
-                args[arg_idx].read_pos_shared_ptr = shared_read_id_loc;
-                args[arg_idx].length = array_length;
-                args[arg_idx].block_length = block_length;
+            args[arg_idx].array_shared_ptr = shared_array_loc;
+            args[arg_idx].local_array_reader = local_array_loc;
+            args[arg_idx].write_pos_shared_ptr = shared_write_id_loc;
+            args[arg_idx].read_pos_shared_ptr = shared_read_id_loc;
+            args[arg_idx].length = array_length;
+            args[arg_idx].block_length = block_length;
 
-                arg_idx++;
-            }
+            arg_idx++;
         }
     }
 
