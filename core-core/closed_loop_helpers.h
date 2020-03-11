@@ -14,8 +14,277 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <sys/ioctl.h>
+#include <immintrin.h>
 
-#define CLOSED_LOOP_DISABLE_INTERRUPTS 1
+// #define CLOSED_LOOP_DISABLE_INTERRUPTS 1
+
+//src should be aligned to 
+inline void* fast_copy(void* src, void* dst, size_t len, size_t dst_padding){
+    //Handle small cases
+    if(len == 0){
+        return dst;
+    }
+
+    #ifdef __AVX__
+        size_t align = 32; //Can use 256 bit load/store instructions
+
+        if(dst_padding < align-1){
+            #ifdef __SSE__
+                align = 16;
+                if(dst_padding < align-1){
+                    align = 8;
+                }
+            #else
+                align = 8;
+            #endif
+            
+            //At this point, align is either 16 or 8.  The only way it
+            //will be 16 is if the dist_padding >= 16
+
+            if(dst_padding < align-1){
+                align = 4;
+            }
+            if(dst_padding < align-1){
+                align = 2;
+            }
+            if(dst_padding < align-1){
+                align = 1;
+            }
+
+        }
+    #elif defined (__SSE2__)
+        size_t align = 16; //Can use 128 bit load/store instructions
+
+        if(dst_padding < align-1){
+            align = 8;
+        }
+        if(dst_padding < align-1){
+            align = 4;
+        }
+        if(dst_padding < align-1){
+            align = 2;
+        }
+        if(dst_padding < align-1){
+            align = 1;
+        }
+    #else
+        size_t align = 8; //Can use 64 bit load/store instructions
+
+        if(dst_padding < align-1){
+            align = 4;
+        }
+        if(dst_padding < align-1){
+            align = 2;
+        }
+        if(dst_padding < align-1){
+            align = 1;
+        }
+    #endif
+
+    //Want to align dst to src (with respect to the max allowed alignment - based on vector unit length and padding bytes)
+    char* srcCursor = (char*) src;
+    size_t srcCursorAlignment = ((size_t)src)%align;
+    size_t dstCursorInitAlignment = ((size_t)dst)%align;
+    size_t dstOffset = (srcCursorAlignment - dstCursorInitAlignment + align) % align;
+    char* dstStart = ((char*) dst + dstOffset);
+    char* dstCursor = dstStart;
+
+    size_t bytesCopied = 0;
+    size_t bytesToTransfer = 1;
+
+    while(bytesCopied < len){
+        switch(bytesToTransfer){
+            case 1:
+                //Impossible to have fewer byte to copy than 1
+                if(align == 1 || len - bytesCopied < 2){ //The next level copies 2 bytes at a time
+                    //Need to copy a byte because there is only 1 byte left to copy or the alignment only allows byte copies
+                    *dstCursor = *srcCursor;
+                    dstCursor += 1;
+                    srcCursor += 1;
+                    bytesCopied += 1;
+
+                    //Do not step up the size
+                }else if(((size_t)srcCursor) % 2 != 0){
+                    //Need to copy a byte because of misalignmnet and more than 1 byte needs to be copied
+                    *dstCursor = *srcCursor;
+                    dstCursor += 1;
+                    srcCursor += 1;
+                    bytesCopied += 1;
+
+                    //Will now be alligned to next level, step up size.  If next size is too large, it will be corrected for in the next iteration
+                    bytesToTransfer = 2;
+                }else{
+                    //Is already aligned for the next level and has more than 1 block to write, step up the size and do not copy.
+                    bytesToTransfer = 2;
+                }
+                break;
+            case 2:
+                if(len - bytesCopied < 2){
+                    //There are fewer than 2 bytes to write, step down the size
+                    bytesToTransfer = 1;
+                }
+                else if(align == 2 || len - bytesCopied < 4){ // The next level transfers 4 bytes
+                    //Need to copy a 2 byte word because there is less than a 4 byte  copy or the alignment only allows 2 byte copies
+                    *((int16_t*) dstCursor) = *((int16_t*) srcCursor);
+                    dstCursor += 2;
+                    srcCursor += 2;
+                    bytesCopied += 2;
+
+                    //Do not step up the size
+                }else if(((size_t)srcCursor) % 4 != 0){
+                    //Need to copy a 2 byte word because of misalignmnet and more than 2 bytes need to be copied
+                    *((int16_t*) dstCursor) = *((int16_t*) srcCursor);
+                    dstCursor += 2;
+                    srcCursor += 2;
+                    bytesCopied += 2;
+
+                    //Will now be alligned to next level, step up size.  If next size is too large, it will be corrected for in the next iteration
+                    bytesToTransfer = 4;
+                }else{
+                    //Is already aligned for the next level and has more than 2 blocks to write, step up the size and do not copy.
+                    bytesToTransfer = 4;
+                }
+                break;
+            case 4:
+                if(len - bytesCopied < 4){
+                    //There are fewer than 4 bytes to write, step down the size
+                    bytesToTransfer = 2;
+                }
+                else if(align == 4 || len - bytesCopied < 8){ // The next level transfers 8 bytes
+                    //Need to copy a 4 byte word because there is less than an 8 byte copy or the alignment only allows 4 byte copies
+                    *((int32_t*) dstCursor) = *((int32_t*) srcCursor);
+                    dstCursor += 4;
+                    srcCursor += 4;
+                    bytesCopied += 4;
+
+                    //Do not step up the size
+                }else if(((size_t)srcCursor) % 8 != 0){
+                    //Need to copy a 4 byte word because of misalignmnet and more than 4 bytes need to be copied
+                    *((int32_t*) dstCursor) = *((int32_t*) srcCursor);
+                    dstCursor += 4;
+                    srcCursor += 4;
+                    bytesCopied += 4;
+
+                    //Will now be alligned to next level, step up size.  If next size is too large, it will be corrected for in the next iteration
+                    bytesToTransfer = 8;
+                }else{
+                    //Is already aligned for the next level and has more than 4 blocks to write, step up the size and do not copy.
+                    bytesToTransfer = 8;
+                }
+                break;
+            case 8:
+                if(len - bytesCopied < 8){
+                    //There are fewer than 8 bytes to write, step down the size
+                    bytesToTransfer = 4;
+                }
+                else if(align == 8 || len - bytesCopied < 16){ // The next level transfers 16 bytes
+                    //Need to copy a 8 byte word because there is less than an 16 byte copy or the alignment only allows 8 byte copies
+                    *((int64_t*) dstCursor) = *((int64_t*) srcCursor);
+                    dstCursor += 8;
+                    srcCursor += 8;
+                    bytesCopied += 8;
+
+                    //Do not step up the size
+                }else if(((size_t)srcCursor) % 16 != 0){
+                    //Need to copy a 4 byte word because of misalignmnet and more than 4 bytes need to be copied
+                    *((int64_t*) dstCursor) = *((int64_t*) srcCursor);
+                    dstCursor += 8;
+                    srcCursor += 8;
+                    bytesCopied += 8;
+
+                    //Will now be alligned to next level, step up size.  If next size is too large, it will be corrected for in the next iteration
+                    bytesToTransfer = 16;
+                }else{
+                    //Is already aligned for the next level and has more than 8 blocks to write, step up the size and do not copy.
+                    bytesToTransfer = 16;
+                }
+                break;
+            case 16:
+                if(len - bytesCopied < 16){
+                    //There are fewer than 16 bytes to write, step down the size
+                    bytesToTransfer = 8;
+                }
+                else if(align == 16 || len - bytesCopied < 32){ // The next level transfers 16 bytes
+                    //Need to copy a 16 byte word because there is less than an 32 byte copy or the alignment only allows 16 byte copies
+                    #ifdef __SSE2__
+                        //double type is a dummy type to use the intrinsic
+                        __m128d tmp = _mm_load_pd((double*) srcCursor);
+                        _mm_store_pd((double*) dstCursor, tmp);
+                    #else
+                        //Should never happen
+                        std::cerr << "Error!  Tried to use SSE2 instruction when not supported" << std::endl;
+                        exit(1);
+                    #endif
+                    dstCursor += 16;
+                    srcCursor += 16;
+                    bytesCopied += 16;
+
+                    //Do not step up the size
+                }else if(((size_t)srcCursor) % 32 != 0){
+                    //Need to copy a 16 byte word because of misalignmnet and more than 16 bytes need to be copied
+                    #ifdef __SSE2__
+                        //double type is a dummy type to use the intrinsic
+                        __m128d tmp = _mm_load_pd((double*) srcCursor);
+                        _mm_store_pd((double*) dstCursor, tmp);
+                    #else
+                        //Should never happen
+                        std::cerr << "Error!  Tried to use SSE2 instruction when not supported" << std::endl;
+                        exit(1);
+                    #endif
+                    dstCursor += 16;
+                    srcCursor += 16;
+                    bytesCopied += 16;
+
+                    //Will now be alligned to next level, step up size.  If next size is too large, it will be corrected for in the next iteration
+                    bytesToTransfer = 32;
+                }else{
+                    //Is already aligned for the next level and has more than 8 blocks to write, step up the size and do not copy.
+                    bytesToTransfer = 32;
+                }
+                break;
+            case 32:
+                if(len - bytesCopied < 32){
+                    //There are fewer than 8 bytes to write, step down the size
+                    bytesToTransfer = 16;
+                }
+                else{ // This is the end of the line for now.  If AVX512 used, extend
+                    #ifdef __AVX__
+                        //double type is a dummy type to use the intrinsic
+                        __m256d tmp = _mm256_load_pd((double*) srcCursor);
+                        _mm256_store_pd((double*) dstCursor, tmp);
+                    #else
+                        //Should never happen
+                        std::cerr << "Error!  Tried to use AVX instruction when not supported" << std::endl;
+                        exit(1);
+                    #endif
+                    dstCursor += 32;
+                    srcCursor += 32;
+                    bytesCopied += 32;
+
+                    //Do not step up the size, this is the end of the line for now
+                }
+                break;
+            default:
+                //Should never happen
+                std::cerr << "Error!  Impossible bytes to transfer" << std::endl;
+                exit(1);
+                break;
+        }
+    }
+
+    //Use byte copy until able to use 16 bit copy (max 1 iteration, or repeat if alignment is 1)
+    //Use 16 bit copy until able to use 32 bit copy (max 1 iteration, or repeat if alignment is 2)
+    //Use 32 but copy until able to use 64 bit copy (max 1 iteration), or repeat if alignment is 4)
+
+    //Use 64 bit copy until able to use 128 bit copy (max 1 iteration, or repeat if alignment is 8)
+    //Use 128 bit copy until able to use 256 bit copy (max 1 iteration, or repeat if alignment is 16 - also check if SSE is present)
+    //Use 256 bit copy 
+
+    //Cleanup uses the same basic procedure except that the decision on when to drop down to a reduced width is
+    //based on if the number of bytes left to copy is less than what the instruction accesses
+
+    return (void*) dstStart;
+}
 
 template<typename elementType, 
          typename idType, 
@@ -157,12 +426,12 @@ void* closed_loop_buffer_reset(void* arg){
         std::atomic_init(block_id_start, 0);
         std::atomic_store_explicit(block_id_start, 0, std::memory_order_release);
 
-        elementType *data_array = (elementType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes);
+        elementType *data_array = (elementType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes*2);
         for(int j = 0; j<args->blockSize; j++){
             data_array[j] = -1;
         }
         
-        idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes*2);
         idType *block_id_end_constructed = new (block_id_end) idType();
         std::atomic_init(block_id_end, 0);
         std::atomic_store_explicit(block_id_end, 0, std::memory_order_release);
@@ -174,12 +443,12 @@ void* closed_loop_buffer_reset(void* arg){
     std::atomic_init(block_id_start, 0);
     std::atomic_store_explicit(block_id_start, 0, std::memory_order_release);
 
-    elementType *data_array = (elementType*) (((char*) args->array) + idCombinedBytes);
+    elementType *data_array = (elementType*) (((char*) args->array) + idCombinedBytes*2);
     for(int j = 0; j<args->blockSize; j++){
         data_array[j] = -1;
     }
 
-    idType *block_id_end = (idType*) (((char*) args->array) + idCombinedBytes + blockArrayCombinedBytes);
+    idType *block_id_end = (idType*) (((char*) args->array) + idCombinedBytes);
     idType *block_id_end_constructed = new (block_id_end) idType();
     std::atomic_init(block_id_end, 0);
     std::atomic_store_explicit(block_id_end, 0, std::memory_order_release);
@@ -191,12 +460,12 @@ void* closed_loop_buffer_reset(void* arg){
         std::atomic_init(block_id_start, i);
         std::atomic_store_explicit(block_id_start, i, std::memory_order_release);
 
-        elementType *data_array = (elementType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes);
+        elementType *data_array = (elementType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes*2);
         for(int j = 0; j<args->blockSize; j++){
             data_array[j] = (i+1)%2;
         }
         
-        idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes);
         idType *block_id_end_constructed = new (block_id_end) idType();
         std::atomic_init(block_id_end, i);
         std::atomic_store_explicit(block_id_end, i, std::memory_order_release);
@@ -244,7 +513,7 @@ void* closed_loop_buffer_cleanup(void* arg){
     idType *block_id_start = (idType*) (((char*) args->array));
     block_id_start->~idType();
 
-    idType *block_id_end = (idType*) (((char*) args->array) + idCombinedBytes + blockArrayCombinedBytes);
+    idType *block_id_end = (idType*) (((char*) args->array) + idCombinedBytes);
     block_id_end->~idType();
 
     //Initial Conditions
@@ -252,7 +521,7 @@ void* closed_loop_buffer_cleanup(void* arg){
         idType *block_id_start = (idType*) (((char*) args->array) + i*blockSizeBytes);
         block_id_start->~idType();
         
-        idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes);
         block_id_end->~idType();
     }
 
@@ -261,7 +530,7 @@ void* closed_loop_buffer_cleanup(void* arg){
         idType *block_id_start = (idType*) (((char*) args->array) + i*blockSizeBytes);
         block_id_start->~idType();
         
-        idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes);
         block_id_end->~idType();
     }
 
@@ -346,7 +615,7 @@ void* closed_loop_buffer_int_client(void* arg){
     //Read Elements beyond initial condition
     for(int i = numberInitBlocks+1; i <= array_length+1; i++){ //Note, there is an extra element in the array
         int ind = i<=array_length ? i : 0;
-        idType *block_id_end = (idType*) (((char*) array) + ind*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        idType *block_id_end = (idType*) (((char*) array) + ind*blockSizeBytes + idCombinedBytes);
         newBlockIDEnd = std::atomic_load_explicit(block_id_end, std::memory_order_acquire);
         asm volatile(""
         :
@@ -355,8 +624,8 @@ void* closed_loop_buffer_int_client(void* arg){
         
         //Read elements
         //Read backwards to avoid cache thrashing
-        elementType *data_array = (elementType*) (((char*) array) + ind*blockSizeBytes + idCombinedBytes);
-        for(int sample = blockSize-1; sample>=0; sample--){
+        elementType *data_array = (elementType*) (((char*) array) + ind*blockSizeBytes + idCombinedBytes*2);
+        for(int sample = 0; sample<blockSize; sample++){
             localBuffer[sample] = data_array[sample];
             asm volatile(""
             :
@@ -395,13 +664,26 @@ void* closed_loop_buffer_int_client(void* arg){
 
         //+++ Read from array +++
         //The end ID is read first to check that the values being read from the array were completly written before this thread started reading.
-        idType *block_id_end = (idType*) (((char*) array) + readOffset*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        idType *block_id_end = (idType*) (((char*) array) + readOffset*blockSizeBytes + idCombinedBytes);
         newBlockIDEnd = std::atomic_load_explicit(block_id_end, std::memory_order_acquire);
         
         //Read elements
         //Read backwards to avoid cache thrashing
-        elementType *data_array = (elementType*) (((char*) array) + readOffset*blockSizeBytes + idCombinedBytes);
-        for(int sample = blockSize-1; sample>=0; sample--){
+        //Read forwards to allow compiler to optimize
+        elementType *data_array = (elementType*) (((char*) array) + readOffset*blockSizeBytes + idCombinedBytes*2);
+
+        //Need to align localBuffer to data_array so that AVX load instructions can be used
+        //localBuffer is oversized by 256 bits (32 bytes) to allow for this shift
+
+        //The localBufferAlignedBase will be set so that it has the same position inside of a 32 byte block as
+        //data_array.
+        //It will use standard load/store instructions until the cursors are aligned to a 16 byte boundary
+        //If the 16 byte boundary is not a 32 byte boundary, it will use a SSE load/store instruction
+        //It will then use the AVX load/store instructions to copy data.
+        //It will then use an SSE instruction to copy remaining data (if applicable)
+        //It will then use standard load/store instructions to copy the remaining data
+
+        for(int sample = 0; sample<blockSize; sample++){
             localBuffer[sample] = data_array[sample];
         }
 
@@ -511,7 +793,9 @@ void* closed_loop_buffer_float_client(void* arg){
 
     idLocalType expectedBlockID = -1;
 
-    elementType localBuffer[blockSize];
+    size_t bufferBytesForLocal = 32;//Statically define for now.  TODO, change?
+    size_t localElementPadding = bufferBytesForLocal/sizeof(elementType);
+    elementType localBufferRaw[blockSize+localElementPadding]; //Automatic allocation
 
     int blockArrayBytes;
     int blockArrayPaddingBytes;
@@ -553,7 +837,7 @@ void* closed_loop_buffer_float_client(void* arg){
     //Read Elements beyond initial condition
     for(int i = numberInitBlocks+1; i <= array_length+1; i++){ //Note, there is an extra element in the array
         int ind = i<=array_length ? i : 0;
-        idType *block_id_end = (idType*) (((char*) array) + ind*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        idType *block_id_end = (idType*) (((char*) array) + ind*blockSizeBytes + idCombinedBytes);
         newBlockIDEnd = std::atomic_load_explicit(block_id_end, std::memory_order_acquire);
         asm volatile(""
         :
@@ -561,13 +845,12 @@ void* closed_loop_buffer_float_client(void* arg){
         :);
         
         //Read elements
-        //Read backwards to avoid cache thrashing
-        elementType *data_array = (elementType*) (((char*) array) + ind*blockSizeBytes + idCombinedBytes);
-        for(int sample = blockSize-1; sample>=0; sample--){
-            localBuffer[sample] = data_array[sample];
+        elementType *data_array = (elementType*) (((char*) array) + ind*blockSizeBytes + idCombinedBytes*2);
+        for(int sample = 0; sample<blockSize; sample++){
+            localBufferRaw[sample] = data_array[sample];
             asm volatile(""
             :
-            : "r" (localBuffer[sample])
+            : "r" (localBufferRaw[sample])
             :);
         }
 
@@ -602,15 +885,15 @@ void* closed_loop_buffer_float_client(void* arg){
 
         //+++ Read from array +++
         //The end ID is read first to check that the values being read from the array were completly written before this thread started reading.
-        idType *block_id_end = (idType*) (((char*) array) + readOffset*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        idType *block_id_end = (idType*) (((char*) array) + readOffset*blockSizeBytes + idCombinedBytes);
         newBlockIDEnd = std::atomic_load_explicit(block_id_end, std::memory_order_acquire);
         
         //Read elements
-        //Read backwards to avoid cache thrashing
-        elementType *data_array = (elementType*) (((char*) array) + readOffset*blockSizeBytes + idCombinedBytes);
-        for(int sample = blockSize-1; sample>=0; sample--){
-            localBuffer[sample] = data_array[sample];
-        }
+        elementType *data_array = (elementType*) (((char*) array) + readOffset*blockSizeBytes + idCombinedBytes*2);
+        // for(int sample = 0; sample<blockSize; sample++){
+        //     localBuffer[sample] = data_array[sample];
+        // }
+        elementType* localBuffer = (elementType*) fast_copy(data_array, localBufferRaw, blockSize*sizeof(elementType), bufferBytesForLocal);
 
         //The start ID is read last to check that the block was not being overwritten while the data was being read
         std::atomic_signal_fence(std::memory_order_release); //Do not want an actual fence but do not want sample reading to be re-ordered before the end block ID read
@@ -685,3 +968,4 @@ void* closed_loop_buffer_float_client(void* arg){
 }
 
 #endif
+
