@@ -18,20 +18,25 @@
 
 // #define CLOSED_LOOP_DISABLE_INTERRUPTS 1
 
-//src should be aligned to 
-inline void* fast_copy(void* src, void* dst, size_t len, size_t dst_padding){
+template <typename elementType>
+inline elementType* fast_copy(elementType* src, elementType* dst, size_t len_elements, size_t dst_padding_elements){ //Length and dst_padding are in elements (not bytes)
     //Handle small cases
-    if(len == 0){
+    if(len_elements == 0){
         return dst;
     }
+
+    size_t len = len_elements*sizeof(elementType);
+    size_t dst_padding = dst_padding_elements*sizeof(elementType);
 
     #ifdef __AVX__
         size_t align = 32; //Can use 256 bit load/store instructions
 
-        if(dst_padding < align-1){
+        //Do not need to step down alignment for unsufficient padding if already aligned
+        //Any remaining blocks will be cleaned up at the end
+        if(dst_padding < align-1 && ((size_t)((char*)src)) % 32 != 0){
             #ifdef __SSE__
                 align = 16;
-                if(dst_padding < align-1){
+                if(dst_padding < align-1 && (((size_t)((char*)src)) % 16 != 0)){
                     align = 8;
                 }
             #else
@@ -41,13 +46,13 @@ inline void* fast_copy(void* src, void* dst, size_t len, size_t dst_padding){
             //At this point, align is either 16 or 8.  The only way it
             //will be 16 is if the dist_padding >= 16
 
-            if(dst_padding < align-1){
+            if(dst_padding < align-1 && (((size_t)((char*)src)) % 8 != 0)){
                 align = 4;
             }
-            if(dst_padding < align-1){
+            if(dst_padding < align-1 && (((size_t)((char*)src)) % 4 != 0)){
                 align = 2;
             }
-            if(dst_padding < align-1){
+            if(dst_padding < align-1 && (((size_t)((char*)src)) % 2 != 0)){
                 align = 1;
             }
 
@@ -55,42 +60,83 @@ inline void* fast_copy(void* src, void* dst, size_t len, size_t dst_padding){
     #elif defined (__SSE2__)
         size_t align = 16; //Can use 128 bit load/store instructions
 
-        if(dst_padding < align-1){
+        if(dst_padding < align-1 && (((size_t)((char*)src)) % 16 != 0){
             align = 8;
         }
-        if(dst_padding < align-1){
+        if(dst_padding < align-1 && (((size_t)((char*)src)) % 8 != 0){
             align = 4;
         }
-        if(dst_padding < align-1){
+        if(dst_padding < align-1 && (((size_t)((char*)src)) % 4 != 0){
             align = 2;
         }
-        if(dst_padding < align-1){
+        if(dst_padding < align-1 && (((size_t)((char*)src)) % 2 != 0){
             align = 1;
         }
     #else
         size_t align = 8; //Can use 64 bit load/store instructions
 
-        if(dst_padding < align-1){
+        if(dst_padding < align-1 && (((size_t)((char*)src)) % 8 != 0){
             align = 4;
         }
-        if(dst_padding < align-1){
+        if(dst_padding < align-1 && (((size_t)((char*)src)) % 4 != 0){
             align = 2;
         }
-        if(dst_padding < align-1){
+        if(dst_padding < align-1 && (((size_t)((char*)src)) % 2 != 0){
             align = 1;
         }
     #endif
 
     //Want to align dst to src (with respect to the max allowed alignment - based on vector unit length and padding bytes)
     char* srcCursor = (char*) src;
-    size_t srcCursorAlignment = ((size_t)src)%align;
-    size_t dstCursorInitAlignment = ((size_t)dst)%align;
-    size_t dstOffset = (srcCursorAlignment - dstCursorInitAlignment + align) % align;
+    size_t srcCursorAlignment;
+    size_t dstCursorInitAlignment;
+    size_t dstOffset;
+
+    //Attempting to avoid remainder operator use with variable
+    switch(align){
+        case 32:
+            srcCursorAlignment = ((size_t) ((char*)src))%32;
+            dstCursorInitAlignment = ((size_t) ((char*)dst))%32;
+            dstOffset = (srcCursorAlignment - dstCursorInitAlignment + 32) % 32;
+            break;
+        case 16:
+            srcCursorAlignment = ((size_t) ((char*)src))%16;
+            dstCursorInitAlignment = ((size_t) ((char*)dst))%16;
+            dstOffset = (srcCursorAlignment - dstCursorInitAlignment + 16) % 16;
+            break;
+        case 8:
+            srcCursorAlignment = ((size_t) ((char*)src))%8;
+            dstCursorInitAlignment = ((size_t) ((char*)dst))%8;
+            dstOffset = (srcCursorAlignment - dstCursorInitAlignment + 8) % 8;
+            break;
+        case 4:
+            srcCursorAlignment = ((size_t) ((char*)src))%4;
+            dstCursorInitAlignment = ((size_t) ((char*)dst))%4;
+            dstOffset = (srcCursorAlignment - dstCursorInitAlignment + 4) % 4;
+            break;
+        case 2:
+            srcCursorAlignment = ((size_t) ((char*)src))%2;
+            dstCursorInitAlignment = ((size_t) ((char*)dst))%2;
+            dstOffset = (srcCursorAlignment - dstCursorInitAlignment + 2) % 2;
+            break;
+        case 1:
+            dstOffset = 0;
+            break;
+        default:
+            std::cerr << "Error!  Impossible Alignment" << std::endl;
+            exit(1);
+            break;
+    }
+
     char* dstStart = ((char*) dst + dstOffset);
     char* dstCursor = dstStart;
 
     size_t bytesCopied = 0;
-    size_t bytesToTransfer = 1;
+
+    //We can skip the initial ramp-up from byte transfers if we know the element sizes
+    size_t bytesToTransfer = sizeof(elementType);
+
+    // printf("Align: %d, Bytes to Transfer: %d\n", align, bytesToTransfer);
 
     while(bytesCopied < len){
         switch(bytesToTransfer){
@@ -102,6 +148,7 @@ inline void* fast_copy(void* src, void* dst, size_t len, size_t dst_padding){
                     dstCursor += 1;
                     srcCursor += 1;
                     bytesCopied += 1;
+                    // printf("Transfered Byte\n");
 
                     //Do not step up the size
                 }else if(((size_t)srcCursor) % 2 != 0){
@@ -110,6 +157,7 @@ inline void* fast_copy(void* src, void* dst, size_t len, size_t dst_padding){
                     dstCursor += 1;
                     srcCursor += 1;
                     bytesCopied += 1;
+                    // printf("Transfered Byte\n");
 
                     //Will now be alligned to next level, step up size.  If next size is too large, it will be corrected for in the next iteration
                     bytesToTransfer = 2;
@@ -129,6 +177,7 @@ inline void* fast_copy(void* src, void* dst, size_t len, size_t dst_padding){
                     dstCursor += 2;
                     srcCursor += 2;
                     bytesCopied += 2;
+                    // printf("Transfered 2 Bytes\n");
 
                     //Do not step up the size
                 }else if(((size_t)srcCursor) % 4 != 0){
@@ -137,6 +186,7 @@ inline void* fast_copy(void* src, void* dst, size_t len, size_t dst_padding){
                     dstCursor += 2;
                     srcCursor += 2;
                     bytesCopied += 2;
+                    // printf("Transfered 2 Bytes\n");
 
                     //Will now be alligned to next level, step up size.  If next size is too large, it will be corrected for in the next iteration
                     bytesToTransfer = 4;
@@ -156,6 +206,7 @@ inline void* fast_copy(void* src, void* dst, size_t len, size_t dst_padding){
                     dstCursor += 4;
                     srcCursor += 4;
                     bytesCopied += 4;
+                    // printf("Transfered 4 Bytes\n");
 
                     //Do not step up the size
                 }else if(((size_t)srcCursor) % 8 != 0){
@@ -164,6 +215,7 @@ inline void* fast_copy(void* src, void* dst, size_t len, size_t dst_padding){
                     dstCursor += 4;
                     srcCursor += 4;
                     bytesCopied += 4;
+                    // printf("Transfered 4 Bytes\n");
 
                     //Will now be alligned to next level, step up size.  If next size is too large, it will be corrected for in the next iteration
                     bytesToTransfer = 8;
@@ -183,6 +235,7 @@ inline void* fast_copy(void* src, void* dst, size_t len, size_t dst_padding){
                     dstCursor += 8;
                     srcCursor += 8;
                     bytesCopied += 8;
+                    // printf("Transfered 8 Bytes\n");
 
                     //Do not step up the size
                 }else if(((size_t)srcCursor) % 16 != 0){
@@ -191,6 +244,7 @@ inline void* fast_copy(void* src, void* dst, size_t len, size_t dst_padding){
                     dstCursor += 8;
                     srcCursor += 8;
                     bytesCopied += 8;
+                    // printf("Transfered 8 Bytes\n");
 
                     //Will now be alligned to next level, step up size.  If next size is too large, it will be corrected for in the next iteration
                     bytesToTransfer = 16;
@@ -218,6 +272,7 @@ inline void* fast_copy(void* src, void* dst, size_t len, size_t dst_padding){
                     dstCursor += 16;
                     srcCursor += 16;
                     bytesCopied += 16;
+                    // printf("Transfered 16 Bytes\n");
 
                     //Do not step up the size
                 }else if(((size_t)srcCursor) % 32 != 0){
@@ -234,6 +289,7 @@ inline void* fast_copy(void* src, void* dst, size_t len, size_t dst_padding){
                     dstCursor += 16;
                     srcCursor += 16;
                     bytesCopied += 16;
+                    // printf("Transfered 16 Bytes\n");
 
                     //Will now be alligned to next level, step up size.  If next size is too large, it will be corrected for in the next iteration
                     bytesToTransfer = 32;
@@ -260,6 +316,7 @@ inline void* fast_copy(void* src, void* dst, size_t len, size_t dst_padding){
                     dstCursor += 32;
                     srcCursor += 32;
                     bytesCopied += 32;
+                    // printf("Transfered 32 Bytes\n");
 
                     //Do not step up the size, this is the end of the line for now
                 }
@@ -283,7 +340,7 @@ inline void* fast_copy(void* src, void* dst, size_t len, size_t dst_padding){
     //Cleanup uses the same basic procedure except that the decision on when to drop down to a reduced width is
     //based on if the number of bytes left to copy is less than what the instruction accesses
 
-    return (void*) dstStart;
+    return (elementType*) dstStart;
 }
 
 template<typename elementType, 
@@ -893,7 +950,7 @@ void* closed_loop_buffer_float_client(void* arg){
         // for(int sample = 0; sample<blockSize; sample++){
         //     localBuffer[sample] = data_array[sample];
         // }
-        elementType* localBuffer = (elementType*) fast_copy(data_array, localBufferRaw, blockSize*sizeof(elementType), bufferBytesForLocal);
+        elementType* localBuffer = fast_copy(data_array, localBufferRaw, blockSize, localElementPadding);
 
         //The start ID is read last to check that the block was not being overwritten while the data was being read
         std::atomic_signal_fence(std::memory_order_release); //Do not want an actual fence but do not want sample reading to be re-ordered before the end block ID read
