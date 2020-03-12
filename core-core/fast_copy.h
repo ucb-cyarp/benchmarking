@@ -586,8 +586,10 @@ inline elementType* fast_copy_semialigned(elementType* src, elementType* dst, si
 //This version of fast copy allows for unaligned arrays and makes use of AVX and SSE instructions
 //which are not restricted to aligned entries.  It does not align to either the src or destination
 // Note: It is assumed that src and dst are aligned to the elementType
+//
+//This version uses standard load operations then moves on to AVX or SSE instructions
 template<typename elementType>
-inline elementType* fast_copy_unaligned(elementType* src, elementType* dst, size_t len_elements){
+inline elementType* fast_copy_unaligned_ramp_in(elementType* src, elementType* dst, size_t len_elements){
 
     //For now, structures will not be supported
     //TODO: expand support for strucures.
@@ -631,6 +633,61 @@ inline elementType* fast_copy_unaligned(elementType* src, elementType* dst, size
         #else
             *((int64_t*) dstCursor) = *((int64_t*) srcCursor);
         #endif
+    }
+
+    return dst;
+}
+
+//This version of fast copy allows for unaligned arrays and makes use of AVX and SSE instructions
+//which are not restricted to aligned entries.  It does not align to either the src or destination
+// Note: It is assumed that src and dst are aligned to the elementType
+//
+//This version starts out using AVX or SSE instructions then ramps out
+template<typename elementType>
+inline elementType* fast_copy_unaligned(elementType* src, elementType* dst, size_t len_elements){
+
+    //For now, structures will not be supported
+    //TODO: expand support for strucures.
+
+    if(sizeof(elementType) != 8 && sizeof(elementType) != 4 && sizeof(elementType) != 2 && sizeof(elementType) != 1){
+        std::cerr << "Error!  Fast Copy Unaligned Currently Does not Support Elements > 8 Bytes or not a power of 2" << std::endl;
+        exit(1);
+    }
+
+    //Determine how many standard element copies need to be conducted and how many larger (and potentially unaligned copies) need to happen
+    #ifdef __AVX__
+        size_t elementsPerBlockTransfer = 32/sizeof(elementType);
+    #elif defined (__SSE2__)
+        size_t elementsPerBlockTransfer = 16/sizeof(elementType);
+    #else
+        size_t elementsPerBlockTransfer = 8/sizeof(elementType);
+    #endif
+
+    size_t blocksToCopy = len_elements/elementsPerBlockTransfer;
+    size_t elementsToCopy = len_elements%elementsPerBlockTransfer;
+
+    //Copy Large Blocks
+    for(size_t i = 0; i<blocksToCopy; i++){
+        elementType* srcCursor = src+i*elementsPerBlockTransfer;
+        elementType* dstCursor = dst+i*elementsPerBlockTransfer;
+        #ifdef __AVX__
+            //double type is a dummy type to use the intrinsic
+            __m256d tmp = _mm256_loadu_pd((double*) srcCursor);
+            _mm256_storeu_pd((double*) dstCursor, tmp);
+        #elif defined (__SSE2__)
+            __128d tmp = _mm128_loadu_pd((double*) srcCursor);
+            _mm128_storeu_pd((double*) dstCursor, tmp);
+        #else
+            *((int64_t*) dstCursor) = *((int64_t*) srcCursor);
+        #endif
+    }
+
+    elementType* srcElements = src+blocksToCopy*elementsPerBlockTransfer;
+    elementType* dstElements = dst+blocksToCopy*elementsPerBlockTransfer;
+
+    //Copy Elements
+    for(size_t i = 0; i<elementsToCopy; i++){
+        dstElements[i] = srcElements[i];
     }
 
     return dst;

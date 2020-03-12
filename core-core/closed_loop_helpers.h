@@ -145,6 +145,12 @@ void* closed_loop_buffer_reset(void* arg){
 
     //Using memory order released so that initialization occures in the order it occures in steady state operation
 
+    //Reset the reader array
+    elementType* local_array = (elementType*) args->local_array_reader;
+    for(int i = 0; i<args->blockSize; i++){
+        local_array[i] = 0;
+    }
+
     //Reset the index pointers (they are initialized outside)
     std::atomic_store_explicit(args->read_offset_ptr, 0, std::memory_order_release); //Initialized to 0.  This is the index last read.  Index 1 contains the first initial value
     std::atomic_store_explicit(args->write_offset_ptr, numberInitBlocks+1, std::memory_order_release); //Initialized to index after that last initial value in the FIFO (note, the initial elements start at index 1)
@@ -595,6 +601,11 @@ void* closed_loop_buffer_float_client(void* arg){
         :);
     }
 
+    //Write to local array (will have been reset by the server and need to re-aquire exclusive access)
+    for(int i = 0; i < blockSize; i++){
+        localBufferRaw[i] = 0;
+    }
+
     //==== Singal start ====
     std::atomic_thread_fence(std::memory_order_acquire);
     std::atomic_flag_clear_explicit(start_flag, std::memory_order_release);
@@ -627,6 +638,7 @@ void* closed_loop_buffer_float_client(void* arg){
         // elementType* localBuffer = fast_copy_aligned(data_array, localBufferRaw, blockSize, localElementPadding);
         // elementType* localBuffer = fast_copy_semialigned(data_array, localBufferRaw, blockSize);
         elementType* localBuffer = fast_copy_unaligned(data_array, localBufferRaw, blockSize);
+        // elementType* localBuffer = fast_copy_unaligned_ramp_in(data_array, localBufferRaw, blockSize);
 
         //The start ID is read last to check that the block was not being overwritten while the data was being read
         std::atomic_signal_fence(std::memory_order_release); //Do not want an actual fence but do not want sample reading to be re-ordered before the end block ID read
