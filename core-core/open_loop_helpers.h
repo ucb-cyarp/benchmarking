@@ -6,6 +6,7 @@
     #include "mallocHelpers.h"
     #include "reporting_helpers.h"
     #include "fifoless_helpers.h"
+    #include "fast_copy.h"
 
     #include <vector>
     #include <atomic>
@@ -155,7 +156,7 @@
             }
             elementType *shared_array_loc = (elementType*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpus[buffer]);
 
-            size_t amountToAllocLocal = maxLocalBufferSize;
+            size_t amountToAllocLocal = maxLocalBufferSize+FAST_COPY_ALIGNED_PADDING; //Add padding for fast_copy_aligned
             if(amountToAllocLocal % CACHE_LINE_SIZE != 0){
                 amountToAllocLocal += (CACHE_LINE_SIZE - (amountToAllocLocal % CACHE_LINE_SIZE));
             }
