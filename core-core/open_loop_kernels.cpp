@@ -14,6 +14,7 @@ void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<
 
     //==== Allocate Array For the Largest Experiment ====
     std::vector<int32_t*> shared_array_locs;
+    std::vector<int32_t*> local_array_locs;
     std::vector<std::atomic_int32_t*> shared_write_id_locs;
     std::vector<std::atomic_int32_t*> shared_read_id_locs;
 
@@ -37,7 +38,7 @@ void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<
         }
     #endif
 
-    openLoopAllocate<int32_t, std::atomic_int32_t, std::atomic_int32_t>(shared_array_locs, shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, array_lengths, block_lengths, cpus, alignment, false, false);
+    openLoopAllocate<int32_t, std::atomic_int32_t, std::atomic_int32_t>(shared_array_locs, local_array_locs, shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, array_lengths, block_lengths, cpus, alignment, false, false);
 
     //==== Create Configurations for each experiment ====
     int num_experiments = array_lengths.size() * block_lengths.size() * balance_nops.size() * initial_nops.size();
@@ -62,6 +63,7 @@ void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<
                     args[idx].read_offset_ptr = shared_read_id_locs[0];
                     args[idx].write_offset_ptr = shared_write_id_locs[0];
                     args[idx].array = shared_array_locs[0];
+                    args[idx].local_array_reader = local_array_locs[0];
                     args[idx].start_flag = start_flags[0];
                     args[idx].stop_flag = stop_flag;
                     args[idx].ready_flag = ready_flags[0];
@@ -126,6 +128,7 @@ void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<
     destructSharedIDs(shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag);
 
     freeVectorContents(shared_array_locs);
+    freeVectorContents(local_array_locs);
     freeVectorContents(shared_write_id_locs);
     freeVectorContents(shared_read_id_locs);
     freeVectorContents(ready_flags);
@@ -144,6 +147,7 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
 
     //==== Allocate Array For the Largest Experiment ====
     std::vector<int32_t*> shared_array_locs;
+    std::vector<int32_t*> local_array_locs;
     std::vector<std::atomic_int32_t*> shared_write_id_locs;
     std::vector<std::atomic_int32_t*> shared_read_id_locs;
 
@@ -171,6 +175,7 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
     #endif
 
     openLoopFullnessTrackerAllocate<int32_t, std::atomic_int32_t, std::atomic_int32_t>(shared_array_locs, 
+                                                                                       local_array_locs,
                                                                                        shared_write_id_locs, 
                                                                                        shared_read_id_locs, 
                                                                                        ready_flags, 
@@ -236,6 +241,7 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
                         args[idx].read_offset_ptr = shared_read_id_locs[0];
                         args[idx].write_offset_ptr = shared_write_id_locs[0];
                         args[idx].array = shared_array_locs[0];
+                        args[idx].local_array_reader = local_array_locs[0];
                         args[idx].start_flag = start_flags[0];
                         args[idx].stop_flag = stop_flag;
                         args[idx].ready_flag = ready_flags[0];
@@ -347,6 +353,7 @@ void run_open_loop_fullness_tracker_kernel(Profiler* profiler, int cpu_a, int cp
     freeVectorContents(endSoftirqOtherInterruptTrackers);
     freeVectorContents(endTimingTrackers);
     freeVectorContents(shared_array_locs);
+    freeVectorContents(local_array_locs);
     freeVectorContents(shared_write_id_locs);
     freeVectorContents(shared_read_id_locs);
     freeVectorContents(ready_flags);
@@ -364,6 +371,7 @@ void run_open_loop_run_past_failure_kernel(Profiler* profiler, int cpu_a, int cp
 
     //==== Allocate Array For the Largest Experiment ====
     std::vector<int32_t*> shared_array_locs;
+    std::vector<int32_t*> local_array_locs;
     std::vector<std::atomic_int32_t*> shared_write_id_locs;
     std::vector<std::atomic_int32_t*> shared_read_id_locs;
 
@@ -377,7 +385,7 @@ void run_open_loop_run_past_failure_kernel(Profiler* profiler, int cpu_a, int cp
     std::vector<int16_t*> underOverflowAmounts;
     std::vector<bool*> underOverflowPartials;
 
-    openLoopRunPastFailureAllocate<int32_t, std::atomic_int32_t, std::atomic_int32_t>(shared_array_locs, shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, underOverflowIterations, underOverflowAmounts, underOverflowPartials, array_lengths, block_lengths, cpus, alignment, false, false, numUnderOverflowRecords);
+    openLoopRunPastFailureAllocate<int32_t, std::atomic_int32_t, std::atomic_int32_t>(shared_array_locs, local_array_locs, shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, underOverflowIterations, underOverflowAmounts, underOverflowPartials, array_lengths, block_lengths, cpus, alignment, false, false, numUnderOverflowRecords);
 
     //==== Create Configurations for each experiment ====
     int num_experiments = array_lengths.size() * block_lengths.size() * balance_nops.size() * initial_nops.size();
@@ -402,6 +410,7 @@ void run_open_loop_run_past_failure_kernel(Profiler* profiler, int cpu_a, int cp
                     args[idx].read_offset_ptr = shared_read_id_locs[0];
                     args[idx].write_offset_ptr = shared_write_id_locs[0];
                     args[idx].array = shared_array_locs[0];
+                    args[idx].local_array_reader = local_array_locs[0];
                     args[idx].start_flag = start_flags[0];
                     args[idx].stop_flag = stop_flag;
                     args[idx].ready_flag = ready_flags[0];
@@ -461,6 +470,7 @@ void run_open_loop_run_past_failure_kernel(Profiler* profiler, int cpu_a, int cp
     destructSharedIDs(shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag);
 
     freeVectorContents(shared_array_locs);
+    freeVectorContents(local_array_locs);
     freeVectorContents(shared_write_id_locs);
     freeVectorContents(shared_read_id_locs);
     freeVectorContents(ready_flags);

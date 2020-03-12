@@ -17,6 +17,7 @@
         indexType *read_offset_ptr;
         indexType *write_offset_ptr;
         void *array;
+        void *local_array_reader;
         std::atomic_flag *start_flag; //Used by the client to signal to the server that it should start writing
         std::atomic_flag *stop_flag; //Used by the client to signal to the server that an error occured and that it should stop
         std::atomic_flag *ready_flag; //Used by the server to signal to the client that it is ready to begin
@@ -111,29 +112,36 @@
     //stop_flag:            There is a single stop flag shared by all threads which is real
 
     template<typename elementType, typename atomicIdType, typename atomicIndexType>
-    size_t openLoopAllocate(std::vector<elementType*> &shared_array_locs, std::vector<atomicIndexType*> &shared_write_id_locs, std::vector<atomicIndexType*> &shared_read_id_locs, std::vector<std::atomic_flag*> &ready_flags, std::vector<std::atomic_flag*> &start_flags, std::atomic_flag* &stop_flag, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int> cpus, int alignment, bool circular, bool include_dummy_flags){
+    size_t openLoopAllocate(std::vector<elementType*> &shared_array_locs, std::vector<elementType*> &local_array_locs, std::vector<atomicIndexType*> &shared_write_id_locs, std::vector<atomicIndexType*> &shared_read_id_locs, std::vector<std::atomic_flag*> &ready_flags, std::vector<std::atomic_flag*> &start_flags, std::atomic_flag* &stop_flag, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int> cpus, int alignment, bool circular, bool include_dummy_flags){
         //Find the largest array to allocate
         int maxBufferSize = 0;
+        int maxLocalBufferSize = 0;
 
         for(const size_t& array_length : array_lengths){
             for(const int32_t& block_length : block_lengths){
-                    int blockArrayBytes;
-                    int blockArrayPaddingBytes;
-                    int blockArrayCombinedBytes;
-                    int idBytes;
-                    int idPaddingBytes;
-                    int idCombinedBytes;
-                    int blockSizeBytes;
+                int blockArrayBytes;
+                int blockArrayPaddingBytes;
+                int blockArrayCombinedBytes;
+                int idBytes;
+                int idPaddingBytes;
+                int idCombinedBytes;
+                int blockSizeBytes;
 
-                    getBlockSizing<elementType, atomicIdType>(block_length, alignment, blockArrayBytes, blockArrayPaddingBytes, 
-                    blockArrayCombinedBytes, idBytes, idPaddingBytes, idCombinedBytes, blockSizeBytes);
+                getBlockSizing<elementType, atomicIdType>(block_length, alignment, blockArrayBytes, blockArrayPaddingBytes, 
+                blockArrayCombinedBytes, idBytes, idPaddingBytes, idCombinedBytes, blockSizeBytes);
 
-                    //Note that there is 1 additional block allocated in the array
-                    int bufferSize = blockSizeBytes*(array_length+1);
+                //Note that there is 1 additional block allocated in the array
+                int bufferSize = blockSizeBytes*(array_length+1);
 
-                    if(bufferSize>maxBufferSize){
-                        maxBufferSize = bufferSize;
-                    }
+                int localBufferSize = block_length*sizeof(elementType);
+
+                if(bufferSize>maxBufferSize){
+                    maxBufferSize = bufferSize;
+                }
+
+                if(localBufferSize>maxLocalBufferSize){
+                    maxLocalBufferSize = localBufferSize;
+                }
             }
         }
 
@@ -147,12 +155,18 @@
             }
             elementType *shared_array_loc = (elementType*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAlloc, cpus[buffer]);
 
+            size_t amountToAllocLocal = maxLocalBufferSize;
+            if(amountToAllocLocal % CACHE_LINE_SIZE != 0){
+                amountToAllocLocal += (CACHE_LINE_SIZE - (amountToAllocLocal % CACHE_LINE_SIZE));
+            }
+            elementType *local_array_loc = (elementType*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocLocal, cpus[(buffer+1)%cpus.size()]);
+
             size_t amountToAllocCursors = sizeof(atomicIndexType);
             if(amountToAllocCursors % CACHE_LINE_SIZE != 0){
                 amountToAllocCursors += (CACHE_LINE_SIZE - (amountToAllocCursors % CACHE_LINE_SIZE));
             }
             atomicIndexType *shared_write_id_loc = (atomicIndexType*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpus[buffer]);
-            atomicIndexType *shared_read_id_loc = (atomicIndexType*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpus[buffer%num_buffers]);
+            atomicIndexType *shared_read_id_loc = (atomicIndexType*) aligned_alloc_core(CACHE_LINE_SIZE, amountToAllocCursors, cpus[(buffer+1)%cpus.size()]);
             atomicIndexType *shared_write_id_loc_constructed = new (shared_write_id_loc) atomicIndexType();
             std::atomic_init(shared_write_id_loc, 0); //Init of the shared IDs occurs here
             if(!std::atomic_is_lock_free(shared_write_id_loc)){
@@ -167,6 +181,7 @@
             }
 
             shared_array_locs.push_back(shared_array_loc);
+            local_array_locs.push_back(local_array_loc);
             shared_write_id_locs.push_back(shared_write_id_loc);
             shared_read_id_locs.push_back(shared_read_id_loc);
 

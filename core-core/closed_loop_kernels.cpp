@@ -13,6 +13,7 @@ void run_closed_loop_bang_control_kernel(Profiler* profiler, int cpu_a, int cpu_
 
     //==== Allocate Array For the Largest Experiment ====
     std::vector<int32_t*> shared_array_locs;
+    std::vector<int32_t*> local_array_locs;
     std::vector<std::atomic_int32_t*> shared_write_id_locs;
     std::vector<std::atomic_int32_t*> shared_read_id_locs;
 
@@ -38,7 +39,7 @@ void run_closed_loop_bang_control_kernel(Profiler* profiler, int cpu_a, int cpu_
         }
     #endif
 
-    closedLoopAllocate<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic<float>>(shared_array_locs, shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, nopsControl, array_lengths, block_lengths, cpus, alignment, false, false);
+    closedLoopAllocate<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic<float>>(shared_array_locs, local_array_locs, shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, nopsControl, array_lengths, block_lengths, cpus, alignment, false, false);
 
     //==== Create Configurations for each experiment ====
     int num_experiments = array_lengths.size() * block_lengths.size() * server_control_periods.size() * client_control_periods.size() * control_gains.size() * initial_nops.size();
@@ -73,6 +74,7 @@ void run_closed_loop_bang_control_kernel(Profiler* profiler, int cpu_a, int cpu_
                             args[idx].read_offset_ptr = shared_read_id_locs[0];
                             args[idx].write_offset_ptr = shared_write_id_locs[0];
                             args[idx].array = shared_array_locs[0];
+                            args[idx].local_array_reader = local_array_locs[0];
                             args[idx].start_flag = start_flags[0];
                             args[idx].stop_flag = stop_flag;
                             args[idx].ready_flag = ready_flags[0];
@@ -143,6 +145,7 @@ void run_closed_loop_bang_control_kernel(Profiler* profiler, int cpu_a, int cpu_
     destructSharedIDs(shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, nopsControl);
 
     freeVectorContents(shared_array_locs);
+    freeVectorContents(local_array_locs);
     freeVectorContents(shared_write_id_locs);
     freeVectorContents(shared_read_id_locs);
     freeVectorContents(ready_flags);
@@ -161,6 +164,7 @@ void run_closed_loop_pi_control_period_kernel(Profiler* profiler, int cpu_a, int
 
     //==== Allocate Array For the Largest Experiment ====
     std::vector<int32_t*> shared_array_locs;
+    std::vector<int32_t*> local_array_locs;
     std::vector<std::atomic_int32_t*> shared_write_id_locs;
     std::vector<std::atomic_int32_t*> shared_read_id_locs;
 
@@ -186,7 +190,7 @@ void run_closed_loop_pi_control_period_kernel(Profiler* profiler, int cpu_a, int
         }
     #endif
 
-    closedLoopAllocate<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic<float>>(shared_array_locs, shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, nopsControl, array_lengths, block_lengths, cpus, alignment, false, false);
+    closedLoopAllocate<int32_t, std::atomic_int32_t, std::atomic_int32_t, std::atomic<float>>(shared_array_locs, local_array_locs, shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, nopsControl, array_lengths, block_lengths, cpus, alignment, false, false);
 
     //==== Create Configurations for each experiment ====
     int num_experiments = array_lengths.size() * block_lengths.size() * server_control_periods.size() * client_control_periods.size() * control_gains_p.size() * control_gains_i.size() * control_gains_base_bang_bang.size() * initial_nops.size();
@@ -227,6 +231,7 @@ void run_closed_loop_pi_control_period_kernel(Profiler* profiler, int cpu_a, int
                                     args[idx].read_offset_ptr = shared_read_id_locs[0];
                                     args[idx].write_offset_ptr = shared_write_id_locs[0];
                                     args[idx].array = shared_array_locs[0];
+                                    args[idx].local_array_reader = local_array_locs[0];
                                     args[idx].start_flag = start_flags[0];
                                     args[idx].stop_flag = stop_flag;
                                     args[idx].ready_flag = ready_flags[0];
@@ -301,6 +306,7 @@ void run_closed_loop_pi_control_period_kernel(Profiler* profiler, int cpu_a, int
     destructSharedIDs(shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, nopsControl);
 
     freeVectorContents(shared_array_locs);
+    freeVectorContents(local_array_locs);
     freeVectorContents(shared_write_id_locs);
     freeVectorContents(shared_read_id_locs);
     freeVectorContents(ready_flags);
