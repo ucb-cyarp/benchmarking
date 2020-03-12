@@ -150,6 +150,10 @@ void* closed_loop_buffer_reset(void* arg){
     for(int i = 0; i<args->blockSize; i++){
         local_array[i] = 0;
     }
+    char* local_array_padding = (char*) (local_array+args->blockSize);
+    for(int i = 0; i<FAST_COPY_ALIGNED_PADDING; i++){
+        local_array_padding[i] = 0;
+    }
 
     //Reset the index pointers (they are initialized outside)
     std::atomic_store_explicit(args->read_offset_ptr, 0, std::memory_order_release); //Initialized to 0.  This is the index last read.  Index 1 contains the first initial value
@@ -605,6 +609,10 @@ void* closed_loop_buffer_float_client(void* arg){
     for(int i = 0; i < blockSize; i++){
         localBufferRaw[i] = 0;
     }
+    char* local_array_padding = (char*) (localBufferRaw+args->blockSize);
+    for(int i = 0; i<FAST_COPY_ALIGNED_PADDING; i++){
+        local_array_padding[i] = 0;
+    }
 
     //==== Singal start ====
     std::atomic_thread_fence(std::memory_order_acquire);
@@ -635,9 +643,9 @@ void* closed_loop_buffer_float_client(void* arg){
         // for(int sample = 0; sample<blockSize; sample++){
         //     localBuffer[sample] = data_array[sample];
         // }
-        // elementType* localBuffer = fast_copy_aligned(data_array, localBufferRaw, blockSize, localElementPadding);
+        elementType* localBuffer = fast_copy_aligned(data_array, localBufferRaw, blockSize, FAST_COPY_ALIGNED_PADDING);
         // elementType* localBuffer = fast_copy_semialigned(data_array, localBufferRaw, blockSize);
-        elementType* localBuffer = fast_copy_unaligned(data_array, localBufferRaw, blockSize);
+        // elementType* localBuffer = fast_copy_unaligned(data_array, localBufferRaw, blockSize);
         // elementType* localBuffer = fast_copy_unaligned_ramp_in(data_array, localBufferRaw, blockSize);
 
         //The start ID is read last to check that the block was not being overwritten while the data was being read

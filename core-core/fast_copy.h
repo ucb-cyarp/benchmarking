@@ -4,6 +4,14 @@
 #include <cstring>
 #include <immintrin.h>
 
+#ifdef __AVX__
+    #define FAST_COPY_ALIGNED_PADDING (32)
+#elif defined (__SSE2__)
+    #define FAST_COPY_ALIGNED_PADDING (16)
+#else
+    #define FAST_COPY_ALIGNED_PADDING (8)
+#endif
+
 // #define FAST_COPY_ALIGN_ON_SRC //If defined, fast_copy_unaligned aligns to source.  If not defined, fast_copy_unaligned aligns to the destination.
 
 #ifdef FAST_COPY_ALIGN_ON_SRC
