@@ -18,6 +18,8 @@
 
 // #define CLOSED_LOOP_DISABLE_INTERRUPTS 1
 
+// #define CLOSED_LOOP_CHECK_BLOCK_CONTENT //If defined, the contents of blocks are checked.  Different content is written into each block.  If not, no checking of block content is performed.
+
 template<typename elementType, 
          typename idType, 
          typename indexType, 
@@ -669,10 +671,17 @@ void* closed_loop_buffer_float_client(void* arg){
 
         //Check elements
         for(int sample = 0; sample<blockSize; sample++){
-            if(localBuffer[sample] != expectedSampleVals){
-                std::cerr << "Unexpected array data!" << std::endl;
-                exit(1);
-            }
+            #ifdef CLOSED_LOOP_CHECK_BLOCK_CONTENT
+                if(localBuffer[sample] != expectedSampleVals){
+                    std::cerr << "Unexpected array data!" << std::endl;
+                    exit(1);
+                }
+            #else
+                asm volatile(""
+                :
+                : "m" (localBuffer[sample])
+                : );
+            #endif
         }
 
         expectedSampleVals = (expectedSampleVals+1)%2;
