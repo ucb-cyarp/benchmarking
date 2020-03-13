@@ -17,8 +17,8 @@
 #include <sys/ioctl.h>
 
 // #define CLOSED_LOOP_DISABLE_INTERRUPTS 1
-
 #define TEST_ELEMENT_WRAPAROUND (65536) //2^16
+// #define CLOSED_LOOP_CHECK_BLOCK_CONTENT //If defined, the contents of blocks are checked.  Different content is written into each block.  If not, no checking of block content is performed.
 
 template<typename elementType, 
          typename idType, 
@@ -581,12 +581,20 @@ void* closed_loop_buffer_float_client(void* arg){
 
         //Check elements
         for(int sample = 0; sample<blockSize; sample++){
-            if(localBuffer[sample] != expectedSampleVals){
-                //Will signal failure outside of loop
-                // printf("Got %d expected %d\n", localBuffer[sample], expectedSampleVals);
-                failureDetected = true;
-                break;
-            }
+            
+            #ifdef CLOSED_LOOP_CHECK_BLOCK_CONTENT
+                if(localBuffer[sample] != expectedSampleVals){
+                    //Will signal failure outside of loop
+                    // printf("Got %d expected %d\n", localBuffer[sample], expectedSampleVals);
+                    failureDetected = true;
+                    break;
+                }
+            #else
+                asm volatile(""
+                :
+                : "m" (localBuffer[sample])
+                : );
+            #endif
         }
 
         if(failureDetected){

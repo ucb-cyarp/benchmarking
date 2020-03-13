@@ -222,7 +222,9 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
 
         //Increment block id for next block
         writeBlockInd = writeBlockInd == idMax ? 0 : writeBlockInd+1;
-        sampleVals = (sampleVals+1)%TEST_ELEMENT_WRAPAROUND;
+        #ifdef CLOSED_LOOP_CHECK_BLOCK_CONTENT
+            sampleVals = (sampleVals+1)%TEST_ELEMENT_WRAPAROUND;
+        #endif
 
         //Check stop flag
         stop = !std::atomic_flag_test_and_set_explicit(stop_flag, std::memory_order_acq_rel);
