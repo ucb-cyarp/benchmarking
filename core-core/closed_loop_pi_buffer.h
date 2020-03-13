@@ -118,13 +118,13 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
     indexType *write_offset_ptr = args->write_offset_ptr;
     indexType *read_offset_ptr = args->read_offset_ptr;
     void *array = args->array;
-    int array_length = args->array_length;
+    // int array_length = CLOSED_LOOP_ARRAY_LENGTH;
     int64_t max_block_transfers = args->max_block_transfers;
     std::atomic_flag *start_flag = args->start_flag;
     std::atomic_flag *stop_flag = args->stop_flag;
     std::atomic_flag *ready_flag = args->ready_flag;
-    int blockSize = args->blockSize;
-    int allignment = args->alignment;
+    // int blockSize = args->blockSize;
+    int allignment = CLOSED_LOOP_ALIGNMENT;
     int core = args->core_server;
 
     FILE* sirFile = args->writerSirFile;
@@ -144,7 +144,7 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
 
     nopsClientLocalType control_integral = 0;
 
-    int halfFilledPoint = array_length/2; //Initialize FIFO to be half full (round down if odd number)
+    int halfFilledPoint = CLOSED_LOOP_ARRAY_LENGTH/2; //Initialize FIFO to be half full (round down if odd number)
     int numberInitBlocks = halfFilledPoint;
 
     int blockArrayBytes;
@@ -152,7 +152,7 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
     int blockArrayCombinedBytes;
     int blockSizeBytes;
 
-    getBlockSizing<elementType>(blockSize, args->alignment, blockArrayBytes, blockArrayPaddingBytes, 
+    getBlockSizing<elementType>(CLOSED_LOOP_BLOCK_SIZE, CLOSED_LOOP_ALIGNMENT, blockArrayBytes, blockArrayPaddingBytes, 
     blockArrayCombinedBytes, blockSizeBytes);
 
     //Load initial write offset
@@ -199,7 +199,7 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
 
         //Write elements
         elementType *data_array = (elementType*) (((char*) array) + writeOffset*blockSizeBytes);
-        for(int sample = 0; sample<blockSize; sample++){
+        for(int sample = 0; sample<CLOSED_LOOP_BLOCK_SIZE; sample++){
             data_array[sample] = sampleVals;
         }
 
@@ -208,7 +208,7 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
         std::atomic_signal_fence(std::memory_order_release);
 
         //Check for index wrap arround (note, there is an extra array element)
-        if (writeOffset >= array_length)
+        if (writeOffset >= CLOSED_LOOP_ARRAY_LENGTH)
         {
             writeOffset = 0;
         }
@@ -241,7 +241,7 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
             //writeOffset is the local copy of the write offset
             //Load the 
             indexLocalType readOffset = std::atomic_load_explicit(read_offset_ptr, std::memory_order_acquire);
-            indexLocalType numEntries = getNumItemsInBuffer(readOffset, writeOffset, array_length);
+            indexLocalType numEntries = getNumItemsInBuffer(readOffset, writeOffset, CLOSED_LOOP_ARRAY_LENGTH);
 
             nopsClientLocalType error = numEntries - halfFilledPoint;
             control_integral += error;

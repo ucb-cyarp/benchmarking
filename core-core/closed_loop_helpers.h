@@ -18,6 +18,10 @@
 
 // #define CLOSED_LOOP_DISABLE_INTERRUPTS 1
 
+#define CLOSED_LOOP_ALIGNMENT (4)
+#define CLOSED_LOOP_BLOCK_SIZE (144)
+#define CLOSED_LOOP_ARRAY_LENGTH (255)
+
 #define TEST_ELEMENT_WRAPAROUND (65536) //2^16
 
 template<typename elementType, 
@@ -135,20 +139,20 @@ void* closed_loop_buffer_reset(void* arg){
     int blockArrayCombinedBytes;
     int blockSizeBytes;
 
-    getBlockSizing<elementType>(args->blockSize, args->alignment, blockArrayBytes, blockArrayPaddingBytes, blockArrayCombinedBytes, blockSizeBytes);
+    getBlockSizing<elementType>(CLOSED_LOOP_BLOCK_SIZE, CLOSED_LOOP_ALIGNMENT, blockArrayBytes, blockArrayPaddingBytes, blockArrayCombinedBytes, blockSizeBytes);
 
     std::atomic_thread_fence(std::memory_order_acquire);
 
-    int numberInitBlocks = args->array_length/2; //Initialize FIFO to be half full (round down if odd number)
+    int numberInitBlocks = CLOSED_LOOP_ARRAY_LENGTH/2; //Initialize FIFO to be half full (round down if odd number)
 
     //Using memory order released so that initialization occures in the order it occures in steady state operation
 
     //Reset the reader array
     elementType* local_array = (elementType*) args->local_array_reader;
-    for(int i = 0; i<args->blockSize; i++){
+    for(int i = 0; i<CLOSED_LOOP_BLOCK_SIZE; i++){
         local_array[i] = 0;
     }
-    char* local_array_padding = (char*) (local_array+args->blockSize);
+    char* local_array_padding = (char*) (local_array+CLOSED_LOOP_BLOCK_SIZE);
     for(int i = 0; i<FAST_COPY_ALIGNED_PADDING; i++){
         local_array_padding[i] = 0;
     }
@@ -161,9 +165,9 @@ void* closed_loop_buffer_reset(void* arg){
     //Reset the block ids and data
 
     //Init Blocks After Initial Conditions (these are initialized first because, after the reset, these will be the first blocks to be written to by the writer)
-    for(int i = numberInitBlocks+1; i <= args->array_length; i++){ //Note, there is an extra element in the array
+    for(int i = numberInitBlocks+1; i <= CLOSED_LOOP_ARRAY_LENGTH; i++){ //Note, there is an extra element in the array
         elementType *data_array = (elementType*) (((char*) args->array) + i*blockSizeBytes);
-        for(int j = 0; j<args->blockSize; j++){
+        for(int j = 0; j<CLOSED_LOOP_BLOCK_SIZE; j++){
             data_array[j] = -1;
         }
     }
@@ -172,7 +176,7 @@ void* closed_loop_buffer_reset(void* arg){
 
     //Init ID Zero
     elementType *data_array = (elementType*) (((char*) args->array));
-    for(int j = 0; j<args->blockSize; j++){
+    for(int j = 0; j<CLOSED_LOOP_BLOCK_SIZE; j++){
         data_array[j] = -1;
     }
 
@@ -181,7 +185,7 @@ void* closed_loop_buffer_reset(void* arg){
     //Initial Conditions
     for(int i = 1; i<numberInitBlocks+1; i++){
         elementType *data_array = (elementType*) (((char*) args->array) + i*blockSizeBytes);
-        for(int j = 0; j<args->blockSize; j++){
+        for(int j = 0; j<CLOSED_LOOP_BLOCK_SIZE; j++){
             data_array[j] = (i+1)%TEST_ELEMENT_WRAPAROUND;
         }
     }
@@ -213,12 +217,12 @@ void* closed_loop_buffer_cleanup(void* arg){
     int idCombinedBytes;
     int blockSizeBytes;
 
-    getBlockSizing<elementType, indexType>(args->blockSize, args->alignment, blockArrayBytes, blockArrayPaddingBytes, 
+    getBlockSizing<elementType, indexType>(CLOSED_LOOP_BLOCK_SIZE, CLOSED_LOOP_ALIGNMENT, blockArrayBytes, blockArrayPaddingBytes, 
     blockArrayCombinedBytes, idBytes, idPaddingBytes, idCombinedBytes, blockSizeBytes);
 
     std::atomic_thread_fence(std::memory_order_acquire);
 
-    int numberInitBlocks = args->array_length/2; //Initialize FIFO to be half full (round down if odd number)
+    int numberInitBlocks = CLOSED_LOOP_ARRAY_LENGTH/2; //Initialize FIFO to be half full (round down if odd number)
 
     std::atomic_thread_fence(std::memory_order_acquire);
 
@@ -238,12 +242,12 @@ void* closed_loop_buffer_int_client(void* arg){
     ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType, nopsClientLocalType>* args = (ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType, nopsClientLocalType>*) arg;
     indexType *read_offset_ptr = args->read_offset_ptr;
     void *array = args->array;
-    int array_length = args->array_length;
+    // int array_length = CLOSED_LOOP_ARRAY_LENGTH;
     int64_t max_block_transfers = args->max_block_transfers;
     std::atomic_flag *start_flag = args->start_flag;
     std::atomic_flag *stop_flag = args->stop_flag;
     std::atomic_flag *ready_flag = args->ready_flag;
-    int blockSize = args->blockSize;
+    // int blockSize = CLOSED_LOOP_BLOCK_SIZE;
 
     int core = args->core_client;
 
@@ -261,7 +265,7 @@ void* closed_loop_buffer_int_client(void* arg){
 
     idLocalType expectedBlockID = -1;
 
-    elementType localBuffer[blockSize];
+    elementType localBuffer[CLOSED_LOOP_BLOCK_SIZE];
 
     int blockArrayBytes;
     int blockArrayPaddingBytes;
@@ -271,13 +275,13 @@ void* closed_loop_buffer_int_client(void* arg){
     int idCombinedBytes;
     int blockSizeBytes;
 
-    getBlockSizing<elementType, idType>(args->blockSize, args->alignment, blockArrayBytes, blockArrayPaddingBytes, 
+    getBlockSizing<elementType, idType>(CLOSED_LOOP_BLOCK_SIZE, CLOSED_LOOP_ALIGNMENT, blockArrayBytes, blockArrayPaddingBytes, 
     blockArrayCombinedBytes, idBytes, idPaddingBytes, idCombinedBytes, blockSizeBytes);
 
     //==== Load the initial read offset ====
     indexLocalType readOffset = std::atomic_load_explicit(read_offset_ptr, std::memory_order_acquire);
 
-    int numberInitBlocks = array_length/2; //Initialize FIFO to be half full (round down if odd number)
+    int numberInitBlocks = CLOSED_LOOP_ARRAY_LENGTH/2; //Initialize FIFO to be half full (round down if odd number)
 
     //Disable Interrupts For This Trial (Before Signalling Ready)
     #if CLOSED_LOOP_DISABLE_INTERRUPTS == 1
@@ -301,8 +305,8 @@ void* closed_loop_buffer_int_client(void* arg){
     //This is what it needs to do in the steady state case and should do at the start as well.
     
     //Read Elements beyond initial condition
-    for(int i = numberInitBlocks+1; i <= array_length+1; i++){ //Note, there is an extra element in the array
-        int ind = i<=array_length ? i : 0;
+    for(int i = numberInitBlocks+1; i <= CLOSED_LOOP_ARRAY_LENGTH+1; i++){ //Note, there is an extra element in the array
+        int ind = i<=CLOSED_LOOP_ARRAY_LENGTH ? i : 0;
         idType *block_id_end = (idType*) (((char*) array) + ind*blockSizeBytes + idCombinedBytes);
         newBlockIDEnd = std::atomic_load_explicit(block_id_end, std::memory_order_acquire);
         asm volatile(""
@@ -313,7 +317,7 @@ void* closed_loop_buffer_int_client(void* arg){
         //Read elements
         //Read backwards to avoid cache thrashing
         elementType *data_array = (elementType*) (((char*) array) + ind*blockSizeBytes + idCombinedBytes*2);
-        for(int sample = 0; sample<blockSize; sample++){
+        for(int sample = 0; sample<CLOSED_LOOP_BLOCK_SIZE; sample++){
             localBuffer[sample] = data_array[sample];
             asm volatile(""
             :
@@ -341,7 +345,7 @@ void* closed_loop_buffer_int_client(void* arg){
     for(transfer = 0; transfer<(max_block_transfers+numberInitBlocks); transfer++){ //Need to do numberInitBlocks extra reads
         //---- Read from Input Buffer Unconditionally ----
         //Load Read Ptr
-        if (readOffset >= array_length) //(note, there is an extra array element)
+        if (readOffset >= CLOSED_LOOP_ARRAY_LENGTH) //(note, there is an extra array element)
         {
             readOffset = 0;
         }
@@ -371,7 +375,7 @@ void* closed_loop_buffer_int_client(void* arg){
         //It will then use an SSE instruction to copy remaining data (if applicable)
         //It will then use standard load/store instructions to copy the remaining data
 
-        for(int sample = 0; sample<blockSize; sample++){
+        for(int sample = 0; sample<CLOSED_LOOP_BLOCK_SIZE; sample++){
             localBuffer[sample] = data_array[sample];
         }
 
@@ -395,7 +399,7 @@ void* closed_loop_buffer_int_client(void* arg){
         readBlockInd = expectedBlockID;
 
         //Check elements
-        for(int sample = 0; sample<blockSize; sample++){
+        for(int sample = 0; sample<CLOSED_LOOP_BLOCK_SIZE; sample++){
             if(localBuffer[sample] != expectedSampleVals){
                 std::cerr << "Unexpected array data!" << std::endl;
                 exit(1);
@@ -457,12 +461,12 @@ void* closed_loop_buffer_float_client(void* arg){
     ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType, nopsClientLocalType>* args = (ClosedLoopBufferArgs<elementType, idType, indexType, nopsClientType, nopsClientLocalType>*) arg;
     indexType *read_offset_ptr = args->read_offset_ptr;
     void *array = args->array;
-    int array_length = args->array_length;
+    // int array_length = CLOSED_LOOP_ARRAY_LENGTH;
     int64_t max_block_transfers = args->max_block_transfers;
     std::atomic_flag *start_flag = args->start_flag;
     std::atomic_flag *stop_flag = args->stop_flag;
     std::atomic_flag *ready_flag = args->ready_flag;
-    int blockSize = args->blockSize;
+    // int blockSize = CLOSED_LOOP_BLOCK_SIZE;
 
     int core = args->core_client;
 
@@ -488,13 +492,13 @@ void* closed_loop_buffer_float_client(void* arg){
     int blockArrayCombinedBytes;
     int blockSizeBytes;
 
-    getBlockSizing<elementType>(args->blockSize, args->alignment, blockArrayBytes, blockArrayPaddingBytes, 
+    getBlockSizing<elementType>(CLOSED_LOOP_BLOCK_SIZE, CLOSED_LOOP_ALIGNMENT, blockArrayBytes, blockArrayPaddingBytes, 
     blockArrayCombinedBytes, blockSizeBytes);
 
     //==== Load the initial read offset ====
     indexLocalType readOffset = std::atomic_load_explicit(read_offset_ptr, std::memory_order_acquire);
 
-    int numberInitBlocks = array_length/2; //Initialize FIFO to be half full (round down if odd number)
+    int numberInitBlocks = CLOSED_LOOP_ARRAY_LENGTH/2; //Initialize FIFO to be half full (round down if odd number)
 
     //Disable Interrupts For This Trial (Before Signalling Ready)
     #if CLOSED_LOOP_DISABLE_INTERRUPTS == 1
@@ -518,11 +522,11 @@ void* closed_loop_buffer_float_client(void* arg){
     //This is what it needs to do in the steady state case and should do at the start as well.
     
     //Read Elements beyond initial condition
-    for(int i = numberInitBlocks+1; i <= array_length+1; i++){ //Note, there is an extra element in the array
-        int ind = i<=array_length ? i : 0;
+    for(int i = numberInitBlocks+1; i <= CLOSED_LOOP_ARRAY_LENGTH+1; i++){ //Note, there is an extra element in the array
+        int ind = i<=CLOSED_LOOP_ARRAY_LENGTH ? i : 0;
         //Read elements
         elementType *data_array = (elementType*) (((char*) array) + ind*blockSizeBytes);
-        for(int sample = 0; sample<blockSize; sample++){
+        for(int sample = 0; sample<CLOSED_LOOP_BLOCK_SIZE; sample++){
             localBufferRaw[sample] = data_array[sample];
             asm volatile(""
             :
@@ -532,10 +536,10 @@ void* closed_loop_buffer_float_client(void* arg){
     }
 
     //Write to local array (will have been reset by the server and need to re-aquire exclusive access)
-    for(int i = 0; i < blockSize; i++){
+    for(int i = 0; i < CLOSED_LOOP_BLOCK_SIZE; i++){
         localBufferRaw[i] = 0;
     }
-    char* local_array_padding = (char*) (localBufferRaw+args->blockSize);
+    char* local_array_padding = (char*) (localBufferRaw+CLOSED_LOOP_BLOCK_SIZE);
     for(int i = 0; i<FAST_COPY_ALIGNED_PADDING; i++){
         local_array_padding[i] = 0;
     }
@@ -550,7 +554,7 @@ void* closed_loop_buffer_float_client(void* arg){
     for(transfer = 0; transfer<(max_block_transfers+numberInitBlocks); transfer++){ //Need to do numberInitBlocks extra reads
         //---- Read from Input Buffer Unconditionally ----
         //Load Read Ptr
-        if (readOffset >= array_length) //(note, there is an extra array element)
+        if (readOffset >= CLOSED_LOOP_ARRAY_LENGTH) //(note, there is an extra array element)
         {
             readOffset = 0;
         }
@@ -564,13 +568,13 @@ void* closed_loop_buffer_float_client(void* arg){
         //+++ Read from array +++
         //Read elements
         elementType *data_array = (elementType*) (((char*) array) + readOffset*blockSizeBytes);
-        // for(int sample = 0; sample<blockSize; sample++){
+        // for(int sample = 0; sample<CLOSED_LOOP_BLOCK_SIZE; sample++){
         //     localBuffer[sample] = data_array[sample];
         // }
-        // elementType* localBuffer = fast_copy_aligned(data_array, localBufferRaw, blockSize, FAST_COPY_ALIGNED_PADDING);
-        // elementType* localBuffer = fast_copy_semialigned(data_array, localBufferRaw, blockSize);
-        // elementType* localBuffer = fast_copy_unaligned(data_array, localBufferRaw, blockSize);
-        elementType* localBuffer = fast_copy_unaligned_ramp_in(data_array, localBufferRaw, blockSize);
+        // elementType* localBuffer = fast_copy_aligned(data_array, localBufferRaw, CLOSED_LOOP_BLOCK_SIZE, FAST_COPY_ALIGNED_PADDING);
+        // elementType* localBuffer = fast_copy_semialigned(data_array, localBufferRaw, CLOSED_LOOP_BLOCK_SIZE);
+        // elementType* localBuffer = fast_copy_unaligned(data_array, localBufferRaw, CLOSED_LOOP_BLOCK_SIZE);
+        elementType* localBuffer = fast_copy_unaligned_ramp_in(data_array, localBufferRaw, CLOSED_LOOP_BLOCK_SIZE);
 
         //The start ID is read last to check that the block was not being overwritten while the data was being read
         std::atomic_signal_fence(std::memory_order_release); //Do not want an actual fence but do not want sample reading to be re-ordered before the end block ID read
@@ -580,7 +584,7 @@ void* closed_loop_buffer_float_client(void* arg){
         std::atomic_store_explicit(read_offset_ptr, readOffset, std::memory_order_release);
 
         //Check elements
-        for(int sample = 0; sample<blockSize; sample++){
+        for(int sample = 0; sample<CLOSED_LOOP_BLOCK_SIZE; sample++){
             if(localBuffer[sample] != expectedSampleVals){
                 //Will signal failure outside of loop
                 // printf("Got %d expected %d\n", localBuffer[sample], expectedSampleVals);
