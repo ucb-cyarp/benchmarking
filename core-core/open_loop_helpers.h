@@ -104,6 +104,14 @@
         blockSizeBytes = blockArrayCombinedBytes+idCombinedBytes*2;
     }
 
+    template<typename elementType>
+    void getBlockSizing(int blockLength, int alignment, int &blockArrayBytes, int &blockArrayPaddingBytes, int &blockArrayCombinedBytes, int &blockSizeBytes){
+        blockArrayBytes = sizeof(elementType)*blockLength;
+        blockArrayPaddingBytes = (blockArrayBytes % alignment == 0) ? 0 : alignment - blockArrayBytes % alignment;
+        blockArrayCombinedBytes = blockArrayBytes+blockArrayPaddingBytes;
+        blockSizeBytes = blockArrayCombinedBytes;
+    }
+
     //The vectors include:
     //shared_array_locs:    the array for each communicating buffer
     //shared_write_id_locs: the write indexes for each buffer

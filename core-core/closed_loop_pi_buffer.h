@@ -150,13 +150,10 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
     int blockArrayBytes;
     int blockArrayPaddingBytes;
     int blockArrayCombinedBytes;
-    int idBytes;
-    int idPaddingBytes;
-    int idCombinedBytes;
     int blockSizeBytes;
 
-    getBlockSizing<elementType, idType>(blockSize, args->alignment, blockArrayBytes, blockArrayPaddingBytes, 
-    blockArrayCombinedBytes, idBytes, idPaddingBytes, idCombinedBytes, blockSizeBytes);
+    getBlockSizing<elementType>(blockSize, args->alignment, blockArrayBytes, blockArrayPaddingBytes, 
+    blockArrayCombinedBytes, blockSizeBytes);
 
     //Load initial write offset
     indexLocalType writeOffset = std::atomic_load_explicit(write_offset_ptr, std::memory_order_acquire);
@@ -164,7 +161,7 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
     //Initialize Block ID
     idLocalType writeBlockInd = writeOffset;
 
-    elementType sampleVals = (writeOffset+1)%2;
+    elementType sampleVals = (writeOffset+1)%TEST_ELEMENT_WRAPAROUND;
 
     //Disable Interrupts For This Trial (Before Signalling Ready)
     #if CLOSED_LOOP_DISABLE_INTERRUPTS == 1
@@ -198,20 +195,17 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
         //---- Write to output buffer unconditionally (order of writing the IDs is important as they are used by the reader to detect partially valid blocks)
         //+++ Write into array +++
         //Write initial block ID
-        idType *block_id_start = (idType*) (((char*) array) + writeOffset*blockSizeBytes);
-        std::atomic_store_explicit(block_id_start, writeBlockInd, std::memory_order_release); //Prevents memory access from being reordered after this
         std::atomic_signal_fence(std::memory_order_acquire); //Do not want an actual fence but do not want sample writing to be re-ordered before the initial block ID write
 
         //Write elements
-        elementType *data_array = (elementType*) (((char*) array) + writeOffset*blockSizeBytes + idCombinedBytes*2);
+        elementType *data_array = (elementType*) (((char*) array) + writeOffset*blockSizeBytes);
         for(int sample = 0; sample<blockSize; sample++){
             data_array[sample] = sampleVals;
         }
 
-        //Write final block ID
-        idType *block_id_end = (idType*) (((char*) array) + writeOffset*blockSizeBytes + idCombinedBytes);
-        std::atomic_store_explicit(block_id_end, writeBlockInd, std::memory_order_release); //Prevents memory access from being reordered after this
         //+++ End write into array +++
+
+        std::atomic_signal_fence(std::memory_order_release);
 
         //Check for index wrap arround (note, there is an extra array element)
         if (writeOffset >= array_length)
@@ -228,7 +222,7 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
 
         //Increment block id for next block
         writeBlockInd = writeBlockInd == idMax ? 0 : writeBlockInd+1;
-        sampleVals = (sampleVals+1)%2;
+        sampleVals = (sampleVals+1)%TEST_ELEMENT_WRAPAROUND;
 
         //Check stop flag
         stop = !std::atomic_flag_test_and_set_explicit(stop_flag, std::memory_order_acq_rel);
