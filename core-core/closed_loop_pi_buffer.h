@@ -5,6 +5,8 @@
 #include "open_loop_helpers.h"
 #include "closed_loop_helpers.h"
 
+#define CLOSED_LOOP_CONTROL_ERROR_THRESHOLD (80) //This (out of 100) is the error beyond which the controller considers an error to have occured
+
 //This version does not use a structure for the blocks.  This allos the block size to be changed at runtime.
 //There is a catch which is that the blocks must be naturally alligned.
 
@@ -182,7 +184,11 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
         start = !std::atomic_flag_test_and_set_explicit(start_flag, std::memory_order_acq_rel); //Start signal is active low
     }
 
-    bool stop = false;
+    #ifdef CLOSED_LOOP_CHECK_BLOCK_CONTENT
+        bool stop = false;
+    #else
+        bool errored = false;
+    #endif
     int64_t transfer;
     int32_t controlCheckCounter = 0;
     int64_t controlCheckHist = 0;
@@ -226,11 +232,14 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
             sampleVals = (sampleVals+1)%TEST_ELEMENT_WRAPAROUND;
         #endif
 
-        //Check stop flag
-        stop = !std::atomic_flag_test_and_set_explicit(stop_flag, std::memory_order_acq_rel);
-        if(stop){
-            break;
-        }
+        //If contnent is being checked, the reader signals when there is an error and that the sender should stop
+        #ifdef CLOSED_LOOP_CHECK_BLOCK_CONTENT
+            //Check stop flag
+            stop = !std::atomic_flag_test_and_set_explicit(stop_flag, std::memory_order_acq_rel);
+            if(stop){
+                break;
+            }
+        #endif
 
         //==== Control ====
         if(controlCheckCounter < control_check_period){
@@ -246,6 +255,22 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
             indexLocalType numEntries = getNumItemsInBuffer(readOffset, writeOffset, array_length);
 
             nopsClientLocalType error = numEntries - halfFilledPoint;
+
+            #ifndef CLOSED_LOOP_CHECK_BLOCK_CONTENT
+                //Error detection is acomplished by checking for errors outside of an acceptable range
+
+                nopsClientLocalType errorThreshold = array_length*CLOSED_LOOP_CONTROL_ERROR_THRESHOLD/(2*100);
+                if (error > errorThreshold || errorThreshold < -errorThreshold){
+                    //The buffer has entered a dangerous region.  We will say an error has occured
+                    errored = true;
+
+                    //Signal to the reader to stop
+                    std::atomic_flag_clear_explicit(stop_flag, std::memory_order_release);
+                    break;
+                }
+
+            #endif
+
             control_integral += error;
 
             //The correction is from the perspective of the server.
@@ -308,6 +333,9 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
         nops_current -= nops_current_trunk;//Get the residual for the next round
     }
 
+    //If checking is done in the server, we do not send the stop command to the reader if all content has been written by the server.  Unless a failure was detected,
+    //by the controller, we assume that no corruption occured and the reader 
+
     //Re-enable interrupts before processing results (which dynamically allocates memory which can result in a system call)
     #if CLOSED_LOOP_DISABLE_INTERRUPTS == 1
         status = ioctl(fileno(sirFile), SIR_IOCTL_RESTORE_INTERRUPT, NULL);
@@ -326,7 +354,11 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
     rtn->slow_down_count = slowDownCount;
     rtn->serverNops = nops_server;
     rtn->clientNops = nops_client_local;
-    rtn->errored = stop;
+    #ifdef CLOSED_LOOP_CHECK_BLOCK_CONTENT
+        rtn->errored = stop;
+    #else
+        rtn->errored = errored;
+    #endif
     rtn->transaction = transfer;
     rtn->base_speed_up_count = baseSpeedUpCount;
     rtn->base_slow_down_count = baseSlowDownCount;

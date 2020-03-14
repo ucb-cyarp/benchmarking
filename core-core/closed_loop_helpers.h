@@ -544,7 +544,11 @@ void* closed_loop_buffer_float_client(void* arg){
     std::atomic_thread_fence(std::memory_order_acquire);
     std::atomic_flag_clear_explicit(start_flag, std::memory_order_release);
 
-    bool failureDetected = false;
+    #ifdef CLOSED_LOOP_CHECK_BLOCK_CONTENT
+        bool failureDetected = false;
+    #else
+        bool stop = false;
+    #endif
     int64_t transfer;
     int32_t controlCounter = 0;
     for(transfer = 0; transfer<(max_block_transfers+numberInitBlocks); transfer++){ //Need to do numberInitBlocks extra reads
@@ -581,7 +585,6 @@ void* closed_loop_buffer_float_client(void* arg){
 
         //Check elements
         for(int sample = 0; sample<blockSize; sample++){
-            
             #ifdef CLOSED_LOOP_CHECK_BLOCK_CONTENT
                 if(localBuffer[sample] != expectedSampleVals){
                     //Will signal failure outside of loop
@@ -596,10 +599,18 @@ void* closed_loop_buffer_float_client(void* arg){
                 : );
             #endif
         }
-
-        if(failureDetected){
-            break;
-        }
+        
+        #ifdef CLOSED_LOOP_CHECK_BLOCK_CONTENT
+            if(failureDetected){
+                break;
+            }
+        #else
+            //If we are not checking the block content, the server decides if an error has probably occured and will signal to the client to stop
+            stop = !std::atomic_flag_test_and_set_explicit(stop_flag, std::memory_order_acq_rel);
+            if(stop){
+                break;
+            }
+        #endif
 
         expectedSampleVals = (expectedSampleVals+1)%TEST_ELEMENT_WRAPAROUND;
 
@@ -622,7 +633,10 @@ void* closed_loop_buffer_float_client(void* arg){
     }
 
     std::atomic_thread_fence(std::memory_order_acquire);
-    std::atomic_flag_clear_explicit(stop_flag, std::memory_order_release);
+    #ifdef CLOSED_LOOP_CHECK_BLOCK_CONTENT
+        //If we are checking blocks, the client notifies the sender to stop.  If not, the server performs this action
+        std::atomic_flag_clear_explicit(stop_flag, std::memory_order_release);
+    #endif
 
     //Re-enable interrupts before processing results (which dynamically allocates memory which can result in a system call)
     #if CLOSED_LOOP_DISABLE_INTERRUPTS == 1
@@ -637,8 +651,14 @@ void* closed_loop_buffer_float_client(void* arg){
     rtn->expectedBlockID = readBlockInd;
     rtn->startBlockID = newBlockIDStart;
     rtn->endBlockID = newBlockIDEnd;
-    rtn->wasErrorSrc = true;
-    rtn->errored = failureDetected;
+    #ifdef CLOSED_LOOP_CHECK_BLOCK_CONTENT
+        rtn->wasErrorSrc = true;
+        rtn->errored = failureDetected;
+    #else
+        rtn->wasErrorSrc = false;
+        rtn->errored = stop;
+    #endif
+    
     rtn->resultGranularity = HW_Granularity::CORE;
     rtn->granularityIndex = core;
     rtn->transaction = transfer;
