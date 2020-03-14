@@ -701,4 +701,56 @@ inline elementType* fast_copy_unaligned(elementType* src, elementType* dst, size
     return dst;
 }
 
+//This version of fast copy relies on the source and destination arrays being aligned and the lengths being a multiple of the vector length
+//
+//This version starts out using AVX or SSE instructions then ramps out
+template<typename elementType>
+inline elementType* fast_copy_aligned_multiple(elementType* src, elementType* dst, size_t len_elements){
+
+    //For now, structures will not be supported
+    //TODO: expand support for strucures.
+
+    if(sizeof(elementType) != 8 && sizeof(elementType) != 4 && sizeof(elementType) != 2 && sizeof(elementType) != 1){
+        std::cerr << "Error!  Fast Copy Unaligned Currently Does not Support Elements > 8 Bytes or not a power of 2" << std::endl;
+        exit(1);
+    }
+
+    //Determine how many standard element copies need to be conducted and how many larger (and potentially unaligned copies) need to happen
+    #ifdef __AVX__
+        size_t bytesPerTransfer = 32;
+        size_t elementsPerBlockTransfer = 32/sizeof(elementType);
+    #elif defined (__SSE2__)
+        size_t bytesPerTransfer = 16;
+        size_t elementsPerBlockTransfer = 16/sizeof(elementType);
+    #else
+        size_t bytesPerTransfer = 8;
+        size_t elementsPerBlockTransfer = 8/sizeof(elementType);
+    #endif
+
+    if((sizeof(elementType)*len_elements)%bytesPerTransfer != 0){
+        std::cerr << "Error! Fast Copy Unaligned Multiple Requires that the array length (" << sizeof(elementType)*len_elements << ") be a multiple of the vector unit lenth (" << bytesPerTransfer << ")" << std::endl;
+        exit(1);
+    }
+
+    size_t blocksToCopy = len_elements/elementsPerBlockTransfer;
+
+    //Copy Large Blocks
+    for(size_t i = 0; i<blocksToCopy; i++){
+        elementType* srcCursor = src+i*elementsPerBlockTransfer;
+        elementType* dstCursor = dst+i*elementsPerBlockTransfer;
+        #ifdef __AVX__
+            //double type is a dummy type to use the intrinsic
+            __m256d tmp = _mm256_load_pd((double*) srcCursor);
+            _mm256_store_pd((double*) dstCursor, tmp);
+        #elif defined (__SSE2__)
+            __128d tmp = _mm128_load_pd((double*) srcCursor);
+            _mm128_store_pd((double*) dstCursor, tmp);
+        #else
+            *((int64_t*) dstCursor) = *((int64_t*) srcCursor);
+        #endif
+    }
+
+    return dst;
+}
+
 #endif
