@@ -339,17 +339,17 @@ std::string tableHeaderClosedLoopPI(std::string title, FILE* file){
     #if PRINT_TITLE == 1
         printf("\n");
         printTitle(title);
-        printf("        =======================================================================================================================================================\n");
-        printf("          Array Length  |      Block Size      | Server Control      | Client Control      | Control Gain P | Control Gain I | Initial |  Time to Failure (ms) \n");
-        printf("            (Blocks)    |  (int32_t Elements)  | Period (Iterations) | Period (Iterations) |    (NOPs)      |    (NOPs)      |  NOPs   |      Avg, StdDev      \n");
-        printf("        =======================================================================================================================================================\n");
+        printf("        =================================================================================================================================================================================\n");
+        printf("          Array Length  |      Block Size      | Server Control      | Client Control      | Control Gain P | Control Gain I | Control Gain Base  | Initial |  Time to Failure (ms) \n");
+        printf("            (Blocks)    |  (int32_t Elements)  | Period (Iterations) | Period (Iterations) |    (NOPs)      |    (NOPs)      |        (NOPs)      |   NOPs  |      Avg, StdDev      \n");
+        printf("        =================================================================================================================================================================================\n");
 
         fflush(stdout);
     #endif
 
     writeCSVSummaryHeaderClosedLoop(file);
 
-    return "         %14d | %20d | %19d | %19d | %14.2f | %14.2f | %7.2f | %10.4e, %10.4e\n";
+    return "         %14d | %20d | %19d | %19d | %14.2f | %14.2f | %18.2f | %7.2f | %10.4e, %10.4e\n";
 }
 
 void writeRawHeaderClosedLoopPI(std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResults, std::ofstream* raw_file){
@@ -360,6 +360,7 @@ void writeRawHeaderClosedLoopPI(std::vector<std::shared_ptr<BenchmarkSpecificRes
                   << "\"Client Control Period (Iterations)\","
                   << "\"Control Gain P (NOPs)\","
                   << "\"Control Gain I (NOPs)\","
+                  << "\"Control Gain Base (NOPs)\","
                   << "\"Initial NOPs\","
                   << "\"Steady Clock - Walltime (ms)\","
                   << "\"Clock - Cycles/Cycle Time (ms)\","

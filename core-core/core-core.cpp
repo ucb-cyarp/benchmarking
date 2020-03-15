@@ -683,6 +683,10 @@ int main(int argc, char *argv[])
     float closed_loop_pi_control_gain_i_step = 1;
     float closed_loop_pi_control_gain_i_end = 2000;
 
+    float closed_loop_pi_control_base_gain_start = 0.01;
+    float closed_loop_pi_control_base_gain_step = 0.1;
+    float closed_loop_pi_control_base_gain_end = 0.02;
+
     std::vector<float> closed_loop_pi_initial_nops = {0, 100, 500, 1000};
 
     int closed_loop_pi_alignment = 4; //Align to 4 byte (32 bit) words
@@ -724,6 +728,12 @@ int main(int argc, char *argv[])
         closed_loop_pi_control_gains_i.push_back(i);
     }
 
+    std::vector<float> closed_loop_pi_control_base_gains;
+    for(float i = closed_loop_pi_control_base_gain_start; i < closed_loop_pi_control_base_gain_end; i+=closed_loop_pi_control_base_gain_step)
+    {
+        closed_loop_pi_control_base_gains.push_back(i);
+    }
+
     FILE* closed_loop_pi_bang_control_csv_file = NULL;
     std::ofstream closed_loop_pi_bang_control_raw_csv_file;
     #if WRITE_CSV == 1
@@ -731,7 +741,7 @@ int main(int argc, char *argv[])
     closed_loop_pi_bang_control_raw_csv_file.open("report_closed_loop_pi_control_raw.csv", std::ofstream::out);
     #endif
 
-    run_closed_loop_pi_control_period_kernel(profiler, cpu_a, cpu_b, closed_loop_pi_array_lengths, closed_loop_pi_block_sizes, closed_loop_pi_control_periods, closed_loop_pi_client_control_periods, closed_loop_pi_control_gains_p, closed_loop_pi_control_gains_i, closed_loop_pi_initial_nops, closed_loop_pi_alignment, closed_loop_pi_max_block_transfers, closed_loop_pi_bang_control_csv_file, &closed_loop_pi_bang_control_raw_csv_file);
+    run_closed_loop_pi_control_period_kernel(profiler, cpu_a, cpu_b, closed_loop_pi_array_lengths, closed_loop_pi_block_sizes, closed_loop_pi_control_periods, closed_loop_pi_client_control_periods, closed_loop_pi_control_gains_p, closed_loop_pi_control_gains_i, closed_loop_pi_control_base_gains, closed_loop_pi_initial_nops, closed_loop_pi_alignment, closed_loop_pi_max_block_transfers, closed_loop_pi_bang_control_csv_file, &closed_loop_pi_bang_control_raw_csv_file);
 
     fclose(closed_loop_pi_bang_control_csv_file);
     closed_loop_pi_bang_control_raw_csv_file.close();

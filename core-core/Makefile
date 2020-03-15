@@ -83,7 +83,7 @@ endif
 
 MAIN_FILE = core-core.cpp
 KERNEL_SRCS = latency_single_kernel.cpp latency_dual_kernel.cpp latency_single_array_kernel.cpp latency_dual_array_kernel.cpp latency_flow_ctrl_kernel.cpp latency_flow_ctrl_blocked_read_kernel.cpp bandwidth_circular_fifo_kernel.cpp bandwidth_circular_fifo_blocked_kernel.cpp bandwidth_circular_fifo_read_limit_kernel.cpp bandwidth_circular_fifo_blocked_cachedptr_kernel.cpp bandwidth_circular_fifo_blocked_optimized_kernel.cpp
-LIB_SRCS = reporting_helpers.cpp fifo_helpers.cpp open_loop_helpers.cpp print_results.cpp kernel_server_runner.cpp single_kernels.cpp array_kernels.cpp fifo_kernels.cpp open_loop_kernels.cpp closed_loop_kernels.cpp closed_loop_helpers.cpp fifoless_helpers.cpp open_loop_fullness_tracker.cpp open_loop_run_past_failure.cpp
+LIB_SRCS = reporting_helpers.cpp fifo_helpers.cpp open_loop_helpers.cpp print_results.cpp kernel_server_runner.cpp single_kernels.cpp array_kernels.cpp fifo_kernels.cpp open_loop_kernels.cpp closed_loop_kernels.cpp closed_loop_helpers.cpp fifoless_helpers.cpp open_loop_fullness_tracker.cpp open_loop_run_past_failure.cpp closed_loop_pi_buffer.cpp
 
 SRCS=$(MAIN_FILE)
 SRCS+=$(LIB_SRCS)

@@ -29,6 +29,7 @@ template<typename elementType,
 struct ClosedLoopPIBufferArgs : public ClosedLoopBufferArgs<elementType, idType, indexType, nopsClient, nopsClientLocal>{
     nopsClientLocal control_gain_p; //The gain of the control system p
     nopsClientLocal control_gain_i; //The gain of the control system i
+    nopsClientLocal control_gain_base_bang; //The gain used to adjust the total NOP setpoint.  This is effectivly an integrator with bang-bang control and is used to gradually speed up transfers
 
     void printStandaloneTitle(bool report_standalone, std::string title) override; //Prints the standalone title block if standalone results are requested
 protected:
@@ -48,7 +49,7 @@ void ClosedLoopPIBufferArgs<elementType, idType, indexType, nopsClient, nopsClie
             printf("\n");
             printTitle(title);
             //Need to use this-> because of the class templating
-            printf("Array Length (Blocks): %d, Block Length (int32_t Elements): %d, Server Control Period (Iterations): %d, Client Control Period (Iterations): %d, Control Gain P (NOPs): %f, Control Gain I (NOPs): %f, Initial NOPs: %f\n", this->array_length, this->blockSize, this->control_check_period, this->control_client_check_period, this->control_gain_p, this->control_gain_i, this->initialNops);
+            printf("Array Length (Blocks): %d, Block Length (int32_t Elements): %d, Server Control Period (Iterations): %d, Client Control Period (Iterations): %d, Control Gain P (NOPs): %f, Control Gain I (NOPs): %f, Control Gain Base (NOPs): %f, Initial NOPs: %f\n", this->array_length, this->blockSize, this->control_check_period, this->control_client_check_period, this->control_gain_p, this->control_gain_i, this->control_gain_base_bang, this->initialNops);
             fflush(stdout);
         }
     #endif
@@ -73,13 +74,27 @@ void ClosedLoopPIBufferArgs<elementType, idType, indexType, nopsClient, nopsClie
             #if WRITE_CSV == 1
             //write the general results to the summary csv file
             //Need to use this-> because of the class templating
-            fprintf(file, "%d,%d,%d,%d,%f,%f,%f,%f,%f\n", this->array_length, this->blockSize, this->control_check_period, this->control_client_check_period, this->control_gain_p, this->control_gain_i, this->initialNops, avg_duration_ms, stddev_duration_ms);
+            fprintf(file, "%d,%d,%d,%d,%f,%f,%f,%f,%f,%f\n", this->array_length, this->blockSize, this->control_check_period, this->control_client_check_period, this->control_gain_p, this->control_gain_i, this->control_gain_base_bang, this->initialNops, avg_duration_ms, stddev_duration_ms);
             //write the general and benchmark specific results to the raw file
             //Need to use this-> because of the class templating
-            result.write_durations_and_benchmark_specific_results(*raw_file, {"", "", "", "", "", "", ""}, {std::to_string(this->array_length), std::to_string(this->blockSize), std::to_string(this->control_check_period), std::to_string(this->control_client_check_period), std::to_string(this->control_gain_p), std::to_string(this->control_gain_i), std::to_string(this->initialNops)}, false);
+            result.write_durations_and_benchmark_specific_results(*raw_file, {"", "", "", "", "", "", "", ""}, {std::to_string(this->array_length), std::to_string(this->blockSize), std::to_string(this->control_check_period), std::to_string(this->control_client_check_period), std::to_string(this->control_gain_p), std::to_string(this->control_gain_i), std::to_string(this->control_gain_base_bang), std::to_string(this->initialNops)}, false);
             #endif
     }
 }
+
+class ClosedLoopPIServerEndCondition : public ClosedLoopServerEndCondition{
+public:
+    int64_t base_speed_up_count;
+    int64_t base_slow_down_count;
+    float base_nops;
+
+    std::string getTrialResultsHeader() override;
+    std::string getTrialResults() override;
+    std::string getTrialCSVHeader() override;
+    std::string getTrialCSVData() override;
+
+    ClosedLoopPIServerEndCondition();
+};
 
 //Note: The server and client threads are different instruction streams.  One writes while the other reads and needs to check the block ids (and the block data).
 //The writer needs to periodically check the error condition flag provided by the reader.  This can result in the two functions having different
@@ -121,6 +136,8 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
     nopsClientLocalType nops_server = args->initialNops;
     nopsClientLocalType nops_client_local = std::atomic_load_explicit(clientNops, std::memory_order_acquire);
     nopsClientLocalType nops_current = 0; //Is used to carry over residual between nop cycles
+
+    nopsClientLocalType base_gain = args->control_gain_base_bang;
 
     nopsClientLocalType control_gain_p = args->control_gain_p;
     nopsClientLocalType control_gain_i = args->control_gain_i;
@@ -174,6 +191,8 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
     int64_t controlCheckHist = 0;
     int64_t speedUpCount = 0;
     int64_t slowDownCount = 0;
+    int64_t baseSpeedUpCount = 0;
+    int64_t baseSlowDownCount = 0;
     for(transfer = 0; transfer<max_block_transfers; transfer++){
         std::atomic_signal_fence(std::memory_order_acquire); //Do not want an actual fence but do not want the write to the initial block ID to re-ordered before the write to the write ptr
         //---- Write to output buffer unconditionally (order of writing the IDs is important as they are used by the reader to detect partially valid blocks)
@@ -184,13 +203,13 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
         std::atomic_signal_fence(std::memory_order_acquire); //Do not want an actual fence but do not want sample writing to be re-ordered before the initial block ID write
 
         //Write elements
-        elementType *data_array = (elementType*) (((char*) array) + writeOffset*blockSizeBytes + idCombinedBytes);
+        elementType *data_array = (elementType*) (((char*) array) + writeOffset*blockSizeBytes + idCombinedBytes*2);
         for(int sample = 0; sample<blockSize; sample++){
             data_array[sample] = sampleVals;
         }
 
         //Write final block ID
-        idType *block_id_end = (idType*) (((char*) array) + writeOffset*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        idType *block_id_end = (idType*) (((char*) array) + writeOffset*blockSizeBytes + idCombinedBytes);
         std::atomic_store_explicit(block_id_end, writeBlockInd, std::memory_order_release); //Prevents memory access from being reordered after this
         //+++ End write into array +++
 
@@ -246,18 +265,39 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
             //Try to ballance the correction between the client and server
             nops_server = base_nops+correction/2;
             nops_client_local = base_nops-correction/2;
+            bool wentNegative = false;
             if(nops_server<0){
                 //Need to shift some of the correction to the client (tried to speed up the server too much, need to slow down the client)
                 nops_client_local -= nops_server;
                 nops_server = 0;
+                wentNegative = true;
             }else if(nops_client_local<0){
                 //Need to shift some of the correction to the server
                 nops_server -= nops_client_local;
                 nops_client_local = 0;
+                wentNegative = true;
             }
 
-            //TODO: ADD mechanism to reduce the base_nops by some amount if both server and client have >0 NOPs and to raise it if one is periodicaly low
-            //For now, it will hover around the base NOPS and will only slow down further is nessisary.  It will not speed up if both are ballanced.
+            //Check if the base number of NOPs should be changed
+
+            //NOTE: This is basically an integrator with bang-bang control.  The gain should be set low so it does not interfere too much with the PI controller
+            //which is referenced to this base point
+            if(wentNegative){
+                //The last correction forced either the writer or the reader to have a negative number of NOPs.  This was corrected
+                //by the control logic but suggests that the base NOPs is too low. increase it
+                base_nops += base_gain;
+                baseSlowDownCount++;
+            }else{
+                //The last correction did not force the reader or writer to have a negative number of NOPs.  This may mean we are leaving performance on
+                //table.  decrease the base number of nops
+                base_nops -= base_gain;
+                baseSpeedUpCount++;
+            }
+
+            //A small sanity check to make sure that base_nops never goes negative
+            if(base_nops<0){
+                base_nops = 0;
+            }
 
             //Write to client in any case so that the amount of time spent per control itteration in the client due to the cache miss is consistent.
             std::atomic_store_explicit(clientNops, nops_client_local, std::memory_order_release);
@@ -281,7 +321,7 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
         }
     #endif
 
-    ClosedLoopServerEndCondition *rtn = new ClosedLoopServerEndCondition;
+    ClosedLoopPIServerEndCondition *rtn = new ClosedLoopPIServerEndCondition;
     rtn->resultGranularity = HW_Granularity::CORE;
     rtn->granularityIndex = core;
 
@@ -292,6 +332,9 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
     rtn->clientNops = nops_client_local;
     rtn->errored = stop;
     rtn->transaction = transfer;
+    rtn->base_speed_up_count = baseSpeedUpCount;
+    rtn->base_slow_down_count = baseSlowDownCount;
+    rtn->base_nops = base_nops;
 
     return (void*) rtn;
 

@@ -8,6 +8,7 @@
 #include "open_loop_helpers.h"
 #include "fifoless_helpers.h"
 #include "sir.h"
+#include "fast_copy.h"
 
 #include <vector>
 #include <atomic>
@@ -15,7 +16,7 @@
 #include <stdint.h>
 #include <sys/ioctl.h>
 
-#define CLOSED_LOOP_DISABLE_INTERRUPTS 1
+// #define CLOSED_LOOP_DISABLE_INTERRUPTS 1
 
 template<typename elementType, 
          typename idType, 
@@ -27,6 +28,7 @@ public:
     indexType *read_offset_ptr;
     indexType *write_offset_ptr;
     void *array;
+    void *local_array_reader;
     std::atomic_flag *start_flag; //Used by the client to signal to the server that it should start writing
     std::atomic_flag *stop_flag; //Used by the client to signal to the server that an error occured and that it should stop
     std::atomic_flag *ready_flag; //Used by the server to signal to the client that it is ready to begin
@@ -96,8 +98,8 @@ public:
 };
 
 template<typename elementType, typename atomicIdType, typename atomicIndexType, typename nopCountType>
-size_t closedLoopAllocate(std::vector<elementType*> &shared_array_locs, std::vector<atomicIndexType*> &shared_write_id_locs, std::vector<atomicIndexType*> &shared_read_id_locs, std::vector<std::atomic_flag*> &ready_flags, std::vector<std::atomic_flag*> &start_flags, std::atomic_flag* &stop_flag, std::vector<nopCountType*> &nopControls, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int> cpus, int alignment, bool circular, bool include_dummy_flags){
-    int maxBufferSize = openLoopAllocate<elementType, atomicIdType, atomicIndexType>(shared_array_locs, shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, array_lengths, block_lengths, cpus, alignment, circular, include_dummy_flags);
+size_t closedLoopAllocate(std::vector<elementType*> &shared_array_locs, std::vector<elementType*> &local_array_locs, std::vector<atomicIndexType*> &shared_write_id_locs, std::vector<atomicIndexType*> &shared_read_id_locs, std::vector<std::atomic_flag*> &ready_flags, std::vector<std::atomic_flag*> &start_flags, std::atomic_flag* &stop_flag, std::vector<nopCountType*> &nopControls, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int> cpus, int alignment, bool circular, bool include_dummy_flags){
+    int maxBufferSize = openLoopAllocate<elementType, atomicIdType, atomicIndexType>(shared_array_locs, local_array_locs, shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, array_lengths, block_lengths, cpus, alignment, circular, include_dummy_flags);
 
     for(int i = 1; i<cpus.size(); i++){//Do not need one for the controller
         nopCountType *nopControl = (nopCountType*) aligned_alloc_core(CACHE_LINE_SIZE, sizeof(nopCountType), cpus[i]);
@@ -143,6 +145,16 @@ void* closed_loop_buffer_reset(void* arg){
 
     //Using memory order released so that initialization occures in the order it occures in steady state operation
 
+    //Reset the reader array
+    elementType* local_array = (elementType*) args->local_array_reader;
+    for(int i = 0; i<args->blockSize; i++){
+        local_array[i] = 0;
+    }
+    char* local_array_padding = (char*) (local_array+args->blockSize);
+    for(int i = 0; i<FAST_COPY_ALIGNED_PADDING; i++){
+        local_array_padding[i] = 0;
+    }
+
     //Reset the index pointers (they are initialized outside)
     std::atomic_store_explicit(args->read_offset_ptr, 0, std::memory_order_release); //Initialized to 0.  This is the index last read.  Index 1 contains the first initial value
     std::atomic_store_explicit(args->write_offset_ptr, numberInitBlocks+1, std::memory_order_release); //Initialized to index after that last initial value in the FIFO (note, the initial elements start at index 1)
@@ -157,12 +169,12 @@ void* closed_loop_buffer_reset(void* arg){
         std::atomic_init(block_id_start, 0);
         std::atomic_store_explicit(block_id_start, 0, std::memory_order_release);
 
-        elementType *data_array = (elementType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes);
+        elementType *data_array = (elementType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes*2);
         for(int j = 0; j<args->blockSize; j++){
             data_array[j] = -1;
         }
         
-        idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes*2);
         idType *block_id_end_constructed = new (block_id_end) idType();
         std::atomic_init(block_id_end, 0);
         std::atomic_store_explicit(block_id_end, 0, std::memory_order_release);
@@ -174,12 +186,12 @@ void* closed_loop_buffer_reset(void* arg){
     std::atomic_init(block_id_start, 0);
     std::atomic_store_explicit(block_id_start, 0, std::memory_order_release);
 
-    elementType *data_array = (elementType*) (((char*) args->array) + idCombinedBytes);
+    elementType *data_array = (elementType*) (((char*) args->array) + idCombinedBytes*2);
     for(int j = 0; j<args->blockSize; j++){
         data_array[j] = -1;
     }
 
-    idType *block_id_end = (idType*) (((char*) args->array) + idCombinedBytes + blockArrayCombinedBytes);
+    idType *block_id_end = (idType*) (((char*) args->array) + idCombinedBytes);
     idType *block_id_end_constructed = new (block_id_end) idType();
     std::atomic_init(block_id_end, 0);
     std::atomic_store_explicit(block_id_end, 0, std::memory_order_release);
@@ -191,12 +203,12 @@ void* closed_loop_buffer_reset(void* arg){
         std::atomic_init(block_id_start, i);
         std::atomic_store_explicit(block_id_start, i, std::memory_order_release);
 
-        elementType *data_array = (elementType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes);
+        elementType *data_array = (elementType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes*2);
         for(int j = 0; j<args->blockSize; j++){
             data_array[j] = (i+1)%2;
         }
         
-        idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes);
         idType *block_id_end_constructed = new (block_id_end) idType();
         std::atomic_init(block_id_end, i);
         std::atomic_store_explicit(block_id_end, i, std::memory_order_release);
@@ -244,7 +256,7 @@ void* closed_loop_buffer_cleanup(void* arg){
     idType *block_id_start = (idType*) (((char*) args->array));
     block_id_start->~idType();
 
-    idType *block_id_end = (idType*) (((char*) args->array) + idCombinedBytes + blockArrayCombinedBytes);
+    idType *block_id_end = (idType*) (((char*) args->array) + idCombinedBytes);
     block_id_end->~idType();
 
     //Initial Conditions
@@ -252,7 +264,7 @@ void* closed_loop_buffer_cleanup(void* arg){
         idType *block_id_start = (idType*) (((char*) args->array) + i*blockSizeBytes);
         block_id_start->~idType();
         
-        idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes);
         block_id_end->~idType();
     }
 
@@ -261,7 +273,7 @@ void* closed_loop_buffer_cleanup(void* arg){
         idType *block_id_start = (idType*) (((char*) args->array) + i*blockSizeBytes);
         block_id_start->~idType();
         
-        idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes);
         block_id_end->~idType();
     }
 
@@ -346,7 +358,7 @@ void* closed_loop_buffer_int_client(void* arg){
     //Read Elements beyond initial condition
     for(int i = numberInitBlocks+1; i <= array_length+1; i++){ //Note, there is an extra element in the array
         int ind = i<=array_length ? i : 0;
-        idType *block_id_end = (idType*) (((char*) array) + ind*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        idType *block_id_end = (idType*) (((char*) array) + ind*blockSizeBytes + idCombinedBytes);
         newBlockIDEnd = std::atomic_load_explicit(block_id_end, std::memory_order_acquire);
         asm volatile(""
         :
@@ -355,8 +367,8 @@ void* closed_loop_buffer_int_client(void* arg){
         
         //Read elements
         //Read backwards to avoid cache thrashing
-        elementType *data_array = (elementType*) (((char*) array) + ind*blockSizeBytes + idCombinedBytes);
-        for(int sample = blockSize-1; sample>=0; sample--){
+        elementType *data_array = (elementType*) (((char*) array) + ind*blockSizeBytes + idCombinedBytes*2);
+        for(int sample = 0; sample<blockSize; sample++){
             localBuffer[sample] = data_array[sample];
             asm volatile(""
             :
@@ -395,13 +407,26 @@ void* closed_loop_buffer_int_client(void* arg){
 
         //+++ Read from array +++
         //The end ID is read first to check that the values being read from the array were completly written before this thread started reading.
-        idType *block_id_end = (idType*) (((char*) array) + readOffset*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        idType *block_id_end = (idType*) (((char*) array) + readOffset*blockSizeBytes + idCombinedBytes);
         newBlockIDEnd = std::atomic_load_explicit(block_id_end, std::memory_order_acquire);
         
         //Read elements
         //Read backwards to avoid cache thrashing
-        elementType *data_array = (elementType*) (((char*) array) + readOffset*blockSizeBytes + idCombinedBytes);
-        for(int sample = blockSize-1; sample>=0; sample--){
+        //Read forwards to allow compiler to optimize
+        elementType *data_array = (elementType*) (((char*) array) + readOffset*blockSizeBytes + idCombinedBytes*2);
+
+        //Need to align localBuffer to data_array so that AVX load instructions can be used
+        //localBuffer is oversized by 256 bits (32 bytes) to allow for this shift
+
+        //The localBufferAlignedBase will be set so that it has the same position inside of a 32 byte block as
+        //data_array.
+        //It will use standard load/store instructions until the cursors are aligned to a 16 byte boundary
+        //If the 16 byte boundary is not a 32 byte boundary, it will use a SSE load/store instruction
+        //It will then use the AVX load/store instructions to copy data.
+        //It will then use an SSE instruction to copy remaining data (if applicable)
+        //It will then use standard load/store instructions to copy the remaining data
+
+        for(int sample = 0; sample<blockSize; sample++){
             localBuffer[sample] = data_array[sample];
         }
 
@@ -511,7 +536,7 @@ void* closed_loop_buffer_float_client(void* arg){
 
     idLocalType expectedBlockID = -1;
 
-    elementType localBuffer[blockSize];
+    elementType* localBufferRaw = (elementType*) args->local_array_reader;
 
     int blockArrayBytes;
     int blockArrayPaddingBytes;
@@ -553,7 +578,7 @@ void* closed_loop_buffer_float_client(void* arg){
     //Read Elements beyond initial condition
     for(int i = numberInitBlocks+1; i <= array_length+1; i++){ //Note, there is an extra element in the array
         int ind = i<=array_length ? i : 0;
-        idType *block_id_end = (idType*) (((char*) array) + ind*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        idType *block_id_end = (idType*) (((char*) array) + ind*blockSizeBytes + idCombinedBytes);
         newBlockIDEnd = std::atomic_load_explicit(block_id_end, std::memory_order_acquire);
         asm volatile(""
         :
@@ -561,13 +586,12 @@ void* closed_loop_buffer_float_client(void* arg){
         :);
         
         //Read elements
-        //Read backwards to avoid cache thrashing
-        elementType *data_array = (elementType*) (((char*) array) + ind*blockSizeBytes + idCombinedBytes);
-        for(int sample = blockSize-1; sample>=0; sample--){
-            localBuffer[sample] = data_array[sample];
+        elementType *data_array = (elementType*) (((char*) array) + ind*blockSizeBytes + idCombinedBytes*2);
+        for(int sample = 0; sample<blockSize; sample++){
+            localBufferRaw[sample] = data_array[sample];
             asm volatile(""
             :
-            : "r" (localBuffer[sample])
+            : "r" (localBufferRaw[sample])
             :);
         }
 
@@ -579,6 +603,15 @@ void* closed_loop_buffer_float_client(void* arg){
         :
         : "r" (newBlockIDStart)
         :);
+    }
+
+    //Write to local array (will have been reset by the server and need to re-aquire exclusive access)
+    for(int i = 0; i < blockSize; i++){
+        localBufferRaw[i] = 0;
+    }
+    char* local_array_padding = (char*) (localBufferRaw+args->blockSize);
+    for(int i = 0; i<FAST_COPY_ALIGNED_PADDING; i++){
+        local_array_padding[i] = 0;
     }
 
     //==== Singal start ====
@@ -602,15 +635,18 @@ void* closed_loop_buffer_float_client(void* arg){
 
         //+++ Read from array +++
         //The end ID is read first to check that the values being read from the array were completly written before this thread started reading.
-        idType *block_id_end = (idType*) (((char*) array) + readOffset*blockSizeBytes + idCombinedBytes + blockArrayCombinedBytes);
+        idType *block_id_end = (idType*) (((char*) array) + readOffset*blockSizeBytes + idCombinedBytes);
         newBlockIDEnd = std::atomic_load_explicit(block_id_end, std::memory_order_acquire);
         
         //Read elements
-        //Read backwards to avoid cache thrashing
-        elementType *data_array = (elementType*) (((char*) array) + readOffset*blockSizeBytes + idCombinedBytes);
-        for(int sample = blockSize-1; sample>=0; sample--){
-            localBuffer[sample] = data_array[sample];
-        }
+        elementType *data_array = (elementType*) (((char*) array) + readOffset*blockSizeBytes + idCombinedBytes*2);
+        // for(int sample = 0; sample<blockSize; sample++){
+        //     localBuffer[sample] = data_array[sample];
+        // }
+        elementType* localBuffer = fast_copy_aligned(data_array, localBufferRaw, blockSize, FAST_COPY_ALIGNED_PADDING);
+        // elementType* localBuffer = fast_copy_semialigned(data_array, localBufferRaw, blockSize);
+        // elementType* localBuffer = fast_copy_unaligned(data_array, localBufferRaw, blockSize);
+        // elementType* localBuffer = fast_copy_unaligned_ramp_in(data_array, localBufferRaw, blockSize);
 
         //The start ID is read last to check that the block was not being overwritten while the data was being read
         std::atomic_signal_fence(std::memory_order_release); //Do not want an actual fence but do not want sample reading to be re-ordered before the end block ID read
@@ -685,3 +721,4 @@ void* closed_loop_buffer_float_client(void* arg){
 }
 
 #endif
+
