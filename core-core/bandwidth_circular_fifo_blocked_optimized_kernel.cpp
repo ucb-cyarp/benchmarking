@@ -19,6 +19,8 @@
 #include <cstdlib>
 #include <cstdio>
 
+#include "fast_copy.h"
+
 /*
  * Resets shared ptr array to 0
  */
@@ -152,10 +154,11 @@ void* bandwidth_circular_fifo_blocked_optimized_client_kernel(void* arg)
             //Yes, we can read a full block
             int32_t* array_base = array_shared_ptr + read_offset*block_length;
 
-            for(int32_t i = 0; i < block_length; i++)
-            {        
-                local_buffer[i] = array_base[i];
-            }
+            // for(int32_t i = 0; i < block_length; i++)
+            // {        
+            //     local_buffer[i] = array_base[i];
+            // }
+            fast_copy_unaligned_ramp_in(local_buffer, array_base, block_length);
 
             //We read and checked all entries, now let's update the read_id
             read_id++;
