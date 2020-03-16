@@ -21,6 +21,8 @@
 
 #include "fast_copy.h"
 
+// #define CLOSED_LOOP_CHECK_BLOCK_CONTENT //If defined, the content of the FIFO will be checked (allong with the pointers).  If not defined, the content of the FIFO is not checked and the same value is written each time
+
 /*
  * Resets shared ptr array to 0
  */
@@ -168,13 +170,20 @@ void* bandwidth_circular_fifo_blocked_optimized_client_kernel(void* arg)
             //Check the read values
             for(int32_t i = 0; i < block_length; i++)
             {
-                //Check that the value is what we expect.
-                //NOTE: We are using the fact that in this test, the value should be the same as the ID.
-                if(local_buffer[i] != expected_sample_vals)
-                {
-                    printf("Unexpected read value!!! ID: %d, %d ~= %d\n", read_id-1, local_buffer[i], expected_sample_vals);
-                    exit(1);
-                }
+                #ifdef CLOSED_LOOP_CHECK_BLOCK_CONTENT
+                    //Check that the value is what we expect.
+                    //NOTE: We are using the fact that in this test, the value should be the same as the ID.
+                    if(local_buffer[i] != expected_sample_vals)
+                    {
+                        printf("Unexpected read value!!! ID: %d, %d ~= %d\n", read_id-1, local_buffer[i], expected_sample_vals);
+                        exit(1);
+                    }
+                #else
+                    asm volatile(""
+                    :
+                    : "m" (local_buffer[i])
+                    : );
+                #endif
             }
 
             //check for wraparound (no extra element in this test)
@@ -186,7 +195,10 @@ void* bandwidth_circular_fifo_blocked_optimized_client_kernel(void* arg)
             {
                 read_offset++;
             }
-            expected_sample_vals = (expected_sample_vals+1)%2;
+            #ifdef CLOSED_LOOP_CHECK_BLOCK_CONTENT
+                //If we are not checking the content of the array, don't bother to calculate the new value
+                expected_sample_vals = (expected_sample_vals+1)%2;
+            #endif
         }
 
         //Poll until there is more data to read or the end of the test
