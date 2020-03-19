@@ -430,7 +430,9 @@ void* closed_loop_buffer_float_client(void* arg){
         // elementType* localBuffer = fast_copy_aligned(data_array, localBufferRaw, blockSize, FAST_COPY_ALIGNED_PADDING/sizeof(elementType));
         // elementType* localBuffer = fast_copy_semialigned(data_array, localBufferRaw, blockSize);
         // elementType* localBuffer = fast_copy_unaligned(data_array, localBufferRaw, blockSize);
-        elementType* localBuffer = fast_copy_unaligned_ramp_in(data_array, localBufferRaw, blockSize);
+        // elementType* localBuffer = fast_copy_unaligned_ramp_in(data_array, localBufferRaw, blockSize);
+        elementType* localBuffer = localBufferRaw;
+        memcpy(localBufferRaw, data_array, blockSize*sizeof(elementType));
 
         //The start ID is read last to check that the block was not being overwritten while the data was being read
         std::atomic_signal_fence(std::memory_order_release); //Do not want an actual fence but do not want sample reading to be re-ordered before the end block ID read

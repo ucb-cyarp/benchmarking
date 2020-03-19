@@ -215,7 +215,8 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
         // for(int sample = 0; sample<blockSize; sample++){
         //     data_array[sample] = sampleVals+sample;
         // }
-        fast_copy_unaligned_ramp_in(local_array, data_array, blockSize);
+        // fast_copy_unaligned_ramp_in(local_array, data_array, blockSize);
+        memcpy(data_array, local_array, blockSize*sizeof(elementType));
 
         //Write final block ID
         idType *block_id_end = (idType*) (((char*) array) + writeOffset*blockSizeBytes + idCombinedBytes);
