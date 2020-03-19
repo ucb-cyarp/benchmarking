@@ -127,7 +127,7 @@ void* bandwidth_circular_fifo_blocked_optimized_client_kernel(void* arg)
     //Get the shared pointer and the initial counter value
     BandwidthCircularFifoBlockedOptimizedKernelArgs* kernel_args = (BandwidthCircularFifoBlockedOptimizedKernelArgs*) arg;
     int32_t* array_shared_ptr = kernel_args->array_shared_ptr;
-    int32_t* local_buffer = kernel_args->local_array_reader;
+    int32_t* local_buffer_raw = kernel_args->local_array_reader;
     std::atomic_int32_t* write_pos_shared_ptr = kernel_args->write_pos_shared_ptr;
     std::atomic_int32_t* read_pos_shared_ptr = kernel_args->read_pos_shared_ptr;
 
@@ -159,7 +159,7 @@ void* bandwidth_circular_fifo_blocked_optimized_client_kernel(void* arg)
             //     local_buffer[i] = array_base[i];
             // }
             // fast_copy_unaligned_ramp_in(array_base, local_buffer, block_length);
-            fast_copy_aligned(array_base, local_buffer, block_length, FAST_COPY_ALIGNED_PADDING/sizeof(int32_t));
+            int32_t* local_buffer = fast_copy_aligned(array_base, local_buffer_raw, block_length, FAST_COPY_ALIGNED_PADDING/sizeof(int32_t));
 
             //We read and checked all entries, now let's update the read_id
             read_id++;
