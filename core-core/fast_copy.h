@@ -104,27 +104,27 @@ inline elementType* fast_copy_aligned(elementType* src, elementType* dst, size_t
         case 32:
             srcCursorAlignment = ((size_t) ((char*)src))%32;
             dstCursorInitAlignment = ((size_t) ((char*)dst))%32;
-            dstOffset = (srcCursorAlignment - dstCursorInitAlignment + 32) % 32;
+            dstOffset = ((32 + srcCursorAlignment) - dstCursorInitAlignment) % 32;
             break;
         case 16:
             srcCursorAlignment = ((size_t) ((char*)src))%16;
             dstCursorInitAlignment = ((size_t) ((char*)dst))%16;
-            dstOffset = (srcCursorAlignment - dstCursorInitAlignment + 16) % 16;
+            dstOffset = ((16 + srcCursorAlignment) - dstCursorInitAlignment) % 16;
             break;
         case 8:
             srcCursorAlignment = ((size_t) ((char*)src))%8;
             dstCursorInitAlignment = ((size_t) ((char*)dst))%8;
-            dstOffset = (srcCursorAlignment - dstCursorInitAlignment + 8) % 8;
+            dstOffset = ((8 + srcCursorAlignment) - dstCursorInitAlignment) % 8;
             break;
         case 4:
             srcCursorAlignment = ((size_t) ((char*)src))%4;
             dstCursorInitAlignment = ((size_t) ((char*)dst))%4;
-            dstOffset = (srcCursorAlignment - dstCursorInitAlignment + 4) % 4;
+            dstOffset = ((4 + srcCursorAlignment) - dstCursorInitAlignment) % 4;
             break;
         case 2:
             srcCursorAlignment = ((size_t) ((char*)src))%2;
             dstCursorInitAlignment = ((size_t) ((char*)dst))%2;
-            dstOffset = (srcCursorAlignment - dstCursorInitAlignment + 2) % 2;
+            dstOffset = ((2 + srcCursorAlignment) - dstCursorInitAlignment) % 2;
             break;
         case 1:
             dstOffset = 0;

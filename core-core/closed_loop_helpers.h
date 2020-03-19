@@ -174,7 +174,7 @@ void* closed_loop_buffer_reset(void* arg){
             data_array[j] = -1;
         }
         
-        idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes*2);
+        idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes);
         idType *block_id_end_constructed = new (block_id_end) idType();
         std::atomic_init(block_id_end, 0);
         std::atomic_store_explicit(block_id_end, 0, std::memory_order_release);
@@ -609,7 +609,7 @@ void* closed_loop_buffer_float_client(void* arg){
     for(int i = 0; i < blockSize; i++){
         localBufferRaw[i] = 0;
     }
-    char* local_array_padding = (char*) (localBufferRaw+args->blockSize);
+    char* local_array_padding = (char*) (localBufferRaw+blockSize);
     for(int i = 0; i<FAST_COPY_ALIGNED_PADDING; i++){
         local_array_padding[i] = 0;
     }
@@ -643,7 +643,7 @@ void* closed_loop_buffer_float_client(void* arg){
         // for(int sample = 0; sample<blockSize; sample++){
         //     localBuffer[sample] = data_array[sample];
         // }
-        elementType* localBuffer = fast_copy_aligned(data_array, localBufferRaw, blockSize, FAST_COPY_ALIGNED_PADDING);
+        elementType* localBuffer = fast_copy_aligned(data_array, localBufferRaw, blockSize, FAST_COPY_ALIGNED_PADDING/sizeof(elementType));
         // elementType* localBuffer = fast_copy_semialigned(data_array, localBufferRaw, blockSize);
         // elementType* localBuffer = fast_copy_unaligned(data_array, localBufferRaw, blockSize);
         // elementType* localBuffer = fast_copy_unaligned_ramp_in(data_array, localBufferRaw, blockSize);
@@ -670,7 +670,15 @@ void* closed_loop_buffer_float_client(void* arg){
         //Check elements
         for(int sample = 0; sample<blockSize; sample++){
             if(localBuffer[sample] != expectedSampleVals){
-                std::cerr << "Unexpected array data!" << std::endl;
+                std::cerr << "Unexpected array data! Transfer: " << transfer << " Sample: " << sample << " Expected " << expectedSampleVals << " got " << localBuffer[sample] << std::endl;
+                // std::cerr << "ID Start " << newBlockIDStart << " ID End " << newBlockIDEnd << std::endl;
+                // std::cerr << "Data Array " << data_array << " Local Array Raw " << localBufferRaw << " Local Array " << localBuffer << std::endl;
+                // for(int i = 0; i<blockSize+FAST_COPY_ALIGNED_PADDING/sizeof(elementType); i++){
+                //     std::cerr << "[" << i << "] = " << localBufferRaw[i] << std::endl;
+                // }
+                // for(int i = 0; i<blockSize; i++){
+                //     std::cerr << "(" << i << ") = " << localBuffer[i] << std::endl;
+                // }
                 exit(1);
             }
         }
