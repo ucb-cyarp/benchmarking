@@ -158,7 +158,8 @@ void* bandwidth_circular_fifo_blocked_optimized_client_kernel(void* arg)
             // {        
             //     local_buffer[i] = array_base[i];
             // }
-            fast_copy_unaligned_ramp_in(array_base, local_buffer, block_length);
+            // fast_copy_unaligned_ramp_in(array_base, local_buffer, block_length);
+            fast_copy_aligned(array_base, local_buffer, block_length, FAST_COPY_ALIGNED_PADDING/sizeof(int32_t));
 
             //We read and checked all entries, now let's update the read_id
             read_id++;

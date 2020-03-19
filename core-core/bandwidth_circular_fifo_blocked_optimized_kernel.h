@@ -28,7 +28,7 @@
         size_t size = fifoAllocate(shared_array_loc, shared_write_id_loc, shared_read_id_loc, array_length*block_length, cpu_a, cpu_b); //Array length units changed here to elements.  Outside, array length is in blocks
 
         //Allocate the local array (only a block's worth)
-        size_t amountToAlloc = block_length*sizeof(elementType);
+        size_t amountToAlloc = block_length*sizeof(elementType)+FAST_COPY_ALIGNED_PADDING;
         if(amountToAlloc % CACHE_LINE_SIZE != 0){
             amountToAlloc += (CACHE_LINE_SIZE - (amountToAlloc % CACHE_LINE_SIZE));
         }
