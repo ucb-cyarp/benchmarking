@@ -4,6 +4,7 @@
     #include <cstddef>
     #include <atomic>
     #include "fifo_helpers.h"
+    #include "fast_copy.h"
 
     class BandwidthCircularFifoBlockedOptimizedKernelArgs
     {
