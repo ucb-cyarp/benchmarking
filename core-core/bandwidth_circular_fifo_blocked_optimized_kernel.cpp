@@ -34,7 +34,8 @@ void* bandwidth_circular_fifo_blocked_optimized_kernel_reset(void* arg)
     size_t length = args->length;
     size_t block_length = args->block_length;
 
-    int32_t* array_local_int = args->local_array_reader;
+    int32_t* array_local_reader = args->local_array_reader;
+    int32_t* array_local_writer = args->local_array_writer;
 
     for(size_t i = 0; i<length*block_length; i++)
     {
@@ -42,7 +43,8 @@ void* bandwidth_circular_fifo_blocked_optimized_kernel_reset(void* arg)
     }
 
     for(size_t i = 0; i<block_length; i++){
-        array_local_int[i] = 0;
+        array_local_reader[i] = 0;
+        array_local_writer[i] = 0;
     }
 
     std::atomic_store_explicit(write_pos_shared_ptr_int, 0, std::memory_order_release);
@@ -61,6 +63,7 @@ void* bandwidth_circular_fifo_blocked_optimized_server_kernel(void* arg)
     //Get the shared pointer and the initial counter value
     BandwidthCircularFifoBlockedOptimizedKernelArgs* kernel_args = (BandwidthCircularFifoBlockedOptimizedKernelArgs*) arg;
     int32_t* array_shared_ptr = kernel_args->array_shared_ptr;
+    int32_t* local_buffer = kernel_args->local_array_writer;
     std::atomic_int32_t* write_pos_shared_ptr = kernel_args->write_pos_shared_ptr;
     std::atomic_int32_t* read_pos_shared_ptr = kernel_args->read_pos_shared_ptr;
 
@@ -73,7 +76,12 @@ void* bandwidth_circular_fifo_blocked_optimized_server_kernel(void* arg)
     int32_t write_index = 0;
     int32_t write_offset = 0;
 
-    int32_t sample_vals = (write_offset+1)%2;
+    int32_t sample_vals = (write_offset+1)%FIFO_CONTENT_WRAPAROUND;
+
+    //Prepare write array
+    for(int i = 0; i<block_length; i++){
+        local_buffer[i] = sample_vals+i;
+    }
 
     int32_t writeLim = STIM_LEN*length; //In Blocks
     while(write_id < writeLim) //In Blocks
@@ -88,10 +96,11 @@ void* bandwidth_circular_fifo_blocked_optimized_server_kernel(void* arg)
             //Yes, we are allowed to write a block
             int32_t* array_base = array_shared_ptr + write_offset*block_length;
 
-            for(int32_t i = 0; i < block_length; i++){ //start at 1 because write_id is for last written element, need to write into following elements
-                //We could write anything but let's write the ID value for this test
-                array_base[i] = sample_vals;
-            }
+            // for(int32_t i = 0; i < block_length; i++){ //start at 1 because write_id is for last written element, need to write into following elements
+            //     //We could write anything but let's write the ID value for this test
+            //     array_base[i] = sample_vals;
+            // }
+            fast_copy_unaligned_ramp_in(local_buffer, array_base, block_length);
 
             //We now need to update the write_id
             write_id++;
@@ -108,7 +117,11 @@ void* bandwidth_circular_fifo_blocked_optimized_server_kernel(void* arg)
             {
                 write_offset++;
             }
-            sample_vals = (sample_vals+1)%2;
+            sample_vals = (sample_vals+1)%FIFO_CONTENT_WRAPAROUND;
+            for(int i = 0; i<block_length; i++){
+                local_buffer[i] = sample_vals+i;
+            }
+
         }
 
         //Poll until we are able to write again or we have reached the test end
@@ -139,7 +152,7 @@ void* bandwidth_circular_fifo_blocked_optimized_client_kernel(void* arg)
 
     int32_t read_offset = 0;
 
-    int32_t expected_sample_vals = (read_offset+1)%2;
+    int32_t expected_sample_vals = (read_offset+1)%FIFO_CONTENT_WRAPAROUND;
 
     int32_t readLim = STIM_LEN*length;
     while(read_id < readLim)
@@ -170,7 +183,7 @@ void* bandwidth_circular_fifo_blocked_optimized_client_kernel(void* arg)
             {
                 //Check that the value is what we expect.
                 //NOTE: We are using the fact that in this test, the value should be the same as the ID.
-                if(local_buffer[i] != expected_sample_vals)
+                if(local_buffer[i] != expected_sample_vals+i)
                 {
                     printf("Unexpected read value!!! ID: %d, %d ~= %d\n", read_id-1, local_buffer[i], expected_sample_vals);
                     exit(1);
@@ -186,7 +199,7 @@ void* bandwidth_circular_fifo_blocked_optimized_client_kernel(void* arg)
             {
                 read_offset++;
             }
-            expected_sample_vals = (expected_sample_vals+1)%2;
+            expected_sample_vals = (expected_sample_vals+1)%FIFO_CONTENT_WRAPAROUND;
         }
 
         //Poll until there is more data to read or the end of the test

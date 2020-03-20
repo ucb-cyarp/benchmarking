@@ -267,11 +267,12 @@ void run_bandwidth_fifo_blocked_optimized_kernel(Profiler* profiler, int cpu_a, 
     size_t max_array_length = *std::max_element(array_lengths.begin(), array_lengths.end());
     size_t max_block_length = *std::max_element(block_lengths.begin(), block_lengths.end());
     int32_t* shared_array_loc;
-    int32_t* local_array_loc;
+    int32_t* local_array_reader_loc;
+    int32_t* local_array_writer_loc;
     std::atomic_int32_t* shared_write_id_loc;
     std::atomic_int32_t* shared_read_id_loc;
 
-    fifoOptimizedAllocate(shared_array_loc, local_array_loc, shared_write_id_loc, shared_read_id_loc, max_array_length, max_block_length, cpu_a, cpu_b);
+    fifoOptimizedAllocate(shared_array_loc, local_array_reader_loc, local_array_writer_loc, shared_write_id_loc, shared_read_id_loc, max_array_length, max_block_length, cpu_a, cpu_b);
 
     //==== Create Configurations for each experiment ====
     int num_experiments = array_lengths.size() * block_lengths.size();
@@ -286,7 +287,8 @@ void run_bandwidth_fifo_blocked_optimized_kernel(Profiler* profiler, int cpu_a, 
         {
             int32_t block_length = block_lengths[j];
             args[arg_idx].array_shared_ptr = shared_array_loc;
-            args[arg_idx].local_array_reader = local_array_loc;
+            args[arg_idx].local_array_reader = local_array_reader_loc;
+            args[arg_idx].local_array_writer = local_array_writer_loc;
             args[arg_idx].write_pos_shared_ptr = shared_write_id_loc;
             args[arg_idx].read_pos_shared_ptr = shared_read_id_loc;
             args[arg_idx].length = array_length;
@@ -310,7 +312,8 @@ void run_bandwidth_fifo_blocked_optimized_kernel(Profiler* profiler, int cpu_a, 
     shared_write_id_loc->~atomic();
     shared_read_id_loc->~atomic();
     free(shared_array_loc);
-    free(local_array_loc);
+    free(local_array_reader_loc);
+    free(local_array_writer_loc);
     free(shared_write_id_loc);
     free(shared_read_id_loc);
     delete[] args;
