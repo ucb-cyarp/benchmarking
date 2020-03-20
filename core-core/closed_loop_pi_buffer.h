@@ -4,6 +4,7 @@
 #include <atomic>
 #include "open_loop_helpers.h"
 #include "closed_loop_helpers.h"
+#include "fast_copy.h"
 
 //This version does not use a structure for the blocks.  This allos the block size to be changed at runtime.
 //There is a catch which is that the blocks must be naturally alligned.
@@ -118,6 +119,7 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
     indexType *write_offset_ptr = args->write_offset_ptr;
     indexType *read_offset_ptr = args->read_offset_ptr;
     void *array = args->array;
+    elementType *local_array = (elementType*) args->local_array_writer;
     int array_length = args->array_length;
     int64_t max_block_transfers = args->max_block_transfers;
     std::atomic_flag *start_flag = args->start_flag;
@@ -162,6 +164,10 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
     idLocalType writeBlockInd = writeOffset;
 
     elementType sampleVals = (writeOffset+1)%TEST_ELEMENT_WRAPAROUND;
+    //Prepare write array
+    for(int i = 0; i<blockSize; i++){
+        local_array[i] = sampleVals+i;
+    }
 
     //Disable Interrupts For This Trial (Before Signalling Ready)
     #if CLOSED_LOOP_DISABLE_INTERRUPTS == 1
@@ -199,9 +205,11 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
 
         //Write elements
         elementType *data_array = (elementType*) (((char*) array) + writeOffset*blockSizeBytes);
-        for(int sample = 0; sample<blockSize; sample++){
-            data_array[sample] = sampleVals;
-        }
+        // for(int sample = 0; sample<blockSize; sample++){
+        //     data_array[sample] = sampleVals;
+        // }
+        fast_copy_unaligned_ramp_in(local_array, data_array, blockSize);
+
 
         //+++ End write into array +++
 
@@ -220,9 +228,13 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
         //Update Write Ptr
         std::atomic_store_explicit(write_offset_ptr, writeOffset, std::memory_order_release);
 
-        //Increment block id for next block
+        //Increment block id for next block.  Update the write array
         writeBlockInd = writeBlockInd == idMax ? 0 : writeBlockInd+1;
         sampleVals = (sampleVals+1)%TEST_ELEMENT_WRAPAROUND;
+        for(int i = 0; i<blockSize; i++){
+            local_array[i] = sampleVals+i;
+        }
+
 
         //Check stop flag
         stop = !std::atomic_flag_test_and_set_explicit(stop_flag, std::memory_order_acq_rel);
