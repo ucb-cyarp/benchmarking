@@ -15,7 +15,7 @@ void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<
     //==== Allocate Array For the Largest Experiment ====
     std::vector<int32_t*> shared_array_locs;
     std::vector<int32_t*> local_array_reader_locs;
-    std::vector<int32_t*> local_array_writer_locs; //TODO: Implement
+    std::vector<int32_t*> local_array_writer_locs;
     std::vector<std::atomic_int32_t*> shared_write_id_locs;
     std::vector<std::atomic_int32_t*> shared_read_id_locs;
 
@@ -65,6 +65,7 @@ void run_open_loop_kernel(Profiler* profiler, int cpu_a, int cpu_b, std::vector<
                     args[idx].write_offset_ptr = shared_write_id_locs[0];
                     args[idx].array = shared_array_locs[0];
                     args[idx].local_array_reader = local_array_reader_locs[0];
+                    args[idx].local_array_writer = local_array_writer_locs[0];
                     args[idx].start_flag = start_flags[0];
                     args[idx].stop_flag = stop_flag;
                     args[idx].ready_flag = ready_flags[0];

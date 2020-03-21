@@ -19,6 +19,7 @@
         indexType *write_offset_ptr;
         void *array;
         void *local_array_reader;
+        void *local_array_writer;
         std::atomic_flag *start_flag; //Used by the client to signal to the server that it should start writing
         std::atomic_flag *stop_flag; //Used by the client to signal to the server that an error occured and that it should stop
         std::atomic_flag *ready_flag; //Used by the server to signal to the client that it is ready to begin
@@ -131,13 +132,10 @@
                 int blockArrayBytes;
                 int blockArrayPaddingBytes;
                 int blockArrayCombinedBytes;
-                int idBytes;
-                int idPaddingBytes;
-                int idCombinedBytes;
                 int blockSizeBytes;
 
-                getBlockSizing<elementType, atomicIdType>(block_length, alignment, blockArrayBytes, blockArrayPaddingBytes, 
-                blockArrayCombinedBytes, idBytes, idPaddingBytes, idCombinedBytes, blockSizeBytes);
+                getBlockSizing<elementType>(block_length, alignment, blockArrayBytes, blockArrayPaddingBytes, 
+                blockArrayCombinedBytes, blockSizeBytes);
 
                 //Note that there is 1 additional block allocated in the array
                 int bufferSize = blockSizeBytes*(array_length+1);
