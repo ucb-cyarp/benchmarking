@@ -268,9 +268,8 @@ inline elementType* fast_copy_aligned(elementType* src, elementType* dst, size_t
                 else if(align == 16 || len - bytesCopied < 32){ // The next level transfers 16 bytes
                     //Need to copy a 16 byte word because there is less than an 32 byte copy or the alignment only allows 16 byte copies
                     #ifdef __SSE2__
-                        //double type is a dummy type to use the intrinsic
-                        __m128d tmp = _mm_load_pd((double*) srcCursor);
-                        _mm_store_pd((double*) dstCursor, tmp);
+                        __m128i tmp = _mm_load_si128((__m128i*) srcCursor);
+                        _mm_store_si128((__m128i*) dstCursor, tmp);
                     #else
                         //Should never happen
                         std::cerr << "Error!  Tried to use SSE2 instruction when not supported" << std::endl;
@@ -285,9 +284,8 @@ inline elementType* fast_copy_aligned(elementType* src, elementType* dst, size_t
                 }else if(((size_t)srcCursor) % 32 != 0){
                     //Need to copy a 16 byte word because of misalignmnet and more than 16 bytes need to be copied
                     #ifdef __SSE2__
-                        //double type is a dummy type to use the intrinsic
-                        __m128d tmp = _mm_load_pd((double*) srcCursor);
-                        _mm_store_pd((double*) dstCursor, tmp);
+                        __m128i tmp = _mm_load_si128((__m128i*) srcCursor);
+                        _mm_store_si128((__m128i*) dstCursor, tmp);
                     #else
                         //Should never happen
                         std::cerr << "Error!  Tried to use SSE2 instruction when not supported" << std::endl;
@@ -312,9 +310,8 @@ inline elementType* fast_copy_aligned(elementType* src, elementType* dst, size_t
                 }
                 else{ // This is the end of the line for now.  If AVX512 used, extend
                     #ifdef __AVX__
-                        //double type is a dummy type to use the intrinsic
-                        __m256d tmp = _mm256_load_pd((double*) srcCursor);
-                        _mm256_store_pd((double*) dstCursor, tmp);
+                        __m256i tmp = _mm256_load_si256((__m256i*) srcCursor);
+                        _mm256_store_si256((__m256i*) dstCursor, tmp);
                     #else
                         //Should never happen
                         std::cerr << "Error!  Tried to use AVX instruction when not supported" << std::endl;
@@ -527,13 +524,12 @@ inline elementType* fast_copy_semialigned(elementType* src, elementType* dst, si
                 }else if(((size_t)FAST_COPY_ALIGN_CURSOR) % 32 != 0){
                     //Need to copy a 16 byte word because of misalignmnet and more than 16 bytes need to be copied
                     #ifdef __SSE2__
-                        //double type is a dummy type to use the intrinsic
                         #ifdef FAST_COPY_ALIGN_ON_SRC
-                            __m128d tmp = _mm_load_pd((double*) srcCursor); //load is aligned
-                            _mm_storeu_pd((double*) dstCursor, tmp);
+                            __m128i tmp = _mm_load_si128((__m128i*) srcCursor); //load is aligned
+                            _mm_storeu_si128((__m128i*) dstCursor, tmp);
                         #else
-                            __m128d tmp = _mm_loadu_pd((double*) srcCursor);
-                            _mm_store_pd((double*) dstCursor, tmp); //store is aligned
+                            __m128i tmp = _mm_loadu_si128((__m128i*) srcCursor);
+                            _mm_store_si128((__m128i*) dstCursor, tmp); //store is aligned
                         #endif
                     #else
                         //Should never happen
@@ -559,13 +555,12 @@ inline elementType* fast_copy_semialigned(elementType* src, elementType* dst, si
                 }
                 else{ // This is the end of the line for now.  If AVX512 used, extend
                     #ifdef __AVX__
-                        //double type is a dummy type to use the intrinsic
                         #ifdef FAST_COPY_ALIGN_ON_SRC
-                            __m256d tmp = _mm256_load_pd((double*) srcCursor); //src is aligned
-                            _mm256_storeu_pd((double*) dstCursor, tmp);
+                            __m256i tmp = _mm256_load_si256((__m256i*) srcCursor); //src is aligned
+                            _mm256_storeu_si256((__m256i*) dstCursor, tmp);
                         #else
-                            __m256d tmp = _mm256_loadu_pd((double*) srcCursor);
-                            _mm256_store_pd((double*) dstCursor, tmp); //dst is aligned
+                            __m256i tmp = _mm256_loadu_si256((__m256i*) srcCursor);
+                            _mm256_store_si256((__m256i*) dstCursor, tmp); //dst is aligned
                         #endif
                     #else
                         //Should never happen
@@ -632,12 +627,11 @@ inline elementType* fast_copy_unaligned_ramp_in(elementType* src, elementType* d
         elementType* srcCursor = srcBlock+i*elementsPerBlockTransfer;
         elementType* dstCursor = dstBlock+i*elementsPerBlockTransfer;
         #ifdef __AVX__
-            //double type is a dummy type to use the intrinsic
-            __m256d tmp = _mm256_loadu_pd((double*) srcCursor);
-            _mm256_storeu_pd((double*) dstCursor, tmp);
+            __m256i tmp = _mm256_loadu_si256((__m256i*) srcCursor);
+            _mm256_storeu_si256((__m256i*) dstCursor, tmp);
         #elif defined (__SSE2__)
-            __128d tmp = _mm128_loadu_pd((double*) srcCursor);
-            _mm128_storeu_pd((double*) dstCursor, tmp);
+            __128d tmp = _mm128_loadu_si128((__m128i*) srcCursor);
+            _mm_storeu_si128((__m128i*) dstCursor, tmp);
         #else
             *((int64_t*) dstCursor) = *((int64_t*) srcCursor);
         #endif
@@ -679,12 +673,11 @@ inline elementType* fast_copy_unaligned(elementType* src, elementType* dst, size
         elementType* srcCursor = src+i*elementsPerBlockTransfer;
         elementType* dstCursor = dst+i*elementsPerBlockTransfer;
         #ifdef __AVX__
-            //double type is a dummy type to use the intrinsic
-            __m256d tmp = _mm256_loadu_pd((double*) srcCursor);
-            _mm256_storeu_pd((double*) dstCursor, tmp);
+            __m256i tmp = _mm256_loadu_si256((__m256i*) srcCursor);
+            _mm256_storeu_si256((__m256i*) dstCursor, tmp);
         #elif defined (__SSE2__)
-            __128d tmp = _mm128_loadu_pd((double*) srcCursor);
-            _mm128_storeu_pd((double*) dstCursor, tmp);
+            __128i tmp = _mm_loadu_si128((__m128i*) srcCursor);
+            _mm_storeu_si128((__m128i*) dstCursor, tmp);
         #else
             *((int64_t*) dstCursor) = *((int64_t*) srcCursor);
         #endif
@@ -739,12 +732,11 @@ inline elementType* fast_copy_aligned_multiple(elementType* src, elementType* ds
         elementType* srcCursor = src+i*elementsPerBlockTransfer;
         elementType* dstCursor = dst+i*elementsPerBlockTransfer;
         #ifdef __AVX__
-            //double type is a dummy type to use the intrinsic
-            __m256d tmp = _mm256_load_pd((double*) srcCursor);
-            _mm256_store_pd((double*) dstCursor, tmp);
+            __m256i tmp = _mm256_load_si256((__m256i*) srcCursor);
+            _mm256_store_si256((__m256i*) dstCursor, tmp);
         #elif defined (__SSE2__)
-            __128d tmp = _mm128_load_pd((double*) srcCursor);
-            _mm128_store_pd((double*) dstCursor, tmp);
+            __128i tmp = _mm_load_si128((__m128i*) srcCursor);
+            _mm_store_si128((__m128i*) dstCursor, tmp);
         #else
             *((int64_t*) dstCursor) = *((int64_t*) srcCursor);
         #endif
