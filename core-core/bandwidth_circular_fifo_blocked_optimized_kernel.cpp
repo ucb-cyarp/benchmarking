@@ -21,6 +21,9 @@
 
 #include "fast_copy.h"
 
+// #define OPTIMIZED_FIFO_WRITER_FOR_LOOP //If defined, a for loop is used in the writer to write elements.  If not defined, fast copy is used
+// #define OPTIMIZED_FIFO_READER_FOR_LOOP //If defined, a for loop is used in the reader to write elements.  If not defined, fast copy is used
+
 /*
  * Resets shared ptr array to 0
  */
@@ -96,11 +99,14 @@ void* bandwidth_circular_fifo_blocked_optimized_server_kernel(void* arg)
             //Yes, we are allowed to write a block
             int32_t* array_base = array_shared_ptr + write_offset*block_length;
 
-            // for(int32_t i = 0; i < block_length; i++){ //start at 1 because write_id is for last written element, need to write into following elements
-            //     //We could write anything but let's write the ID value for this test
-            //     array_base[i] = sample_vals;
-            // }
-            fast_copy_unaligned_ramp_in(local_buffer, array_base, block_length);
+            #ifdef OPTIMIZED_FIFO_WRITER_FOR_LOOP
+                for(int32_t i = 0; i < block_length; i++){ //start at 1 because write_id is for last written element, need to write into following elements
+                    //We could write anything but let's write the ID value for this test
+                    array_base[i] = local_buffer[i];
+                }
+            #else
+                fast_copy_unaligned_ramp_in(local_buffer, array_base, block_length);
+            #endif
 
             //We now need to update the write_id
             write_id++;
@@ -167,11 +173,14 @@ void* bandwidth_circular_fifo_blocked_optimized_client_kernel(void* arg)
             //Yes, we can read a full block
             int32_t* array_base = array_shared_ptr + read_offset*block_length;
 
-            // for(int32_t i = 0; i < block_length; i++)
-            // {        
-            //     local_buffer[i] = array_base[i];
-            // }
-            fast_copy_unaligned_ramp_in(array_base, local_buffer, block_length);
+            #ifdef OPTIMIZED_FIFO_READER_FOR_LOOP
+                for(int32_t i = 0; i < block_length; i++)
+                {        
+                    local_buffer[i] = array_base[i];
+                }
+            #else
+                fast_copy_unaligned_ramp_in(array_base, local_buffer, block_length);
+            #endif
 
             //We read and checked all entries, now let's update the read_id
             read_id++;
