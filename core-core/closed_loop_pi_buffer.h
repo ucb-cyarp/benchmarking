@@ -152,19 +152,28 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
     int blockArrayBytes;
     int blockArrayPaddingBytes;
     int blockArrayCombinedBytes;
-    int idBytes;
-    int idPaddingBytes;
-    int idCombinedBytes;
+    #ifdef CLOSED_LOOP_WITH_IDS
+        int idBytes;
+        int idPaddingBytes;
+        int idCombinedBytes;
+    #endif
     int blockSizeBytes;
 
-    getBlockSizing<elementType, idType>(blockSize, args->alignment, blockArrayBytes, blockArrayPaddingBytes, 
-    blockArrayCombinedBytes, idBytes, idPaddingBytes, idCombinedBytes, blockSizeBytes);
+    #ifdef CLOSED_LOOP_WITH_IDS
+        getBlockSizing<elementType, idType>(blockSize, args->alignment, blockArrayBytes, blockArrayPaddingBytes, 
+        blockArrayCombinedBytes, idBytes, idPaddingBytes, idCombinedBytes, blockSizeBytes);
+    #else
+        getBlockSizing<elementType>(blockSize, args->alignment, blockArrayBytes, blockArrayPaddingBytes, 
+        blockArrayCombinedBytes, blockSizeBytes);
+    #endif
 
     //Load initial write offset
     indexLocalType writeOffset = std::atomic_load_explicit(write_offset_ptr, std::memory_order_acquire);
 
     //Initialize Block ID
-    idLocalType writeBlockInd = writeOffset;
+    #ifdef CLOSED_LOOP_WITH_IDS
+        idLocalType writeBlockInd = writeOffset;
+    #endif
 
     elementType sampleVals = (writeOffset+1)%CLOSED_LOOP_CONTENT_WRAPAROUND;
 
@@ -172,7 +181,6 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
     for(int i = 0; i<blockSize; i++){
         local_array[i] = sampleVals+i;
     }
-
 
     //Disable Interrupts For This Trial (Before Signalling Ready)
     #if CLOSED_LOOP_DISABLE_INTERRUPTS == 1
@@ -205,21 +213,32 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
         std::atomic_signal_fence(std::memory_order_acquire); //Do not want an actual fence but do not want the write to the initial block ID to re-ordered before the write to the write ptr
         //---- Write to output buffer unconditionally (order of writing the IDs is important as they are used by the reader to detect partially valid blocks)
         //+++ Write into array +++
-        //Write initial block ID
-        idType *block_id_start = (idType*) (((char*) array) + writeOffset*blockSizeBytes);
-        std::atomic_store_explicit(block_id_start, writeBlockInd, std::memory_order_release); //Prevents memory access from being reordered after this
+        #ifdef CLOSED_LOOP_WITH_IDS
+            //Write initial block ID
+            idType *block_id_start = (idType*) (((char*) array) + writeOffset*blockSizeBytes);
+            std::atomic_store_explicit(block_id_start, writeBlockInd, std::memory_order_release); //Prevents memory access from being reordered after this
+        #endif
         std::atomic_signal_fence(std::memory_order_acquire); //Do not want an actual fence but do not want sample writing to be re-ordered before the initial block ID write
 
+
         //Write elements
-        elementType *data_array = (elementType*) (((char*) array) + writeOffset*blockSizeBytes + idCombinedBytes*2);
+        #ifdef CLOSED_LOOP_WITH_IDS
+            elementType *data_array = (elementType*) (((char*) array) + writeOffset*blockSizeBytes + idCombinedBytes*2);
+        #else
+            elementType *data_array = (elementType*) (((char*) array) + writeOffset*blockSizeBytes);
+        #endif
         // for(int sample = 0; sample<blockSize; sample++){
         //     data_array[sample] = sampleVals+sample;
         // }
         fast_copy_unaligned_ramp_in(local_array, data_array, blockSize);
 
-        //Write final block ID
-        idType *block_id_end = (idType*) (((char*) array) + writeOffset*blockSizeBytes + idCombinedBytes);
-        std::atomic_store_explicit(block_id_end, writeBlockInd, std::memory_order_release); //Prevents memory access from being reordered after this
+        #ifdef CLOSED_LOOP_WITH_IDS
+            //Write final block ID
+            idType *block_id_end = (idType*) (((char*) array) + writeOffset*blockSizeBytes + idCombinedBytes);
+            std::atomic_store_explicit(block_id_end, writeBlockInd, std::memory_order_release); //Prevents memory access from being reordered after this
+        #else
+            std::atomic_signal_fence(std::memory_order_release);
+        #endif
         //+++ End write into array +++
 
         //Check for index wrap arround (note, there is an extra array element)
@@ -236,16 +255,12 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
         std::atomic_store_explicit(write_offset_ptr, writeOffset, std::memory_order_release);
 
         //Increment block id for next block.  Update the write array
-        writeBlockInd = writeBlockInd == idMax ? 0 : writeBlockInd+1;
+        #ifdef CLOSED_LOOP_WITH_IDS
+            writeBlockInd = writeBlockInd == idMax ? 0 : writeBlockInd+1;
+        #endif
         sampleVals = (sampleVals+1)%CLOSED_LOOP_CONTENT_WRAPAROUND;
         for(int i = 0; i<blockSize; i++){
             local_array[i] = sampleVals+i;
-        }
-
-        //Check stop flag
-        stop = !std::atomic_flag_test_and_set_explicit(stop_flag, std::memory_order_acq_rel);
-        if(stop){
-            break;
         }
 
         //==== Control ====
@@ -254,6 +269,12 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
         }else{
             controlCheckCounter = 0;
             controlCheckHist++;
+
+            //Check stop flag
+            stop = !std::atomic_flag_test_and_set_explicit(stop_flag, std::memory_order_acq_rel);
+            if(stop){
+                break;
+            }
 
             //Check Fullness
             //writeOffset is the local copy of the write offset
@@ -313,6 +334,10 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
 
             //Write to client in any case so that the amount of time spent per control itteration in the client due to the cache miss is consistent.
             std::atomic_store_explicit(clientNops, nops_client_local, std::memory_order_release);
+        }
+
+        if(stop){
+            break;
         }
 
         //Perform NOPs

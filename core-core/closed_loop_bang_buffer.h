@@ -1,6 +1,8 @@
 #ifndef _CLOSED_LOOP_BANG_BUFFER_H
 #define _CLOSED_LOOP_BANG_BUFFER_H
 
+//!!! IMPORTANT TODO: Must be Refactored To use Floating Point NOPs
+
 #include <atomic>
 #include "open_loop_helpers.h"
 #include "closed_loop_helpers.h"

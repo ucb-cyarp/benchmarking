@@ -92,6 +92,7 @@
         FifolessBufferEndCondition();
     };
 
+    //Version with IDs
     template<typename elementType, typename atomicIdType>
     void getBlockSizing(int blockLength, int alignment, int &blockArrayBytes, int &blockArrayPaddingBytes, int &blockArrayCombinedBytes,
                         int &idBytes, int &idPaddingBytes, int &idCombinedBytes, int &blockSizeBytes){
@@ -104,6 +105,16 @@
         blockSizeBytes = blockArrayCombinedBytes+idCombinedBytes*2;
     }
 
+    //Version Without IDs
+    template<typename elementType>
+    void getBlockSizing(int blockLength, int alignment, int &blockArrayBytes, int &blockArrayPaddingBytes, int &blockArrayCombinedBytes,
+                        int &blockSizeBytes){
+        blockArrayBytes = sizeof(elementType)*blockLength;
+        blockArrayPaddingBytes = (blockArrayBytes % alignment == 0) ? 0 : alignment - blockArrayBytes % alignment;
+        blockArrayCombinedBytes = blockArrayBytes+blockArrayPaddingBytes;
+        blockSizeBytes = blockArrayCombinedBytes;
+    }
+
     //The vectors include:
     //shared_array_locs:    the array for each communicating buffer
     //shared_write_id_locs: the write indexes for each buffer
@@ -113,7 +124,7 @@
     //stop_flag:            There is a single stop flag shared by all threads which is real
 
     template<typename elementType, typename atomicIdType, typename atomicIndexType>
-    size_t openLoopAllocate(std::vector<elementType*> &shared_array_locs, std::vector<elementType*> &local_array_reader_locs, std::vector<elementType*> &local_array_writer_locs, std::vector<atomicIndexType*> &shared_write_id_locs, std::vector<atomicIndexType*> &shared_read_id_locs, std::vector<std::atomic_flag*> &ready_flags, std::vector<std::atomic_flag*> &start_flags, std::atomic_flag* &stop_flag, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int> cpus, int alignment, bool circular, bool include_dummy_flags){
+    size_t openLoopAllocate(std::vector<elementType*> &shared_array_locs, std::vector<elementType*> &local_array_reader_locs, std::vector<elementType*> &local_array_writer_locs, std::vector<atomicIndexType*> &shared_write_id_locs, std::vector<atomicIndexType*> &shared_read_id_locs, std::vector<std::atomic_flag*> &ready_flags, std::vector<std::atomic_flag*> &start_flags, std::atomic_flag* &stop_flag, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int> cpus, int alignment, bool circular, bool include_dummy_flags, bool includeIDs){
         //Find the largest array to allocate
         int maxBufferSize = 0;
         int maxLocalBufferSize = 0;
@@ -128,8 +139,13 @@
                 int idCombinedBytes;
                 int blockSizeBytes;
 
-                getBlockSizing<elementType, atomicIdType>(block_length, alignment, blockArrayBytes, blockArrayPaddingBytes, 
-                blockArrayCombinedBytes, idBytes, idPaddingBytes, idCombinedBytes, blockSizeBytes);
+                if(includeIDs){
+                    getBlockSizing<elementType, atomicIdType>(block_length, alignment, blockArrayBytes, blockArrayPaddingBytes, 
+                    blockArrayCombinedBytes, idBytes, idPaddingBytes, idCombinedBytes, blockSizeBytes);
+                }else{
+                    getBlockSizing<elementType>(block_length, alignment, blockArrayBytes, blockArrayPaddingBytes, 
+                    blockArrayCombinedBytes, blockSizeBytes);
+                }
 
                 //Note that there is 1 additional block allocated in the array
                 int bufferSize = blockSizeBytes*(array_length+1);

@@ -177,7 +177,7 @@ size_t openLoopFullnessTrackerAllocate(std::vector<elementType*> &shared_array_l
                                        std::vector<int> cpus, int alignment, bool circular, 
                                        bool include_dummy_flags, int startTrackerLen, int endTrackerLen){
     //Run the standard open loop allocator
-    size_t maxBufferSize = openLoopAllocate<elementType, atomicIdType, atomicIndexType>(shared_array_locs, local_array_reader_locs, local_array_writer_locs, shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, array_lengths, block_lengths, cpus, alignment, circular, include_dummy_flags);
+    size_t maxBufferSize = openLoopAllocate<elementType, atomicIdType, atomicIndexType>(shared_array_locs, local_array_reader_locs, local_array_writer_locs, shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, array_lengths, block_lengths, cpus, alignment, circular, include_dummy_flags, true);
 
     //Allocate the tracker buffers
     int num_buffers = circular ? cpus.size() : cpus.size()-1;

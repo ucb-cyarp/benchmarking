@@ -19,6 +19,7 @@
 // #define CLOSED_LOOP_DISABLE_INTERRUPTS 1
 
 #define CLOSED_LOOP_CONTENT_WRAPAROUND (2048)
+#define CLOSED_LOOP_WITH_IDS
 
 template<typename elementType, 
          typename idType, 
@@ -102,7 +103,12 @@ public:
 
 template<typename elementType, typename atomicIdType, typename atomicIndexType, typename nopCountType>
 size_t closedLoopAllocate(std::vector<elementType*> &shared_array_locs, std::vector<elementType*> &local_array_reader_locs, std::vector<elementType*> &local_array_writer_locs, std::vector<atomicIndexType*> &shared_write_id_locs, std::vector<atomicIndexType*> &shared_read_id_locs, std::vector<std::atomic_flag*> &ready_flags, std::vector<std::atomic_flag*> &start_flags, std::atomic_flag* &stop_flag, std::vector<nopCountType*> &nopControls, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, std::vector<int> cpus, int alignment, bool circular, bool include_dummy_flags){
-    int maxBufferSize = openLoopAllocate<elementType, atomicIdType, atomicIndexType>(shared_array_locs, local_array_reader_locs, local_array_writer_locs, shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, array_lengths, block_lengths, cpus, alignment, circular, include_dummy_flags);
+    #ifdef CLOSED_LOOP_WITH_IDS
+        bool includeIds = true;
+    #else
+        bool includeIds = false;
+    #endif
+    int maxBufferSize = openLoopAllocate<elementType, atomicIdType, atomicIndexType>(shared_array_locs, local_array_reader_locs, local_array_writer_locs, shared_write_id_locs, shared_read_id_locs, ready_flags, start_flags, stop_flag, array_lengths, block_lengths, cpus, alignment, circular, include_dummy_flags, includeIds);
 
     for(int i = 1; i<cpus.size(); i++){//Do not need one for the controller
         nopCountType *nopControl = (nopCountType*) aligned_alloc_core(CACHE_LINE_SIZE, sizeof(nopCountType), cpus[i]);
@@ -134,13 +140,20 @@ void* closed_loop_buffer_reset(void* arg){
     int blockArrayBytes;
     int blockArrayPaddingBytes;
     int blockArrayCombinedBytes;
-    int idBytes;
-    int idPaddingBytes;
-    int idCombinedBytes;
+    #ifdef CLOSED_LOOP_WITH_IDS
+        int idBytes;
+        int idPaddingBytes;
+        int idCombinedBytes;
+    #endif
     int blockSizeBytes;
 
-    getBlockSizing<elementType, indexType>(args->blockSize, args->alignment, blockArrayBytes, blockArrayPaddingBytes, 
-    blockArrayCombinedBytes, idBytes, idPaddingBytes, idCombinedBytes, blockSizeBytes);
+    #ifdef CLOSED_LOOP_WITH_IDS
+        getBlockSizing<elementType, indexType>(args->blockSize, args->alignment, blockArrayBytes, blockArrayPaddingBytes, 
+        blockArrayCombinedBytes, idBytes, idPaddingBytes, idCombinedBytes, blockSizeBytes);
+    #else
+        getBlockSizing<elementType>(args->blockSize, args->alignment, blockArrayBytes, blockArrayPaddingBytes, 
+        blockArrayCombinedBytes, blockSizeBytes);
+    #endif
 
     std::atomic_thread_fence(std::memory_order_acquire);
 
@@ -167,54 +180,96 @@ void* closed_loop_buffer_reset(void* arg){
 
     //Init Blocks After Initial Conditions (these are initialized first because, after the reset, these will be the first blocks to be written to by the writer)
     for(int i = numberInitBlocks+1; i <= args->array_length; i++){ //Note, there is an extra element in the array
-        idType *block_id_start = (idType*) (((char*) args->array) + i*blockSizeBytes);
-        idType *block_id_start_constructed = new (block_id_start) idType();
-        std::atomic_init(block_id_start, 0);
-        std::atomic_store_explicit(block_id_start, 0, std::memory_order_release);
+        std::atomic_signal_fence(std::memory_order_acquire);
+        #ifdef CLOSED_LOOP_WITH_IDS
+            idType *block_id_start = (idType*) (((char*) args->array) + i*blockSizeBytes);
+            idType *block_id_start_constructed = new (block_id_start) idType();
+            std::atomic_init(block_id_start, 0);
+            std::atomic_store_explicit(block_id_start, 0, std::memory_order_release);
+        #else
+            std::atomic_signal_fence(std::memory_order_release);
+        #endif
 
-        elementType *data_array = (elementType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes*2);
+        #ifdef CLOSED_LOOP_WITH_IDS
+            elementType *data_array = (elementType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes*2);
+        #else
+            elementType *data_array = (elementType*) (((char*) args->array) + i*blockSizeBytes);
+        #endif
         for(int j = 0; j<args->blockSize; j++){
             data_array[j] = -1;
         }
         
-        idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes);
-        idType *block_id_end_constructed = new (block_id_end) idType();
-        std::atomic_init(block_id_end, 0);
-        std::atomic_store_explicit(block_id_end, 0, std::memory_order_release);
+        std::atomic_signal_fence(std::memory_order_acquire);
+        #ifdef CLOSED_LOOP_WITH_IDS
+            idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes);
+            idType *block_id_end_constructed = new (block_id_end) idType();
+            std::atomic_init(block_id_end, 0);
+            std::atomic_store_explicit(block_id_end, 0, std::memory_order_release);
+        #else
+            std::atomic_signal_fence(std::memory_order_release);
+        #endif
     }
 
     //Init ID Zero
-    idType *block_id_start = (idType*) (((char*) args->array));
-    idType *block_id_start_constructed = new (block_id_start) idType();
-    std::atomic_init(block_id_start, 0);
-    std::atomic_store_explicit(block_id_start, 0, std::memory_order_release);
+    std::atomic_signal_fence(std::memory_order_acquire);
+    #ifdef CLOSED_LOOP_WITH_IDS
+        idType *block_id_start = (idType*) (((char*) args->array));
+        idType *block_id_start_constructed = new (block_id_start) idType();
+        std::atomic_init(block_id_start, 0);
+        std::atomic_store_explicit(block_id_start, 0, std::memory_order_release);
+    #else
+        std::atomic_signal_fence(std::memory_order_release);
+    #endif
 
-    elementType *data_array = (elementType*) (((char*) args->array) + idCombinedBytes*2);
+    #ifdef CLOSED_LOOP_WITH_IDS
+        elementType *data_array = (elementType*) (((char*) args->array) + idCombinedBytes*2);
+    #else
+        elementType *data_array = (elementType*) (((char*) args->array));
+    #endif
     for(int j = 0; j<args->blockSize; j++){
         data_array[j] = -1;
     }
 
-    idType *block_id_end = (idType*) (((char*) args->array) + idCombinedBytes);
-    idType *block_id_end_constructed = new (block_id_end) idType();
-    std::atomic_init(block_id_end, 0);
-    std::atomic_store_explicit(block_id_end, 0, std::memory_order_release);
+    std::atomic_signal_fence(std::memory_order_acquire);
+    #ifdef CLOSED_LOOP_WITH_IDS
+        idType *block_id_end = (idType*) (((char*) args->array) + idCombinedBytes);
+        idType *block_id_end_constructed = new (block_id_end) idType();
+        std::atomic_init(block_id_end, 0);
+        std::atomic_store_explicit(block_id_end, 0, std::memory_order_release);
+    #else
+        std::atomic_signal_fence(std::memory_order_release);
+    #endif
 
     //Initial Conditions
     for(int i = 1; i<numberInitBlocks+1; i++){
-        idType *block_id_start = (idType*) (((char*) args->array) + i*blockSizeBytes);
-        idType *block_id_start_constructed = new (block_id_start) idType();
-        std::atomic_init(block_id_start, i);
-        std::atomic_store_explicit(block_id_start, i, std::memory_order_release);
+        std::atomic_signal_fence(std::memory_order_acquire);
+        #ifdef CLOSED_LOOP_WITH_IDS
+            idType *block_id_start = (idType*) (((char*) args->array) + i*blockSizeBytes);
+            idType *block_id_start_constructed = new (block_id_start) idType();
+            std::atomic_init(block_id_start, i);
+            std::atomic_store_explicit(block_id_start, i, std::memory_order_release);
+        #else
+            std::atomic_signal_fence(std::memory_order_release);
+        #endif
 
-        elementType *data_array = (elementType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes*2);
+        #ifdef CLOSED_LOOP_WITH_IDS
+            elementType *data_array = (elementType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes*2);
+        #else
+            elementType *data_array = (elementType*) (((char*) args->array) + i*blockSizeBytes);
+        #endif
         for(int j = 0; j<args->blockSize; j++){
             data_array[j] = (i+1)%CLOSED_LOOP_CONTENT_WRAPAROUND+j;
         }
         
-        idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes);
-        idType *block_id_end_constructed = new (block_id_end) idType();
-        std::atomic_init(block_id_end, i);
-        std::atomic_store_explicit(block_id_end, i, std::memory_order_release);
+        std::atomic_signal_fence(std::memory_order_acquire);
+        #ifdef CLOSED_LOOP_WITH_IDS
+            idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes);
+            idType *block_id_end_constructed = new (block_id_end) idType();
+            std::atomic_init(block_id_end, i);
+            std::atomic_store_explicit(block_id_end, i, std::memory_order_release);
+        #else
+            std::atomic_signal_fence(std::memory_order_release);
+        #endif
     }
 
     //Reset the clientNops control (this is written to after the array is written to in the steady state case)
@@ -239,48 +294,55 @@ void* closed_loop_buffer_cleanup(void* arg){
     int blockArrayBytes;
     int blockArrayPaddingBytes;
     int blockArrayCombinedBytes;
-    int idBytes;
-    int idPaddingBytes;
-    int idCombinedBytes;
+    #ifdef CLOSED_LOOP_WITH_IDS
+        int idBytes;
+        int idPaddingBytes;
+        int idCombinedBytes;
+    #endif
     int blockSizeBytes;
 
-    getBlockSizing<elementType, indexType>(args->blockSize, args->alignment, blockArrayBytes, blockArrayPaddingBytes, 
-    blockArrayCombinedBytes, idBytes, idPaddingBytes, idCombinedBytes, blockSizeBytes);
-
-    std::atomic_thread_fence(std::memory_order_acquire);
+    #ifdef CLOSED_LOOP_WITH_IDS
+        getBlockSizing<elementType, indexType>(args->blockSize, args->alignment, blockArrayBytes, blockArrayPaddingBytes, 
+        blockArrayCombinedBytes, idBytes, idPaddingBytes, idCombinedBytes, blockSizeBytes);
+    #else
+        getBlockSizing<elementType>(args->blockSize, args->alignment, blockArrayBytes, blockArrayPaddingBytes, 
+        blockArrayCombinedBytes, blockSizeBytes);
+    #endif
 
     int numberInitBlocks = args->array_length/2; //Initialize FIFO to be half full (round down if odd number)
-
-    std::atomic_thread_fence(std::memory_order_acquire);
 
     //=== Init ===
     //Reset the block ids and data
     //Init ID Zero
-    idType *block_id_start = (idType*) (((char*) args->array));
-    block_id_start->~idType();
+    #ifdef CLOSED_LOOP_WITH_IDS
+        std::atomic_thread_fence(std::memory_order_acquire);
 
-    idType *block_id_end = (idType*) (((char*) args->array) + idCombinedBytes);
-    block_id_end->~idType();
-
-    //Initial Conditions
-    for(int i = 1; i<numberInitBlocks+1; i++){
-        idType *block_id_start = (idType*) (((char*) args->array) + i*blockSizeBytes);
+        idType *block_id_start = (idType*) (((char*) args->array));
         block_id_start->~idType();
-        
-        idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes);
-        block_id_end->~idType();
-    }
 
-    //Init After
-    for(int i = numberInitBlocks+1; i <= args->array_length; i++){ //Note, there is an extra element in the array
-        idType *block_id_start = (idType*) (((char*) args->array) + i*blockSizeBytes);
-        block_id_start->~idType();
-        
-        idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes);
+        idType *block_id_end = (idType*) (((char*) args->array) + idCombinedBytes);
         block_id_end->~idType();
-    }
 
-    std::atomic_thread_fence(std::memory_order_release);
+        //Initial Conditions
+        for(int i = 1; i<numberInitBlocks+1; i++){
+            idType *block_id_start = (idType*) (((char*) args->array) + i*blockSizeBytes);
+            block_id_start->~idType();
+            
+            idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes);
+            block_id_end->~idType();
+        }
+
+        //Init After
+        for(int i = numberInitBlocks+1; i <= args->array_length; i++){ //Note, there is an extra element in the array
+            idType *block_id_start = (idType*) (((char*) args->array) + i*blockSizeBytes);
+            block_id_start->~idType();
+            
+            idType *block_id_end = (idType*) (((char*) args->array) + i*blockSizeBytes + idCombinedBytes);
+            block_id_end->~idType();
+        }
+
+        std::atomic_thread_fence(std::memory_order_release);
+    #endif
 }
 
 //For versions where the number of NOPs is kept as a float
@@ -313,25 +375,35 @@ void* closed_loop_buffer_float_client(void* arg){
     nopsClientLocalType clientNopsLocal = std::atomic_load_explicit(clientNops, std::memory_order_acquire);
     
     elementType expectedSampleVals = 2%CLOSED_LOOP_CONTENT_WRAPAROUND;
-    idLocalType readBlockInd = 0;
 
-    idLocalType newBlockIDStart = -1;
-    idLocalType newBlockIDEnd = -1;
+    #ifdef CLOSED_LOOP_WITH_IDS
+        idLocalType readBlockInd = 0;
 
-    idLocalType expectedBlockID = -1;
+        idLocalType newBlockIDStart = -1;
+        idLocalType newBlockIDEnd = -1;
+
+        idLocalType expectedBlockID = -1;
+    #endif
 
     elementType* localBufferRaw = (elementType*) args->local_array_reader;
 
     int blockArrayBytes;
     int blockArrayPaddingBytes;
     int blockArrayCombinedBytes;
-    int idBytes;
-    int idPaddingBytes;
-    int idCombinedBytes;
+    #ifdef CLOSED_LOOP_WITH_IDS
+        int idBytes;
+        int idPaddingBytes;
+        int idCombinedBytes;
+    #endif
     int blockSizeBytes;
 
-    getBlockSizing<elementType, idType>(args->blockSize, args->alignment, blockArrayBytes, blockArrayPaddingBytes, 
-    blockArrayCombinedBytes, idBytes, idPaddingBytes, idCombinedBytes, blockSizeBytes);
+    #ifdef CLOSED_LOOP_WITH_IDS
+        getBlockSizing<elementType, idType>(args->blockSize, args->alignment, blockArrayBytes, blockArrayPaddingBytes, 
+        blockArrayCombinedBytes, idBytes, idPaddingBytes, idCombinedBytes, blockSizeBytes);
+    #else
+        getBlockSizing<elementType>(args->blockSize, args->alignment, blockArrayBytes, blockArrayPaddingBytes, 
+        blockArrayCombinedBytes, blockSizeBytes);
+    #endif
 
     //==== Load the initial read offset ====
     indexLocalType readOffset = std::atomic_load_explicit(read_offset_ptr, std::memory_order_acquire);
@@ -362,15 +434,24 @@ void* closed_loop_buffer_float_client(void* arg){
     //Read Elements beyond initial condition
     for(int i = numberInitBlocks+1; i <= array_length+1; i++){ //Note, there is an extra element in the array
         int ind = i<=array_length ? i : 0;
-        idType *block_id_end = (idType*) (((char*) array) + ind*blockSizeBytes + idCombinedBytes);
-        newBlockIDEnd = std::atomic_load_explicit(block_id_end, std::memory_order_acquire);
-        asm volatile(""
-        :
-        : "r" (newBlockIDEnd)
-        :);
+
+        #ifdef CLOSED_LOOP_WITH_IDS
+            idType *block_id_end = (idType*) (((char*) array) + ind*blockSizeBytes + idCombinedBytes);
+            newBlockIDEnd = std::atomic_load_explicit(block_id_end, std::memory_order_acquire);
+            asm volatile(""
+            :
+            : "r" (newBlockIDEnd)
+            :);
+        #else
+            std::atomic_signal_fence(std::memory_order_acquire);
+        #endif
         
         //Read elements
-        elementType *data_array = (elementType*) (((char*) array) + ind*blockSizeBytes + idCombinedBytes*2);
+        #ifdef CLOSED_LOOP_WITH_IDS
+            elementType *data_array = (elementType*) (((char*) array) + ind*blockSizeBytes + idCombinedBytes*2);
+        #else
+            elementType *data_array = (elementType*) (((char*) array) + ind*blockSizeBytes);
+        #endif
         for(int sample = 0; sample<blockSize; sample++){
             localBufferRaw[sample] = data_array[sample];
             asm volatile(""
@@ -381,12 +462,17 @@ void* closed_loop_buffer_float_client(void* arg){
 
         //The start ID is read last to check that the block was not being overwritten while the data was being read
         std::atomic_signal_fence(std::memory_order_release); //Do not want an actual fence but do not want sample reading to be re-ordered before the end block ID read
-        idType *block_id_start = (idType*) (((char*) array) + ind*blockSizeBytes);
-        newBlockIDStart = std::atomic_load_explicit(block_id_start, std::memory_order_acquire);
-        asm volatile(""
-        :
-        : "r" (newBlockIDStart)
-        :);
+        #ifdef CLOSED_LOOP_WITH_IDS
+            idType *block_id_start = (idType*) (((char*) array) + ind*blockSizeBytes);
+            newBlockIDStart = std::atomic_load_explicit(block_id_start, std::memory_order_acquire);
+            asm volatile(""
+            :
+            : "r" (newBlockIDStart)
+            :);
+        #else
+            std::atomic_signal_fence(std::memory_order_acquire);
+        #endif
+        std::atomic_signal_fence(std::memory_order_release);
     }
 
     //Write to local array (will have been reset by the server and need to re-aquire exclusive access)
@@ -418,12 +504,20 @@ void* closed_loop_buffer_float_client(void* arg){
         }
 
         //+++ Read from array +++
-        //The end ID is read first to check that the values being read from the array were completly written before this thread started reading.
-        idType *block_id_end = (idType*) (((char*) array) + readOffset*blockSizeBytes + idCombinedBytes);
-        newBlockIDEnd = std::atomic_load_explicit(block_id_end, std::memory_order_acquire);
+        #ifdef CLOSED_LOOP_WITH_IDS
+            //The end ID is read first to check that the values being read from the array were completly written before this thread started reading.
+            idType *block_id_end = (idType*) (((char*) array) + readOffset*blockSizeBytes + idCombinedBytes);
+            newBlockIDEnd = std::atomic_load_explicit(block_id_end, std::memory_order_acquire);
+        #else
+            std::atomic_signal_fence(std::memory_order_acquire);
+        #endif
         
         //Read elements
-        elementType *data_array = (elementType*) (((char*) array) + readOffset*blockSizeBytes + idCombinedBytes*2);
+        #ifdef CLOSED_LOOP_WITH_IDS
+            elementType *data_array = (elementType*) (((char*) array) + readOffset*blockSizeBytes + idCombinedBytes*2);
+        #else
+            elementType *data_array = (elementType*) (((char*) array) + readOffset*blockSizeBytes);
+        #endif
         // for(int sample = 0; sample<blockSize; sample++){
         //     localBuffer[sample] = data_array[sample];
         // }
@@ -434,22 +528,28 @@ void* closed_loop_buffer_float_client(void* arg){
 
         //The start ID is read last to check that the block was not being overwritten while the data was being read
         std::atomic_signal_fence(std::memory_order_release); //Do not want an actual fence but do not want sample reading to be re-ordered before the end block ID read
-        idType *block_id_start = (idType*) (((char*) array) + readOffset*blockSizeBytes);
-        newBlockIDStart = std::atomic_load_explicit(block_id_start, std::memory_order_acquire);
+        #ifdef CLOSED_LOOP_WITH_IDS
+            idType *block_id_start = (idType*) (((char*) array) + readOffset*blockSizeBytes);
+            newBlockIDStart = std::atomic_load_explicit(block_id_start, std::memory_order_acquire);
+        #else
+            std::atomic_signal_fence(std::memory_order_acquire);
+        #endif
         //+++ End read from array +++
 
         //Update Read Ptr
         std::atomic_store_explicit(read_offset_ptr, readOffset, std::memory_order_release);
 
-        //Check the read block IDs
-        expectedBlockID = readBlockInd == UINT32_MAX ? 0 : readBlockInd+1;
-        if(expectedBlockID != newBlockIDStart || expectedBlockID != newBlockIDEnd){
-            //Will signal failure outside of loop
-            failureDetected = true;
+        #ifdef CLOSED_LOOP_WITH_IDS
+            //Check the read block IDs
+            expectedBlockID = readBlockInd == UINT32_MAX ? 0 : readBlockInd+1;
+            if(expectedBlockID != newBlockIDStart || expectedBlockID != newBlockIDEnd){
+                //Will signal failure outside of loop
+                failureDetected = true;
+                readBlockInd = expectedBlockID;
+                break;
+            }
             readBlockInd = expectedBlockID;
-            break;
-        }
-        readBlockInd = expectedBlockID;
+        #endif
 
         //Check elements
         for(int sample = 0; sample<blockSize; sample++){
@@ -500,9 +600,15 @@ void* closed_loop_buffer_float_client(void* arg){
     #endif
 
     FifolessBufferEndCondition *rtn = new FifolessBufferEndCondition;
-    rtn->expectedBlockID = readBlockInd;
-    rtn->startBlockID = newBlockIDStart;
-    rtn->endBlockID = newBlockIDEnd;
+    #ifdef CLOSED_LOOP_WITH_IDS
+        rtn->expectedBlockID = readBlockInd;
+        rtn->startBlockID = newBlockIDStart;
+        rtn->endBlockID = newBlockIDEnd;
+    #else
+        rtn->expectedBlockID = -1;
+        rtn->startBlockID = -1;
+        rtn->endBlockID = -1;
+    #endif
     rtn->wasErrorSrc = true;
     rtn->errored = failureDetected;
     rtn->resultGranularity = HW_Granularity::CORE;
