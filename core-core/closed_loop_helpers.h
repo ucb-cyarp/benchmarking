@@ -20,6 +20,9 @@
 
 #define CLOSED_LOOP_CONTENT_WRAPAROUND (2048)
 #define CLOSED_LOOP_WITH_IDS
+#define CLOSED_LOOP_CHECK_CONTENT
+// #define CLOSED_LOOP_PRINT_ERRORS
+#define CLOSED_LOOP_CONTROL_ERROR_THRESHOLD (80) //This (out of 100) is the error beyond which the controller considers an error to have occured.  This is if CLOSED_LOOP_WITH_IDS and CLOSED_LOOP_CHECK_CONTENT are both undefined
 
 template<typename elementType, 
          typename idType, 
@@ -551,21 +554,36 @@ void* closed_loop_buffer_float_client(void* arg){
             readBlockInd = expectedBlockID;
         #endif
 
-        //Check elements
-        for(int sample = 0; sample<blockSize; sample++){
-            if(localBuffer[sample] != expectedSampleVals+sample){ //Moving to a case where not all samples are the same
-                std::cerr << "Unexpected array data! Transfer: " << transfer << " Sample: " << sample << " Expected " << expectedSampleVals << " got " << localBuffer[sample] << std::endl;
-                // std::cerr << "ID Start " << newBlockIDStart << " ID End " << newBlockIDEnd << std::endl;
-                // std::cerr << "Data Array " << data_array << " Local Array Raw " << localBufferRaw << " Local Array " << localBuffer << std::endl;
-                // for(int i = 0; i<blockSize+FAST_COPY_ALIGNED_PADDING/sizeof(elementType); i++){
-                //     std::cerr << "[" << i << "] = " << localBufferRaw[i] << std::endl;
-                // }
-                // for(int i = 0; i<blockSize; i++){
-                //     std::cerr << "(" << i << ") = " << localBuffer[i] << std::endl;
-                // }
-                exit(1);
+        #ifdef CLOSED_LOOP_CHECK_CONTENT
+            //Check elements
+            for(int sample = 0; sample<blockSize; sample++){
+                if(localBuffer[sample] != expectedSampleVals+sample){ //Moving to a case where not all samples are the same
+                    #if defined(CLOSED_LOOP_WITH_IDS) && defined(CLOSED_LOOP_PRINT_ERRORS)
+                        std::cerr << "Unexpected array data! Transfer: " << transfer << " Sample: " << sample << " Expected " << expectedSampleVals << " got " << localBuffer[sample] << std::endl;
+                    #endif
+                    // std::cerr << "ID Start " << newBlockIDStart << " ID End " << newBlockIDEnd << std::endl;
+                    // std::cerr << "Data Array " << data_array << " Local Array Raw " << localBufferRaw << " Local Array " << localBuffer << std::endl;
+                    // for(int i = 0; i<blockSize+FAST_COPY_ALIGNED_PADDING/sizeof(elementType); i++){
+                    //     std::cerr << "[" << i << "] = " << localBufferRaw[i] << std::endl;
+                    // }
+                    // for(int i = 0; i<blockSize; i++){
+                    //     std::cerr << "(" << i << ") = " << localBuffer[i] << std::endl;
+                    // }
+                    #ifdef CLOSED_LOOP_WITH_IDS
+                        failureDetected = true;
+                        break;
+                    #else
+                        exit(1);
+                    #endif
+                }
             }
-        }
+
+            #ifndef CLOSED_LOOP_WITH_IDS
+                if(failureDetected){
+                    break;
+                }
+            #endif
+        #endif
 
         expectedSampleVals = (expectedSampleVals+1)%CLOSED_LOOP_CONTENT_WRAPAROUND;
 
@@ -575,7 +593,17 @@ void* closed_loop_buffer_float_client(void* arg){
         }else{
             controlCounter = 0;
 
+            #if !defined(CLOSED_LOOP_CHECK_CONTENT) && !defined(CLOSED_LOOP_WITH_IDS)
+                //If not checking content or IDs, we are relying on the controller to tell us to stop
+                failureDetected = !std::atomic_flag_test_and_set_explicit(stop_flag, std::memory_order_acq_rel);
+
+                if(failureDetected){
+                    break;
+                }
+            #endif
+
             clientNopsLocal = std::atomic_load_explicit(clientNops, std::memory_order_acquire);
+            std::atomic_signal_fence(std::memory_order_release);
         }
 
         //Perform NOPs
@@ -587,8 +615,11 @@ void* closed_loop_buffer_float_client(void* arg){
         nops_current -= nops_current_trunk;//Get the residual for the next round
     }
 
-    std::atomic_thread_fence(std::memory_order_acquire);
-    std::atomic_flag_clear_explicit(stop_flag, std::memory_order_release);
+    #if defined(CLOSED_LOOP_CHECK_CONTENT) || defined(CLOSED_LOOP_WITH_IDS)
+        //If either checking the IDs or content, the reader decides when to stop
+        std::atomic_thread_fence(std::memory_order_acquire);
+        std::atomic_flag_clear_explicit(stop_flag, std::memory_order_release);
+    #endif
 
     //Re-enable interrupts before processing results (which dynamically allocates memory which can result in a system call)
     #if CLOSED_LOOP_DISABLE_INTERRUPTS == 1

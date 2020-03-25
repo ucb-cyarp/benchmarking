@@ -270,11 +270,13 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
             controlCheckCounter = 0;
             controlCheckHist++;
 
-            //Check stop flag
-            stop = !std::atomic_flag_test_and_set_explicit(stop_flag, std::memory_order_acq_rel);
-            if(stop){
-                break;
-            }
+            #if defined(CLOSED_LOOP_CHECK_CONTENT) || defined(CLOSED_LOOP_WITH_IDS)
+            //If checking IDs or content, the reader is responsible for signaling the stop.  Check stop flag
+                stop = !std::atomic_flag_test_and_set_explicit(stop_flag, std::memory_order_acq_rel);
+                if(stop){
+                    break;
+                }
+            #endif
 
             //Check Fullness
             //writeOffset is the local copy of the write offset
@@ -283,6 +285,24 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
             indexLocalType numEntries = getNumItemsInBuffer(readOffset, writeOffset, array_length);
 
             nopsClientLocalType error = numEntries - halfFilledPoint;
+
+            #if !defined(CLOSED_LOOP_CHECK_CONTENT) && !defined(CLOSED_LOOP_WITH_IDS)
+                //If not checking IDs or content, the server is responsible for signaling the stop
+                //Error detection is acomplished by checking for errors outside of an acceptable range
+
+                nopsClientLocalType errorThreshold = array_length*CLOSED_LOOP_CONTROL_ERROR_THRESHOLD/(2*100);
+                if (error > errorThreshold || errorThreshold < -errorThreshold){
+                    //The buffer has entered a dangerous region.  We will say an error has occured
+                    stop = true;
+
+                    //Signal to the reader to stop
+                    std::atomic_thread_fence(std::memory_order_acquire);
+                    std::atomic_flag_clear_explicit(stop_flag, std::memory_order_release);
+                    break;
+                }
+
+            #endif
+
             control_integral += error;
 
             //The correction is from the perspective of the server.
@@ -334,10 +354,6 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
 
             //Write to client in any case so that the amount of time spent per control itteration in the client due to the cache miss is consistent.
             std::atomic_store_explicit(clientNops, nops_client_local, std::memory_order_release);
-        }
-
-        if(stop){
-            break;
         }
 
         //Perform NOPs
