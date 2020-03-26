@@ -207,7 +207,7 @@ void* bandwidth_circular_fifo_blocked_optimized_client_kernel(void* arg)
                 //Need to make sure that the memory copy is not optimized out if the content is not checked
                 asm volatile(""
                 :
-                : "r" (*(const elementType char (*)[]) local_buffer) //See https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html for information for "string memory arguments"
+                : "r" (*(const int32_t (*)[]) local_buffer) //See https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html for information for "string memory arguments"
                 :);
             #endif
 
