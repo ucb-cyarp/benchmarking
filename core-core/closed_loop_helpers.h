@@ -576,10 +576,11 @@ void* closed_loop_buffer_float_client(void* arg){
                     //     std::cerr << "(" << i << ") = " << localBuffer[i] << std::endl;
                     // }
                     #ifdef CLOSED_LOOP_WITH_IDS
+                        //If we are checking IDs there should be no incorrect data in the array
+                        exit(1);
+                    #else
                         failureDetected = true;
                         break;
-                    #else
-                        exit(1);
                     #endif
                 }
             }
