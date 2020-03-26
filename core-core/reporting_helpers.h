@@ -399,9 +399,56 @@
         #endif
     }
 
+        /**
+     * Prints a result of a 2 core Blocked FIFO benchmark as well as writing it to the summary and raw CSV files.
+     * 
+     * The amount of reporting is configured using compile and runtime parameters (report_standalone, PRINT_STATS, ...).
+     * 
+     * This function is typically called in a loop to print/export all of the results (all of the configurations) of
+     * a particular benchmark run.
+     */
+    template <typename elementType>
+    void exportResultsBlockedOptimizedFIFO2Core(bool report_standalone, Profiler* profiler, int cpu_a, int cpu_b, Results &results, size_t array_length, int block_length, std::string format, FILE* file, std::ofstream* raw_file){
+        #if PRINT_STATS == 1 || PRINT_FULL_STATS == 1 || WRITE_CSV == 1
+            if(report_standalone)
+            {
+                if(!profiler->cpuTopology.empty()){
+                    std::vector<int> sockets;
+                    std::vector<int> cores;
+                    std::vector<int> dies;
+                    std::vector<int> threads;
+
+                    getGranularityIndexsOfInterest({cpu_a, cpu_b}, profiler, sockets, cores, dies, threads);
+
+                    #if PRINT_FULL_STATS == 1
+                        results.print_statistics(sockets, dies, cores, threads, STIM_LEN);
+                    #endif
+
+                    #if PRINT_STATS == 1
+                        print_results_blocked_fifo_standalone(results, array_length*block_length*STIM_LEN, block_length, sizeof(elementType));
+                    #endif
+                }else{
+                    #if PRINT_FULL_STATS == 1
+                        results.print_statistics(0, 0, 0, cpu_a, STIM_LEN);
+                    #endif
+
+                    #if PRINT_STATS == 1
+                        print_results_blocked_fifo_standalone(results, array_length*block_length*STIM_LEN, block_length, sizeof(elementType));
+                    #endif
+                }
+            }
+            else
+            {
+                print_results_blocked_fifo(results, array_length*block_length*STIM_LEN, array_length*block_length, block_length, sizeof(elementType), format, file, raw_file);
+            }
+        #endif
+    }
+
     void printWriteFIFOTable2Core();
 
     void printTitleFIFOPoint(bool report_standalone, std::string title, size_t array_length, std::string second_param_label, int32_t second_param);
+
+    void printTitleFIFOOptimizedPoint(bool report_standalone, std::string title, size_t array_length, std::string second_param_label, int32_t second_param);
 
     void printTitleFIFO(std::string title, int columns, int column_width);
     
@@ -573,5 +620,68 @@
     void writeRawHeaderClosedLoopPI(std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResults, std::ofstream* raw_file);
 
     void closeEntry(FILE* file, std::ofstream* raw_file);
+
+    /**
+     * Prints (and writes to the summary CSV file) a table of the results for a 2 Core Blocked (Optimized) FIFO benchmark.
+     * 
+     * The difference with the "optimized" version of the benchmark is that the 
+     * 
+     * Also populates the raw CSV file with results from the benchmark
+     * 
+     * Accompishes this by repeatedly calling the exportResults function
+     */
+    template <typename elementType>
+    void printWriteBlockedOptimizedFIFOTable2Core(bool report_standalone, Profiler* profiler, int cpu_a, int cpu_b, std::string title, std::string secondary_dimension_label, std::vector<Results> results_vec, std::vector<size_t> array_lengths, std::vector<int32_t> block_lengths, int data_col_width, std::string format, FILE* file, std::ofstream* raw_file){
+        int result_idx = 0;
+
+        for(int i = 0; i<array_lengths.size(); i++)
+        {
+            size_t array_length = array_lengths[i];
+
+            //Print the newlinem indent and new array length
+            #if PRINT_STATS == 1
+            printf("\n        %27lu", array_length);
+            #endif
+
+            #if WRITE_CSV == 1
+            fprintf(file, "\n%lu", array_length);
+            fflush(file);
+            #endif
+
+            for(int j = 0; j<block_lengths.size(); j++)
+            {
+                int32_t block_length = block_lengths[j];
+
+                #if WRITE_CSV == 1
+                fprintf(file, ",");
+                fflush(file);
+                #endif
+
+                //Print/Write individual results
+                printTitleFIFOOptimizedPoint(report_standalone, title, array_length, secondary_dimension_label, block_length);
+                exportResultsBlockedOptimizedFIFO2Core<elementType>(report_standalone, profiler, cpu_a, cpu_b, results_vec[result_idx], array_length, block_length, format, file, raw_file);
+
+                result_idx++;
+            }
+        }
+
+        //Print the newline
+        #if WRITE_CSV == 1
+        fprintf(file, "\n");
+        fflush(file);
+        #endif
+
+        #if PRINT_TITLE == 1
+        printf("\n        ===========================");
+        for(int i = 0; i<block_lengths.size(); i++)
+        {
+            for(int j = 0; j<data_col_width; j++)
+            {
+                printf("=");
+            }
+        }
+        printf("\n");
+        #endif
+    }
 
 #endif

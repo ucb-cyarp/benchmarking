@@ -249,6 +249,21 @@ void printTitleFIFOPoint(bool report_standalone, std::string title, size_t array
     #endif
 }
 
+/**
+ * Prints information about a proceeding FIFO data point to the console if reporting in standalone mode.
+ */
+void printTitleFIFOOptimizedPoint(bool report_standalone, std::string title, size_t array_length, std::string second_param_label, int32_t second_param){
+    #if PRINT_TITLE == 1
+    if(report_standalone)
+    {
+        printf("\n");
+        printTitle(title);
+        printf("Array Length: %lu Blocks, %s: %d\n", array_length, second_param_label.c_str(), second_param);
+        fflush(stdout);
+    }
+    #endif
+}
+
 void writeRawHeaderOpenLoop(std::vector<std::shared_ptr<BenchmarkSpecificResult>> implSpecificResults, std::ofstream* raw_file){
     #if WRITE_CSV == 1
         *raw_file << "\"Array Length (Blocks)\","

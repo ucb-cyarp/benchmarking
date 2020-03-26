@@ -344,7 +344,7 @@ int main(int argc, char *argv[])
 
     printf("\n");
 
-    //=====Test 3.1 - Bandwidth FIFO Blocked=====
+    //=====Test 3.1.1 - Bandwidth FIFO Blocked=====
     FILE* fifo_blocked_array_csv_file = NULL;
     std::ofstream fifo_blocked_array_raw_csv_file;
     #if WRITE_CSV == 1
@@ -356,6 +356,31 @@ int main(int argc, char *argv[])
 
     fclose(fifo_blocked_array_csv_file);
     fifo_blocked_array_raw_csv_file.close();
+
+    printf("\n");
+
+    //=====Test 3.1.2 - Bandwidth FIFO Blocked (Optimized)=====
+    FILE* fifo_blocked_optimized_array_csv_file = NULL;
+    std::ofstream fifo_blocked_optimized_array_raw_csv_file;
+
+    std::vector<size_t> array_sizes_in_blocks;
+    size_t array_sizes_in_blocks_start = 1;
+    size_t array_sizes_in_blocks_stop = 255;
+
+    for(int i = array_sizes_in_blocks_start; i < array_sizes_in_blocks_stop; i++)
+    {
+        array_sizes_in_blocks.push_back(i);
+    }
+
+    #if WRITE_CSV == 1
+    fifo_blocked_optimized_array_csv_file = fopen("report_fifo_blocked_optimized_array.csv", "w");
+    fifo_blocked_optimized_array_raw_csv_file.open("report_fifo_blocked_optimized_array_raw.csv", std::ofstream::out);
+    #endif
+
+    run_bandwidth_fifo_blocked_optimized_kernel(profiler, cpu_a, cpu_b, array_sizes_in_blocks, transaction_sizes, fifo_blocked_optimized_array_csv_file, &fifo_blocked_optimized_array_raw_csv_file);
+
+    fclose(fifo_blocked_optimized_array_csv_file);
+    fifo_blocked_optimized_array_raw_csv_file.close();
 
     printf("\n");
 
