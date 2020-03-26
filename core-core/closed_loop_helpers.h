@@ -594,7 +594,7 @@ void* closed_loop_buffer_float_client(void* arg){
             //Need to make sure that the memory copy is not optimized out if the content is not checked
             asm volatile(""
             :
-            : "r" (*(const elementType char (*)[]) localBuffer) //See https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html for information for "string memory arguments"
+            : "r" (*(const elementType (*)[]) localBuffer) //See https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html for information for "string memory arguments"
             :);
         #endif
 
