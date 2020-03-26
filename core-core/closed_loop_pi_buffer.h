@@ -227,10 +227,14 @@ void* closed_loop_buffer_pi_period_control_server(void* arg){
         #else
             elementType *data_array = (elementType*) (((char*) array) + writeOffset*blockSizeBytes);
         #endif
-        // for(int sample = 0; sample<blockSize; sample++){
-        //     data_array[sample] = sampleVals+sample;
-        // }
-        fast_copy_unaligned_ramp_in(local_array, data_array, blockSize);
+
+        #ifdef CLOSED_LOOP_WRITER_FOR_LOOP
+            for(int sample = 0; sample<blockSize; sample++){
+                data_array[sample] = local_array[sample];
+            }
+        #else
+            fast_copy_unaligned_ramp_in(local_array, data_array, blockSize);
+        #endif
 
         #ifdef CLOSED_LOOP_WITH_IDS
             //Write final block ID

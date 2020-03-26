@@ -23,6 +23,8 @@
 #define CLOSED_LOOP_CHECK_CONTENT
 // #define CLOSED_LOOP_PRINT_ERRORS
 #define CLOSED_LOOP_CONTROL_ERROR_THRESHOLD (80) //This (out of 100) is the error beyond which the controller considers an error to have occured.  This is if CLOSED_LOOP_WITH_IDS and CLOSED_LOOP_CHECK_CONTENT are both undefined
+// #define CLOSED_LOOP_WRITER_FOR_LOOP //If defined, a for loop is used in the writer to write elements.  If not defined, fast copy is used
+// #define CLOSED_LOOP_READER_FOR_LOOP //If defined, a for loop is used in the reader to write elements.  If not defined, fast copy is used
 
 template<typename elementType, 
          typename idType, 
@@ -521,13 +523,17 @@ void* closed_loop_buffer_float_client(void* arg){
         #else
             elementType *data_array = (elementType*) (((char*) array) + readOffset*blockSizeBytes);
         #endif
-        // for(int sample = 0; sample<blockSize; sample++){
-        //     localBuffer[sample] = data_array[sample];
-        // }
-        // elementType* localBuffer = fast_copy_aligned(data_array, localBufferRaw, blockSize, FAST_COPY_ALIGNED_PADDING/sizeof(elementType));
-        // elementType* localBuffer = fast_copy_semialigned(data_array, localBufferRaw, blockSize);
-        // elementType* localBuffer = fast_copy_unaligned(data_array, localBufferRaw, blockSize);
-        elementType* localBuffer = fast_copy_unaligned_ramp_in(data_array, localBufferRaw, blockSize);
+
+        #ifdef CLOSED_LOOP_READER_FOR_LOOP
+            for(int sample = 0; sample<blockSize; sample++){
+                localBuffer[sample] = data_array[sample];
+            }
+        #else
+            // elementType* localBuffer = fast_copy_aligned(data_array, localBufferRaw, blockSize, FAST_COPY_ALIGNED_PADDING/sizeof(elementType));
+            // elementType* localBuffer = fast_copy_semialigned(data_array, localBufferRaw, blockSize);
+            // elementType* localBuffer = fast_copy_unaligned(data_array, localBufferRaw, blockSize);
+            elementType* localBuffer = fast_copy_unaligned_ramp_in(data_array, localBufferRaw, blockSize);
+        #endif
 
         //The start ID is read last to check that the block was not being overwritten while the data was being read
         std::atomic_signal_fence(std::memory_order_release); //Do not want an actual fence but do not want sample reading to be re-ordered before the end block ID read
