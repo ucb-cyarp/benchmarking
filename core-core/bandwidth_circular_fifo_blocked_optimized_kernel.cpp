@@ -23,6 +23,7 @@
 
 // #define OPTIMIZED_FIFO_WRITER_FOR_LOOP //If defined, a for loop is used in the writer to write elements.  If not defined, fast copy is used
 // #define OPTIMIZED_FIFO_READER_FOR_LOOP //If defined, a for loop is used in the reader to write elements.  If not defined, fast copy is used
+#define OPTIMIZED_FIFO_CHECK_CONTENT //If defined, content fetched from the FIFO is checked for correctness
 
 /*
  * Resets shared ptr array to 0
@@ -158,7 +159,9 @@ void* bandwidth_circular_fifo_blocked_optimized_client_kernel(void* arg)
 
     int32_t read_offset = 0;
 
-    int32_t expected_sample_vals = (read_offset+1)%FIFO_CONTENT_WRAPAROUND;
+    #ifdef OPTIMIZED_FIFO_CHECK_CONTENT
+        int32_t expected_sample_vals = (read_offset+1)%FIFO_CONTENT_WRAPAROUND;
+    #endif
 
     int32_t readLim = STIM_LEN*length;
     while(read_id < readLim)
@@ -182,22 +185,31 @@ void* bandwidth_circular_fifo_blocked_optimized_client_kernel(void* arg)
                 fast_copy_unaligned_ramp_in(array_base, local_buffer, block_length);
             #endif
 
-            //We read and checked all entries, now let's update the read_id
+            //We read the entries now let's update the read_id
             read_id++;
 
             std::atomic_store_explicit(read_pos_shared_ptr, read_id, std::memory_order_release); //Sync read ID.  Should force reads from array to finish before this (preventing producer from overwriting it will not write past the read pointer).
 
-            //Check the read values
-            for(int32_t i = 0; i < block_length; i++)
-            {
-                //Check that the value is what we expect.
-                //NOTE: We are using the fact that in this test, the value should be the same as the ID.
-                if(local_buffer[i] != expected_sample_vals+i)
+            #ifdef OPTIMIZED_FIFO_CHECK_CONTENT
+                //Check the read values
+                for(int32_t i = 0; i < block_length; i++)
                 {
-                    printf("Unexpected read value!!! ID: %d, %d ~= %d\n", read_id-1, local_buffer[i], expected_sample_vals);
-                    exit(1);
+                    //Check that the value is what we expect.
+                    //NOTE: We are using the fact that in this test, the value should be the same as the ID.
+                    if(local_buffer[i] != expected_sample_vals+i)
+                    {
+                        printf("Unexpected read value!!! ID: %d, %d ~= %d\n", read_id-1, local_buffer[i], expected_sample_vals);
+                        exit(1);
+                    }
                 }
-            }
+                expected_sample_vals = (expected_sample_vals+1)%FIFO_CONTENT_WRAPAROUND;
+            #else
+                //Need to make sure that the memory copy is not optimized out if the content is not checked
+                asm volatile(""
+                :
+                : "r" (*(const int32_t (*)[]) local_buffer) //See https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html for information for "string memory arguments"
+                :);
+            #endif
 
             //check for wraparound (no extra element in this test)
             if (read_offset >= length-1)
@@ -208,7 +220,6 @@ void* bandwidth_circular_fifo_blocked_optimized_client_kernel(void* arg)
             {
                 read_offset++;
             }
-            expected_sample_vals = (expected_sample_vals+1)%FIFO_CONTENT_WRAPAROUND;
         }
 
         //Poll until there is more data to read or the end of the test
