@@ -2,7 +2,7 @@
 #include <atomic>
 
 void* noCleanupFctn(void*){
-
+    return nullptr;
 }
 
 void* kernel_exe_primary_wrapper(void *arg)

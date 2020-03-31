@@ -1545,7 +1545,7 @@ void run_latency_flow_ctrl_blocked_read_fanout_kernel(Profiler* profiler, int cp
     free(shared_ack_loc_2);
     free(shared_valid_loc_1);
     free(shared_valid_loc_2);
-    delete srv_args_1;
-    delete cli_args_1;
-    delete cli_args_2;
+    delete[] srv_args_1;
+    delete[] cli_args_1;
+    delete[] cli_args_2;
 }
