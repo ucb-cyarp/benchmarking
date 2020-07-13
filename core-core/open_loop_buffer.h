@@ -179,6 +179,8 @@ void* open_loop_buffer_cleanup(void* arg){
     }
 
     std::atomic_thread_fence(std::memory_order_release);
+
+    return nullptr;
 }
 
 //This thread is the writer.  It will recieve a start signal from the client when it is ready (the client is the primary thread)

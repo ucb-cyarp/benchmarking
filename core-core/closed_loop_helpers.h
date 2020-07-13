@@ -286,6 +286,8 @@ void* closed_loop_buffer_reset(void* arg){
     std::atomic_flag_test_and_set_explicit(args->ready_flag, std::memory_order_release);
 
     std::atomic_thread_fence(std::memory_order_release);
+
+    return nullptr;
 }
 
 template<typename elementType, 
@@ -348,6 +350,8 @@ void* closed_loop_buffer_cleanup(void* arg){
 
         std::atomic_thread_fence(std::memory_order_release);
     #endif
+    
+    return nullptr;
 }
 
 //For versions where the number of NOPs is kept as a float
