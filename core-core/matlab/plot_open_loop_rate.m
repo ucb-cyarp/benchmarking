@@ -4,9 +4,9 @@
 
 %Plot & Filter Parameters
 ArrayLength = 255;
-BlockSize = 32;
+BlockSize = 130;
 InitNOPs = 0;
-BalNOPs = 35;
+BalNOPs = 414;
 
 %Change this if element size changes (variable name should also change)
 ElementSizeBytes = 4;
@@ -37,3 +37,10 @@ else
 end
 
 title({title1, filterCond}, 'Interpreter', 'none')
+
+% Display Average of Plotted Points (Inverse of Avg Duration)
+sumBitsTransfered = sum(bitsTransfered);
+sumTimeMs = sum(SteadyClockWalltimems(idxs));
+avgDataRateGbps = sumBitsTransfered/(sumTimeMs*1e6); %Time is already in ms
+
+fprintf('Average Rate: %10.6f\n', avgDataRateGbps);
