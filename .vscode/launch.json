@@ -5,16 +5,61 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "micro_bench_throughput_test",
+            "name": "(gdb) Launch 4 Cores",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/intrin/micro_bench_throughput_test",
-            "args": [],
+            "program": "${workspaceFolder}/core-core/core-core",
+            "args": ["4", "5", "20", "21"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
-            "environment": [{"name":"DYLD_LIBRARY_PATH", "value":"$DYLD_LIBRARY_PATH:${workspaceFolder}/depends/pcm/MacMSRDriver/build/Release"}],
-            "externalConsole": true,
-            "MIMode": "lldb"
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "(gdb) Launch 2 Cores",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/core-core/core-core",
+            "args": ["4", "5"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "(gdb) Launch 2 Cores NUMA",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/core-core/core-core",
+            "args": ["4", "12"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
         }
     ]
 }

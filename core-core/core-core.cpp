@@ -589,28 +589,35 @@ int main(int argc, char *argv[])
     #if TEST_CLOSED_LOOP_BANG==1
 
     //===== Test 6 - Closed Loop Bang Control =====
-    size_t closed_loop_array_length_start = 62;
-    size_t closed_loop_array_length_end = 63;
+    size_t closed_loop_array_length_start = 255;
+    size_t closed_loop_array_length_end = 256;
 
     int32_t closed_loop_block_size_start = 32;
     int32_t closed_loop_block_size_end = 33;
 
     int32_t closed_loop_control_period_start = 0;
-    int32_t closed_loop_control_period_step = 10;
-    int32_t closed_loop_control_period_end = 1010;
+    int32_t closed_loop_control_period_step = 100;
+    // int32_t closed_loop_control_period_end = 10100;
+    // int32_t closed_loop_control_period_end = 6000;
+    int32_t closed_loop_control_period_end = 1100;
 
     int32_t closed_loop_client_control_period_start = 0;
-    int32_t closed_loop_client_control_period_step = 10;
-    int32_t closed_loop_client_control_period_end = 2010;
+    int32_t closed_loop_client_control_period_step = 10000;
+    // int32_t closed_loop_client_control_period_end = 10100;
+    // int32_t closed_loop_client_control_period_end = 6000;
+    int32_t closed_loop_client_control_period_end = 1100;
 
     float closed_loop_control_gain_start = 0;
-    float closed_loop_control_gain_step = 1;
-    float closed_loop_control_gain_end = 2000;
+    float closed_loop_control_gain_step = 0.1;
+    float closed_loop_control_gain_end = 20.1;
 
-    std::vector<float> closed_loop_initial_nops = {0, 100, 500, 1000};
+    std::vector<float> closed_loop_initial_nops = {200};
 
     int closed_loop_alignment = 4; //Align to 4 byte (32 bit) words
-    int closed_loop_max_block_transfers = 200000;
+    //int closed_loop_max_block_transfers = 200000;
+    //int closed_loop_max_block_transfers = 2000000;
+    int closed_loop_max_block_transfers = 20000000;
+    //int closed_loop_max_block_transfers = 2000000000;
 
     std::vector<size_t> closed_loop_array_lengths;
     for(int i = closed_loop_array_length_start; i < closed_loop_array_length_end; i++)
@@ -661,36 +668,104 @@ int main(int argc, char *argv[])
 
     #if TEST_CLOSED_LOOP_PI==1
     //===== Test 6.1 - Closed Loop PI Control =====
-    size_t closed_loop_pi_array_length_start = 62;
-    size_t closed_loop_pi_array_length_end = 63;
+    size_t closed_loop_pi_array_length_start = 255;
+    size_t closed_loop_pi_array_length_end = 256;
 
-    int32_t closed_loop_pi_block_size_start = 32;
-    int32_t closed_loop_pi_block_size_end = 33;
+    // size_t closed_loop_pi_array_length_start = 255; //TEST WITH INTERRUPTS DISABLED
+    // size_t closed_loop_pi_array_length_end = 256; //TEST WITH INTERRUPTS DISABLED
+
+    // int32_t closed_loop_pi_block_size_start = 142;
+    // int32_t closed_loop_pi_block_size_end = 143;
+
+    // int32_t closed_loop_pi_block_size_start = 32;
+    // int32_t closed_loop_pi_block_size_end = 33;
+
+    // int32_t closed_loop_pi_block_size_start = 144;
+    // int32_t closed_loop_pi_block_size_end = 145;
+
+    int32_t closed_loop_pi_block_size_start = 1;
+    int32_t closed_loop_pi_block_size_end = 150;
+
+    // int32_t closed_loop_pi_block_size_start = 130;
+    // int32_t closed_loop_pi_block_size_end = 131;
+
+    // int32_t closed_loop_pi_block_size_start = 120;
+    // int32_t closed_loop_pi_block_size_end = 145;
+
+    // int32_t closed_loop_pi_block_size_start = 75;
+    // int32_t closed_loop_pi_block_size_end = 76;
+
+    // int32_t closed_loop_pi_block_size_start = 32; //TEST WITH INTERRUPTS DISABLED
+    // int32_t closed_loop_pi_block_size_end = 33; //TEST WITH INTERRUPTS DISABLED
 
     int32_t closed_loop_pi_control_period_start = 0;
-    int32_t closed_loop_pi_control_period_step = 10;
-    int32_t closed_loop_pi_control_period_end = 1010;
+    int32_t closed_loop_pi_control_period_step = 5;
+    int32_t closed_loop_pi_control_period_end = 60;
+
+    // int32_t closed_loop_pi_control_period_start = 0;
+    // int32_t closed_loop_pi_control_period_step = 20;
+    // int32_t closed_loop_pi_control_period_end = 150;
+    // // int32_t closed_loop_pi_control_period_end = 110;
+
+    // int32_t closed_loop_pi_control_period_start = 0; //TEST WITH INTERRUPTS DISABLED
+    // int32_t closed_loop_pi_control_period_step = 100; //TEST WITH INTERRUPTS DISABLED
+    // int32_t closed_loop_pi_control_period_end = 700; //TEST WITH INTERRUPTS DISABLED
 
     int32_t closed_loop_pi_client_control_period_start = 0;
     int32_t closed_loop_pi_client_control_period_step = 10;
-    int32_t closed_loop_pi_client_control_period_end = 2010;
+    int32_t closed_loop_pi_client_control_period_end = 10;
 
-    float closed_loop_pi_control_gain_p_start = 0;
-    float closed_loop_pi_control_gain_p_step = 1;
-    float closed_loop_pi_control_gain_p_end = 2000;
+    // int32_t closed_loop_pi_client_control_period_start = 10;
+    // int32_t closed_loop_pi_client_control_period_step = 10;
+    // int32_t closed_loop_pi_client_control_period_end = 20;
+
+    // float closed_loop_pi_control_gain_p_start = 1.55;
+    // float closed_loop_pi_control_gain_p_step = 0.05;
+    // float closed_loop_pi_control_gain_p_end = 5;
+    // // float closed_loop_pi_control_gain_p_end = 1; //TEST WITH INTERRUPTS DISABLED
+
+    // float closed_loop_pi_control_gain_p_start = 1;
+    // float closed_loop_pi_control_gain_p_step = 0.2;
+    // float closed_loop_pi_control_gain_p_end = 2;
+
+    //Trying wider range
+    float closed_loop_pi_control_gain_p_start = 0.2;
+    float closed_loop_pi_control_gain_p_step = 0.2;
+    float closed_loop_pi_control_gain_p_end = 6;
+
+    // float closed_loop_pi_control_gain_p_start = 0.1;
+    // float closed_loop_pi_control_gain_p_step = 0.1;
+    // float closed_loop_pi_control_gain_p_end = 2;
 
     float closed_loop_pi_control_gain_i_start = 0;
     float closed_loop_pi_control_gain_i_step = 1;
-    float closed_loop_pi_control_gain_i_end = 2000;
+    float closed_loop_pi_control_gain_i_end = 1;
 
     float closed_loop_pi_control_base_gain_start = 0.01;
     float closed_loop_pi_control_base_gain_step = 0.1;
     float closed_loop_pi_control_base_gain_end = 0.02;
 
-    std::vector<float> closed_loop_pi_initial_nops = {0, 100, 500, 1000};
+    // float closed_loop_pi_control_base_gain_start = 0.02;
+    // float closed_loop_pi_control_base_gain_step = 0.1;
+    // float closed_loop_pi_control_base_gain_end = 0.03;
+
+    //This version does not run as fast as possible.  It operates around this given
+    //Initial NOPs and will only speed up as much as is required to correct imballances
+    //Additional control logic is required to adjust this base rate over time to reach
+    //the fastest rate possible.  Requires at least 1 NOP for the rate.
+
+    // std::vector<float> closed_loop_pi_initial_nops = {130};
+    std::vector<float> closed_loop_pi_initial_nops = {260};
+    // std::vector<float> closed_loop_pi_initial_nops = {40};
+    // std::vector<float> closed_loop_pi_initial_nops = {20}; //TEST WITH INTERRUPTS DISABLED
+    // std::vector<float> closed_loop_pi_initial_nops = {10};
 
     int closed_loop_pi_alignment = 4; //Align to 4 byte (32 bit) words
     int closed_loop_pi_max_block_transfers = 200000;
+    // int closed_loop_pi_max_block_transfers = 2000000;
+    // int closed_loop_pi_max_block_transfers = 10000000;
+    // int closed_loop_pi_max_block_transfers = 200000000; //TEST WITH INTERRUPTS DISABLED
+    //int closed_loop_pi_max_block_transfers = 2000000000;
 
     std::vector<size_t> closed_loop_pi_array_lengths;
     for(int i = closed_loop_pi_array_length_start; i < closed_loop_pi_array_length_end; i++)

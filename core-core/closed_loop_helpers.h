@@ -20,7 +20,7 @@
 
 #define CLOSED_LOOP_CONTENT_WRAPAROUND (2048)
 #define CLOSED_LOOP_WITH_IDS
-#define CLOSED_LOOP_CHECK_CONTENT
+// #define CLOSED_LOOP_CHECK_CONTENT
 // #define CLOSED_LOOP_PRINT_ERRORS
 #define CLOSED_LOOP_CONTROL_ERROR_THRESHOLD (80) //This (out of 100) is the error beyond which the controller considers an error to have occured.  This is if CLOSED_LOOP_WITH_IDS and CLOSED_LOOP_CHECK_CONTENT are both undefined
 // #define CLOSED_LOOP_WRITER_FOR_LOOP //If defined, a for loop is used in the writer to write elements.  If not defined, fast copy is used

@@ -23,7 +23,10 @@
     #endif
 
     #ifndef TRIALS
-        #define TRIALS 100
+        //#define TRIALS 100
+        // #define TRIALS 10
+        #define TRIALS 5
+        //#define TRIALS 2
     #endif
 
     #ifndef MAX_DISCARD
