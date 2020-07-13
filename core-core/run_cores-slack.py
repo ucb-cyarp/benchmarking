@@ -57,7 +57,11 @@ def main():
     subprocess.call('dmesg | grep "RCU" > rcu_dmesg.txt', shell=True, executable='/bin/bash')
     subprocess.call('cat /proc/interrupts > interruptsBefore.txt', shell=True, executable='/bin/bash')
     subprocess.call('cat /proc/softirqs > softirqsBefore.txt', shell=True, executable='/bin/bash')
-    subprocess.call(cmd, shell=True, executable='/bin/bash')
+    subprocess.call('git log -1 > gitLastCommitDetailed.txt', shell=True, executable='/bin/bash')
+    subprocess.call('git log -1 --format="%H"  > gitLastCommit.txt', shell=True, executable='/bin/bash')
+    subprocess.call('git status -b > gitStatus.txt', shell=True, executable='/bin/bash')
+    subprocess.call('git diff > gitDiff.patch', shell=True, executable='/bin/bash')
+    rtnCode = subprocess.call(cmd, shell=True, executable='/bin/bash')
     subprocess.call('cat /proc/interrupts > interruptsAfter.txt', shell=True, executable='/bin/bash')
     subprocess.call('cat /proc/softirqs > softirqsAfter.txt', shell=True, executable='/bin/bash')
     diffInterruptsCmd = '../common/diffInterrupts.py --start interruptsBefore.txt --end interruptsAfter.txt {} | tee interruptsDiff.txt'.format(cpuStr)
@@ -65,16 +69,26 @@ def main():
     diffSoftirqsCmd = '../common/diffSoftirqs.py --start softirqsBefore.txt --end softirqsAfter.txt {} | tee softirqsDiff.txt'.format(cpuStr)
     subprocess.call(diffSoftirqsCmd, shell=True, executable='/bin/bash')
 
+    rtnCodeFile = open('return_code.txt', 'w')
+    rtnCodeFile.write("Return Code: {}\n".format(str(rtnCode)))
+    rtnCodeFile.close()
+
     cur_time = datetime.datetime.now()
-    print("\nFinished: {}\n".format(str(cur_time)))
+    if rtnCode == 0:
+        print("\nFinished: {}\n".format(str(cur_time)))
+    else:
+        print("\nErrored: {}\n".format(str(cur_time)))
     endStamp = open('end_stamp.txt', 'w')
     endStamp.write("Finished: {}\n".format(str(cur_time)))
     endStamp.close()
     print("\nCompressing Results\n")
-    subprocess.call('gzip *.csv', shell=True, executable='/bin/bash')
+    subprocess.call('gzip -f *.csv', shell=True, executable='/bin/bash')
     cur_time = datetime.datetime.now()
     print("\nFinished Compressing: {}\n".format(str(cur_time)))
-    slackStatusPost('*Core-Core Benchmarking Finishing*\nHost: ' + hostname + '\n' + 'Time: ' + str(cur_time))
+    if rtnCode == 0:
+        slackStatusPost('*Core-Core Benchmarking Finishing :white_check_mark:*\nHost: ' + hostname + '\n' + 'Time: ' + str(cur_time))
+    else:
+        slackStatusPost('*Core-Core Benchmarking Errored :x:*\nHost: ' + hostname + '\n' + 'Time: ' + str(cur_time))
 
 if __name__ == "__main__":
     main()
