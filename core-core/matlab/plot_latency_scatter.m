@@ -27,6 +27,12 @@ for i = 1:length(directoryList)
     [flow_ctrl_block_read_array_length, flow_ctrl_block_read_array_highResClk, flow_ctrl_block_read_array_procTime, flow_ctrl_block_read_array_rdtsc] = importRawArrayFile([directory '/report_flow_ctrl_blocked_read_array_raw.csv'], start_row, end_row);
 
     [STIM_LEN,TRIALS,CPUA,CPUB,CPUC,CPUD,profiler,methodology_version] = importParametersFile([directory '/report_parameters.csv']);
+    
+    if methodology_version > 2
+        chrono_lbl = 'Steady Clock';
+    else
+        chrono_lbl = 'High Resolution Clock';
+    end
 
     %% Scale Data
     single_array_length_bytes = single_array_length*32/8;
@@ -43,11 +49,11 @@ for i = 1:length(directoryList)
     dual_timeToCompletion_highResClk = dual_array_highResClk*1e6/STIM_LEN;
     dual_timeToCompletion_procTime = dual_array_procTime*1e6/STIM_LEN;
 
-    flow_ctrl_timeToCompletion_highResClk = flow_ctrl_array_highResClk*1e6/STIM_LEN;
-    flow_ctrl_timeToCompletion_procTime = flow_ctrl_array_procTime*1e6/STIM_LEN;
+    flow_ctrl_timeToCompletion_highResClk = flow_ctrl_array_highResClk*1e6/(STIM_LEN/2);
+    flow_ctrl_timeToCompletion_procTime = flow_ctrl_array_procTime*1e6/(STIM_LEN/2);
 
-    flow_ctrl_block_read_timeToCompletion_highResClk = flow_ctrl_block_read_array_highResClk*1e6/STIM_LEN;
-    flow_ctrl_block_read_timeToCompletion_procTime = flow_ctrl_block_read_array_procTime*1e6/STIM_LEN;
+    flow_ctrl_block_read_timeToCompletion_highResClk = flow_ctrl_block_read_array_highResClk*1e6/(STIM_LEN/2);
+    flow_ctrl_block_read_timeToCompletion_procTime = flow_ctrl_block_read_array_procTime*1e6/(STIM_LEN/2);
 
     %% Plot 1
     figure;
@@ -70,11 +76,11 @@ for i = 1:length(directoryList)
     ylabel('Transaction Time to Completion - One Way (ns)')
     title({'Core-Core Transactions with Single Shared Array', directory}, 'Interpreter', 'none');
     if includeProcTime && includeWallTime
-        legend([s1, s2], {'High Resolution Clock', 'Thread Process Time'});
+        legend([s1, s2], {chrono_lbl, 'Thread Process Time'});
     elseif includeProcTime
         legend([s2], {'Thread Process Time'});
     elseif includeWallTime
-        legend([s1], {'High Resolution Clock'});
+        legend([s1], {chrono_lbl});
     end
     grid on;
 
@@ -99,11 +105,11 @@ for i = 1:length(directoryList)
     title({'Core-Core Transactions with Dual Shared Arrays', directory}, 'Interpreter', 'none');
     hold off;
     if includeProcTime && includeWallTime
-        legend([s1, s2], {'High Resolution Clock', 'Thread Process Time'});
+        legend([s1, s2], {chrono_lbl, 'Thread Process Time'});
     elseif includeProcTime
         legend([s2], {'Thread Process Time'});
     elseif includeWallTime
-        legend([s1], {'High Resolution Clock'});
+        legend([s1], {chrono_lbl});
     end
     grid on;
 
@@ -124,16 +130,16 @@ for i = 1:length(directoryList)
         s1.MarkerFaceAlpha = alpha;
     end
     xlabel('Transaction Length (Bytes)', 'Interpreter', 'none');
-    ylabel('Transaction Time to Completion - One Way (ns)')
+    ylabel('Transaction Time to Completion - Round Trip (ns)')
     title({'Core-Core Flow Control Transactions with Ack', directory}, 'Interpreter', 'none');
     hold off;
     if includeProcTime && includeWallTime
-        legend([s1, s2], {'High Resolution Clock', 'Thread Process Time'});
+        legend([s1, s2], {chrono_lbl, 'Thread Process Time'});
         hold off;
     elseif includeProcTime
         legend([s2], {'Thread Process Time'});
     elseif includeWallTime
-        legend([s1], {'High Resolution Clock'});
+        legend([s1], {chrono_lbl});
     end
     grid on;
 
@@ -154,16 +160,16 @@ for i = 1:length(directoryList)
         s1.MarkerFaceAlpha = alpha;
     end
     xlabel('Transaction Length (Bytes)', 'Interpreter', 'none');
-    ylabel('Transaction Time to Completion - One Way (ns)')
+    ylabel('Transaction Time to Completion - Round Trip (ns)')
     title({'Core-Core Flow Control (Blocked Read) Transactions with Ack', directory}, 'Interpreter', 'none');
     hold off;
     if includeProcTime && includeWallTime
-        legend([s1, s2], {'High Resolution Clock', 'Thread Process Time'});
+        legend([s1, s2], {chrono_lbl, 'Thread Process Time'});
         hold off;
     elseif includeProcTime
         legend([s2], {'Thread Process Time'});
     elseif includeWallTime
-        legend([s1], {'High Resolution Clock'});
+        legend([s1], {chrono_lbl});
     end
     grid on;
 

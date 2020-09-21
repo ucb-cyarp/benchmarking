@@ -1,3 +1,3 @@
 #!/bin/bash
 source ./secretkey.sh
-./run_cache_16_20-slack.py
+./run_cores-slack.py 16 20

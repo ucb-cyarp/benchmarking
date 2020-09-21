@@ -58,3 +58,13 @@ bool GenericProfiler::checkFreqChanged(std::vector<int> socketsOfInterest)
 std::string GenericProfiler::profilerName(){
     return "Generic";
 }
+
+bool GenericProfiler::supportsMultipleInstances(){
+    return true;
+}
+
+Profiler* GenericProfiler::clone(){
+    GenericProfiler* cpy = new GenericProfiler;
+    *cpy = *this;
+    return cpy;
+}

@@ -1,4 +1,5 @@
 language: cpp
+version: ~> 1.0
 
 #Using trick from https://genbattle.bitbucket.io/blog/2016/01/17/c++-travis-ci/
 # https://github.com/travis-ci/travis-ci/issues/6300
@@ -21,18 +22,7 @@ before_script:
     - export C_INCLUDE_PATH="$START_PATH/depends/amduprof/AMDuProf_Linux_x64_3.1.35/include:$C_INCLUDE_PATH"
     - export CPLUS_INCLUDE_PATH="$START_PATH/depends/amduprof/AMDuProf_Linux_x64_3.1.35/include:$CPLUS_INCLUDE_PATH"
 
-os:
-  - linux
-#  - osx
-
-dist: bionic
-#osx_image: xcode9.4
-
-#compiler:
-#  - clang
-#  - gcc
-
-matrix:
+jobs:
   include:
     - compiler: gcc
       os: linux
@@ -42,23 +32,13 @@ matrix:
       os: linux
       dist: bionic
       env: COMPILER=clang++-6.0
-#    - compiler: gcc
-#      os: osx
-#      osx_image: xcode11.2
-#      env: COMPILER=g++
     - compiler: clang
       os: osx
       osx_image: xcode11.2
       env: COMPILER=clang++
-  exclide:
-    - compiler: gcc
-    - compiler: clang
 
 addons:
   apt:
-    sources:
-#    - ubuntu-toolchain-r-test
-#    - llvm-toolchain-trusty-3.8
     packages:
     - clang-6.0
     - gcc-7

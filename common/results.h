@@ -9,6 +9,7 @@
     #include <iostream>
     #include <set>
     #include <utility>
+    #include <memory>
 
     #include "measurement.h"
 
@@ -16,10 +17,39 @@
     double avg(const std::vector<double> arr);
     double std_dev(double* arr, size_t len);
 
+    /**
+     * This class allows benchmarks to return their own implementation specific results.
+     * For example, if the benchmark is measuring the number of times a certain failure condition
+     * occurs, the BenchmarkSpecificResult class would be overwritten for that benchmark and would
+     * provide reporting for failures
+     * 
+     * 
+     */
+    class BenchmarkSpecificResult{
+        public:
+            HW_Granularity resultGranularity;
+            int granularityIndex; //Ie. if the resultGranularity is CORE, this is the core it responds to
+            virtual std::string getGranularityStr();
+            
+            //These are for individual trials
+            //The trial results header should not include the granularity information
+            virtual std::string getTrialResultsHeader();
+            virtual std::string getTrialResults();
+            //The CSV header should include granularity information if appropriate
+            //The CSV header should include quotes where appropriate and commas between elements
+            virtual std::string getTrialCSVHeader();
+            virtual std::string getTrialCSVData();
+
+            //TODO: Provide a function for a summary of multiple trials.  May include avg, stddev, max, min
+            //May require casting pointers to the derived class (and checking that cast succeeded)
+
+            BenchmarkSpecificResult();
+    };
+
     class TrialResult
     {
         public:
-            double duration; //high resolution clock duration (in ms)
+            double duration; //steady clock duration (in ms)
             double duration_clock; //clock duration (in ms)
             double duration_rdtsc;
 
@@ -35,6 +65,16 @@
              * Each measurement can contain multiple samples if a sampling methodology was used.
              */
             std::map<MeasurementType, std::map<HW_Granularity, std::vector<Measurement>>> measurements;
+
+            /**
+             * These are benchmark (implementation) specific results which may not exist for every benchmark.
+             * The are ment to carry data which is of interest to a particular benchmark and is not one of the
+             * result types provided by the generic profiler.
+             * 
+             * Warning: If exporting to CSV or printing multiple trial results, the relative order of these 
+             * benchmark_specific_results should be consistent across the different TrialResult objects
+             */
+            std::vector<std::shared_ptr<BenchmarkSpecificResult>> benchmarkSpecificResults;
 
             TrialResult();
             TrialResult(bool sampled);
@@ -63,6 +103,7 @@
 
             TrialResult* add_trial_set_trialInd(TrialResult &trial);
             TrialResult* add_trial(TrialResult &trial);
+            void remove_last_trial();
 
             double avg_duration();
             double avg_duration_clock();
@@ -81,8 +122,8 @@
             void print_statistics(int stim_len, const std::vector<HW_Granularity> granularityToPrint = DEFAULT_GRANULARITY_LIST, const std::vector<MeasurementType> measurementTypeToPrint = DEFAULT_REPORT_TYPE_LIST);
             void write_csv(std::ofstream &csv_file, int socket, int core, int thread, const std::vector<HW_Granularity> granularityToPrint = DEFAULT_GRANULARITY_LIST, const std::vector<MeasurementType> measurementTypeToPrint = DEFAULT_REPORT_TYPE_LIST);
             void write_csv(std::ofstream &csv_file, int socket, int core, int thread, std::string col0_name, int col0_val, const std::vector<HW_Granularity> granularityToPrint = DEFAULT_GRANULARITY_LIST, const std::vector<MeasurementType> measurementTypeToPrint = DEFAULT_REPORT_TYPE_LIST);
-            void write_durations(std::ofstream &csv_file, std::string col0_name, int col0_val, bool include_header);
-            void write_durations(std::ofstream &csv_file, std::string col0_name, int col0_val, std::string col1_name, int col1_val, bool include_header);
+            void write_durations(std::ofstream &csv_file, std::vector<std::string> col_names, std::vector<std::string> col_vals, bool include_header);
+            void write_durations_and_benchmark_specific_results(std::ofstream &csv_file, std::vector<std::string> col_names, std::vector<std::string> col_vals, bool include_header);
 
             std::map<MeasurementType, std::map<HW_Granularity, std::map<int, Unit>>> measurementsAvailUnion(const std::vector<HW_Granularity> granularityToInspect = DEFAULT_GRANULARITY_LIST, const std::vector<MeasurementType> measurementTypeToInspect = DEFAULT_REPORT_TYPE_LIST);
     };

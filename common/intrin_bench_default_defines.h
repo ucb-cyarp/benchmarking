@@ -19,11 +19,11 @@
 
     //Set default options
     #ifndef STIM_LEN
-        #define STIM_LEN 200
+        #define STIM_LEN 20000
     #endif
 
     #ifndef TRIALS
-        #define TRIALS 20
+        #define TRIALS 100
     #endif
 
     #ifndef MAX_DISCARD
@@ -52,6 +52,14 @@
 
     #ifndef PRINT_FREQ_CHANGE_EVENT
         #define PRINT_FREQ_CHANGE_EVENT 0
+    #endif
+
+    #ifndef PRINT_EXPERIMENT_TRACKER
+        #define PRINT_EXPERIMENT_TRACKER 0
+    #endif
+
+    #ifndef PRINT_TRIAL_TRACKER
+        #define PRINT_TRIAL_TRACKER 0
     #endif
 
     #ifndef USE_PCM

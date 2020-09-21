@@ -31,6 +31,9 @@
 
             bool detectsFreqChange() override; ///<Returns true if the profiler can detect a frequency change event
             bool checkFreqChanged(std::vector<int> socketsOfInterest) override; ///<Returs true if the profiler detected a frequency change event in the last trial
+            bool supportsMultipleInstances() override;
+
+            Profiler* clone() override;
     };
 
 #endif

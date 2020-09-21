@@ -27,9 +27,10 @@
 /*
  * Resets shared ptr to 0
  */
-void* latency_single_kernel_reset(void* shared_ptr)
+void* latency_single_kernel_reset(void* arg)
 {
-    std::atomic_int32_t* shared_ptr_int = (std::atomic_int32_t*) shared_ptr;
+    LatencySingleKernelResetArgs* args = (LatencySingleKernelResetArgs*) arg;
+    std::atomic_int32_t* shared_ptr_int = args->shared_ptr;
 
     std::atomic_store_explicit(shared_ptr_int, 0, std::memory_order_release);
 

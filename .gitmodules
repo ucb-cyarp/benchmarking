@@ -1,3 +1,6 @@
 [submodule "intrin/depends/pcm"]
 	path = depends/pcm
 	url = https://github.com/cyarp/pcm.git
+[submodule "depends/sir"]
+	path = depends/sir
+	url = git@github.com:ucb-cyarp/sir.git

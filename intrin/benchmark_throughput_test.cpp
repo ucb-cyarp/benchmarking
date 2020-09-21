@@ -41,8 +41,8 @@
 
 std::string timerType_toString(TimerType type){
     switch(type){
-        case TimerType::HRC:
-            return "High Resolution Clock";
+        case TimerType::STEADY:
+            return "Steady Clock";
         case TimerType::CLOCK:
             return "Clock";
         case TimerType::RDTSC:
@@ -94,7 +94,7 @@ void writeTimingMeasurementsToCSV(TimerType timerType, bool frequency, FILE* csv
                     //Print result
                     double mean_exe_time = 0;
                     switch(timerType){
-                        case TimerType::HRC:
+                        case TimerType::STEADY:
                             mean_exe_time = result_it->second->avg_duration();
                             break;
                         case TimerType::CLOCK:
@@ -118,7 +118,7 @@ void writeTimingMeasurementsToCSV(TimerType timerType, bool frequency, FILE* csv
 
                         double stddev_exe_time = 0;
                         switch(timerType){
-                            case TimerType::HRC:
+                            case TimerType::STEADY:
                                 stddev_exe_time = result_it->second->stddev_duration();
                                 break;
                             case TimerType::CLOCK:
@@ -371,8 +371,8 @@ void* run_benchmarks(void* cpu_num)
 
     //======Print table======
     //Print Rate (Ms/s)
-    writeTimingMeasurementsToCSV(TimerType::HRC,   true,  csv_file, kernel_results, kernels, types);
-    writeTimingMeasurementsToCSV(TimerType::HRC,   false, csv_file, kernel_results, kernels, types);
+    writeTimingMeasurementsToCSV(TimerType::STEADY,   true,  csv_file, kernel_results, kernels, types);
+    writeTimingMeasurementsToCSV(TimerType::STEADY,   false, csv_file, kernel_results, kernels, types);
     writeTimingMeasurementsToCSV(TimerType::CLOCK, true,  csv_file, kernel_results, kernels, types);
     writeTimingMeasurementsToCSV(TimerType::CLOCK, false, csv_file, kernel_results, kernels, types);
     //writeTimingMeasurementsToCSV(TimerType::RDTSC, true,  csv_file, kernel_results, kernels, types);

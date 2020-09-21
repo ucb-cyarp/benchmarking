@@ -91,6 +91,8 @@
 #include "bandwidth_circular_fifo_blocked_kernel.h"
 #include "bandwidth_circular_fifo_read_limit_kernel.h"
 #include "bandwidth_circular_fifo_blocked_cachedptr_kernel.h"
+#include "open_loop_kernels.h"
+#include "closed_loop_kernels.h"
 
 #ifndef PRINT_FULL_STATS
     #define PRINT_FULL_STATS 0
@@ -240,7 +242,7 @@ int main(int argc, char *argv[])
     std::ofstream parameters_csv;
     parameters_csv.open("report_parameters.csv", std::ofstream::out);
     parameters_csv << "STIM_LEN, TRIALS, CPUA, CPUB, CPUC, CPUD, profiler, methodology_version" << std::endl;
-    parameters_csv << STIM_LEN << ", " << TRIALS << ", " << cpu_a << ", " << cpu_b << ", " << cpu_c << "," << cpu_d << ", " << profiler->profilerName() << ", " << "2" << std::endl;
+    parameters_csv << STIM_LEN << ", " << TRIALS << ", " << cpu_a << ", " << cpu_b << ", " << cpu_c << "," << cpu_d << ", " << profiler->profilerName() << ", " << "3" << std::endl;
     parameters_csv.close();
     #endif
 
@@ -342,7 +344,7 @@ int main(int argc, char *argv[])
 
     printf("\n");
 
-    //=====Test 3.1 - Bandwidth FIFO Blocked=====
+    //=====Test 3.1.1 - Bandwidth FIFO Blocked=====
     FILE* fifo_blocked_array_csv_file = NULL;
     std::ofstream fifo_blocked_array_raw_csv_file;
     #if WRITE_CSV == 1
@@ -354,6 +356,31 @@ int main(int argc, char *argv[])
 
     fclose(fifo_blocked_array_csv_file);
     fifo_blocked_array_raw_csv_file.close();
+
+    printf("\n");
+
+    //=====Test 3.1.2 - Bandwidth FIFO Blocked (Optimized)=====
+    FILE* fifo_blocked_optimized_array_csv_file = NULL;
+    std::ofstream fifo_blocked_optimized_array_raw_csv_file;
+
+    std::vector<size_t> array_sizes_in_blocks;
+    size_t array_sizes_in_blocks_start = 1;
+    size_t array_sizes_in_blocks_stop = 255;
+
+    for(int i = array_sizes_in_blocks_start; i < array_sizes_in_blocks_stop; i++)
+    {
+        array_sizes_in_blocks.push_back(i);
+    }
+
+    #if WRITE_CSV == 1
+    fifo_blocked_optimized_array_csv_file = fopen("report_fifo_blocked_optimized_array.csv", "w");
+    fifo_blocked_optimized_array_raw_csv_file.open("report_fifo_blocked_optimized_array_raw.csv", std::ofstream::out);
+    #endif
+
+    run_bandwidth_fifo_blocked_optimized_kernel(profiler, cpu_a, cpu_b, array_sizes_in_blocks, transaction_sizes, fifo_blocked_optimized_array_csv_file, &fifo_blocked_optimized_array_raw_csv_file);
+
+    fclose(fifo_blocked_optimized_array_csv_file);
+    fifo_blocked_optimized_array_raw_csv_file.close();
 
     printf("\n");
 
@@ -385,6 +412,341 @@ int main(int argc, char *argv[])
 
     printf("\n");
 
+    #endif
+
+    #if TEST_OPEN_LOOP == 1
+    //===== Test 5 - Open Loop =====
+    {
+        size_t open_loop_array_length_start = 60;
+        size_t open_loop_array_length_end = 69;
+
+        int32_t open_loop_block_size_start = 28;
+        int32_t open_loop_block_size_end = 35;
+
+        int32_t open_loop_balancing_nops_start = -10;
+        int32_t open_loop_balancing_nops_end = 10;
+
+        std::vector<int> open_loop_initial_nops = {0, 100, 500, 1000};
+
+        int open_loop_alignment = 4; //Align to 4 byte (32 bit) words
+        int open_loop_max_block_transfers = 2000000000;
+
+        std::vector<size_t> open_loop_array_lengths;
+        for(int i = open_loop_array_length_start; i < open_loop_array_length_end; i++)
+        {
+            open_loop_array_lengths.push_back(i);
+        }
+
+        std::vector<int32_t> open_loop_block_sizes;
+        for(int i = open_loop_block_size_start; i < open_loop_block_size_end; i++)
+        {
+            open_loop_block_sizes.push_back(i);
+        }
+
+        std::vector<int32_t> open_loop_balancing_nops;
+        for(int i = open_loop_balancing_nops_start; i < open_loop_balancing_nops_end; i++)
+        {
+            open_loop_balancing_nops.push_back(i);
+        }
+
+        FILE* open_loop_csv_file = NULL;
+        std::ofstream open_loop_raw_csv_file;
+        #if WRITE_CSV == 1
+        open_loop_csv_file = fopen("report_open_loop.csv", "w");
+        open_loop_raw_csv_file.open("report_open_loop_raw.csv", std::ofstream::out);
+        #endif
+
+        run_open_loop_kernel(profiler, cpu_a, cpu_b, open_loop_array_lengths, open_loop_block_sizes, open_loop_balancing_nops, open_loop_initial_nops, open_loop_alignment, open_loop_max_block_transfers, open_loop_csv_file, &open_loop_raw_csv_file);
+
+        fclose(open_loop_csv_file);
+        open_loop_raw_csv_file.close();
+    }
+
+    printf("\n");
+
+    #if TEST_OPEN_LOOP_FULLNESS_TRACKER == 1
+    //===== Test 5.1 - Open Loop Fullness Tracker =====
+    {
+        size_t open_loop_fullness_tracker_array_length_start = 60;
+        size_t open_loop_fullness_tracker_array_length_end = 69;
+
+        int32_t open_loop_fullness_tracker_block_size_start = 28;
+        int32_t open_loop_fullness_tracker_block_size_end = 35;
+
+        int32_t open_loop_fullness_tracker_balancing_nops_start = -10;
+        int32_t open_loop_fullness_tracker_balancing_nops_end = 10;
+
+        std::vector<int> open_loop_fullness_tracker_initial_nops = {0};
+
+        std::vector<int> open_loop_fullness_tracker_checkPeriod = {0};
+
+        int open_loop_fullness_tracker_trackerLen = 256;
+
+        int open_loop_fullness_tracker_alignment = 4; //Align to 4 byte (32 bit) words
+        int open_loop_fullness_tracker_max_block_transfers = 2000000000;
+
+        std::vector<size_t> open_loop_fullness_tracker_array_lengths;
+        for(int i = open_loop_fullness_tracker_array_length_start; i < open_loop_fullness_tracker_array_length_end; i++)
+        {
+            open_loop_fullness_tracker_array_lengths.push_back(i);
+        }
+
+        std::vector<int32_t> open_loop_fullness_tracker_block_sizes;
+        for(int i = open_loop_fullness_tracker_block_size_start; i < open_loop_fullness_tracker_block_size_end; i++)
+        {
+            open_loop_fullness_tracker_block_sizes.push_back(i);
+        }
+
+        std::vector<int32_t> open_loop_fullness_tracker_balancing_nops;
+        for(int i = open_loop_fullness_tracker_balancing_nops_start; i < open_loop_fullness_tracker_balancing_nops_end; i++)
+        {
+            open_loop_fullness_tracker_balancing_nops.push_back(i);
+        }
+
+        FILE* open_loop_fullness_tracker_csv_file = NULL;
+        std::ofstream open_loop_fullness_tracker_raw_csv_file;
+        #if WRITE_CSV == 1
+        open_loop_fullness_tracker_csv_file = fopen("report_open_loop_fullness_tracker.csv", "w");
+        open_loop_fullness_tracker_raw_csv_file.open("report_open_loop_fullness_tracker_raw.csv", std::ofstream::out);
+        #endif
+
+        run_open_loop_fullness_tracker_kernel(profiler,
+                            cpu_a, 
+                            cpu_b, 
+                            open_loop_fullness_tracker_array_lengths, 
+                            open_loop_fullness_tracker_block_sizes, 
+                            open_loop_fullness_tracker_balancing_nops, 
+                            open_loop_fullness_tracker_initial_nops, 
+                            open_loop_fullness_tracker_checkPeriod,
+                            open_loop_fullness_tracker_alignment, 
+                            open_loop_fullness_tracker_max_block_transfers, 
+                            open_loop_fullness_tracker_trackerLen,
+                            open_loop_fullness_tracker_csv_file, 
+                            &open_loop_fullness_tracker_raw_csv_file);
+
+        fclose(open_loop_fullness_tracker_csv_file);
+        open_loop_fullness_tracker_raw_csv_file.close();
+    }
+    #endif
+
+    #if TEST_OPEN_LOOP_PAST_FAILURE == 1
+    printf("\n");
+
+    //===== Test 5.2 - Open Loop Run Past Failure =====
+    {
+        size_t open_loop_array_length_start = 60;
+        size_t open_loop_array_length_end = 69;
+
+        int32_t open_loop_block_size_start = 28;
+        int32_t open_loop_block_size_end = 35;
+
+        int32_t open_loop_balancing_nops_start = -10;
+        int32_t open_loop_balancing_nops_end = 10;
+
+        int open_loop_num_under_overflow_records = 64;
+
+        std::vector<int> open_loop_initial_nops = {0};
+
+        int open_loop_alignment = 4; //Align to 4 byte (32 bit) words
+        int open_loop_max_block_transfers = 2000000000;
+
+        std::vector<size_t> open_loop_array_lengths;
+        for(int i = open_loop_array_length_start; i < open_loop_array_length_end; i++)
+        {
+            open_loop_array_lengths.push_back(i);
+        }
+
+        std::vector<int32_t> open_loop_block_sizes;
+        for(int i = open_loop_block_size_start; i < open_loop_block_size_end; i++)
+        {
+            open_loop_block_sizes.push_back(i);
+        }
+
+        std::vector<int32_t> open_loop_balancing_nops;
+        for(int i = open_loop_balancing_nops_start; i < open_loop_balancing_nops_end; i++)
+        {
+            open_loop_balancing_nops.push_back(i);
+        }
+
+        FILE* open_loop_run_past_failure_csv_file = NULL;
+        std::ofstream open_loop_run_past_failure_raw_csv_file;
+        #if WRITE_CSV == 1
+        open_loop_run_past_failure_csv_file = fopen("report_open_loop_run_past_failure.csv", "w");
+        open_loop_run_past_failure_raw_csv_file.open("report_open_loop_run_past_failure_raw.csv", std::ofstream::out);
+        #endif
+
+        run_open_loop_run_past_failure_kernel(profiler, cpu_a, cpu_b, open_loop_array_lengths, open_loop_block_sizes, open_loop_balancing_nops, open_loop_initial_nops, open_loop_num_under_overflow_records, open_loop_alignment, open_loop_max_block_transfers, open_loop_run_past_failure_csv_file, &open_loop_run_past_failure_raw_csv_file);
+
+        fclose(open_loop_run_past_failure_csv_file);
+        open_loop_run_past_failure_raw_csv_file.close();
+    }
+    #endif
+
+    printf("\n");
+
+    #endif
+
+    #if TEST_CLOSED_LOOP_BANG==1
+
+    //===== Test 6 - Closed Loop Bang Control =====
+    size_t closed_loop_array_length_start = 62;
+    size_t closed_loop_array_length_end = 63;
+
+    int32_t closed_loop_block_size_start = 32;
+    int32_t closed_loop_block_size_end = 33;
+
+    int32_t closed_loop_control_period_start = 0;
+    int32_t closed_loop_control_period_step = 10;
+    int32_t closed_loop_control_period_end = 1010;
+
+    int32_t closed_loop_client_control_period_start = 0;
+    int32_t closed_loop_client_control_period_step = 10;
+    int32_t closed_loop_client_control_period_end = 2010;
+
+    float closed_loop_control_gain_start = 0;
+    float closed_loop_control_gain_step = 1;
+    float closed_loop_control_gain_end = 2000;
+
+    std::vector<float> closed_loop_initial_nops = {0, 100, 500, 1000};
+
+    int closed_loop_alignment = 4; //Align to 4 byte (32 bit) words
+    int closed_loop_max_block_transfers = 200000;
+
+    std::vector<size_t> closed_loop_array_lengths;
+    for(int i = closed_loop_array_length_start; i < closed_loop_array_length_end; i++)
+    {
+        closed_loop_array_lengths.push_back(i);
+    }
+
+    std::vector<int32_t> closed_loop_block_sizes;
+    for(int i = closed_loop_block_size_start; i < closed_loop_block_size_end; i++)
+    {
+        closed_loop_block_sizes.push_back(i);
+    }
+
+    std::vector<int32_t> closed_loop_control_periods;
+    for(int i = closed_loop_control_period_start; i < closed_loop_control_period_end; i+=closed_loop_control_period_step)
+    {
+        closed_loop_control_periods.push_back(i);
+    }
+
+    std::vector<int32_t> closed_loop_client_control_periods;
+    for(int i = closed_loop_client_control_period_start; i < closed_loop_client_control_period_end; i+=closed_loop_client_control_period_step)
+    {
+        closed_loop_client_control_periods.push_back(i);
+    }
+
+    std::vector<float> closed_loop_control_gains;
+    for(float i = closed_loop_control_gain_start; i < closed_loop_control_gain_end; i+=closed_loop_control_gain_step)
+    {
+        closed_loop_control_gains.push_back(i);
+    }
+
+
+    FILE* closed_loop_bang_control_csv_file = NULL;
+    std::ofstream closed_loop_bang_control_raw_csv_file;
+    #if WRITE_CSV == 1
+    closed_loop_bang_control_csv_file = fopen("report_closed_loop_bang_control.csv", "w");
+    closed_loop_bang_control_raw_csv_file.open("report_closed_loop_bang_control_raw.csv", std::ofstream::out);
+    #endif
+
+    run_closed_loop_bang_control_kernel(profiler, cpu_a, cpu_b, closed_loop_array_lengths, closed_loop_block_sizes, closed_loop_control_periods, closed_loop_client_control_periods, closed_loop_control_gains, closed_loop_initial_nops, closed_loop_alignment, closed_loop_max_block_transfers, closed_loop_bang_control_csv_file, &closed_loop_bang_control_raw_csv_file);
+
+    fclose(closed_loop_bang_control_csv_file);
+    closed_loop_bang_control_raw_csv_file.close();
+
+    printf("\n");
+
+    #endif
+
+    #if TEST_CLOSED_LOOP_PI==1
+    //===== Test 6.1 - Closed Loop PI Control =====
+    size_t closed_loop_pi_array_length_start = 62;
+    size_t closed_loop_pi_array_length_end = 63;
+
+    int32_t closed_loop_pi_block_size_start = 32;
+    int32_t closed_loop_pi_block_size_end = 33;
+
+    int32_t closed_loop_pi_control_period_start = 0;
+    int32_t closed_loop_pi_control_period_step = 10;
+    int32_t closed_loop_pi_control_period_end = 1010;
+
+    int32_t closed_loop_pi_client_control_period_start = 0;
+    int32_t closed_loop_pi_client_control_period_step = 10;
+    int32_t closed_loop_pi_client_control_period_end = 2010;
+
+    float closed_loop_pi_control_gain_p_start = 0;
+    float closed_loop_pi_control_gain_p_step = 1;
+    float closed_loop_pi_control_gain_p_end = 2000;
+
+    float closed_loop_pi_control_gain_i_start = 0;
+    float closed_loop_pi_control_gain_i_step = 1;
+    float closed_loop_pi_control_gain_i_end = 2000;
+
+    float closed_loop_pi_control_base_gain_start = 0.01;
+    float closed_loop_pi_control_base_gain_step = 0.1;
+    float closed_loop_pi_control_base_gain_end = 0.02;
+
+    std::vector<float> closed_loop_pi_initial_nops = {0, 100, 500, 1000};
+
+    int closed_loop_pi_alignment = 4; //Align to 4 byte (32 bit) words
+    int closed_loop_pi_max_block_transfers = 200000;
+
+    std::vector<size_t> closed_loop_pi_array_lengths;
+    for(int i = closed_loop_pi_array_length_start; i < closed_loop_pi_array_length_end; i++)
+    {
+        closed_loop_pi_array_lengths.push_back(i);
+    }
+
+    std::vector<int32_t> closed_loop_pi_block_sizes;
+    for(int i = closed_loop_pi_block_size_start; i < closed_loop_pi_block_size_end; i++)
+    {
+        closed_loop_pi_block_sizes.push_back(i);
+    }
+
+    std::vector<int32_t> closed_loop_pi_control_periods;
+    for(int i = closed_loop_pi_control_period_start; i < closed_loop_pi_control_period_end; i+=closed_loop_pi_control_period_step)
+    {
+        closed_loop_pi_control_periods.push_back(i);
+    }
+
+    std::vector<int32_t> closed_loop_pi_client_control_periods;
+    for(int i = closed_loop_pi_client_control_period_start; i < closed_loop_pi_client_control_period_end; i+=closed_loop_pi_client_control_period_step)
+    {
+        closed_loop_pi_client_control_periods.push_back(i);
+    }
+
+    std::vector<float> closed_loop_pi_control_gains_p;
+    for(float i = closed_loop_pi_control_gain_p_start; i < closed_loop_pi_control_gain_p_end; i+=closed_loop_pi_control_gain_p_step)
+    {
+        closed_loop_pi_control_gains_p.push_back(i);
+    }
+
+    std::vector<float> closed_loop_pi_control_gains_i;
+    for(float i = closed_loop_pi_control_gain_i_start; i < closed_loop_pi_control_gain_i_end; i+=closed_loop_pi_control_gain_i_step)
+    {
+        closed_loop_pi_control_gains_i.push_back(i);
+    }
+
+    std::vector<float> closed_loop_pi_control_base_gains;
+    for(float i = closed_loop_pi_control_base_gain_start; i < closed_loop_pi_control_base_gain_end; i+=closed_loop_pi_control_base_gain_step)
+    {
+        closed_loop_pi_control_base_gains.push_back(i);
+    }
+
+    FILE* closed_loop_pi_bang_control_csv_file = NULL;
+    std::ofstream closed_loop_pi_bang_control_raw_csv_file;
+    #if WRITE_CSV == 1
+    closed_loop_pi_bang_control_csv_file = fopen("report_closed_loop_pi_control.csv", "w");
+    closed_loop_pi_bang_control_raw_csv_file.open("report_closed_loop_pi_control_raw.csv", std::ofstream::out);
+    #endif
+
+    run_closed_loop_pi_control_period_kernel(profiler, cpu_a, cpu_b, closed_loop_pi_array_lengths, closed_loop_pi_block_sizes, closed_loop_pi_control_periods, closed_loop_pi_client_control_periods, closed_loop_pi_control_gains_p, closed_loop_pi_control_gains_i, closed_loop_pi_control_base_gains, closed_loop_pi_initial_nops, closed_loop_pi_alignment, closed_loop_pi_max_block_transfers, closed_loop_pi_bang_control_csv_file, &closed_loop_pi_bang_control_raw_csv_file);
+
+    fclose(closed_loop_pi_bang_control_csv_file);
+    closed_loop_pi_bang_control_raw_csv_file.close();
+
+    printf("\n");
     #endif
 
     //########## Parallel Runs ##########

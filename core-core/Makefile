@@ -1,6 +1,7 @@
 BUILD_DIR=build
 DEPENDS_DIR=../depends
 COMMON_DIR=../common
+SIR_DIR=$(DEPENDS_DIR)/sir/module
 SRC_DIR=.
 
 #Parameters that can be supplied to this makefile
@@ -19,16 +20,16 @@ UNAME:=$(shell uname)
 #CXX=g++
 #CXX = $(MPICXX)
 #Main Benchmark file is not optomized to avoid timing code being re-organized
-CFLAGS = -O0 -c -g -std=c++11 -march=native -masm=att
+CFLAGS = -O3 -c -g -std=c++11 -march=native -masm=att
 #Most kernels are allowed to be optomized.  Most assembly kernels use asm 'volitile' to force execution
 KERNEL_CFLAGS = -O3 -c -g -std=c++11 -march=native -masm=att
 #For kernels that should not be optimized, the following is used
 KERNEL_NO_OPT_CFLAGS = -O0 -c -g -std=c++11 -march=native -masm=att
-INC=-I $(COMMON_DIR)
+INC=-I $(COMMON_DIR) -I $(SIR_DIR)
 LIB_DIRS=-L $(COMMON_DIR)
 LIB=-pthread -lrt -lProfilerCommon -latomic
 
-TEST_CLASSES = -DTEST_SINGLE=1 -DTEST_FIFO=1 -DTEST_SIMULTANIOUS=1 -DTEST_FANIN_FANOUT=1
+TEST_CLASSES = -DTEST_SINGLE=1 -DTEST_FIFO=1 -DTEST_SIMULTANIOUS=1 -DTEST_FANIN_FANOUT=1 -DTEST_OPEN_LOOP=1 -DTEST_CLOSED_LOOP_BANG=1 -DTEST_CLOSED_LOOP_PI=1 -DTEST_OPEN_LOOP_FULLNESS_TRACKER=1 -DTEST_OPEN_LOOP_PAST_FAILURE=0
 
 #Will accept default defines
 DEFINES=-DWRITE_CSV=1
@@ -81,7 +82,8 @@ DEFINES+= -DUSE_SCHED_FIFO=0
 endif
 
 MAIN_FILE = core-core.cpp
-KERNEL_SRCS = latency_single_kernel.cpp latency_dual_kernel.cpp latency_single_array_kernel.cpp latency_dual_array_kernel.cpp latency_flow_ctrl_kernel.cpp latency_flow_ctrl_blocked_read_kernel.cpp bandwidth_circular_fifo_kernel.cpp bandwidth_circular_fifo_blocked_kernel.cpp bandwidth_circular_fifo_read_limit_kernel.cpp bandwidth_circular_fifo_blocked_cachedptr_kernel.cpp
+KERNEL_SRCS = latency_single_kernel.cpp latency_dual_kernel.cpp latency_single_array_kernel.cpp latency_dual_array_kernel.cpp latency_flow_ctrl_kernel.cpp latency_flow_ctrl_blocked_read_kernel.cpp bandwidth_circular_fifo_kernel.cpp bandwidth_circular_fifo_blocked_kernel.cpp bandwidth_circular_fifo_read_limit_kernel.cpp bandwidth_circular_fifo_blocked_cachedptr_kernel.cpp bandwidth_circular_fifo_blocked_optimized_kernel.cpp
+LIB_SRCS = reporting_helpers.cpp fifo_helpers.cpp open_loop_helpers.cpp print_results.cpp kernel_server_runner.cpp single_kernels.cpp array_kernels.cpp fifo_kernels.cpp open_loop_kernels.cpp closed_loop_kernels.cpp closed_loop_helpers.cpp fifoless_helpers.cpp open_loop_fullness_tracker.cpp open_loop_run_past_failure.cpp closed_loop_pi_buffer.cpp
 
 SRCS=$(MAIN_FILE)
 SRCS+=$(LIB_SRCS)

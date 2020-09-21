@@ -416,7 +416,7 @@ void AMDuProfProfiler::endTrialPowerProfile() {
 
     bool dumping = true;
 
-    double trialDuration = (std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(stop_hrc-start_hrc)).count();
+    double trialDuration = (std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(stop_steady-start_steady)).count();
 
     while(dumping){
         do{
@@ -508,7 +508,7 @@ TrialResult AMDuProfProfiler::computeTrialResult(){
     //and is therefore cumulative.
 
     //Emits a warning if the duration covered by the samples is < some percent of the duration measured
-    //by the high resolution timer for the trial.  This will effect the accuracy of the linear interpolation
+    //by the steady clock timer for the trial.  This will effect the accuracy of the linear interpolation
 
     //At the superclass level, we compute the durations
     TrialResult result = Profiler::computeTrialResult();
@@ -615,4 +615,14 @@ bool AMDuProfProfiler::checkFreqChanged(std::vector<int> socketsOfInterest)
 
 std::string AMDuProfProfiler::profilerName(){
     return "AMD uProf";
+}
+
+bool AMDuProfProfiler::supportsMultipleInstances(){
+    return false;
+}
+
+Profiler* AMDuProfProfiler::clone(){
+    AMDuProfProfiler* cpy = new AMDuProfProfiler;
+    *cpy = *this;
+    return cpy;
 }
