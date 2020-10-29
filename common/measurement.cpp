@@ -1,5 +1,6 @@
 #include "measurement.h"
 #include <cmath>
+#include <stdexcept>
 
 std::string MeasurementHelper::HW_Granularity_toString(HW_Granularity granularity){
     switch(granularity){
