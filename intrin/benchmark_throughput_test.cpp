@@ -424,7 +424,7 @@ int main(int argc, char *argv[])
     //http://man7.org/linux/man-pages/man3/pthread_attr_setaffinity_np.3.html,
     //http://man7.org/linux/man-pages/man3/pthread_join.3.html
 
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(BENCH_NSET_AFFINITY)
 #else
     cpu_set_t cpuset;
 #endif
@@ -471,7 +471,7 @@ int main(int argc, char *argv[])
     #endif
 
 
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(BENCH_NSET_AFFINITY)
     fprintf(stderr, "Warning: Running on MacOS - Thread Affinity Not Set.  Disregard Core Number\n");
     //It looks like the best we could do would be to request that sets of threads be placed on the same L2 if possible.
     //https://forums.developer.apple.com/thread/44002

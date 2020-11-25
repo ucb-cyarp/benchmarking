@@ -13,7 +13,7 @@ CFLAGS = -O3 -c -g -std=c++11 -march=native -masm=att
 LIB_CFLAGS = -O0 -c -g -std=c++11 -march=native -masm=att
 INC=
 LIB_DIRS=
-LIB=-pthread -lrt 
+LIB=-pthread
 DEFINES=
 
 LIB_NAME = libProfilerCommon.a
@@ -28,7 +28,7 @@ DEFINES+= -DUSE_PCM=1
 DEPENDS+= $(DEPENDS_DIR)/pcm/Makefile
 INC+= -I $(DEPENDS_DIR)/pcm
 LIB_DIRS+= -L $(DEPENDS_DIR)/pcm
-LIB+= -lPCM
+LIB+= -lrt -lPCM
 #Need an additional include directory if on MacOS.
 #Using the technique in pcm makefile to detect MacOS
 UNAME:=$(shell uname)
