@@ -288,7 +288,7 @@ int main(int argc, char *argv[])
         int blockSizeBytes = BLOCK_SIZE_BYTES_START+BLOCK_SIZE_BYTES_STEP*i;
         for(int j = 0; j<CALIBRATE_TRIALS; j++){
             #ifdef WRITE_RESULTS
-                fprintf(csvFile, "%d,%f,%f\n", blockSizeBytes, txCal[i][j]*1.0e9, rxCal[i][j]*1.0e9);
+                fprintf(calibrateFile, "%d,%f,%f\n", blockSizeBytes, txCal[i][j]*1.0e9, rxCal[i][j]*1.0e9);
             #endif
             #ifdef PRINT_RESULTS
                 printf("%19d|%18f|%17f\n", blockSizeBytes, txCal[i][j]*1.0e9, rxCal[i][j]*1.0e9);
