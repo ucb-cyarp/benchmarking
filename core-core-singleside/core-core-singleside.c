@@ -276,10 +276,10 @@ int main(int argc, char *argv[])
         int blockSizeBytes = BLOCK_SIZE_BYTES_START+BLOCK_SIZE_BYTES_STEP*i;
         for(int j = 0; j<TRIALS; j++){
             #ifdef WRITE_RESULTS
-                fprintf(csvFile, "%d,%f,%f\n", blockSizeBytes, txDurations[i][j]/1.0e9, rxDurations[i][j]/1.0e9);
+                fprintf(csvFile, "%d,%f,%f\n", blockSizeBytes, txDurations[i][j]*1.0e9, rxDurations[i][j]*1.0e9);
             #endif
             #ifdef PRINT_RESULTS
-                printf("%19d|%20f|%18f\n", blockSizeBytes, txDurations[i][j]/1.0e9, rxDurations[i][j]/1.0e9);
+                printf("%19d|%20f|%18f\n", blockSizeBytes, txDurations[i][j]*1.0e9, rxDurations[i][j]*1.0e9);
             #endif
         }
     }
