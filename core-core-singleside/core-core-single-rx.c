@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <time.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "core-core-single-rx.h"
 #include "core-core-single-threadhelpers.h"
@@ -77,4 +78,6 @@ void* core_core_single_rx_thread(void* args){
             : "r" (*(const TYPE_TO_TRANSFER (*)[]) localBuffer) //See https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html for information for "string memory arguments"
             :);
     }
+
+    return NULL;
 }

@@ -1,3 +1,7 @@
+#ifndef _GNU_SOURCE
+    #define _GNU_SOURCE //For clock_gettime
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdatomic.h>
@@ -5,6 +9,8 @@
 #include <assert.h>
 #include <pthread.h>
 #include <errno.h>
+#include <unistd.h>
+#include <sched.h>
 
 #include "core-core-singleside-commonDefines.h"
 #include "vitisNumaAllocHelpers.h"
@@ -23,7 +29,7 @@ int main(int argc, char *argv[])
     //*** Parse Arguments ***
     if(argc != 3)
     {
-        printf("core-core core-a core-b [core-c core-d]\n"
+        printf("core-core core-a core-b\n"
                "    core-tx: Processor ID for the sending processor core\n"
                "    core-rx: Processor ID for the recieving processor core\n");
         exit(1);
@@ -121,7 +127,7 @@ int main(int argc, char *argv[])
             printf("Could not create pthread attributes ... exiting");
             exit(1);
         }
-        int status = pthread_attr_init(&attr_rx);
+        status = pthread_attr_init(&attr_rx);
         if (status != 0)
         {
             printf("Could not create pthread attributes ... exiting");
@@ -247,7 +253,7 @@ int main(int argc, char *argv[])
         fprintf(paramsFile, "cpu_rx,%d\n", cpu_rx);
         fprintf(paramsFile, "TRIALS,%d\n", TRIALS);
         fprintf(paramsFile, "DISCARD_TRIALS,%d\n", DISCARD_TRIALS);
-        fprintf(paramsFile, "TYPE_TO_TRANSFER_sizebytes,%d\n", sizeof(TYPE_TO_TRANSFER));
+        fprintf(paramsFile, "TYPE_TO_TRANSFER_sizebytes,%lu\n", sizeof(TYPE_TO_TRANSFER));
         fprintf(paramsFile, "BLOCK_SIZE_BYTES_START,%d\n", BLOCK_SIZE_BYTES_START);
         fprintf(paramsFile, "BLOCK_SIZE_BYTES_STEP,%d\n", BLOCK_SIZE_BYTES_STEP);
         fprintf(paramsFile, "BLOCK_SIZE_BYTES_STEPS,%d\n", BLOCK_SIZE_BYTES_STEPS);
@@ -273,7 +279,7 @@ int main(int argc, char *argv[])
                 fprintf(csvFile, "%d,%f,%f\n", blockSizeBytes, txDurations[i][j]/1.0e9, rxDurations[i][j]/1.0e9);
             #endif
             #ifdef PRINT_RESULTS
-                printf("%19f|%20f|%18f\n", blockSizeBytes, txDurations[i][j]/1.0e9, rxDurations[i][j]/1.0e9);
+                printf("%19d|%20f|%18f\n", blockSizeBytes, txDurations[i][j]/1.0e9, rxDurations[i][j]/1.0e9);
             #endif
         }
     }

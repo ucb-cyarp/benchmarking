@@ -1,7 +1,14 @@
+#ifndef _GNU_SOURCE
+    #define _GNU_SOURCE //For clock_gettime
+#endif
 
 #include <stdatomic.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <sched.h>
+
 #include "core-core-single-threadhelpers.h"
 
 void* init_atomic_thread(void* args){

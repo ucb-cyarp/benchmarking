@@ -6,7 +6,7 @@ UNAME:=$(shell uname)
 #Compiler Parameters
 CC=clang
 #Main Benchmark file is not optomized to avoid timing code being re-organized
-CFLAGS = -O3 -c -g -std=c++11 -march=native -masm=att
+CFLAGS = -O3 -c -g -std=gnu11 -march=native -masm=att
 LIB=-pthread -lrt -latomic
 
 SRCS=core-core-single-rx.c core-core-single-threadhelpers.c core-core-single-tx.c core-core-singleside.c telemetry_helpers.c vitisNumaAllocHelpers.c
@@ -26,7 +26,7 @@ $(BUILD_DIR)/:
 	mkdir -p $@
 	
 clean:
-	rm -f core-core
+	rm -f core-core-singleside
 	rm -rf build/*
 
 # print_cfg:

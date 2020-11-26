@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <time.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "core-core-single-tx.h"
 #include "core-core-single-threadhelpers.h"
@@ -70,4 +71,6 @@ void* core_core_single_tx_thread(void* args){
         clock_gettime(CLOCK_MONOTONIC, endTimes+i);
         asm volatile ("" ::: "memory"); //Stop Re-ordering of timer
     }
+
+    return NULL;
 }
