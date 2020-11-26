@@ -5,6 +5,8 @@
 
 #define TRIALS (100)
 
+#define CALIBRATE_TRIALS (100)
+
 #define DISCARD_TRIALS (4)
 
 #define TYPE_TO_TRANSFER double

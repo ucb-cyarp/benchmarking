@@ -42,7 +42,26 @@ void* core_core_single_rx_thread(void* args){
     _Atomic int8_t *rxFlagRemote = argsCast->rxFlag;
     TYPE_TO_TRANSFER *sharedBuffer = argsCast->sharedBuffer;
 
+    int calTrials = argsCast->trialsCalibrate;
     int trials = argsCast->trialsIncludingDiscards;
+
+    //Get Calibration
+    for(int i = 0; i<calTrials; i++){
+        //Record Start Time
+        timespec_t startTime;
+        asm volatile ("" ::: "memory"); //Stop Re-ordering of timer
+        clock_gettime(CLOCK_MONOTONIC, &startTime);
+        asm volatile ("" ::: "memory"); //Stop Re-ordering of timer
+
+        //Record Stop Time (in local array)
+        timespec_t endTime;
+        asm volatile ("" ::: "memory"); //Stop Re-ordering of timer
+        clock_gettime(CLOCK_MONOTONIC, &endTime);
+        asm volatile ("" ::: "memory"); //Stop Re-ordering of timer
+
+        startTimes[i] = startTime;
+        endTimes[i] = endTime;
+    }
 
     //The first n timed entries will be discarded in the reporting thread
     for(int i = 0; i<trials; i++){
@@ -56,8 +75,9 @@ void* core_core_single_rx_thread(void* args){
         }while(!txReady);
 
         //Start timer
+        timespec_t startTime;
         asm volatile ("" ::: "memory"); //Stop Re-ordering of timer
-        clock_gettime(CLOCK_MONOTONIC, startTimes+i);
+        clock_gettime(CLOCK_MONOTONIC, &startTime);
         asm volatile ("" ::: "memory"); //Stop Re-ordering of timer
 
         //Copy shared array to local array
@@ -68,9 +88,13 @@ void* core_core_single_rx_thread(void* args){
         atomic_store_explicit(rxFlagRemote, rxFlagLocal, memory_order_release);
 
         //Stop timer
+        timespec_t endTime;
         asm volatile ("" ::: "memory"); //Stop Re-ordering of timer
-        clock_gettime(CLOCK_MONOTONIC, endTimes+i);
+        clock_gettime(CLOCK_MONOTONIC, &endTime);
         asm volatile ("" ::: "memory"); //Stop Re-ordering of timer
+
+        startTimes[calTrials+i] = startTime;
+        endTimes[calTrials+i] = endTime;
 
         //Add (virtual) dependency on local array 
         asm volatile(""

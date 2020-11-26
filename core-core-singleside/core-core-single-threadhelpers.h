@@ -28,6 +28,7 @@ typedef struct {
     int8_t initTxFlag;
     int8_t initRxFlag;
     int trialsIncludingDiscards;
+    int trialsCalibrate;
 } core_core_single_args_t;
 
 #endif

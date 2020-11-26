@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
     TYPE_TO_TRANSFER* sharedBuffer = vitis_aligned_alloc_core(CACHE_LINE_SIZE, maxBlockSizeBytes, cpu_tx);
 
     //=== Allocate Timer Arrays ===
-    int trialsToAlloc = TRIALS+DISCARD_TRIALS;
+    int trialsToAlloc = TRIALS+DISCARD_TRIALS+CALIBRATE_TRIALS;
     timespec_t *txStartTimes = vitis_aligned_alloc_core(CACHE_LINE_SIZE, sizeof(timespec_t)*trialsToAlloc, cpu_tx);
     timespec_t *txEndTimes = vitis_aligned_alloc_core(CACHE_LINE_SIZE, sizeof(timespec_t)*trialsToAlloc, cpu_tx);
 
@@ -79,6 +79,9 @@ int main(int argc, char *argv[])
     double txDurations[BLOCK_SIZE_BYTES_STEPS][TRIALS];
     double rxDurations[BLOCK_SIZE_BYTES_STEPS][TRIALS];
 
+    double txCal[BLOCK_SIZE_BYTES_STEPS][CALIBRATE_TRIALS];
+    double rxCal[BLOCK_SIZE_BYTES_STEPS][CALIBRATE_TRIALS];
+
     core_core_single_args_t *txArgs = vitis_aligned_alloc_core(CACHE_LINE_SIZE, sizeof(core_core_single_args_t), cpu_tx);
     core_core_single_args_t *rxArgs = vitis_aligned_alloc_core(CACHE_LINE_SIZE, sizeof(core_core_single_args_t), cpu_rx);
 
@@ -99,8 +102,10 @@ int main(int argc, char *argv[])
         rxArgs->rxFlag = rxFlag;
         txArgs->sharedBuffer = sharedBuffer;
         rxArgs->sharedBuffer = sharedBuffer;
-        txArgs->trialsIncludingDiscards = trialsToAlloc;
-        rxArgs->trialsIncludingDiscards = trialsToAlloc;
+        txArgs->trialsIncludingDiscards = TRIALS+DISCARD_TRIALS;
+        rxArgs->trialsIncludingDiscards = TRIALS+DISCARD_TRIALS;
+        txArgs->trialsCalibrate = CALIBRATE_TRIALS;
+        rxArgs->trialsCalibrate = CALIBRATE_TRIALS;
 
         //Tx Params
         txArgs->localBuffer = txLocalBuffer;
@@ -240,9 +245,14 @@ int main(int argc, char *argv[])
         }
         
         //+++ Compute times from returned timer arrays (discard early entries) +++
+        for(int trialInd = 0; trialInd < CALIBRATE_TRIALS; trialInd++){
+            txCal[i][trialInd] = difftimespec(txEndTimes+trialInd, txStartTimes+trialInd);
+            rxCal[i][trialInd] = difftimespec(rxEndTimes+trialInd, rxStartTimes+trialInd);
+        }
+
         for(int trialInd = 0; trialInd < TRIALS; trialInd++){
-            txDurations[i][trialInd] = difftimespec(txEndTimes+trialInd+DISCARD_TRIALS, txStartTimes+trialInd+DISCARD_TRIALS);
-            rxDurations[i][trialInd] = difftimespec(rxEndTimes+trialInd+DISCARD_TRIALS, rxStartTimes+trialInd+DISCARD_TRIALS);
+            txDurations[i][trialInd] = difftimespec(txEndTimes+trialInd+DISCARD_TRIALS+CALIBRATE_TRIALS, txStartTimes+trialInd+DISCARD_TRIALS+CALIBRATE_TRIALS);
+            rxDurations[i][trialInd] = difftimespec(rxEndTimes+trialInd+DISCARD_TRIALS+CALIBRATE_TRIALS, rxStartTimes+trialInd+DISCARD_TRIALS+CALIBRATE_TRIALS);
         }
     }
 
@@ -262,10 +272,29 @@ int main(int argc, char *argv[])
         fclose(paramsFile);
 
         //=== Dump to CSV ===
+        FILE* calibrateFile = fopen("core-core-single-side-calibrate.csv", "w");
         FILE* csvFile = fopen("core-core-single-side-report.csv", "w");
         //Print header
+        fprintf(calibrateFile, "BlockSize_bytes,TimeTx_ns,TimeRx_ns\n");
         fprintf(csvFile, "BlockSize_bytes,TimeToWrite_ns,TimeToRead_ns\n");
     #endif
+
+    #ifdef PRINT_RESULTS
+        printf("Block Size (Bytes) | Time Cal Tx (ns) | Time Cal Rx (ns)\n");
+    #endif
+
+    //Report calibration for trial in ns
+    for(int i = 0; i<BLOCK_SIZE_BYTES_STEPS; i++){
+        int blockSizeBytes = BLOCK_SIZE_BYTES_START+BLOCK_SIZE_BYTES_STEP*i;
+        for(int j = 0; j<CALIBRATE_TRIALS; j++){
+            #ifdef WRITE_RESULTS
+                fprintf(csvFile, "%d,%f,%f\n", blockSizeBytes, txCal[i][j]*1.0e9, rxCal[i][j]*1.0e9);
+            #endif
+            #ifdef PRINT_RESULTS
+                printf("%19d|%18f|%17f\n", blockSizeBytes, txCal[i][j]*1.0e9, rxCal[i][j]*1.0e9);
+            #endif
+        }
+    }
 
     #ifdef PRINT_RESULTS
         printf("Block Size (Bytes) | Time to Write (ns) | Time to Read (ns)\n");
@@ -287,6 +316,8 @@ int main(int argc, char *argv[])
     #ifdef WRITE_RESULTS
         fflush(csvFile);
         fclose(csvFile);
+        fflush(calibrateFile);
+        fclose(calibrateFile);
     #endif
 
     //=== Cleanup
