@@ -1,4 +1,6 @@
 # benchmarking
+Zenodo Concept DOI: [![Concept DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6526274.svg)](https://doi.org/10.5281/zenodo.6526274)
+
 Benchmarking for HW and SW DSP Implementations
 
 ## Citing This Software:
